@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # required for turbo diffing
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (affected only)
+        run: pnpm turbo run lint --filter=...[origin/main]
+
+      - name: Typecheck (affected only)
+        run: pnpm turbo run typecheck --filter=...[origin/main]
+
+      - name: Test (affected only)
+        run: pnpm turbo run test --filter=...[origin/main]
+
+      - name: Build (affected only)
+        run: pnpm turbo run build --filter=...[origin/main]
