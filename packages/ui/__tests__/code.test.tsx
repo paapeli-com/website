@@ -4,7 +4,7 @@ import { Code } from "../src/code";
 
 describe("Code", () => {
   it("renders children correctly", () => {
-    render(<Code>const test = 'hello';</Code>);
+    render(<Code>const test = &apos;hello&apos;;</Code>);
     expect(screen.getByText("const test = 'hello';")).toBeInTheDocument();
   });
 
