@@ -88,7 +88,7 @@ import { formatDate } from "@repo/utils";
 Run all tests.
 
 ```bash
-pnpm test
+pnpm run test
 ```
 # Adding a New App or Package
 ## Adding a New App

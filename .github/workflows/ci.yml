@@ -2,8 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
+    branches: [main, dev]
 
 jobs:
   ci:
@@ -19,22 +20,26 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
 
       - name: Enable pnpm
         run: corepack enable
 
+      - name: Setup pnpm cache
+        uses: actions/setup-node@v4
+        with:
+          cache: 'pnpm'
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint (affected only)
-        run: pnpm turbo run lint --filter=...[origin/main]
+      - name: Lint
+        run: pnpm turbo run lint
 
-      - name: Typecheck (affected only)
-        run: pnpm turbo run typecheck --filter=...[origin/main]
+      - name: Type check
+        run: pnpm turbo run check-types
 
-      - name: Test (affected only)
-        run: pnpm turbo run test --filter=...[origin/main]
+      - name: Run tests
+        run: pnpm turbo run test
 
-      - name: Build (affected only)
-        run: pnpm turbo run build --filter=...[origin/main]
+      - name: Build
+        run: pnpm turbo run build
