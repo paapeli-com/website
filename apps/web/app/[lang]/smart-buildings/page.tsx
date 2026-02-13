@@ -1,27 +1,29 @@
-'use client';
- 
 import { Navigation } from "@/components/Navigation";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { getTranslation, isRTL as checkRTL } from "@/lib/i18n/server";
+import type { Language } from "@/lib/i18n/translations";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Building2, Lightbulb, Wind, Shield, Zap, TrendingDown } from "lucide-react";
 import { PredictiveMaintenanceStats } from "@/components/PredictiveMaintenanceStats";
-import { useNavigate } from "react-router-dom";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
-const SmartBuildings = () => {
-  const { t, isRTL, language } = useLanguage();
-  const langPrefix = language === 'en' ? '' : `/${language}`;
-    const router = useRouter();
-     const navigate = (path: string) => {
-      const cleanPath = path.replace(/^\/(en|ar|fa)/, '');
-      const target =
-        language === 'en'
-          ? `/${cleanPath}`.replace('//', '/')
-          : `/${language}/${cleanPath}`.replace('//', '/');
+function localePath(language: string, path: string) {
+
     
-      router.push(target);
-    };
+    const cleanPath = path.replace(/^\/(en|ar|fa)/, '');
+  const target = `/${language}/${cleanPath}`.replace('//', '/');
+
+      
+  const clean = path.replace(/^\/(en|ar|fa)/, '').replace(/^\/+/, '');
+  // if (language === 'en') return `/${clean}` || '/';
+  return target;
+}
+
+export default async function SmartBuildingsPage({ params }: { params: { lang: Language } }) {
+  const { lang } = await params;
+  const t = getTranslation(lang);
+  const isRTL = checkRTL(lang);
+
   const features = [
     {
       icon: Lightbulb,
@@ -82,31 +84,35 @@ const SmartBuildings = () => {
   return (
     <div className="min-h-screen bg-background" dir={isRTL ? 'rtl' : 'ltr'}>
       <Navigation />
-      
+
       {/* Hero Section */}
       <section className="pt-32 pb-20 bg-gradient-to-br from-primary/10 to-secondary/10">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-5xl md:text-6xl font-bold mb-6 text-foreground">
-              {language === 'en' && 'Smart Building Solutions'}
-              {language === 'fa' && 'راهکارهای ساختمان هوشمند'}
-              {language === 'ar' && 'حلول المباني الذكية'}
+              {lang === 'en' && 'Smart Building Solutions'}
+              {lang === 'fa' && 'راهکارهای ساختمان هوشمند'}
+              {lang === 'ar' && 'حلول المباني الذكية'}
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
-              {language === 'en' && 'Transform buildings into intelligent, efficient spaces. Reduce energy costs, enhance comfort, and improve security with integrated IoT solutions.'}
-              {language === 'fa' && 'ساختمان‌ها را به فضاهای هوشمند و کارآمد تبدیل کنید. هزینه‌های انرژی را کاهش دهید، راحتی را افزایش دهید و امنیت را با راه‌حل‌های یکپارچه IoT بهبود بخشید.'}
-              {language === 'ar' && 'تحويل المباني إلى مساحات ذكية وفعالة. قلل تكاليف الطاقة، وعزز الراحة، وحسن الأمان بحلول إنترنت الأشياء المتكاملة.'}
+              {lang === 'en' && 'Transform buildings into intelligent, efficient spaces. Reduce energy costs, enhance comfort, and improve security with integrated IoT solutions.'}
+              {lang === 'fa' && 'ساختمان‌ها را به فضاهای هوشمند و کارآمد تبدیل کنید. هزینه‌های انرژی را کاهش دهید، راحتی را افزایش دهید و امنیت را با راه‌حل‌های یکپارچه IoT بهبود بخشید.'}
+              {lang === 'ar' && 'تحويل المباني إلى مساحات ذكية وفعالة. قلل تكاليف الطاقة، وعزز الراحة، وحسن الأمان بحلول إنترنت الأشياء المتكاملة.'}
             </p>
             <div className="flex gap-4 justify-center">
-              <Button size="lg" onClick={() => navigate(`${langPrefix}/request-demo`)}>
-                {language === 'en' && 'Learn More'}
-                {language === 'fa' && 'بیشتر بدانید'}
-                {language === 'ar' && 'اعرف المزيد'}
+              <Button size="lg" asChild>
+                <Link href={localePath(lang, 'request-demo')}>
+                  {lang === 'en' && 'Learn More'}
+                  {lang === 'fa' && 'بیشتر بدانید'}
+                  {lang === 'ar' && 'اعرف المزيد'}
+                </Link>
               </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate(`${langPrefix}/request-demo`)}>
-                {language === 'en' && 'Request Quote'}
-                {language === 'fa' && 'درخواست قیمت'}
-                {language === 'ar' && 'طلب عرض أسعار'}
+              <Button size="lg" variant="outline" asChild>
+                <Link href={localePath(lang, 'request-demo')}>
+                  {lang === 'en' && 'Request Quote'}
+                  {lang === 'fa' && 'درخواست قیمت'}
+                  {lang === 'ar' && 'طلب عرض أسعار'}
+                </Link>
               </Button>
             </div>
           </div>
@@ -117,9 +123,9 @@ const SmartBuildings = () => {
       <section className="py-20">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-foreground">
-            {language === 'en' && 'Integrated Building Management'}
-            {language === 'fa' && 'مدیریت یکپارچه ساختمان'}
-            {language === 'ar' && 'إدارة المباني المتكاملة'}
+            {lang === 'en' && 'Integrated Building Management'}
+            {lang === 'fa' && 'مدیریت یکپارچه ساختمان'}
+            {lang === 'ar' && 'إدارة المباني المتكاملة'}
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
@@ -128,14 +134,14 @@ const SmartBuildings = () => {
                   <feature.icon className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-foreground">
-                  {language === 'en' && feature.title}
-                  {language === 'fa' && feature.titleFa}
-                  {language === 'ar' && feature.titleAr}
+                  {lang === 'en' && feature.title}
+                  {lang === 'fa' && feature.titleFa}
+                  {lang === 'ar' && feature.titleAr}
                 </h3>
                 <p className="text-muted-foreground">
-                  {language === 'en' && feature.description}
-                  {language === 'fa' && feature.descriptionFa}
-                  {language === 'ar' && feature.descriptionAr}
+                  {lang === 'en' && feature.description}
+                  {lang === 'fa' && feature.descriptionFa}
+                  {lang === 'ar' && feature.descriptionAr}
                 </p>
               </Card>
             ))}
@@ -150,57 +156,57 @@ const SmartBuildings = () => {
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-foreground">
-            {language === 'en' && 'Perfect for Any Building Type'}
-            {language === 'fa' && 'مناسب برای هر نوع ساختمان'}
-            {language === 'ar' && 'مثالي لأي نوع من المباني'}
+            {lang === 'en' && 'Perfect for Any Building Type'}
+            {lang === 'fa' && 'مناسب برای هر نوع ساختمان'}
+            {lang === 'ar' && 'مثالي لأي نوع من المباني'}
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
             <Card className="p-6 text-center">
               <h3 className="text-xl font-bold mb-2 text-foreground">
-                {language === 'en' && 'Offices'}
-                {language === 'fa' && 'دفاتر'}
-                {language === 'ar' && 'المكاتب'}
+                {lang === 'en' && 'Offices'}
+                {lang === 'fa' && 'دفاتر'}
+                {lang === 'ar' && 'المكاتب'}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {language === 'en' && 'Optimize workplace efficiency'}
-                {language === 'fa' && 'بهینه‌سازی کارایی محل کار'}
-                {language === 'ar' && 'تحسين كفاءة مكان العمل'}
+                {lang === 'en' && 'Optimize workplace efficiency'}
+                {lang === 'fa' && 'بهینه‌سازی کارایی محل کار'}
+                {lang === 'ar' && 'تحسين كفاءة مكان العمل'}
               </p>
             </Card>
             <Card className="p-6 text-center">
               <h3 className="text-xl font-bold mb-2 text-foreground">
-                {language === 'en' && 'Hotels'}
-                {language === 'fa' && 'هتل‌ها'}
-                {language === 'ar' && 'الفنادق'}
+                {lang === 'en' && 'Hotels'}
+                {lang === 'fa' && 'هتل‌ها'}
+                {lang === 'ar' && 'الفنادق'}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {language === 'en' && 'Enhance guest experience'}
-                {language === 'fa' && 'بهبود تجربه مهمان'}
-                {language === 'ar' && 'تحسين تجربة الضيوف'}
+                {lang === 'en' && 'Enhance guest experience'}
+                {lang === 'fa' && 'بهبود تجربه مهمان'}
+                {lang === 'ar' && 'تحسين تجربة الضيوف'}
               </p>
             </Card>
             <Card className="p-6 text-center">
               <h3 className="text-xl font-bold mb-2 text-foreground">
-                {language === 'en' && 'Hospitals'}
-                {language === 'fa' && 'بیمارستان‌ها'}
-                {language === 'ar' && 'المستشفيات'}
+                {lang === 'en' && 'Hospitals'}
+                {lang === 'fa' && 'بیمارستان‌ها'}
+                {lang === 'ar' && 'المستشفيات'}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {language === 'en' && 'Improve patient care'}
-                {language === 'fa' && 'بهبود مراقبت از بیمار'}
-                {language === 'ar' && 'تحسين رعاية المرضى'}
+                {lang === 'en' && 'Improve patient care'}
+                {lang === 'fa' && 'بهبود مراقبت از بیمار'}
+                {lang === 'ar' && 'تحسين رعاية المرضى'}
               </p>
             </Card>
             <Card className="p-6 text-center">
               <h3 className="text-xl font-bold mb-2 text-foreground">
-                {language === 'en' && 'Retail'}
-                {language === 'fa' && 'خرده‌فروشی'}
-                {language === 'ar' && 'التجزئة'}
+                {lang === 'en' && 'Retail'}
+                {lang === 'fa' && 'خرده‌فروشی'}
+                {lang === 'ar' && 'التجزئة'}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {language === 'en' && 'Boost customer comfort'}
-                {language === 'fa' && 'افزایش راحتی مشتری'}
-                {language === 'ar' && 'تعزيز راحة العملاء'}
+                {lang === 'en' && 'Boost customer comfort'}
+                {lang === 'fa' && 'افزایش راحتی مشتری'}
+                {lang === 'ar' && 'تعزيز راحة العملاء'}
               </p>
             </Card>
           </div>
@@ -212,33 +218,33 @@ const SmartBuildings = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-foreground">
-              {language === 'en' && 'Proven Return on Investment'}
-              {language === 'fa' && 'بازگشت سرمایه اثبات شده'}
-              {language === 'ar' && 'عائد استثمار مثبت'}
+              {lang === 'en' && 'Proven Return on Investment'}
+              {lang === 'fa' && 'بازگشت سرمایه اثبات شده'}
+              {lang === 'ar' && 'عائد استثمار مثبت'}
             </h2>
             <div className="grid md:grid-cols-3 gap-8">
               <Card className="p-6 text-center">
                 <div className="text-5xl font-bold text-primary mb-2">35%</div>
                 <p className="text-muted-foreground">
-                  {language === 'en' && 'Energy Cost Savings'}
-                  {language === 'fa' && 'صرفه‌جویی در هزینه انرژی'}
-                  {language === 'ar' && 'توفير تكاليف الطاقة'}
+                  {lang === 'en' && 'Energy Cost Savings'}
+                  {lang === 'fa' && 'صرفه‌جویی در هزینه انرژی'}
+                  {lang === 'ar' && 'توفير تكاليف الطاقة'}
                 </p>
               </Card>
               <Card className="p-6 text-center">
                 <div className="text-5xl font-bold text-primary mb-2">50%</div>
                 <p className="text-muted-foreground">
-                  {language === 'en' && 'Maintenance Reduction'}
-                  {language === 'fa' && 'کاهش تعمیر و نگهداری'}
-                  {language === 'ar' && 'خفض الصيانة'}
+                  {lang === 'en' && 'Maintenance Reduction'}
+                  {lang === 'fa' && 'کاهش تعمیر و نگهداری'}
+                  {lang === 'ar' && 'خفض الصيانة'}
                 </p>
               </Card>
               <Card className="p-6 text-center">
                 <div className="text-5xl font-bold text-primary mb-2">20%</div>
                 <p className="text-muted-foreground">
-                  {language === 'en' && 'Productivity Increase'}
-                  {language === 'fa' && 'افزایش بهره‌وری'}
-                  {language === 'ar' && 'زيادة الإنتاجية'}
+                  {lang === 'en' && 'Productivity Increase'}
+                  {lang === 'fa' && 'افزایش بهره‌وری'}
+                  {lang === 'ar' && 'زيادة الإنتاجية'}
                 </p>
               </Card>
             </div>
@@ -251,28 +257,25 @@ const SmartBuildings = () => {
         <div className="container mx-auto px-4">
           <Card className="max-w-3xl mx-auto p-12 text-center bg-gradient-to-br from-primary/10 to-secondary/10">
             <h2 className="text-3xl font-bold mb-4 text-foreground">
-              {language === 'en' && 'Make Your Building Smarter'}
-              {language === 'fa' && 'ساختمان خود را هوشمندتر کنید'}
-              {language === 'ar' && 'اجعل مبناك أكثر ذكاءً'}
+              {lang === 'en' && 'Make Your Building Smarter'}
+              {lang === 'fa' && 'ساختمان خود را هوشمندتر کنید'}
+              {lang === 'ar' && 'اجعل مبناك أكثر ذكاءً'}
             </h2>
             <p className="text-xl text-muted-foreground mb-8">
-              {language === 'en' && 'Contact us to discuss your smart building project'}
-              {language === 'fa' && 'با ما تماس بگیرید تا در مورد پروژه ساختمان هوشمند خود صحبت کنید'}
-              {language === 'ar' && 'اتصل بنا لمناقشة مشروع مبناك الذكي'}
+              {lang === 'en' && 'Contact us to discuss your smart building project'}
+              {lang === 'fa' && 'با ما تماس بگیرید تا در مورد پروژه ساختمان هوشمند خود صحبت کنید'}
+              {lang === 'ar' && 'اتصل بنا لمناقشة مشروع مبناك الذكي'}
             </p>
-            <Button size="lg" onClick={() => navigate(`${langPrefix}/request-demo`)}>
-              {language === 'en' && 'Get Started'}
-              {language === 'fa' && 'شروع کنید'}
-              {language === 'ar' && 'ابدأ'}
+            <Button size="lg" asChild>
+              <Link href={localePath(lang, 'request-demo')}>
+                {lang === 'en' && 'Get Started'}
+                {lang === 'fa' && 'شروع کنید'}
+                {lang === 'ar' && 'ابدأ'}
+              </Link>
             </Button>
           </Card>
         </div>
       </section>
     </div>
   );
-};
-
-
-export default function SmartBuildingsPage() {
-  return <SmartBuildings />;
 }

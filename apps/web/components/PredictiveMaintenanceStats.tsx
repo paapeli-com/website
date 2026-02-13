@@ -1,3 +1,5 @@
+'use client';
+
 import { TrendingDown, DollarSign, TrendingUp, BarChart3 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 

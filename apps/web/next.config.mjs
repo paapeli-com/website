@@ -9,7 +9,6 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     domains: [],
-    unoptimized: true,
   },
     typescript: {
     ignoreBuildErrors: true,

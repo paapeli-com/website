@@ -1,5 +1,3 @@
-'use client';
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -18,26 +16,30 @@ import {
   Shield
 } from "lucide-react";
 import { Navigation } from "@/components/Navigation";
-import { SensorToInsightDiagram } from "@/components/SensorToInsightDiagram";
-import { useLanguage } from "@/contexts/LanguageContext";
-import heroBg from "@/src/assets/hero-bg.jpg";
+import { getTranslation, isRTL as checkRTL } from "@/lib/i18n/server";
+import type { Language } from "@/lib/i18n/translations";
 import otaUpdate from "@/src/assets/ota-update.jpg";
 import dashboardPreview from "@/src/assets/dashboard-preview.jpg";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
+import { SensorToInsightDiagramWrapper } from "@/components/SensorToInsightDiagramWrapper";
 
-const Index = () => {
-  const { t, isRTL, language } = useLanguage();
-  const router = useRouter();
- const navigate = (path: string) => {
-  const cleanPath = path.replace(/^\/(en|ar|fa)/, '');
-  const target =
-    language === 'en'
-      ? `/${cleanPath}`.replace('//', '/')
-      : `/${language}/${cleanPath}`.replace('//', '/');
+function localePath(language: string, path: string) {
 
-  router.push(target);
-};
+    
+    const cleanPath = path.replace(/^\/(en|ar|fa)/, '');
+  const target = `/${language}/${cleanPath}`.replace('//', '/');
+
+      
+  const clean = path.replace(/^\/(en|ar|fa)/, '').replace(/^\/+/, '');
+  // if (language === 'en') return `/${clean}` || '/';
+  return target;
+}
+
+export default async function Index({ params }: { params: { lang: Language } }) {
+  const { lang } = await params;
+  const t = getTranslation(lang);
+  const isRTL = checkRTL(lang);
 
   return (
    <div className="min-h-screen bg-background" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -45,7 +47,7 @@ const Index = () => {
       <Navigation />
 
       {/* Hero Section */}
-       <section 
+       <section
         className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16"
         style={{
           backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(/hero-bg.jpg)`,
@@ -62,23 +64,24 @@ const Index = () => {
               {t('heroSubtitle')}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8 py-6"
-                onClick={() => {
-                  const langPrefix = language !== 'en' ? `/${language}` : '';
-                  window.location.href = `https://panel.paapeli.com${language}/home`;
-                }}
+                asChild
               >
-                {t('getStarted')} <ArrowRight className={`${isRTL ? 'mr-2 rotate-180' : 'ml-2'} h-5 w-5`} />
+                <a href={`https://panel.paapeli.com${lang}/home`}>
+                  {t('getStarted')} <ArrowRight className={`${isRTL ? 'mr-2 rotate-180' : 'ml-2'} h-5 w-5`} />
+                </a>
               </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
+              <Button
+                size="lg"
+                variant="outline"
                 className="bg-white/10 backdrop-blur-sm text-white border-white hover:bg-white/20 text-lg px-8 py-6"
-                onClick={() => navigate(`${language}/request-demo`)}
+                asChild
               >
-                {t('learnMore')}
+                <Link href={localePath(lang, 'request-demo')}>
+                  {t('learnMore')}
+                </Link>
               </Button>
             </div>
           </div>
@@ -147,7 +150,7 @@ const Index = () => {
           <p className="text-xl text-center text-muted-foreground mb-12 max-w-3xl mx-auto">
             {t('dataFlowDesc')}
           </p>
-          <SensorToInsightDiagram />
+          <SensorToInsightDiagramWrapper />
         </div>
       </section>
 
@@ -195,12 +198,7 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className={`grid md:grid-cols-2 gap-12 items-center ${isRTL ? 'md:flex-row-reverse' : ''}`}>
             <div className={isRTL ? 'md:order-2' : ''}>
-              {/* <img 
-                src={otaUpdate} 
-                alt="OTA Updates" 
-                className="w-full rounded-lg shadow-xl"
-              /> */}
-              <Image alt="OTA Updates" src={otaUpdate} height={368} width={552} className="w-full rounded-lg shadow-xl"></Image>
+              <Image alt="OTA Updates" src={otaUpdate} height={368} width={552} className="w-full rounded-lg shadow-xl" />
             </div>
             <div className={isRTL ? 'md:order-1' : ''}>
               <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
@@ -227,18 +225,17 @@ const Index = () => {
             {t('dashboardDesc')}
           </p>
           <div className="max-w-6xl mx-auto mb-8">
-          
-
-              <Image  alt="Dashboard Preview" src={dashboardPreview} height={641.6} width={1152}  className="w-full rounded-lg shadow-2xl border border-border"></Image>
-
+            <Image alt="Dashboard Preview" src={dashboardPreview} height={641.6} width={1152} className="w-full rounded-lg shadow-2xl border border-border" />
           </div>
           <div className="text-center">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
-              onClick={() => window.location.href = 'https://panel.paapeli.com'}
+              asChild
             >
-              {t('seeLiveDemo')} <ArrowRight className={`${isRTL ? 'mr-2 rotate-180' : 'ml-2'} h-5 w-5`} />
+              <a href="https://panel.paapeli.com">
+                {t('seeLiveDemo')} <ArrowRight className={`${isRTL ? 'mr-2 rotate-180' : 'ml-2'} h-5 w-5`} />
+              </a>
             </Button>
           </div>
         </div>
@@ -254,20 +251,24 @@ const Index = () => {
             {t('ctaSubtitle')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8"
-              onClick={() => window.location.href = 'https://panel.paapeli.com'}
+              asChild
             >
-              {t('tryDashboard')} <ArrowRight className={`${isRTL ? 'mr-2 rotate-180' : 'ml-2'} h-5 w-5`} />
+              <a href="https://panel.paapeli.com">
+                {t('tryDashboard')} <ArrowRight className={`${isRTL ? 'mr-2 rotate-180' : 'ml-2'} h-5 w-5`} />
+              </a>
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
+            <Button
+              size="lg"
+              variant="outline"
               className="text-lg px-8 border-2"
-              onClick={() => navigate(`${language}/request-demo`)}
+              asChild
             >
-              {t('requestDemo')}
+              <Link href={localePath(lang, 'request-demo')}>
+                {t('requestDemo')}
+              </Link>
             </Button>
           </div>
         </div>
@@ -287,9 +288,9 @@ const Index = () => {
               <h4 className="font-semibold mb-4 text-foreground">{t('product')}</h4>
               <ul className="space-y-2 text-muted-foreground">
                 <li>
-                  <button onClick={() => navigate('/')} className="hover:text-primary transition-colors">
+                  <Link href={localePath(lang, '/')} className="hover:text-primary transition-colors">
                     {t('home')}
-                  </button>
+                  </Link>
                 </li>
                 <li>
                   <a href="https://docs.paapeli.com/" className="hover:text-primary transition-colors">
@@ -297,9 +298,9 @@ const Index = () => {
                   </a>
                 </li>
                 <li>
-                  <button onClick={() => navigate(`${language}/pricing`)} className="hover:text-primary transition-colors">
+                  <Link href={localePath(lang, 'pricing')} className="hover:text-primary transition-colors">
                     {t('pricing')}
-                  </button>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -307,14 +308,14 @@ const Index = () => {
               <h4 className="font-semibold mb-4 text-foreground">{t('resources')}</h4>
               <ul className="space-y-2 text-muted-foreground">
                 <li>
-                  <button onClick={() => navigate(`${language}/status`)} className="hover:text-primary transition-colors">
+                  <Link href={localePath(lang, 'status')} className="hover:text-primary transition-colors">
                     {t('status')}
-                  </button>
+                  </Link>
                 </li>
                 <li>
-                  <button onClick={() => navigate(`${language}/request-demo`)} className="hover:text-primary transition-colors">
+                  <Link href={localePath(lang, 'request-demo')} className="hover:text-primary transition-colors">
                     {t('contact')}
-                  </button>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -337,6 +338,4 @@ const Index = () => {
       </footer>
     </div>
   );
-};
-
-export default Index;
+}
