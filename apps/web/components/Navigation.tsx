@@ -78,7 +78,7 @@ export const Navigation = () => {
 
   return (
     <>
-      <div style={{ display: "none" }}>
+      <div style={{position:'fixed',top:1,zIndex:-111,pointerEvents:'none',opacity:0}}>
         {[
           ["makers-developers", "makersDevelopers"],
           ["oil-gas", "oilGas"],
@@ -86,15 +86,17 @@ export const Navigation = () => {
           ["smart-agriculture", "smartAgriculture"],
           ["smart-buildings", "smartBuildings"],
         ].map(([path, titleKey]) => (
-          <li key={path}>
+     
             <Link
+            prefetch
+             key={path + titleKey}
               dir={isRTL ? "rtl" : "ltr"}
               href={localePath(language, path)}
               className="block w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent hover:text-accent-foreground"
             >
               {t(titleKey)}
             </Link>
-          </li>
+      
         ))}
 
         {[
@@ -109,6 +111,8 @@ export const Navigation = () => {
           ["ota", "ota", "otaNavDesc"],
         ].map(([path, title, desc]) => (
           <Link
+          prefetch
+          key={path + title}
             href={localePath(language, path)}
             className={cn(
               "block w-full rounded-md p-3 text-left transition-colors",
@@ -118,12 +122,7 @@ export const Navigation = () => {
             <div className="text-sm font-medium" dir={isRTL ? "rtl" : "ltr"}>
               {t(title)}
             </div>
-            <p
-              className="text-xs text-muted-foreground"
-              dir={isRTL ? "rtl" : "ltr"}
-            >
-              {t(desc)}
-            </p>
+       
           </Link>
         ))}
       </div>

@@ -1,3 +1,5 @@
+'use client';
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -16,30 +18,26 @@ import {
   Shield
 } from "lucide-react";
 import { Navigation } from "@/components/Navigation";
-import { getTranslation, isRTL as checkRTL } from "@/lib/i18n/server";
-import type { Language } from "@/lib/i18n/translations";
+import { SensorToInsightDiagram } from "@/components/SensorToInsightDiagram";
+import { useLanguage } from "@/contexts/LanguageContext";
+import heroBg from "@/src/assets/hero-bg.jpg";
 import otaUpdate from "@/src/assets/ota-update.jpg";
 import dashboardPreview from "@/src/assets/dashboard-preview.jpg";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
-import { SensorToInsightDiagramWrapper } from "@/components/SensorToInsightDiagramWrapper";
 
-function localePath(language: string, path: string) {
+const Index = () => {
+  const { t, isRTL, language } = useLanguage();
+  const router = useRouter();
+ const navigate = (path: string) => {
+  const cleanPath = path.replace(/^\/(en|ar|fa)/, '');
+  const target =
+    language === 'en'
+      ? `/${cleanPath}`.replace('//', '/')
+      : `/${language}/${cleanPath}`.replace('//', '/');
 
-    
-    const cleanPath = path.replace(/^\/(en|ar|fa)/, '');
-  const target = `/${language}/${cleanPath}`.replace('//', '/');
-
-      
-  const clean = path.replace(/^\/(en|ar|fa)/, '').replace(/^\/+/, '');
-  // if (language === 'en') return `/${clean}` || '/';
-  return target;
-}
-
-export default async function Index({ params }: { params: { lang: Language } }) {
-  const { lang } = await params;
-  const t = getTranslation(lang);
-  const isRTL = checkRTL(lang);
+  router.push(target);
+};
 
   return (
    <div className="min-h-screen bg-background" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -47,7 +45,7 @@ export default async function Index({ params }: { params: { lang: Language } }) 
       <Navigation />
 
       {/* Hero Section */}
-       <section
+       <section 
         className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16"
         style={{
           backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(/hero-bg.jpg)`,
@@ -64,24 +62,23 @@ export default async function Index({ params }: { params: { lang: Language } }) 
               {t('heroSubtitle')}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                size="lg"
+              <Button 
+                size="lg" 
                 className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8 py-6"
-                asChild
+                onClick={() => {
+                  const langPrefix = language !== 'en' ? `/${language}` : '';
+                  window.location.href = `https://panel.paapeli.com${language}/home`;
+                }}
               >
-                <a href={`https://panel.paapeli.com${lang}/home`}>
-                  {t('getStarted')} <ArrowRight className={`${isRTL ? 'mr-2 rotate-180' : 'ml-2'} h-5 w-5`} />
-                </a>
+                {t('getStarted')} <ArrowRight className={`${isRTL ? 'mr-2 rotate-180' : 'ml-2'} h-5 w-5`} />
               </Button>
-              <Button
-                size="lg"
-                variant="outline"
+              <Button 
+                size="lg" 
+                variant="outline" 
                 className="bg-white/10 backdrop-blur-sm text-white border-white hover:bg-white/20 text-lg px-8 py-6"
-                asChild
+                onClick={() => navigate(`${language}/request-demo`)}
               >
-                <Link href={localePath(lang, 'request-demo')}>
-                  {t('learnMore')}
-                </Link>
+                {t('learnMore')}
               </Button>
             </div>
           </div>
@@ -150,7 +147,7 @@ export default async function Index({ params }: { params: { lang: Language } }) 
           <p className="text-xl text-center text-muted-foreground mb-12 max-w-3xl mx-auto">
             {t('dataFlowDesc')}
           </p>
-          <SensorToInsightDiagramWrapper />
+          <SensorToInsightDiagram />
         </div>
       </section>
 
@@ -198,7 +195,12 @@ export default async function Index({ params }: { params: { lang: Language } }) 
         <div className="container mx-auto px-4">
           <div className={`grid md:grid-cols-2 gap-12 items-center ${isRTL ? 'md:flex-row-reverse' : ''}`}>
             <div className={isRTL ? 'md:order-2' : ''}>
-              <Image alt="OTA Updates" src={otaUpdate} height={368} width={552} className="w-full rounded-lg shadow-xl" />
+              {/* <img 
+                src={otaUpdate} 
+                alt="OTA Updates" 
+                className="w-full rounded-lg shadow-xl"
+              /> */}
+              <Image alt="OTA Updates" src={otaUpdate} height={368} width={552} className="w-full rounded-lg shadow-xl"></Image>
             </div>
             <div className={isRTL ? 'md:order-1' : ''}>
               <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
@@ -225,17 +227,18 @@ export default async function Index({ params }: { params: { lang: Language } }) 
             {t('dashboardDesc')}
           </p>
           <div className="max-w-6xl mx-auto mb-8">
-            <Image alt="Dashboard Preview" src={dashboardPreview} height={641.6} width={1152} className="w-full rounded-lg shadow-2xl border border-border" />
+          
+
+              <Image  alt="Dashboard Preview" src={dashboardPreview} height={641.6} width={1152}  className="w-full rounded-lg shadow-2xl border border-border"></Image>
+
           </div>
           <div className="text-center">
-            <Button
-              size="lg"
+            <Button 
+              size="lg" 
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
-              asChild
+              onClick={() => window.location.href = 'https://panel.paapeli.com'}
             >
-              <a href="https://panel.paapeli.com">
-                {t('seeLiveDemo')} <ArrowRight className={`${isRTL ? 'mr-2 rotate-180' : 'ml-2'} h-5 w-5`} />
-              </a>
+              {t('seeLiveDemo')} <ArrowRight className={`${isRTL ? 'mr-2 rotate-180' : 'ml-2'} h-5 w-5`} />
             </Button>
           </div>
         </div>
@@ -251,24 +254,20 @@ export default async function Index({ params }: { params: { lang: Language } }) 
             {t('ctaSubtitle')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              size="lg"
+            <Button 
+              size="lg" 
               className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8"
-              asChild
+              onClick={() => window.location.href = 'https://panel.paapeli.com'}
             >
-              <a href="https://panel.paapeli.com">
-                {t('tryDashboard')} <ArrowRight className={`${isRTL ? 'mr-2 rotate-180' : 'ml-2'} h-5 w-5`} />
-              </a>
+              {t('tryDashboard')} <ArrowRight className={`${isRTL ? 'mr-2 rotate-180' : 'ml-2'} h-5 w-5`} />
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
+            <Button 
+              size="lg" 
+              variant="outline" 
               className="text-lg px-8 border-2"
-              asChild
+              onClick={() => navigate(`${language}/request-demo`)}
             >
-              <Link href={localePath(lang, 'request-demo')}>
-                {t('requestDemo')}
-              </Link>
+              {t('requestDemo')}
             </Button>
           </div>
         </div>
@@ -288,9 +287,9 @@ export default async function Index({ params }: { params: { lang: Language } }) 
               <h4 className="font-semibold mb-4 text-foreground">{t('product')}</h4>
               <ul className="space-y-2 text-muted-foreground">
                 <li>
-                  <Link href={localePath(lang, '/')} className="hover:text-primary transition-colors">
+                  <button onClick={() => navigate('/')} className="hover:text-primary transition-colors">
                     {t('home')}
-                  </Link>
+                  </button>
                 </li>
                 <li>
                   <a href="https://docs.paapeli.com/" className="hover:text-primary transition-colors">
@@ -298,9 +297,9 @@ export default async function Index({ params }: { params: { lang: Language } }) 
                   </a>
                 </li>
                 <li>
-                  <Link href={localePath(lang, 'pricing')} className="hover:text-primary transition-colors">
+                  <button onClick={() => navigate(`${language}/pricing`)} className="hover:text-primary transition-colors">
                     {t('pricing')}
-                  </Link>
+                  </button>
                 </li>
               </ul>
             </div>
@@ -308,14 +307,14 @@ export default async function Index({ params }: { params: { lang: Language } }) 
               <h4 className="font-semibold mb-4 text-foreground">{t('resources')}</h4>
               <ul className="space-y-2 text-muted-foreground">
                 <li>
-                  <Link href={localePath(lang, 'status')} className="hover:text-primary transition-colors">
+                  <button onClick={() => navigate(`${language}/status`)} className="hover:text-primary transition-colors">
                     {t('status')}
-                  </Link>
+                  </button>
                 </li>
                 <li>
-                  <Link href={localePath(lang, 'request-demo')} className="hover:text-primary transition-colors">
+                  <button onClick={() => navigate(`${language}/request-demo`)} className="hover:text-primary transition-colors">
                     {t('contact')}
-                  </Link>
+                  </button>
                 </li>
               </ul>
             </div>
@@ -338,4 +337,6 @@ export default async function Index({ params }: { params: { lang: Language } }) 
       </footer>
     </div>
   );
-}
+};
+
+export default Index;
