@@ -1,0 +1,25 @@
+/*
+ * Storybook docs — theme-aware CSS custom properties.
+ * The .dark class is toggled on <html> by @storybook/addon-themes.
+ */
+
+:root {
+  --docs-page-bg:    #f9fafb;
+  --docs-panel-bg:   #ffffff;
+  --docs-border:     #e5e7eb;
+  --docs-text:       #101828;
+  --docs-text-muted: #6a7282;
+}
+
+.dark {
+  --docs-page-bg:    #030712;
+  --docs-panel-bg:   #1e2939;
+  --docs-border:     #333e4f;
+  --docs-text:       #f9fafb;
+  --docs-text-muted: #62748e;
+}
+
+/* Subtle inset ring so pure-white swatches are visible against a white page */
+.swatch-box {
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.07);
+}

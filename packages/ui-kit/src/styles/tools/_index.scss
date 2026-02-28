@@ -1,0 +1,9 @@
+@forward 'functions';
+
+/// Wraps content in a CSS @layer block.
+/// Usage: @include tools.layer('utilities.theme-background') { … }
+@mixin layer($name) {
+  @layer #{$name} {
+    @content;
+  }
+}

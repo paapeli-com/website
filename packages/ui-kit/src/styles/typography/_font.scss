@@ -1,0 +1,35 @@
+@use '../settings';
+@use '../settings/font';
+@use '../tools';
+
+@if (settings.$typography-pack) {
+  @include tools.layer('utilities.typography') {
+    // Font family — .font-{name}
+    @each $name, $family in font.$font-families {
+      .font-#{$name} {
+        font-family: $family;
+      }
+    }
+
+    // Font size — .text-{name}
+    @each $name, $value in font.$font-sizes {
+      .text-#{$name} {
+        font-size: $value;
+      }
+    }
+
+    // Font weight — .font-{name}
+    @each $name, $value in font.$font-weights {
+      .font-#{$name} {
+        font-weight: $value;
+      }
+    }
+
+    // Letter spacing — .tracking-{name}
+    @each $name, $value in font.$letter-spacings {
+      .tracking-#{$name} {
+        letter-spacing: $value;
+      }
+    }
+  }
+}

@@ -1,0 +1,131 @@
+@use 'sass:map';
+@use 'sass:math';
+@use '../settings';
+@use '../settings/grid' as g;
+@use '../tools';
+
+@if (settings.$grid-pack) {
+  @include tools.layer('utilities.grid') {
+
+    // ── Container ─────────────────────────────────────────────────────────────
+    // Responsive max-width container, centred with horizontal padding.
+
+    .container {
+      width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+      padding-left: g.$container-padding;
+      padding-right: g.$container-padding;
+    }
+
+    @each $bp, $width in g.$breakpoints {
+      @media (min-width: #{$width}) {
+        .container { max-width: $width; }
+      }
+    }
+
+    // Full-width variant — keeps the padding but never constrains width.
+    .container-fluid {
+      width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+      padding-left: g.$container-padding;
+      padding-right: g.$container-padding;
+    }
+
+    // ── Flex Row ──────────────────────────────────────────────────────────────
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      margin-left: calc(g.$container-padding * -0.5);
+      margin-right: calc(g.$container-padding * -0.5);
+    }
+
+    // ── Flex Columns — .col / .col-{1..12} ───────────────────────────────────
+
+    .col {
+      flex: 1 1 0%;
+      padding-left: calc(g.$container-padding * 0.5);
+      padding-right: calc(g.$container-padding * 0.5);
+    }
+
+    @for $i from 1 through g.$grid-columns {
+      .col-#{$i} {
+        flex: 0 0 auto;
+        width: math.percentage(math.div($i, g.$grid-columns));
+        padding-left: calc(g.$container-padding * 0.5);
+        padding-right: calc(g.$container-padding * 0.5);
+      }
+    }
+
+    // ── Responsive Flex Columns — .col-{bp} / .col-{bp}-{1..12} ─────────────
+
+    @each $bp, $width in g.$breakpoints {
+      @media (min-width: #{$width}) {
+        .col-#{$bp} {
+          flex: 1 1 0%;
+          padding-left: calc(g.$container-padding * 0.5);
+          padding-right: calc(g.$container-padding * 0.5);
+        }
+
+        @for $i from 1 through g.$grid-columns {
+          .col-#{$bp}-#{$i} {
+            flex: 0 0 auto;
+            width: math.percentage(math.div($i, g.$grid-columns));
+            padding-left: calc(g.$container-padding * 0.5);
+            padding-right: calc(g.$container-padding * 0.5);
+          }
+        }
+      }
+    }
+
+    // ── CSS Grid Container — .grid ────────────────────────────────────────────
+
+    .grid {
+      display: grid;
+    }
+
+    // ── Grid Columns — .grid-cols-{1..12} ────────────────────────────────────
+
+    @for $i from 1 through g.$grid-columns {
+      .grid-cols-#{$i} { grid-template-columns: repeat(#{$i}, minmax(0, 1fr)); }
+    }
+
+    // ── Responsive Grid Columns — .grid-cols-{bp}-{1..12} ───────────────────
+
+    @each $bp, $width in g.$breakpoints {
+      @media (min-width: #{$width}) {
+        @for $i from 1 through g.$grid-columns {
+          .grid-cols-#{$bp}-#{$i} { grid-template-columns: repeat(#{$i}, minmax(0, 1fr)); }
+        }
+      }
+    }
+
+    // ── Col Span — .col-span-{1..12} / .col-span-full ────────────────────────
+
+    @for $i from 1 through g.$grid-columns {
+      .col-span-#{$i} { grid-column: span #{$i} / span #{$i}; }
+    }
+
+    .col-span-full { grid-column: 1 / -1; }
+
+    // ── Responsive Col Span — .col-span-{bp}-{1..12} / .col-span-{bp}-full ──
+
+    @each $bp, $width in g.$breakpoints {
+      @media (min-width: #{$width}) {
+        @for $i from 1 through g.$grid-columns {
+          .col-span-#{$bp}-#{$i} { grid-column: span #{$i} / span #{$i}; }
+        }
+        .col-span-#{$bp}-full { grid-column: 1 / -1; }
+      }
+    }
+
+    // ── Col Start — .col-start-{1..13} ───────────────────────────────────────
+
+    @for $i from 1 through (g.$grid-columns + 1) {
+      .col-start-#{$i} { grid-column-start: $i; }
+    }
+
+  }
+}

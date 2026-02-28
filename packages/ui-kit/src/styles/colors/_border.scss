@@ -1,0 +1,49 @@
+@use '../settings';
+@use '../settings/colors';
+@use '../tools';
+
+@mixin border-color($color_value) {
+  & {
+    border-color: $color_value;
+  }
+}
+
+@if (settings.$color-pack) {
+  @include tools.layer('utilities.theme-border') {
+    // Semantic tokens — light (default)
+    @each $name, $value in colors.$semantic-border-light {
+      .border-#{$name} {
+        border-color: $value;
+      }
+    }
+
+    // Semantic tokens — dark (.dark class on a parent element)
+    .dark {
+      @each $name, $value in colors.$semantic-border-dark {
+        .border-#{$name} {
+          border-color: $value;
+        }
+      }
+    }
+
+    @each $color_name, $color_value in colors.$shades {
+      .border-#{$color_name} {
+        @include border-color($color_value);
+      }
+    }
+
+    @each $color_name, $color_color in colors.$colors {
+      @each $color_type, $color_value in $color_color {
+        @if ($color_type == 'base') {
+          .border-#{$color_name} {
+            @include border-color($color_value);
+          }
+        } @else if ($color_type != 'shades') {
+          .border-#{$color_name}-#{$color_type} {
+            @include border-color($color_value);
+          }
+        }
+      }
+    }
+  }
+}
