@@ -12,10 +12,7 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "check-types": "tsc --noEmit",
-    "build:styles": "sass src/styles/main.scss dist/styles/main.css --no-source-map",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "build:styles": "sass src/styles/main.scss dist/styles/main.css --no-source-map"
   },
   "devDependencies": {
     "sass": "^1.97.3",
