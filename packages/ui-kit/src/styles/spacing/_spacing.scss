@@ -1,0 +1,32 @@
+@use '../settings';
+@use '../settings/spacing' as s;
+@use '../tools';
+
+@if (settings.$spacing-pack) {
+  @include tools.layer('utilities.spacing') {
+    @each $name, $value in s.$spacing {
+      // Padding
+      .p-#{$name}  { padding:        $value; }
+      .px-#{$name} { padding-left:   $value; padding-right:  $value; }
+      .py-#{$name} { padding-top:    $value; padding-bottom: $value; }
+      .pt-#{$name} { padding-top:    $value; }
+      .pr-#{$name} { padding-right:  $value; }
+      .pb-#{$name} { padding-bottom: $value; }
+      .pl-#{$name} { padding-left:   $value; }
+
+      // Margin
+      .m-#{$name}  { margin:        $value; }
+      .mx-#{$name} { margin-left:   $value; margin-right:  $value; }
+      .my-#{$name} { margin-top:    $value; margin-bottom: $value; }
+      .mt-#{$name} { margin-top:    $value; }
+      .mr-#{$name} { margin-right:  $value; }
+      .mb-#{$name} { margin-bottom: $value; }
+      .ml-#{$name} { margin-left:   $value; }
+
+      // Gap
+      .gap-#{$name}   { gap:        $value; }
+      .gap-x-#{$name} { column-gap: $value; }
+      .gap-y-#{$name} { row-gap:    $value; }
+    }
+  }
+}

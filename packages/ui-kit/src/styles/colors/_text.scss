@@ -1,0 +1,51 @@
+@use 'sass:map';
+@use '../settings';
+@use '../settings/colors';
+@use '../tools';
+@use '../tools/functions' as *;
+
+@mixin text-color($color_value) {
+  & {
+    color: $color_value;
+  }
+}
+
+@if (settings.$color-pack) {
+  @include tools.layer('utilities.theme-foreground') {
+    // Semantic tokens — light (default)
+    @each $name, $value in colors.$semantic-text-light {
+      .text-#{$name} {
+        color: $value;
+      }
+    }
+
+    // Semantic tokens — dark (.dark class on a parent element)
+    .dark {
+      @each $name, $value in colors.$semantic-text-dark {
+        .text-#{$name} {
+          color: $value;
+        }
+      }
+    }
+
+    @each $color_name, $color_value in colors.$shades {
+      .text-#{$color_name} {
+        @include text-color($color_value);
+      }
+    }
+
+    @each $color_name, $color_color in colors.$colors {
+      @each $color_type, $color_value in $color_color {
+        @if ($color_type == 'base') {
+          .text-#{$color_name} {
+            @include text-color($color_value);
+          }
+        } @else if ($color_type != 'shades') {
+          .text-#{$color_name}-#{$color_type} {
+            @include text-color($color_value);
+          }
+        }
+      }
+    }
+  }
+}

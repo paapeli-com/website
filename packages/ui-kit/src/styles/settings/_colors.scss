@@ -1,0 +1,779 @@
+@use 'sass:map';
+
+/// ─── Paapeli Design System — Color Definitions ──────────────────────────────
+///
+/// $shades           → flat map  : name → value   (generates .bg-black, .text-white, …)
+/// $colors           → nested map: name → (type → value)
+///                      'base' type   → .bg-{name}        / .text-{name}
+///                      other types   → .bg-{name}-{type} / .text-{name}-{type}
+/// $text-on-colors   → nested map: name → (type → text-color)
+///                      Automatically applied as color when a .bg-* class is used.
+/// $palette          → full design-system scale: name → (shade → value)
+/// $semantic-bg-light → semantic bg tokens for light mode  (generates .bg-{name})
+/// $semantic-bg-dark  → semantic bg tokens for dark mode   (.dark .bg-{name})
+
+// ─── Shades (neutrals + specials) ────────────────────────────────────────────
+
+$shades: (
+  'black':       hsl(0, 0%, 0%),
+  'white':       hsl(0, 0%, 100%),
+  'transparent': transparent,
+);
+
+// ─── Brand colors ─────────────────────────────────────────────────────────────
+//
+// Primary  → Paapeli orange  hsl(28, 100%, 50%)
+// Secondary → Paapeli teal   hsl(197, 100%, 36%)
+// Accent   → warm yellow     hsl(54, 87%, 93%)
+// Destructive → red          hsl(0, 84%, 60%)
+// Muted    → light neutral   hsl(0, 0%, 96%)
+// Foreground → deep navy     hsl(222, 47%, 11%)
+
+$colors: (
+  'primary': (
+    'base':      hsl(28, 100%, 50%),
+    'lighten-1': hsl(28, 100%, 60%),
+    'lighten-2': hsl(28, 100%, 70%),
+    'lighten-3': hsl(28, 100%, 80%),
+    'lighten-4': hsl(28, 100%, 90%),
+    'darken-1':  hsl(28, 100%, 40%),
+    'darken-2':  hsl(28, 100%, 28%),
+  ),
+
+  'secondary': (
+    'base':      hsl(197, 100%, 36%),
+    'lighten-1': hsl(197, 100%, 46%),
+    'lighten-2': hsl(197, 100%, 58%),
+    'lighten-3': hsl(197, 100%, 72%),
+    'lighten-4': hsl(197, 70%,  88%),
+    'darken-1':  hsl(197, 100%, 26%),
+    'darken-2':  hsl(197, 100%, 16%),
+  ),
+
+  'accent': (
+    'base':      hsl(54, 87%, 93%),
+    'darken-1':  hsl(54, 70%,  78%),
+    'darken-2':  hsl(54, 60%,  60%),
+  ),
+
+  'destructive': (
+    'base':      hsl(0, 84%, 60%),
+    'lighten-1': hsl(0, 84%, 72%),
+    'lighten-2': hsl(0, 84%, 84%),
+    'darken-1':  hsl(0, 63%,  40%),
+    'darken-2':  hsl(0, 63%,  28%),
+  ),
+
+  'muted': (
+    'base':      hsl(0, 0%, 96%),
+    'darken-1':  hsl(0, 0%, 88%),
+    'darken-2':  hsl(0, 0%, 78%),
+  ),
+
+  'foreground': (
+    'base':      hsl(222, 47%, 11%),
+    'lighten-1': hsl(222, 40%, 22%),
+    'lighten-2': hsl(222, 30%, 40%),
+    'muted':     hsl(215, 16%, 47%),
+  ),
+);
+
+// ─── Text colors applied automatically on .bg-* classes ──────────────────────
+//
+// Structure: (color-name: (color-type: foreground-value))
+
+$text-on-colors: (
+  'shades': (
+    'black':       hsl(0, 0%, 100%),
+    'white':       hsl(0, 0%, 0%),
+    'transparent': inherit,
+  ),
+
+  'primary': (
+    'base':      hsl(0, 0%, 100%),
+    'lighten-1': hsl(0, 0%, 100%),
+    'lighten-2': hsl(0, 0%, 100%),
+    'lighten-3': hsl(222, 47%, 11%),
+    'lighten-4': hsl(222, 47%, 11%),
+    'darken-1':  hsl(0, 0%, 100%),
+    'darken-2':  hsl(0, 0%, 100%),
+  ),
+
+  'secondary': (
+    'base':      hsl(0, 0%, 100%),
+    'lighten-1': hsl(0, 0%, 100%),
+    'lighten-2': hsl(0, 0%, 100%),
+    'lighten-3': hsl(222, 47%, 11%),
+    'lighten-4': hsl(222, 47%, 11%),
+    'darken-1':  hsl(0, 0%, 100%),
+    'darken-2':  hsl(0, 0%, 100%),
+  ),
+
+  'accent': (
+    'base':     hsl(222, 47%, 11%),
+    'darken-1': hsl(222, 47%, 11%),
+    'darken-2': hsl(0, 0%, 100%),
+  ),
+
+  'destructive': (
+    'base':      hsl(0, 0%, 100%),
+    'lighten-1': hsl(0, 0%, 100%),
+    'lighten-2': hsl(222, 47%, 11%),
+    'darken-1':  hsl(0, 0%, 100%),
+    'darken-2':  hsl(0, 0%, 100%),
+  ),
+
+  'muted': (
+    'base':     hsl(215, 16%, 47%),
+    'darken-1': hsl(215, 16%, 47%),
+    'darken-2': hsl(222, 47%, 11%),
+  ),
+
+  'foreground': (
+    'base':      hsl(0, 0%, 100%),
+    'lighten-1': hsl(0, 0%, 100%),
+    'lighten-2': hsl(0, 0%, 100%),
+    'muted':     hsl(0, 0%, 100%),
+  ),
+);
+
+// ─── Full Design-System Palette (from Figma) ─────────────────────────────────
+
+$palette: (
+  'brand': (
+    '50':  #fff6ef,
+    '100': #ffe7d1,
+    '200': #ffcda1,
+    '300': #ffae68,
+    '400': #ff8e2a,
+    '500': #ff7900,
+    '600': #d56300,
+    '700': #aa4f00,
+    '800': #803c00,
+    '900': #552800,
+    '950': #2b1400,
+  ),
+
+  'slate': (
+    '50':  #f8fafc,
+    '100': #f1f5f9,
+    '200': #e2e8f0,
+    '300': #cad5e2,
+    '400': #90a1b9,
+    '500': #62748e,
+    '600': #45556c,
+    '700': #314158,
+    '800': #1d293d,
+    '900': #0f172b,
+    '950': #020618,
+  ),
+
+  'gray': (
+    '50':  #f9fafb,
+    '100': #f3f4f6,
+    '200': #e5e7eb,
+    '300': #d1d5dc,
+    '400': #99a1af,
+    '500': #6a7282,
+    '600': #4a5565,
+    '700': #364153,
+    '800': #1e2939,
+    '900': #101828,
+    '950': #030712,
+  ),
+
+  'zinc': (
+    '50':  #fafafa,
+    '100': #f4f4f5,
+    '200': #e4e4e7,
+    '300': #d4d4d8,
+    '400': #9f9fa9,
+    '500': #71717b,
+    '600': #52525c,
+    '700': #3f3f46,
+    '800': #27272a,
+    '900': #18181b,
+    '950': #09090b,
+  ),
+
+  'neutral': (
+    '50':  #fafafa,
+    '100': #f5f5f5,
+    '200': #e5e5e5,
+    '300': #d4d4d4,
+    '400': #a1a1a1,
+    '500': #737373,
+    '600': #525252,
+    '700': #404040,
+    '800': #262626,
+    '900': #171717,
+    '950': #0a0a0a,
+  ),
+
+  'stone': (
+    '50':  #fafaf9,
+    '100': #f5f5f4,
+    '200': #e7e5e4,
+    '300': #d6d3d1,
+    '400': #a6a09b,
+    '500': #79716b,
+    '600': #57534d,
+    '700': #44403b,
+    '800': #292524,
+    '900': #1c1917,
+    '950': #0c0a09,
+  ),
+
+  'red': (
+    '50':  #fef2f2,
+    '100': #ffe2e2,
+    '200': #ffc9c9,
+    '300': #ffa2a2,
+    '400': #ff6467,
+    '500': #fb2c36,
+    '600': #e7000b,
+    '700': #c10007,
+    '800': #9f0712,
+    '900': #82181a,
+    '950': #460809,
+  ),
+
+  'orange': (
+    '50':  #fff8f1,
+    '100': #feecdc,
+    '200': #fcd9bd,
+    '300': #fdba8c,
+    '400': #ff8a4c,
+    '500': #ff5a1f,
+    '600': #d03801,
+    '700': #b43403,
+    '800': #8a2c0d,
+    '900': #771d1d,
+    '950': #441306,
+  ),
+
+  'amber': (
+    '50':  #fffbeb,
+    '100': #fef3c6,
+    '200': #fee685,
+    '300': #ffd230,
+    '400': #ffb900,
+    '500': #fe9a00,
+    '600': #e17100,
+    '700': #bb4d00,
+    '800': #973c00,
+    '900': #7b3306,
+    '950': #461901,
+  ),
+
+  'yellow': (
+    '50':  #fefce8,
+    '100': #fef9c2,
+    '200': #fff085,
+    '300': #ffdf20,
+    '400': #fdc700,
+    '500': #f0b100,
+    '600': #d08700,
+    '700': #a65f00,
+    '800': #894b00,
+    '900': #733e0a,
+    '950': #432004,
+  ),
+
+  'lime': (
+    '50':  #f7fee7,
+    '100': #ecfcca,
+    '200': #d8f999,
+    '300': #bbf451,
+    '400': #9ae600,
+    '500': #7ccf00,
+    '600': #5ea500,
+    '700': #497d00,
+    '800': #3c6300,
+    '900': #35530e,
+    '950': #192e03,
+  ),
+
+  'green': (
+    '50':  #f0fdf4,
+    '100': #dcfce7,
+    '200': #b9f8cf,
+    '300': #7bf1a8,
+    '400': #05df72,
+    '500': #00c950,
+    '600': #00a63e,
+    '700': #008236,
+    '800': #016630,
+    '900': #0d542b,
+    '950': #032e15,
+  ),
+
+  'emerald': (
+    '50':  #ecfdf5,
+    '100': #d0fae5,
+    '200': #a4f4cf,
+    '300': #5ee9b5,
+    '400': #00d492,
+    '500': #00bc7d,
+    '600': #009966,
+    '700': #007a55,
+    '800': #006045,
+    '900': #004f3b,
+    '950': #002c22,
+  ),
+
+  'teal': (
+    '50':  #f0fdfa,
+    '100': #cbfbf1,
+    '200': #96f7e4,
+    '300': #46ecd5,
+    '400': #00d5be,
+    '500': #00bba7,
+    '600': #009689,
+    '700': #00786f,
+    '800': #005f59,
+    '900': #0d4e4a,
+    '950': #032f2e,
+  ),
+
+  'cyan': (
+    '50':  #ecfeff,
+    '100': #cefafe,
+    '200': #a2f4fd,
+    '300': #53eafd,
+    '400': #00d3f2,
+    '500': #00b8db,
+    '600': #0092b8,
+    '700': #007595,
+    '800': #005f78,
+    '900': #104e64,
+    '950': #053345,
+  ),
+
+  'sky': (
+    '50':  #f0f9ff,
+    '100': #dff2fe,
+    '200': #b8e6fe,
+    '300': #74d4ff,
+    '400': #00bcff,
+    '500': #00a6f4,
+    '600': #0084d1,
+    '700': #0069a8,
+    '800': #00598a,
+    '900': #024a70,
+    '950': #052f4a,
+  ),
+
+  'blue': (
+    '50':  #eff6ff,
+    '100': #dbeafe,
+    '200': #bedbff,
+    '300': #8ec5ff,
+    '400': #51a2ff,
+    '500': #2b7fff,
+    '600': #155dfc,
+    '700': #1447e6,
+    '800': #193cb8,
+    '900': #1c398e,
+    '950': #162455,
+  ),
+
+  'indigo': (
+    '50':  #eef2ff,
+    '100': #e0e7ff,
+    '200': #c6d2ff,
+    '300': #a3b3ff,
+    '400': #7c86ff,
+    '500': #615fff,
+    '600': #4f39f6,
+    '700': #432dd7,
+    '800': #372aac,
+    '900': #312c85,
+    '950': #1e1a4d,
+  ),
+
+  'violet': (
+    '50':  #f5f3ff,
+    '100': #ede9fe,
+    '200': #ddd6ff,
+    '300': #c4b4ff,
+    '400': #a684ff,
+    '500': #8e51ff,
+    '600': #7f22fe,
+    '700': #7008e7,
+    '800': #5d0ec0,
+    '900': #4d179a,
+    '950': #2f0d68,
+  ),
+
+  'purple': (
+    '50':  #faf5ff,
+    '100': #f3e8ff,
+    '200': #e9d4ff,
+    '300': #dab2ff,
+    '400': #c27aff,
+    '500': #ad46ff,
+    '600': #9810fa,
+    '700': #8200db,
+    '800': #6e11b0,
+    '900': #59168b,
+    '950': #3c0366,
+  ),
+
+  'fuchsia': (
+    '50':  #fdf4ff,
+    '100': #fae8ff,
+    '200': #f6cfff,
+    '300': #f4a8ff,
+    '400': #ed6aff,
+    '500': #e12afb,
+    '600': #c800de,
+    '700': #a800b7,
+    '800': #8a0194,
+    '900': #721378,
+    '950': #4b004f,
+  ),
+
+  'pink': (
+    '50':  #fdf2f8,
+    '100': #fce7f3,
+    '200': #fccee8,
+    '300': #fda5d5,
+    '400': #fb64b6,
+    '500': #f6339a,
+    '600': #e60076,
+    '700': #c6005c,
+    '800': #a3004c,
+    '900': #861043,
+    '950': #510424,
+  ),
+
+  'rose': (
+    '50':  #fff1f2,
+    '100': #ffe4e6,
+    '200': #ffccd3,
+    '300': #ffa1ad,
+    '400': #ff637e,
+    '500': #ff2056,
+    '600': #ec003f,
+    '700': #c70036,
+    '800': #a50036,
+    '900': #8b0836,
+    '950': #4d0218,
+  ),
+);
+
+// ─── Semantic background tokens (Figma Design System) ────────────────────────
+//
+// Values are derived from $palette using map.get($palette, 'color', 'shade').
+// Each token's palette source is noted in parentheses: e.g. (gray-50).
+
+$semantic-bg-light: (
+  'white':             #ffffff,                                              // (white)
+  'primary-soft':      #ffffff,                                              // (white)
+  'primary':           #ffffff,                                              // (white)
+  'primary-medium':    #ffffff,                                              // (white)
+  'primary-strong':    #ffffff,                                              // (white)
+  'secondary-soft':    map.get($palette, 'gray', '50'),                      // (gray-50)
+  'secondary':         map.get($palette, 'gray', '50'),                      // (gray-50)
+  'secondary-medium':  map.get($palette, 'gray', '50'),                      // (gray-50)
+  'secondary-strong':  map.get($palette, 'gray', '50'),                      // (gray-50)
+  'tertiary-soft':     map.get($palette, 'gray', '100'),                     // (gray-100)
+  'tertiary':          map.get($palette, 'gray', '100'),                     // (gray-100)
+  'tertiary-medium':   map.get($palette, 'gray', '100'),                     // (gray-100)
+  'quaternary':        map.get($palette, 'gray', '200'),                     // (gray-200)
+  'quaternary-medium': map.get($palette, 'gray', '200'),                     // (gray-200)
+  'gray':              map.get($palette, 'gray', '300'),                     // (gray-300)
+  'brand-softer':      map.get($palette, 'brand', '50'),                     // (brand-50)
+  'brand-soft':        map.get($palette, 'brand', '100'),                    // (brand-100)
+  'brand-medium':      map.get($palette, 'brand', '200'),                    // (brand-200)
+  'brand':             map.get($palette, 'brand', '700'),                    // (brand-700)
+  'brand-strong':      map.get($palette, 'brand', '800'),                    // (brand-800)
+  'success-soft':      map.get($palette, 'emerald', '50'),                   // (emerald-50)
+  'success-medium':    map.get($palette, 'emerald', '100'),                  // (emerald-100)
+  'success':           map.get($palette, 'emerald', '700'),                  // (emerald-700)
+  'success-strong':    map.get($palette, 'emerald', '800'),                  // (emerald-800)
+  'info-soft':         map.get($palette, 'blue', '50'),                      // (blue-50)
+  'info-medium':       map.get($palette, 'blue', '100'),                     // (blue-100)
+  'info':              map.get($palette, 'blue', '700'),                     // (blue-700)
+  'info-strong':       map.get($palette, 'blue', '800'),                     // (blue-800)
+  'danger-soft':       map.get($palette, 'rose', '50'),                      // (rose-50)
+  'danger-medium':     map.get($palette, 'rose', '100'),                     // (rose-100)
+  'danger':            map.get($palette, 'rose', '700'),                     // (rose-700)
+  'danger-strong':     map.get($palette, 'rose', '800'),                     // (rose-800)
+  'warning-soft':      map.get($palette, 'orange', '50'),                    // (orange-50)
+  'warning-medium':    map.get($palette, 'orange', '100'),                   // (orange-100)
+  'warning':           map.get($palette, 'orange', '500'),                   // (orange-500)
+  'warning-strong':    map.get($palette, 'orange', '700'),                   // (orange-700)
+  'dark-strong':       map.get($palette, 'gray', '900'),                     // (gray-900)
+  'dark':              map.get($palette, 'gray', '800'),                     // (gray-800)
+  'disabled':          map.get($palette, 'gray', '100'),                     // (gray-100)
+  'purple':            map.get($palette, 'purple', '500'),                   // (purple-500)
+  'sky':               map.get($palette, 'sky', '500'),                      // (sky-500)
+  'teal':              map.get($palette, 'teal', '600'),                     // (teal-600)
+  'pink':              map.get($palette, 'pink', '600'),                     // (pink-600)
+  'cyan':              map.get($palette, 'cyan', '500'),                     // (cyan-500)
+  'fuchsia':           map.get($palette, 'fuchsia', '600'),                  // (fuchsia-600)
+  'indigo':            map.get($palette, 'indigo', '600'),                   // (indigo-600)
+  'orange':            map.get($palette, 'orange', '400'),                   // (orange-400)
+);
+
+// ─── Semantic text tokens (Figma Design System) ──────────────────────────────
+//
+// Values are derived from $palette using map.get($palette, 'color', 'shade').
+// Each token's palette source is noted in parentheses: e.g. (gray-900).
+
+$semantic-text-light: (
+  'white':             #ffffff,                                              // (white)
+  'primary-soft':      map.get($palette, 'gray', '900'),                     // (gray-900)
+  'primary':           map.get($palette, 'gray', '900'),                     // (gray-900)
+  'primary-medium':    map.get($palette, 'gray', '800'),                     // (gray-800)
+  'primary-strong':    map.get($palette, 'gray', '700'),                     // (gray-700)
+  'secondary-soft':    map.get($palette, 'gray', '700'),                     // (gray-700)
+  'secondary':         map.get($palette, 'gray', '600'),                     // (gray-600)
+  'secondary-medium':  map.get($palette, 'gray', '500'),                     // (gray-500)
+  'secondary-strong':  map.get($palette, 'gray', '400'),                     // (gray-400)
+  'tertiary-soft':     map.get($palette, 'gray', '500'),                     // (gray-500)
+  'tertiary':          map.get($palette, 'gray', '500'),                     // (gray-500)
+  'tertiary-medium':   map.get($palette, 'gray', '400'),                     // (gray-400)
+  'quaternary':        map.get($palette, 'gray', '400'),                     // (gray-400)
+  'quaternary-medium': map.get($palette, 'gray', '300'),                     // (gray-300)
+  'gray':              map.get($palette, 'gray', '500'),                     // (gray-500)
+  'brand-softer':      map.get($palette, 'brand', '300'),                    // (brand-300)
+  'brand-soft':        map.get($palette, 'brand', '400'),                    // (brand-400)
+  'brand-medium':      map.get($palette, 'brand', '500'),                    // (brand-500)
+  'brand':             map.get($palette, 'brand', '700'),                    // (brand-700)
+  'brand-strong':      map.get($palette, 'brand', '800'),                    // (brand-800)
+  'success-soft':      map.get($palette, 'emerald', '600'),                  // (emerald-600)
+  'success-medium':    map.get($palette, 'emerald', '700'),                  // (emerald-700)
+  'success':           map.get($palette, 'emerald', '700'),                  // (emerald-700)
+  'success-strong':    map.get($palette, 'emerald', '800'),                  // (emerald-800)
+  'info-soft':         map.get($palette, 'blue', '600'),                     // (blue-600)
+  'info-medium':       map.get($palette, 'blue', '700'),                     // (blue-700)
+  'info':              map.get($palette, 'blue', '700'),                     // (blue-700)
+  'info-strong':       map.get($palette, 'blue', '800'),                     // (blue-800)
+  'danger-soft':       map.get($palette, 'rose', '500'),                     // (rose-500)
+  'danger-medium':     map.get($palette, 'rose', '600'),                     // (rose-600)
+  'danger':            map.get($palette, 'rose', '700'),                     // (rose-700)
+  'danger-strong':     map.get($palette, 'rose', '800'),                     // (rose-800)
+  'warning-soft':      map.get($palette, 'orange', '500'),                   // (orange-500)
+  'warning-medium':    map.get($palette, 'orange', '600'),                   // (orange-600)
+  'warning':           map.get($palette, 'orange', '600'),                   // (orange-600)
+  'warning-strong':    map.get($palette, 'orange', '700'),                   // (orange-700)
+  'dark-strong':       map.get($palette, 'gray', '900'),                     // (gray-900)
+  'dark':              map.get($palette, 'gray', '800'),                     // (gray-800)
+  'disabled':          map.get($palette, 'gray', '400'),                     // (gray-400)
+  'purple':            map.get($palette, 'purple', '600'),                   // (purple-600)
+  'sky':               map.get($palette, 'sky', '600'),                      // (sky-600)
+  'teal':              map.get($palette, 'teal', '600'),                     // (teal-600)
+  'pink':              map.get($palette, 'pink', '600'),                     // (pink-600)
+  'cyan':              map.get($palette, 'cyan', '600'),                     // (cyan-600)
+  'fuchsia':           map.get($palette, 'fuchsia', '600'),                  // (fuchsia-600)
+  'indigo':            map.get($palette, 'indigo', '600'),                   // (indigo-600)
+  'orange':            map.get($palette, 'orange', '500'),                   // (orange-500)
+);
+
+$semantic-text-dark: (
+  'white':             #ffffff,                                              // (white)
+  'primary-soft':      map.get($palette, 'gray', '50'),                      // (gray-50)
+  'primary':           map.get($palette, 'gray', '50'),                      // (gray-50)
+  'primary-medium':    map.get($palette, 'gray', '100'),                     // (gray-100)
+  'primary-strong':    map.get($palette, 'gray', '200'),                     // (gray-200)
+  'secondary-soft':    map.get($palette, 'gray', '200'),                     // (gray-200)
+  'secondary':         map.get($palette, 'gray', '300'),                     // (gray-300)
+  'secondary-medium':  map.get($palette, 'gray', '400'),                     // (gray-400)
+  'secondary-strong':  map.get($palette, 'gray', '500'),                     // (gray-500)
+  'tertiary-soft':     map.get($palette, 'gray', '400'),                     // (gray-400)
+  'tertiary':          map.get($palette, 'gray', '400'),                     // (gray-400)
+  'tertiary-medium':   map.get($palette, 'gray', '500'),                     // (gray-500)
+  'quaternary':        map.get($palette, 'gray', '500'),                     // (gray-500)
+  'quaternary-medium': map.get($palette, 'gray', '600'),                     // (gray-600)
+  'gray':              map.get($palette, 'gray', '400'),                     // (gray-400)
+  'brand-softer':      map.get($palette, 'brand', '200'),                    // (brand-200)
+  'brand-soft':        map.get($palette, 'brand', '300'),                    // (brand-300)
+  'brand-medium':      map.get($palette, 'brand', '400'),                    // (brand-400)
+  'brand':             map.get($palette, 'brand', '500'),                    // (brand-500)
+  'brand-strong':      map.get($palette, 'brand', '400'),                    // (brand-400)
+  'success-soft':      map.get($palette, 'emerald', '400'),                  // (emerald-400)
+  'success-medium':    map.get($palette, 'emerald', '500'),                  // (emerald-500)
+  'success':           map.get($palette, 'emerald', '500'),                  // (emerald-500)
+  'success-strong':    map.get($palette, 'emerald', '400'),                  // (emerald-400)
+  'info-soft':         map.get($palette, 'blue', '400'),                     // (blue-400)
+  'info-medium':       map.get($palette, 'blue', '500'),                     // (blue-500)
+  'info':              map.get($palette, 'blue', '500'),                     // (blue-500)
+  'info-strong':       map.get($palette, 'blue', '400'),                     // (blue-400)
+  'danger-soft':       map.get($palette, 'rose', '400'),                     // (rose-400)
+  'danger-medium':     map.get($palette, 'rose', '500'),                     // (rose-500)
+  'danger':            map.get($palette, 'rose', '500'),                     // (rose-500)
+  'danger-strong':     map.get($palette, 'rose', '400'),                     // (rose-400)
+  'warning-soft':      map.get($palette, 'orange', '300'),                   // (orange-300)
+  'warning-medium':    map.get($palette, 'orange', '400'),                   // (orange-400)
+  'warning':           map.get($palette, 'orange', '400'),                   // (orange-400)
+  'warning-strong':    map.get($palette, 'orange', '300'),                   // (orange-300)
+  'dark-strong':       map.get($palette, 'gray', '200'),                     // (gray-200)
+  'dark':              map.get($palette, 'gray', '300'),                     // (gray-300)
+  'disabled':          map.get($palette, 'gray', '600'),                     // (gray-600)
+  'purple':            map.get($palette, 'purple', '400'),                   // (purple-400)
+  'sky':               map.get($palette, 'sky', '400'),                      // (sky-400)
+  'teal':              map.get($palette, 'teal', '400'),                     // (teal-400)
+  'pink':              map.get($palette, 'pink', '400'),                     // (pink-400)
+  'cyan':              map.get($palette, 'cyan', '400'),                     // (cyan-400)
+  'fuchsia':           map.get($palette, 'fuchsia', '400'),                  // (fuchsia-400)
+  'indigo':            map.get($palette, 'indigo', '400'),                   // (indigo-400)
+  'orange':            map.get($palette, 'orange', '400'),                   // (orange-400)
+);
+
+$semantic-bg-dark: (
+  'white':             #ffffff,                                              // (white)
+  'primary-soft':      map.get($palette, 'gray', '900'),                     // (gray-900)
+  'primary':           map.get($palette, 'gray', '950'),                     // (gray-950)
+  'primary-medium':    map.get($palette, 'gray', '800'),                     // (gray-800)
+  'primary-strong':    map.get($palette, 'gray', '700'),                     // (gray-700)
+  'secondary-soft':    map.get($palette, 'gray', '900'),                     // (gray-900)
+  'secondary':         map.get($palette, 'gray', '950'),                     // (gray-950)
+  'secondary-medium':  map.get($palette, 'gray', '800'),                     // (gray-800)
+  'secondary-strong':  map.get($palette, 'gray', '700'),                     // (gray-700)
+  'tertiary-soft':     map.get($palette, 'gray', '900'),                     // (gray-900)
+  'tertiary':          map.get($palette, 'gray', '800'),                     // (gray-800)
+  'tertiary-medium':   map.get($palette, 'gray', '700'),                     // (gray-700)
+  'quaternary':        map.get($palette, 'gray', '700'),                     // (gray-700)
+  'quaternary-medium': map.get($palette, 'gray', '600'),                     // (gray-600)
+  'gray':              map.get($palette, 'gray', '600'),                     // (gray-600)
+  'brand-softer':      map.get($palette, 'brand', '950'),                    // (brand-950)
+  'brand-soft':        map.get($palette, 'brand', '950'),                    // (brand-950)
+  'brand-medium':      map.get($palette, 'brand', '900'),                    // (brand-900)
+  'brand':             map.get($palette, 'brand', '600'),                    // (brand-600)
+  'brand-strong':      map.get($palette, 'brand', '700'),                    // (brand-700)
+  'success-soft':      map.get($palette, 'emerald', '950'),                  // (emerald-950)
+  'success-medium':    map.get($palette, 'emerald', '900'),                  // (emerald-900)
+  'success':           map.get($palette, 'emerald', '600'),                  // (emerald-600)
+  'success-strong':    map.get($palette, 'emerald', '700'),                  // (emerald-700)
+  'info-soft':         map.get($palette, 'blue', '950'),                     // (blue-950)
+  'info-medium':       map.get($palette, 'blue', '900'),                     // (blue-900)
+  'info':              map.get($palette, 'blue', '600'),                     // (blue-600)
+  'info-strong':       map.get($palette, 'blue', '700'),                     // (blue-700)
+  'danger-soft':       map.get($palette, 'rose', '950'),                     // (rose-950)
+  'danger-medium':     map.get($palette, 'rose', '900'),                     // (rose-900)
+  'danger':            map.get($palette, 'rose', '700'),                     // (rose-700)
+  'danger-strong':     map.get($palette, 'rose', '700'),                     // (rose-700)
+  'warning-soft':      map.get($palette, 'orange', '950'),                   // (orange-950)
+  'warning-medium':    map.get($palette, 'orange', '900'),                   // (orange-900)
+  'warning':           map.get($palette, 'orange', '600'),                   // (orange-600)
+  'warning-strong':    map.get($palette, 'orange', '700'),                   // (orange-700)
+  'dark-strong':       map.get($palette, 'gray', '800'),                     // (gray-800)
+  'dark':              map.get($palette, 'gray', '800'),                     // (gray-800)
+  'disabled':          map.get($palette, 'gray', '800'),                     // (gray-800)
+  'purple':            map.get($palette, 'purple', '500'),                   // (purple-500)
+  'sky':               map.get($palette, 'sky', '500'),                      // (sky-500)
+  'teal':              map.get($palette, 'teal', '500'),                     // (teal-500)
+  'pink':              map.get($palette, 'pink', '500'),                     // (pink-500)
+  'cyan':              map.get($palette, 'cyan', '500'),                     // (cyan-500)
+  'fuchsia':           map.get($palette, 'fuchsia', '500'),                  // (fuchsia-500)
+  'indigo':            map.get($palette, 'indigo', '500'),                   // (indigo-500)
+  'orange':            map.get($palette, 'orange', '400'),                   // (orange-400)
+);
+
+// ─── Semantic border tokens (Figma Design System) ─────────────────────────────
+//
+// Values are derived from $palette using map.get($palette, 'color', 'shade').
+// Each token's palette source is noted in parentheses: e.g. (gray-200).
+
+$semantic-border-light: (
+  'white':             #ffffff,                                              // (white)
+  'primary-soft':      map.get($palette, 'gray', '100'),                     // (gray-100)
+  'primary':           map.get($palette, 'gray', '200'),                     // (gray-200)
+  'primary-medium':    map.get($palette, 'gray', '300'),                     // (gray-300)
+  'primary-strong':    map.get($palette, 'gray', '400'),                     // (gray-400)
+  'secondary-soft':    map.get($palette, 'gray', '200'),                     // (gray-200)
+  'secondary':         map.get($palette, 'gray', '300'),                     // (gray-300)
+  'secondary-medium':  map.get($palette, 'gray', '400'),                     // (gray-400)
+  'secondary-strong':  map.get($palette, 'gray', '500'),                     // (gray-500)
+  'tertiary-soft':     map.get($palette, 'gray', '300'),                     // (gray-300)
+  'tertiary':          map.get($palette, 'gray', '400'),                     // (gray-400)
+  'tertiary-medium':   map.get($palette, 'gray', '500'),                     // (gray-500)
+  'quaternary':        map.get($palette, 'gray', '500'),                     // (gray-500)
+  'quaternary-medium': map.get($palette, 'gray', '600'),                     // (gray-600)
+  'gray':              map.get($palette, 'gray', '300'),                     // (gray-300)
+  'brand-softer':      map.get($palette, 'brand', '100'),                    // (brand-100)
+  'brand-soft':        map.get($palette, 'brand', '200'),                    // (brand-200)
+  'brand-medium':      map.get($palette, 'brand', '300'),                    // (brand-300)
+  'brand':             map.get($palette, 'brand', '500'),                    // (brand-500)
+  'brand-strong':      map.get($palette, 'brand', '700'),                    // (brand-700)
+  'success-soft':      map.get($palette, 'emerald', '200'),                  // (emerald-200)
+  'success-medium':    map.get($palette, 'emerald', '300'),                  // (emerald-300)
+  'success':           map.get($palette, 'emerald', '500'),                  // (emerald-500)
+  'success-strong':    map.get($palette, 'emerald', '700'),                  // (emerald-700)
+  'info-soft':         map.get($palette, 'blue', '200'),                     // (blue-200)
+  'info-medium':       map.get($palette, 'blue', '300'),                     // (blue-300)
+  'info':              map.get($palette, 'blue', '500'),                     // (blue-500)
+  'info-strong':       map.get($palette, 'blue', '700'),                     // (blue-700)
+  'danger-soft':       map.get($palette, 'rose', '200'),                     // (rose-200)
+  'danger-medium':     map.get($palette, 'rose', '300'),                     // (rose-300)
+  'danger':            map.get($palette, 'rose', '500'),                     // (rose-500)
+  'danger-strong':     map.get($palette, 'rose', '700'),                     // (rose-700)
+  'warning-soft':      map.get($palette, 'orange', '200'),                   // (orange-200)
+  'warning-medium':    map.get($palette, 'orange', '300'),                   // (orange-300)
+  'warning':           map.get($palette, 'orange', '400'),                   // (orange-400)
+  'warning-strong':    map.get($palette, 'orange', '600'),                   // (orange-600)
+  'dark-strong':       map.get($palette, 'gray', '900'),                     // (gray-900)
+  'dark':              map.get($palette, 'gray', '700'),                     // (gray-700)
+  'disabled':          map.get($palette, 'gray', '200'),                     // (gray-200)
+  'purple':            map.get($palette, 'purple', '400'),                   // (purple-400)
+  'sky':               map.get($palette, 'sky', '400'),                      // (sky-400)
+  'teal':              map.get($palette, 'teal', '400'),                     // (teal-400)
+  'pink':              map.get($palette, 'pink', '400'),                     // (pink-400)
+  'cyan':              map.get($palette, 'cyan', '400'),                     // (cyan-400)
+  'fuchsia':           map.get($palette, 'fuchsia', '400'),                  // (fuchsia-400)
+  'indigo':            map.get($palette, 'indigo', '400'),                   // (indigo-400)
+  'orange':            map.get($palette, 'orange', '300'),                   // (orange-300)
+);
+
+$semantic-border-dark: (
+  'white':             #ffffff,                                              // (white)
+  'primary-soft':      map.get($palette, 'gray', '800'),                     // (gray-800)
+  'primary':           map.get($palette, 'gray', '700'),                     // (gray-700)
+  'primary-medium':    map.get($palette, 'gray', '600'),                     // (gray-600)
+  'primary-strong':    map.get($palette, 'gray', '500'),                     // (gray-500)
+  'secondary-soft':    map.get($palette, 'gray', '800'),                     // (gray-800)
+  'secondary':         map.get($palette, 'gray', '700'),                     // (gray-700)
+  'secondary-medium':  map.get($palette, 'gray', '600'),                     // (gray-600)
+  'secondary-strong':  map.get($palette, 'gray', '500'),                     // (gray-500)
+  'tertiary-soft':     map.get($palette, 'gray', '700'),                     // (gray-700)
+  'tertiary':          map.get($palette, 'gray', '600'),                     // (gray-600)
+  'tertiary-medium':   map.get($palette, 'gray', '500'),                     // (gray-500)
+  'quaternary':        map.get($palette, 'gray', '500'),                     // (gray-500)
+  'quaternary-medium': map.get($palette, 'gray', '400'),                     // (gray-400)
+  'gray':              map.get($palette, 'gray', '600'),                     // (gray-600)
+  'brand-softer':      map.get($palette, 'brand', '900'),                    // (brand-900)
+  'brand-soft':        map.get($palette, 'brand', '800'),                    // (brand-800)
+  'brand-medium':      map.get($palette, 'brand', '700'),                    // (brand-700)
+  'brand':             map.get($palette, 'brand', '500'),                    // (brand-500)
+  'brand-strong':      map.get($palette, 'brand', '400'),                    // (brand-400)
+  'success-soft':      map.get($palette, 'emerald', '900'),                  // (emerald-900)
+  'success-medium':    map.get($palette, 'emerald', '800'),                  // (emerald-800)
+  'success':           map.get($palette, 'emerald', '600'),                  // (emerald-600)
+  'success-strong':    map.get($palette, 'emerald', '500'),                  // (emerald-500)
+  'info-soft':         map.get($palette, 'blue', '900'),                     // (blue-900)
+  'info-medium':       map.get($palette, 'blue', '800'),                     // (blue-800)
+  'info':              map.get($palette, 'blue', '600'),                     // (blue-600)
+  'info-strong':       map.get($palette, 'blue', '500'),                     // (blue-500)
+  'danger-soft':       map.get($palette, 'rose', '900'),                     // (rose-900)
+  'danger-medium':     map.get($palette, 'rose', '800'),                     // (rose-800)
+  'danger':            map.get($palette, 'rose', '600'),                     // (rose-600)
+  'danger-strong':     map.get($palette, 'rose', '500'),                     // (rose-500)
+  'warning-soft':      map.get($palette, 'orange', '900'),                   // (orange-900)
+  'warning-medium':    map.get($palette, 'orange', '800'),                   // (orange-800)
+  'warning':           map.get($palette, 'orange', '600'),                   // (orange-600)
+  'warning-strong':    map.get($palette, 'orange', '500'),                   // (orange-500)
+  'dark-strong':       map.get($palette, 'gray', '500'),                     // (gray-500)
+  'dark':              map.get($palette, 'gray', '600'),                     // (gray-600)
+  'disabled':          map.get($palette, 'gray', '700'),                     // (gray-700)
+  'purple':            map.get($palette, 'purple', '600'),                   // (purple-600)
+  'sky':               map.get($palette, 'sky', '600'),                      // (sky-600)
+  'teal':              map.get($palette, 'teal', '600'),                     // (teal-600)
+  'pink':              map.get($palette, 'pink', '600'),                     // (pink-600)
+  'cyan':              map.get($palette, 'cyan', '600'),                     // (cyan-600)
+  'fuchsia':           map.get($palette, 'fuchsia', '600'),                  // (fuchsia-600)
+  'indigo':            map.get($palette, 'indigo', '600'),                   // (indigo-600)
+  'orange':            map.get($palette, 'orange', '600'),                   // (orange-600)
+);

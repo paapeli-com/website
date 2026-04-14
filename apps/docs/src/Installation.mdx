@@ -1,0 +1,85 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Getting Started/Installation" />
+
+# Installation
+
+Use `@paapeli/ui-kit` in apps that already run on the monorepo workspace.
+
+## 1. Add the package
+
+```bash
+pnpm add @paapeli/ui-kit
+```
+
+If the package is consumed from another workspace app in this repository, keep it as a workspace dependency:
+
+```json
+{
+  "dependencies": {
+    "@paapeli/ui-kit": "workspace:*"
+  }
+}
+```
+
+## 2. Load the shared styles
+
+Import the shared UI kit stylesheet once near your app entry point.
+
+```ts
+import '@paapeli/ui-kit/styles';
+```
+
+For Storybook, the import typically belongs in `.storybook/preview.ts` or `.storybook/preview.tsx`:
+
+```ts
+import type { Preview } from '@storybook/react';
+import '@paapeli/ui-kit/styles';
+
+const preview: Preview = {};
+
+export default preview;
+```
+
+## 3. Import components
+
+Components are exported from the package root:
+
+```tsx
+import { Button, Card, CardContent, CardHeader, CardTitle } from '@paapeli/ui-kit';
+```
+
+You can also import from the components entry directly:
+
+```tsx
+import { Button, Card } from '@paapeli/ui-kit/components';
+```
+
+## 4. Render a component
+
+```tsx
+import { Button, Card, CardContent, CardHeader, CardTitle } from '@paapeli/ui-kit';
+import '@paapeli/ui-kit/styles';
+
+export function ExampleCard() {
+  return (
+    <Card className="max-w-sm">
+      <CardHeader>
+        <CardTitle>Paapeli UI Kit</CardTitle>
+      </CardHeader>
+      <CardContent className="flex items-center gap-4">
+        <span className="text-sm text-paapeli-muted-foreground">
+          Shared components and design tokens.
+        </span>
+        <Button size="sm">Continue</Button>
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+## Notes
+
+- The package expects `react` and `react-dom` as peer dependencies.
+- Storybook docs in this repo already load the shared stylesheet from [`apps/docs/.storybook/preview.tsx`](/Users/user/Desktop/projects/Paapeli-Client/apps/docs/.storybook/preview.tsx).
+- Design token reference pages live alongside this guide under `apps/docs/src/stories`.

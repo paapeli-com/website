@@ -1,0 +1,35 @@
+{
+  "name": "@paapeli/ui-kit",
+  "version": "0.0.1",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./components": "./src/components/index.ts",
+    "./tokens": "./src/tokens/colors.ts",
+    "./styles": "./src/styles/main.scss",
+    "./styles/colors": "./src/styles/colors/_index.scss"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "check-types": "tsc --noEmit",
+    "build:styles": "sass src/styles/main.scss dist/styles/main.css --no-source-map"
+  },
+  "devDependencies": {
+    "sass": "^1.97.3",
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^22.15.3",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "eslint": "^9.39.1",
+    "typescript": "5.9.2",
+    "vitest": "^4.0.16"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

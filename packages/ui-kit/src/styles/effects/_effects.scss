@@ -1,0 +1,41 @@
+@use '../settings';
+@use '../settings/effects' as eff;
+@use '../tools';
+
+@if (settings.$effects-pack) {
+  @include tools.layer('utilities.effects') {
+
+    // ── Border Radius — .rounded / .rounded-{name} ───────────────────────────
+    @each $name, $value in eff.$border-radius {
+      @if $name == '' {
+        .rounded { border-radius: $value; }
+      } @else {
+        .rounded-#{$name} { border-radius: $value; }
+      }
+    }
+
+    // ── Border Width — .border / .border-{name} ──────────────────────────────
+    @each $name, $value in eff.$border-widths {
+      @if $name == '' {
+        .border { border-width: $value; }
+      } @else {
+        .border-#{$name} { border-width: $value; }
+      }
+    }
+
+    // ── Border Style — .border-{style} ───────────────────────────────────────
+    @each $style in eff.$border-styles {
+      .border-#{$style} { border-style: $style; }
+    }
+
+    // ── Box Shadow — .shadow / .shadow-{name} ────────────────────────────────
+    @each $name, $value in eff.$shadows {
+      @if $name == '' {
+        .shadow { box-shadow: $value; }
+      } @else {
+        .shadow-#{$name} { box-shadow: $value; }
+      }
+    }
+
+  }
+}

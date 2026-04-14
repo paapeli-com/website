@@ -1,0 +1,59 @@
+/// ─── Paapeli Design System — Typography Definitions ──────────────────────────
+///
+/// $font-families   → map: name → stack    (generates .font-{name})
+/// $font-sizes      → map: name → value    (generates .text-{name})
+/// $font-weights    → map: name → value    (generates .font-{name})
+/// $letter-spacings → map: name → value    (generates .tracking-{name})
+
+// ─── Font families ────────────────────────────────────────────────────────────
+
+$font-families: (
+  'base': ('Poppins', sans-serif),
+);
+
+// ─── Font sizes ───────────────────────────────────────────────────────────────
+//
+// Figma token path: typography/font-size/text-*
+
+$font-sizes: (
+  'xxs':  10px,
+  'xs':   12px,
+  'sm':   14px,
+  'base': 16px,
+  'lg':   18px,
+  'xl':   20px,
+  '2xl':  24px,
+  '3xl':  30px,
+  '4xl':  36px,
+  '5xl':  48px,
+  '6xl':  56px,
+);
+
+// ─── Font weights ─────────────────────────────────────────────────────────────
+//
+// Figma token path: typography/font-weight/font-*
+//   normal    → paragraphs, helper texts, articles
+//   medium    → button texts, labels, CTA texts, some headings
+//   semibold  → main headings
+//   bold      → H1 headings in hero sections
+//   extrabold → H1 headings in hero sections
+
+$font-weights: (
+  'normal':    400,
+  'medium':    500,
+  'semibold':  600,
+  'bold':      700,
+  'extrabold': 800,
+);
+
+// ─── Letter spacings ──────────────────────────────────────────────────────────
+//
+// Figma token path: typography/letter-spacing/tracking-*
+//   tighter → big H1 headings
+//   tight   → section and card headings
+
+$letter-spacings: (
+  'tighter': -0.8px,
+  'tight':   -0.4px,
+  'normal':  0px,
+);

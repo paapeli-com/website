@@ -1,0 +1,60 @@
+/// ─── Paapeli Design System — Effects Definitions ────────────────────────────
+///
+/// $border-radius  → map: name → value   (generates .rounded / .rounded-{name})
+/// $border-widths  → map: name → value   (generates .border  / .border-{name})
+/// $border-styles  → list of CSS values  (generates .border-{style})
+/// $shadows        → map: name → value   (generates .shadow  / .shadow-{name})
+///
+/// Tip: keys with '' (empty string) generate the unsuffixed class,
+///      e.g. '' → .rounded, '' → .border, '' → .shadow.
+
+// ─── Border Radius ────────────────────────────────────────────────────────────
+// Figma token path: border/border-radius/rounded-*
+
+$border-radius: (
+  'xxs':  2px,
+  'xs':   4px,
+  'sm':   6px,
+  '':     8px,    // → .rounded
+  'base': 12px,
+  'lg':   16px,
+  'xl':   24px,
+  'full': 9999px,
+);
+
+// ─── Border Width ─────────────────────────────────────────────────────────────
+// Figma token path: border/border-width/border-*
+
+$border-widths: (
+  '':   1px,   // → .border
+  'md': 2px,
+  'lg': 4px,
+  'xl': 8px,
+);
+
+// ─── Border Style ─────────────────────────────────────────────────────────────
+
+$border-styles: (solid, dashed);
+
+// ─── Box Shadows ──────────────────────────────────────────────────────────────
+// Figma token path: shadow-*
+//
+// Multi-shadow values are SCSS comma-separated lists → output as CSS multi-shadow.
+// Color base: #1D293D (rgb 29 41 61) with varying alpha:
+//   0x05 → 0.02 | 0x0D → 0.05 | 0x1A → 0.10 | 0x40 → 0.25
+
+$shadows: (
+  'xs':    (0  1px   0.5px  0.05px rgba(29, 41, 61, 0.02)),
+  'sm':    (0  1px   2px    0      rgba(29, 41, 61, 0.05)),
+  '':      (0  1px   3px    0      rgba(29, 41, 61, 0.10),
+            0  1px   2px   -1px    rgba(29, 41, 61, 0.10)),  // → .shadow
+  'md':    (0  4px   6px   -1px    rgba(29, 41, 61, 0.10),
+            0  2px   4px   -2px    rgba(29, 41, 61, 0.10)),
+  'lg':    (0  10px  15px  -3px    rgba(29, 41, 61, 0.10),
+            0  4px   6px   -4px    rgba(29, 41, 61, 0.10)),
+  'xl':    (0  20px  25px  -5px    rgba(29, 41, 61, 0.10),
+            0  8px   10px  -6px    rgba(29, 41, 61, 0.10)),
+  '2xl':   (0  25px  50px  -12px   rgba(29, 41, 61, 0.25)),
+  'inner': (inset 0 2px 4px 0      rgba(0,  0,  0,  0.05)),
+  'top':   (0 -1px   14px   0      rgba(19, 28, 52, 0.10)),
+);
