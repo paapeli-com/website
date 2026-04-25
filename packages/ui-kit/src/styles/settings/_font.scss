@@ -16,6 +16,7 @@ $font-families: (
 // Figma token path: typography/font-size/text-*
 
 $font-sizes: (
+  'xxxs': 10px,
   'xxs':  10px,
   'xs':   12px,
   'sm':   14px,
@@ -27,6 +28,10 @@ $font-sizes: (
   '4xl':  36px,
   '5xl':  48px,
   '6xl':  56px,
+  '7xl':  64px,
+  '8xl':  72px,
+  '9xl':  84px,
+  '10xl': 96px,
 );
 
 // ─── Font weights ─────────────────────────────────────────────────────────────
@@ -39,11 +44,15 @@ $font-sizes: (
 //   extrabold → H1 headings in hero sections
 
 $font-weights: (
-  'normal':    400,
+  'thin':      100,
+  'extralight':200,
+  'light':     300,
+  'regular':   400,
   'medium':    500,
   'semibold':  600,
   'bold':      700,
   'extrabold': 800,
+  'black':     900,
 );
 
 // ─── Letter spacings ──────────────────────────────────────────────────────────
@@ -56,4 +65,120 @@ $letter-spacings: (
   'tighter': -0.8px,
   'tight':   -0.4px,
   'normal':  0px,
+  'wide':    0.4px,
+  'wider':   0.8px,
+  'widest':  1.6px,
+);
+ 
+$line-hights: (
+  'none': auto,
+  '1':  4px,
+  '2':  8px,
+  '3':  12px,
+  '4':  16px,
+  '5':  20px,
+  '6':  24px,
+  '7':  28px,
+  '8':  32px,
+  '9':  36px,
+  '10': 49px,
+);
+ 
+$typography-styles: (
+  'caption-small': (
+    'font_weight':    ('extralight', 'light', 'regular', 'medium', 'semibold', 'bold', 'extrabold', 'black'),
+    'font_sizes':     ('xxxs',       'xxxs',  'xxxs',    'xxxs',   'xxxs',     'xxxs', 'xxxs',      'xxxs'),
+    'line_height':    ('none',       'none',  'none',    'none',   'none',     'none', 'none',       'none'),
+    'letter_spacing': ('normal',     'normal','normal',  'normal', 'normal',   'normal','normal',   'normal'),
+  ),
+  'caption': (
+    'font_weight':    ('extralight', 'light', 'regular', 'medium', 'semibold', 'bold', 'extrabold', 'black'),
+    'font_sizes':     ('xxs',       'xxs',  'xxs',    'xxs',   'xxs',     'xxs', 'xxs',      'xxs'),
+    'line_height':    ('none',       'none',  'none',    'none',   'none',     'none', 'none',       'none'),
+    'letter_spacing': ('normal',     'normal','normal',  'normal', 'normal',   'normal','normal',   'normal'),
+  ),
+  'caption-big': (
+    'font_weight':    ('extralight', 'light', 'regular', 'medium', 'semibold', 'bold', 'extrabold', 'black'),
+    'font_sizes':     ('xs',       'xs',  'xs',    'xs',   'xs',     'xs', 'xs',      'xs'),
+    'line_height':    ('none',       'none',  'none',    'none',   'none',     'none', 'none',       'none'),
+    'letter_spacing': ('normal',     'normal','normal',  'normal', 'normal',   'normal','normal',   'normal'),
+  ),
+  'body-small': (
+    'font_weight':    ('extralight', 'light', 'regular', 'medium', 'semibold', 'bold', 'extrabold', 'black'),
+    'font_sizes':     ('sm',       'sm',  'sm',    'sm',   'sm',     'sm', 'sm',      'sm'),
+    'line_height':    ('none',       'none',  'none',    'none',   'none',     'none', 'none',       'none'),
+    'letter_spacing': ('normal',     'normal','normal',  'normal', 'normal',   'normal','normal',   'normal'),
+  ),
+  'body': (
+    'font_weight':    ('extralight', 'light', 'regular', 'medium', 'semibold', 'bold', 'extrabold', 'black'),
+    'font_sizes':     ('base',       'base',  'base',    'base',   'base',     'base', 'base',      'base'),
+    'line_height':    ('none',       'none',  'none',    'none',   'none',     'none', 'none',       'none'),
+    'letter_spacing': ('normal',     'normal','normal',  'normal', 'normal',   'normal','normal',   'normal'),
+  ),
+  'body-big': (
+    'font_weight':    ('extralight', 'light', 'regular', 'medium', 'semibold', 'bold', 'extrabold', 'black'),
+    'font_sizes':     ('lg',       'lg',  'lg',    'lg',   'lg',     'lg', 'lg',      'xxxs'),
+    'line_height':    ('none',       'none',  'none',    'none',   'none',     'none', 'none',       'none'),
+    'letter_spacing': ('normal',     'normal','normal',  'normal', 'normal',   'normal','normal',   'normal'),
+  ),
+  'headline-small': (
+    'font_weight':    ('extralight', 'light', 'regular', 'medium', 'semibold', 'bold', 'extrabold', 'black'),
+    'font_sizes':     ('xl',       'xl',  'xl',    'xl',   'xl',     'xl', 'xl',      'xl'),
+    'line_height':    ('none',       'none',  'none',    'none',   'none',     'none', 'none',       'none'),
+    'letter_spacing': ('normal',     'normal','normal',  'normal', 'normal',   'normal','normal',   'normal'),
+  ),
+  'headline': (
+    'font_weight':    ('extralight', 'light', 'regular', 'medium', 'semibold', 'bold', 'extrabold', 'black'),
+    'font_sizes':     ('2xl',       '2xl',  '2xl',    '2xl',   '2xl',     '2xl', '2xl',      '2xl'),
+    'line_height':    ('none',       'none',  'none',    'none',   'none',     'none', 'none',       'none'),
+    'letter_spacing': ('normal',     'normal','normal',  'normal', 'normal',   'normal','normal',   'normal'),
+  ),
+  'headline-big': (
+    'font_weight':    ('extralight', 'light', 'regular', 'medium', 'semibold', 'bold', 'extrabold', 'black'),
+    'font_sizes':     ('3xl',       '3xl',  '3xl',    '3xl',   '3xl',     '3xl', '3xl',      '3xl'),
+    'line_height':    ('none',       'none',  'none',    'none',   'none',     'none', 'none',       'none'),
+    'letter_spacing': ('normal',     'normal','normal',  'normal', 'normal',   'normal','normal',   'normal'),
+  ),
+  'title-small': (
+    'font_weight':    ('extralight', 'light', 'regular', 'medium', 'semibold', 'bold', 'extrabold', 'black'),
+    'font_sizes':     ('4xl',       '4xl',  '4xl',    '4xl',   '4xl',     '4xl', '4xl',      '4xl'),
+    'line_height':    ('none',       'none',  'none',    'none',   'none',     'none', 'none',       'none'),
+    'letter_spacing': ('normal',     'normal','normal',  'normal', 'normal',   'normal','normal',   'normal'),
+  ),
+  'title': (
+    'font_weight':    ('extralight', 'light', 'regular', 'medium', 'semibold', 'bold', 'extrabold', 'black'),
+    'font_sizes':     ('5xl',       '5xl',  '5xl',    '5xl',   '5xl',     '5xl', '5xl',      '5xl'),
+    'line_height':    ('none',       'none',  'none',    'none',   'none',     'none', 'none',       'none'),
+    'letter_spacing': ('normal',     'normal','normal',  'normal', 'normal',   'normal','normal',   'normal'),
+  ),
+  'title-big': (
+    'font_weight':    ('extralight', 'light', 'regular', 'medium', 'semibold', 'bold', 'extrabold', 'black'),
+    'font_sizes':     ('6xl',       '6xl',  '6xl',    '6xl',   '6xl',     '6xl', '6xl',      '6xl'),
+    'line_height':    ('none',       'none',  'none',    'none',   'none',     'none', 'none',       'none'),
+    'letter_spacing': ('normal',     'normal','normal',  'normal', 'normal',   'normal','normal',   'normal'),
+  ),
+  'display-small': (
+    'font_weight':    ('extralight', 'light', 'regular', 'medium', 'semibold', 'bold', 'extrabold', 'black'),
+    'font_sizes':     ('7xl',       '7xl',  '7xl',    '7xl',   '7xl',     '7xl', '7xl',      '7xl'),
+    'line_height':    ('none',       'none',  'none',    'none',   'none',     'none', 'none',       'none'),
+    'letter_spacing': ('normal',     'normal','normal',  'normal', 'normal',   'normal','normal',   'normal'),
+  ),
+  'display': (
+    'font_weight':    ('extralight', 'light', 'regular', 'medium', 'semibold', 'bold', 'extrabold', 'black'),
+    'font_sizes':     ('8xl', '8xl',  '8xl',    '8xl',   '8xl',     '8xl', '8xl',      '8xl'),
+    'line_height':    ('none',  'none',  'none',    'none',   'none',     'none', 'none',       'none'),
+    'letter_spacing': ('normal',  'normal','normal',  'normal', 'normal',   'normal','normal',   'normal'),
+  ),
+  'display-big': (
+    'font_weight':    ('extralight', 'light', 'regular', 'medium', 'semibold', 'bold', 'extrabold', 'black'),
+    'font_sizes':     ('9xl',       '9xl',  '9xl',    '9xl',   '9xl',     '9xl', '9xl',      '9xl'),
+    'line_height':    ('none',       'none',  'none',    'none',   'none',     'none', 'none',       'none'),
+    'letter_spacing': ('normal',     'normal','normal',  'normal', 'normal',   'normal','normal',   'normal'),
+  ),
+  'display-very-big': (
+    'font_weight':    ('extralight', 'light', 'regular', 'medium', 'semibold', 'bold', 'extrabold', 'black'),
+    'font_sizes':     ('10xl',       '10xl',  '10xl',    '10xl',   '10xl',     '10xl', '10xl',      '10xl'),
+    'line_height':    ('none',       'none',  'none',    'none',   'none',     'none', 'none',       'none'),
+    'letter_spacing': ('normal',     'normal','normal',  'normal', 'normal',   'normal','normal',   'normal'),
+  )
 );
