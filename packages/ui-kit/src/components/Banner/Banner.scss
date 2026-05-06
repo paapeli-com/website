@@ -1,0 +1,232 @@
+@use 'sass:map';
+@use '../../styles/settings/colors' as colors;
+@use '../../styles/tools/functions' as *;
+
+$palette: colors.$palette;
+
+// ─── Design tokens ────────────────────────────────────────────────────────────
+
+$c-bg:          hsl(0, 0%, 100%);
+$c-border:      map-deep-get($palette, 'gray', '200');
+$c-text:        map-deep-get($palette, 'gray', '900');
+$c-text-muted:  map-deep-get($palette, 'gray', '600');
+$c-icon:        map-deep-get($palette, 'gray', '500');
+$c-close-hover: map-deep-get($palette, 'gray', '100');
+$c-divider:     map-deep-get($palette, 'gray', '200');
+$c-dot-color:   hsl(28, 100%, 50%);
+
+$border:        1px solid $c-border;
+$radius:        12px;
+
+// ─── Base ─────────────────────────────────────────────────────────────────────
+
+.Banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background-color: $c-bg;
+  border: $border;
+  border-radius: $radius;
+
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: $c-text;
+
+  // ── Shared elements ──────────────────────────────────────────────────────────
+
+  &__content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  &__text {
+    min-width: 0;
+
+    a {
+      color: inherit;
+      font-weight: 500;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+
+      &:hover {
+        opacity: 0.8;
+      }
+    }
+  }
+
+  &__icon-wrap {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: $c-icon;
+  }
+
+  &__close {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    margin-left: auto;
+
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: $c-text-muted;
+
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      background-color: $c-close-hover;
+      color: $c-text;
+    }
+  }
+
+  // ── Type: default ─────────────────────────────────────────────────────────────
+
+  &--default {
+    .Banner__content {
+      flex: 1 1 auto;
+    }
+  }
+
+  // ── Type: logo-button ─────────────────────────────────────────────────────────
+
+  &--logo-button {
+    padding: 0.75rem 1rem;
+    gap: 0;
+
+    .Banner__logo {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding-right: 0.875rem;
+    }
+
+    .Banner__divider {
+      flex-shrink: 0;
+      width: 1px;
+      height: 2rem;
+      background-color: $c-divider;
+      margin-right: 0.875rem;
+    }
+
+    .Banner__text {
+      flex: 1 1 auto;
+      min-width: 0;
+      color: $c-text-muted;
+    }
+
+    .Banner__action {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-left: 1rem;
+    }
+
+    .Banner__close {
+      margin-left: 0.5rem;
+    }
+  }
+
+  // ── Type: newsletter ──────────────────────────────────────────────────────────
+
+  &--newsletter {
+    justify-content: center;
+
+    .Banner__content {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+  }
+
+  // ── Type: icon-link ───────────────────────────────────────────────────────────
+
+  &--icon-link {
+    .Banner__content {
+      flex: 1 1 auto;
+    }
+
+    .Banner__dot {
+      flex-shrink: 0;
+      display: inline-block;
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 50%;
+      background-color: $c-dot-color;
+    }
+  }
+
+  // ── Type: heading-description ─────────────────────────────────────────────────
+
+  &--heading-description {
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+
+    .Banner__body {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .Banner__title {
+      margin: 0 0 0.125rem;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      line-height: 1.3;
+      color: $c-text;
+    }
+
+    .Banner__description {
+      margin: 0;
+      font-size: 0.875rem;
+      font-weight: 400;
+      color: $c-text-muted;
+      line-height: 1.45;
+    }
+
+    .Banner__actions {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .Banner__close {
+      margin-left: 0;
+    }
+
+    // Responsive: stack on small screens
+    @media (max-width: 640px) {
+      flex-wrap: wrap;
+
+      .Banner__body {
+        flex: 1 0 100%;
+      }
+
+      .Banner__actions {
+        flex-wrap: wrap;
+      }
+    }
+  }
+}

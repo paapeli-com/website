@@ -1,0 +1,251 @@
+@use 'sass:map';
+@use '../../styles/settings/colors' as colors;
+@use '../../styles/tools/functions' as *;
+
+// ─── Design-system reference shortcuts ────────────────────────────────────────
+
+$palette: colors.$palette;
+
+// Brand
+$c-brand-bg:      map-deep-get($palette, 'brand', '50');
+$c-brand-medium:  map-deep-get($palette, 'brand', '100');
+$c-brand-border:  map-deep-get($palette, 'brand', '200');
+$c-brand-accent:  map-deep-get($palette, 'brand', '500');
+$c-brand-fg:      map-deep-get($palette, 'brand', '900');
+
+// Danger
+$c-danger-bg:     map-deep-get($palette, 'rose', '50');
+$c-danger-medium: map-deep-get($palette, 'rose', '100');
+$c-danger-border: map-deep-get($palette, 'rose', '200');
+$c-danger-accent: map-deep-get($palette, 'rose', '700');
+$c-danger-fg:     map-deep-get($palette, 'rose', '900');
+
+// Warning
+$c-warning-bg:     map-deep-get($palette, 'orange', '50');
+$c-warning-medium: map-deep-get($palette, 'orange', '100');
+$c-warning-border: map-deep-get($palette, 'orange', '200');
+$c-warning-accent: map-deep-get($palette, 'orange', '500');
+$c-warning-fg:     map-deep-get($palette, 'orange', '900');
+
+// Success
+$c-success-bg:     map-deep-get($palette, 'emerald', '50');
+$c-success-medium: map-deep-get($palette, 'emerald', '100');
+$c-success-border: map-deep-get($palette, 'emerald', '200');
+$c-success-accent: map-deep-get($palette, 'emerald', '700');
+$c-success-fg:     map-deep-get($palette, 'emerald', '900');
+
+// Info
+$c-info-bg:     map-deep-get($palette, 'blue', '50');
+$c-info-medium: map-deep-get($palette, 'blue', '100');
+$c-info-border: map-deep-get($palette, 'blue', '200');
+$c-info-accent: map-deep-get($palette, 'blue', '700');
+$c-info-fg:     map-deep-get($palette, 'blue', '900');
+
+// Gray
+$c-gray-bg:     map-deep-get($palette, 'gray', '50');
+$c-gray-medium: map-deep-get($palette, 'gray', '100');
+$c-gray-border: map-deep-get($palette, 'gray', '200');
+$c-gray-accent: map-deep-get($palette, 'gray', '500');
+$c-gray-fg:     map-deep-get($palette, 'gray', '900');
+
+// White (paper) — same border/text as gray, but white surface.
+$c-white-bg:     #ffffff;
+$c-white-medium: map-deep-get($palette, 'gray', '100');
+$c-white-border: map-deep-get($palette, 'gray', '200');
+$c-white-accent: map-deep-get($palette, 'gray', '500');
+$c-white-fg:     map-deep-get($palette, 'gray', '900');
+
+// ─── Color mixin ──────────────────────────────────────────────────────────────
+
+@mixin badge-color($bg, $medium, $border, $accent, $fg) {
+  background-color: $bg;
+  border-color: $border;
+  color: $fg;
+
+  .Badge__icon-wrap,
+  .Badge__loader,
+  .Badge__dot {
+    color: $accent;
+  }
+
+  .Badge__dot {
+    background-color: $accent;
+  }
+
+  .Badge__divider {
+    background-color: $border;
+  }
+
+  .Badge__secondary {
+    color: $accent;
+  }
+
+  .Badge__close {
+    color: $fg;
+
+    &:hover {
+      background-color: $medium;
+    }
+  }
+}
+
+// ─── Base ────────────────────────────────────────────────────────────────────
+
+.Badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;          // 4px
+
+  border: 1px solid transparent;
+  border-radius: 9999px;
+
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  white-space: nowrap;
+  vertical-align: middle;
+
+  // ─── Sizes ─────────────────────────────────────────────────────────────────
+
+  &--sm {
+    height: 20px;
+    padding: 0 0.375rem;   // 6px
+    font-size: 0.75rem;    // 12px
+    line-height: 1;
+  }
+
+  &--lg {
+    height: 24px;
+    padding: 0 0.5rem;     // 8px
+    font-size: 0.875rem;   // 14px
+    line-height: 1;
+  }
+
+  // ─── Pieces ────────────────────────────────────────────────────────────────
+
+  &__icon-wrap,
+  &__loader {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__dot {
+    flex-shrink: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+  }
+
+  &__avatar {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 9999px;
+
+    width: 16px;
+    height: 16px;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &--lg &__avatar {
+    width: 18px;
+    height: 18px;
+  }
+
+  &__label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__divider {
+    flex-shrink: 0;
+    align-self: stretch;
+    width: 1px;
+    margin: 0 0.125rem;
+  }
+
+  &__secondary {
+    flex-shrink: 0;
+    font-weight: 400;
+  }
+
+  &__close {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+    margin-left: 0.125rem;
+
+    width: 14px;
+    height: 14px;
+
+    border: 0;
+    border-radius: 9999px;
+    background: transparent;
+    color: inherit;
+
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+
+  &--lg &__close {
+    width: 16px;
+    height: 16px;
+  }
+
+  // ─── Square variants ───────────────────────────────────────────────────────
+
+  &--icon-only {
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    justify-content: center;
+  }
+
+  &--lg.Badge--icon-only {
+    width: 24px;
+    height: 24px;
+  }
+
+  &--text-only {
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    justify-content: center;
+
+    .Badge__text-only {
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+  }
+
+  &--lg.Badge--text-only {
+    width: 24px;
+    height: 24px;
+
+    .Badge__text-only {
+      font-size: 0.875rem;
+    }
+  }
+
+  // ─── Color variants ────────────────────────────────────────────────────────
+
+  &--brand   { @include badge-color($c-brand-bg,   $c-brand-medium,   $c-brand-border,   $c-brand-accent,   $c-brand-fg);   }
+  &--danger  { @include badge-color($c-danger-bg,  $c-danger-medium,  $c-danger-border,  $c-danger-accent,  $c-danger-fg);  }
+  &--warning { @include badge-color($c-warning-bg, $c-warning-medium, $c-warning-border, $c-warning-accent, $c-warning-fg); }
+  &--success { @include badge-color($c-success-bg, $c-success-medium, $c-success-border, $c-success-accent, $c-success-fg); }
+  &--info    { @include badge-color($c-info-bg,    $c-info-medium,    $c-info-border,    $c-info-accent,    $c-info-fg);    }
+  &--gray    { @include badge-color($c-gray-bg,    $c-gray-medium,    $c-gray-border,    $c-gray-accent,    $c-gray-fg);    }
+  &--white   { @include badge-color($c-white-bg,   $c-white-medium,   $c-white-border,   $c-white-accent,   $c-white-fg);   }
+}

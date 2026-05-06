@@ -1,0 +1,357 @@
+@use 'sass:map';
+@use '../../styles/settings/colors' as colors;
+@use '../../styles/tools/functions' as *;
+
+// ─── Design-system reference shortcuts ────────────────────────────────────────
+//
+// Pulls the exact palette shades that the Figma button component uses. Keeping
+// the references in this file means the button stays in sync if the palette is
+// reshuffled in `_colors.scss`.
+
+$palette: colors.$palette;
+
+// Brand (primary CTA)
+$c-brand:           map-deep-get($palette, 'brand', '500');   // #ff7900
+$c-brand-hover:     map-deep-get($palette, 'brand', '600');   // #d56300
+$c-brand-strong:    map-deep-get($palette, 'brand', '700');   // #aa4f00
+$c-brand-soft:      map-deep-get($palette, 'brand', '100');   // focus halo / outline tint
+$c-brand-medium:    map-deep-get($palette, 'brand', '200');   // focus halo
+
+// Secondary (subtle / neutral)
+$c-sec-bg:          map-deep-get($palette, 'gray', '50');
+$c-sec-bg-hover:    map-deep-get($palette, 'gray', '100');
+$c-sec-border:      map-deep-get($palette, 'gray', '200');
+$c-sec-border-hover:map-deep-get($palette, 'gray', '300');
+$c-sec-text:        map-deep-get($palette, 'gray', '600');
+$c-sec-text-strong: map-deep-get($palette, 'gray', '900');
+
+// Success (emerald)
+$c-success:         map-deep-get($palette, 'emerald', '700');
+$c-success-hover:   map-deep-get($palette, 'emerald', '800');
+$c-success-soft:    map-deep-get($palette, 'emerald', '100');
+$c-success-medium:  map-deep-get($palette, 'emerald', '200');
+
+// Danger (rose)
+$c-danger:          map-deep-get($palette, 'rose', '700');
+$c-danger-hover:    map-deep-get($palette, 'rose', '800');
+$c-danger-soft:     map-deep-get($palette, 'rose', '100');
+$c-danger-medium:   map-deep-get($palette, 'rose', '200');
+
+// Warning (orange)
+$c-warning:         map-deep-get($palette, 'orange', '500');
+$c-warning-hover:   map-deep-get($palette, 'orange', '700');
+$c-warning-soft:    map-deep-get($palette, 'orange', '100');
+$c-warning-medium:  map-deep-get($palette, 'orange', '200');
+
+// Info (blue)
+$c-info:            map-deep-get($palette, 'blue', '700');
+$c-info-hover:      map-deep-get($palette, 'blue', '800');
+$c-info-soft:       map-deep-get($palette, 'blue', '100');
+$c-info-medium:     map-deep-get($palette, 'blue', '200');
+
+// Dark (gray)
+$c-dark:            map-deep-get($palette, 'gray', '800');
+$c-dark-hover:      map-deep-get($palette, 'gray', '900');
+$c-dark-soft:       map-deep-get($palette, 'gray', '100');
+$c-dark-medium:     map-deep-get($palette, 'gray', '200');
+
+// Disabled
+$c-disabled-bg:     map-deep-get($palette, 'gray', '100');
+$c-disabled-fg:     map-deep-get($palette, 'gray', '400');
+
+// White / black
+$c-white:           #ffffff;
+
+// Token shortcuts
+$radius:            12px;   // Figma rounded-base
+$ring-width:        2px;    // Figma border-md
+$border-width:      1px;
+$transition:        background-color 0.15s ease, color 0.15s ease,
+                    border-color 0.15s ease, box-shadow 0.15s ease;
+
+// ─── Mixin: solid color variant ───────────────────────────────────────────────
+
+@mixin solid-variant($bg, $bg-hover, $ring) {
+  background-color: $bg;
+  color: $c-white;
+  border-color: $bg;
+  --ripple-color: rgba(255, 255, 255, 0.18);
+
+  &:not(.disabled):not(:disabled) {
+    &:hover {
+      background-color: $bg-hover;
+      border-color: $bg-hover;
+    }
+
+    &:focus-visible,
+    &.active {
+      background-color: $bg-hover;
+      border-color: $bg-hover;
+      box-shadow: 0 0 0 $ring-width $ring;
+    }
+
+    &:active {
+      background-color: $bg-hover;
+    }
+  }
+}
+
+// ─── Mixin: outline color variant ─────────────────────────────────────────────
+
+@mixin outline-variant($fg, $fg-hover, $ring) {
+  background-color: transparent;
+  color: $fg;
+  border-color: $fg;
+  --ripple-color: rgba(0, 0, 0, 0.06);
+
+  &:not(.disabled):not(:disabled) {
+    &:hover {
+      background-color: $fg;
+      color: $c-white;
+      border-color: $fg;
+    }
+
+    &:focus-visible,
+    &.active {
+      color: $fg-hover;
+      border-color: $fg-hover;
+      box-shadow: 0 0 0 $ring-width $ring;
+    }
+  }
+}
+
+// ─── Base button ──────────────────────────────────────────────────────────────
+
+.Button {
+  outline: none !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+
+  border: $border-width solid transparent;
+  border-radius: $radius;
+  background-color: transparent;
+  background-size: cover;
+
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none !important;
+
+  cursor: var(--custom-cursor, pointer);
+  transition: $transition;
+  overflow: hidden;
+
+  // Suppress transitions during click animations to avoid jitter.
+  &:active,
+  &.clicked {
+    transition: none !important;
+  }
+
+  // ─── Sizes ──────────────────────────────────────────────────────────────────
+  // height / px-padding / font-size sourced from Figma button variants.
+
+  &.size-xs {
+    height: 32px;
+    padding: 0 12px;
+    font-size: 12px;
+
+    &.icon-only {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+    }
+  }
+
+  &.size-sm {
+    height: 36px;
+    padding: 0 14px;
+    font-size: 14px;
+
+    &.icon-only {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+    }
+  }
+
+  &.size-base {
+    height: 40px;
+    padding: 0 16px;
+    font-size: 14px;
+
+    &.icon-only {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+    }
+  }
+
+  &.size-l {
+    height: 48px;
+    padding: 0 20px;
+    font-size: 16px;
+
+    &.icon-only {
+      width: 44px;
+      height: 44px;
+      padding: 0;
+    }
+  }
+
+  &.size-xl {
+    height: 52px;
+    padding: 0 24px;
+    font-size: 16px;
+
+    &.icon-only {
+      width: 48px;
+      height: 48px;
+      padding: 0;
+    }
+  }
+
+  // ─── Layout helpers ────────────────────────────────────────────────────────
+
+  &.fluid {
+    width: auto;
+  }
+
+  &.with-icon {
+    .icon,
+    .isax {
+      font-size: 1.15em;
+    }
+  }
+
+  // ─── Solid color variants ──────────────────────────────────────────────────
+
+  &.color-brand:not(.outline) {
+    @include solid-variant($c-brand, $c-brand-hover, $c-brand-medium);
+  }
+
+  &.color-success:not(.outline) {
+    @include solid-variant($c-success, $c-success-hover, $c-success-medium);
+  }
+
+  &.color-danger:not(.outline) {
+    @include solid-variant($c-danger, $c-danger-hover, $c-danger-medium);
+  }
+
+  &.color-warning:not(.outline) {
+    @include solid-variant($c-warning, $c-warning-hover, $c-warning-medium);
+  }
+
+  &.color-info:not(.outline) {
+    @include solid-variant($c-info, $c-info-hover, $c-info-medium);
+  }
+
+  &.color-dark:not(.outline) {
+    @include solid-variant($c-dark, $c-dark-hover, $c-dark-medium);
+  }
+
+  // Secondary "solid" is actually a soft neutral surface.
+  &.color-secondary:not(.outline) {
+    background-color: $c-sec-bg;
+    color: $c-sec-text;
+    border-color: $c-sec-border;
+    --ripple-color: rgba(0, 0, 0, 0.06);
+
+    &:not(.disabled):not(:disabled) {
+      &:hover {
+        background-color: $c-sec-bg-hover;
+        border-color: $c-sec-border-hover;
+        color: $c-sec-text-strong;
+      }
+
+      &:focus-visible,
+      &.active {
+        background-color: $c-sec-bg-hover;
+        border-color: $c-sec-border-hover;
+        color: $c-sec-text-strong;
+        box-shadow: 0 0 0 $ring-width $c-sec-bg-hover;
+      }
+    }
+  }
+
+  // ─── Outline color variants ────────────────────────────────────────────────
+
+  &.outline {
+    &.color-brand {
+      @include outline-variant($c-brand, $c-brand-hover, $c-brand-medium);
+    }
+
+    &.color-secondary {
+      @include outline-variant($c-sec-text, $c-sec-text-strong, $c-sec-bg-hover);
+    }
+
+    &.color-success {
+      @include outline-variant($c-success, $c-success-hover, $c-success-medium);
+    }
+
+    &.color-danger {
+      @include outline-variant($c-danger, $c-danger-hover, $c-danger-medium);
+    }
+
+    &.color-warning {
+      @include outline-variant($c-warning, $c-warning-hover, $c-warning-medium);
+    }
+
+    &.color-info {
+      @include outline-variant($c-info, $c-info-hover, $c-info-medium);
+    }
+
+    &.color-dark {
+      @include outline-variant($c-dark, $c-dark-hover, $c-dark-medium);
+    }
+  }
+
+  // ─── States ────────────────────────────────────────────────────────────────
+
+  &.disabled,
+  &:disabled {
+    cursor: var(--custom-cursor, default);
+    background-color: $c-disabled-bg !important;
+    color: $c-disabled-fg !important;
+    border-color: $c-disabled-bg !important;
+    box-shadow: none !important;
+
+    &:not(.click-allowed) {
+      pointer-events: none;
+    }
+
+    &.outline {
+      background-color: transparent !important;
+      border-color: $c-disabled-bg !important;
+    }
+  }
+
+  &.loading {
+    pointer-events: none;
+  }
+
+  // ─── Loading spinner overlay ───────────────────────────────────────────────
+
+  &__loading {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__label-hidden {
+    opacity: 0;
+  }
+
+  .Spinner {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    --spinner-size: 1.25rem;
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "paapeli-font",
+  "version": "1.0.0",
+  "description": "Paapeli icon font",
+  "type": "module",
+  "exports": {
+    "./style.css": "./src/style.css",
+    "./icons.css": "./src/icons.css",
+    "./icon-names": "./src/icon-names.ts"
+  },
+  "scripts": {
+    "generate": "node generate.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
