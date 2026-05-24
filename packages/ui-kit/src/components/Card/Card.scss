@@ -1,0 +1,67 @@
+@use 'sass:map';
+@use '../../styles/settings/colors' as colors;
+@use '../../styles/tools/functions' as *;
+
+$palette: colors.$palette;
+
+// ─── Design tokens (Figma vars) ──────────────────────────────────────────────
+
+$c-bg:       #ffffff;                                  // bg-primary-soft
+$c-border:   map-deep-get($palette, 'gray', '200');    // border-base #e5e7eb
+
+$c-hover-border: map-deep-get($palette, 'gray', '300');
+$c-focus-ring:   map-deep-get($palette, 'brand', '200');
+
+$radius:      12px;                                    // rounded-base
+$padding:     24px;                                    // spacing/6
+
+// shadow-xs: rgba(29,41,61,0.02), offset (0,1), blur 0.5, spread 0.05
+$shadow-xs:   0 1px 0.5px 0.05px rgba(29, 41, 61, 0.02);
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
+.Card {
+  display: block;
+  box-sizing: border-box;
+
+  background-color: $c-bg;
+  border: 1px solid $c-border;
+  border-radius: $radius;
+  padding: $padding;
+
+  box-shadow: $shadow-xs;
+
+  // Interactive (when onClick is set)
+  &--interactive {
+    cursor: pointer;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease,
+      transform 0.15s ease;
+
+    &:hover {
+      border-color: $c-hover-border;
+      box-shadow: 0 4px 6px -1px rgba(29, 41, 61, 0.1), 0 2px 4px -2px rgba(29, 41, 61, 0.1);
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow:
+        $shadow-xs,
+        0 0 0 3px $c-focus-ring;
+    }
+  }
+
+  // Modifiers
+  &--flat {
+    box-shadow: none;
+  }
+
+  &--borderless {
+    border-color: transparent;
+  }
+}

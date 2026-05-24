@@ -1,0 +1,287 @@
+@use 'sass:map';
+@use '../../styles/settings/colors' as colors;
+@use '../../styles/tools/functions' as *;
+
+$palette: colors.$palette;
+
+// ─── Base tokens ─────────────────────────────────────────────────────────────
+
+$c-bg:        #ffffff;                                  // bg-primary-medium
+$c-border:    map-deep-get($palette, 'gray', '200');    // border-base-medium
+$c-divider:   map-deep-get($palette, 'gray', '200');
+
+$c-title:     map-deep-get($palette, 'gray', '900');    // text-heading
+$c-text:      map-deep-get($palette, 'gray', '600');    // text-body
+$c-meta:      map-deep-get($palette, 'brand', '600');   // text-fg-brand
+$c-icon:      map-deep-get($palette, 'gray', '600');
+
+$c-close:        map-deep-get($palette, 'gray', '500');
+$c-close-hover:  map-deep-get($palette, 'gray', '100');
+
+$c-progress-track: map-deep-get($palette, 'gray', '200');
+$c-progress-fill:  map-deep-get($palette, 'brand', '500');
+
+$c-header-bg:   map-deep-get($palette, 'gray', '50');   // bg-secondary-medium
+
+$radius:       12px;                                     // rounded-base
+$pad:          16px;                                     // spacing/4
+$gap-content:  4px;                                      // between title/desc
+
+// shadow-sm: drop-shadow(0 1px 2px 0 rgba(29,41,61,0.05))
+$shadow-sm: 0 1px 2px 0 rgba(29, 41, 61, 0.05);
+
+// ─── Themed color sets ──────────────────────────────────────────────────────
+
+$themes: (
+  'brand':   (bg: map-deep-get($palette, 'brand',   '50'),  border: map-deep-get($palette, 'brand',   '200'), title: map-deep-get($palette, 'brand',   '800'), icon-bg: map-deep-get($palette, 'brand',   '100'), icon-fg: map-deep-get($palette, 'brand',   '600')),
+  'success': (bg: map-deep-get($palette, 'emerald', '50'),  border: map-deep-get($palette, 'emerald', '200'), title: map-deep-get($palette, 'emerald', '900'), icon-bg: map-deep-get($palette, 'emerald', '100'), icon-fg: map-deep-get($palette, 'emerald', '700')),
+  'warning': (bg: #fff8f1,                                  border: map-deep-get($palette, 'orange',  '200'), title: map-deep-get($palette, 'orange',  '900'), icon-bg: map-deep-get($palette, 'orange',  '100'), icon-fg: map-deep-get($palette, 'orange',  '600')),
+  'danger':  (bg: #fef0f2,                                  border: map-deep-get($palette, 'rose',    '200'), title: map-deep-get($palette, 'rose',    '900'), icon-bg: map-deep-get($palette, 'rose',    '100'), icon-fg: map-deep-get($palette, 'rose',    '700')),
+  'info':    (bg: map-deep-get($palette, 'blue',    '50'),  border: map-deep-get($palette, 'blue',    '200'), title: map-deep-get($palette, 'blue',    '900'), icon-bg: map-deep-get($palette, 'blue',    '100'), icon-fg: map-deep-get($palette, 'blue',    '700')),
+);
+
+// ─── Container ───────────────────────────────────────────────────────────────
+
+.Toast {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  box-sizing: border-box;
+
+  background-color: $c-bg;
+  border: 1px solid $c-border;
+  border-radius: $radius;
+  box-shadow: $shadow-sm;
+
+  font-family: 'Poppins', sans-serif;
+  color: $c-text;
+  width: 100%;
+  max-width: 420px;
+
+  // ─── Header ────────────────────────────────────────────────────────────────
+
+  &__header {
+    padding: 12px $pad;
+    background-color: $c-header-bg;
+    border-bottom: 1px solid $c-border;
+    border-radius: $radius $radius 0 0;
+
+    font-size: 14px;
+    font-weight: 600;
+    color: $c-title;
+  }
+
+  // ─── Body ──────────────────────────────────────────────────────────────────
+
+  &__body {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: $pad;
+  }
+
+  // ─── Leading visuals ──────────────────────────────────────────────────────
+
+  &__icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    color: $c-icon;
+    margin-top: 2px;
+  }
+
+  &__icon-shape {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    color: $c-icon;
+  }
+
+  @each $name, $tones in $themes {
+    &__icon-shape--#{$name} {
+      background-color: map.get($tones, icon-bg);
+      color: map.get($tones, icon-fg);
+    }
+  }
+
+  &__avatar {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    width: 40px;
+    height: 40px;
+    border-radius: 9999px;
+    background-color: map-deep-get($palette, 'gray', '100');
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__illustration {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__divider {
+    flex-shrink: 0;
+    align-self: stretch;
+    width: 1px;
+    background-color: $c-divider;
+    margin: 2px 0;
+  }
+
+  // ─── Content ──────────────────────────────────────────────────────────────
+
+  &__content {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: $gap-content;
+    padding-right: 24px;            // reserve space for the close button
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: $c-title;
+  }
+
+  &__description {
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.5;
+    color: $c-text;
+  }
+
+  &__meta {
+    margin-top: 2px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    color: $c-meta;
+  }
+
+  // ─── Actions ──────────────────────────────────────────────────────────────
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  // ─── Progress bar ─────────────────────────────────────────────────────────
+
+  &__progress {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  &__progress-track {
+    flex: 1 1 auto;
+    height: 8px;
+    background-color: $c-progress-track;
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+
+  &__progress-fill {
+    height: 100%;
+    background-color: $c-progress-fill;
+    border-radius: 9999px;
+    transition: width 0.2s ease;
+  }
+
+  &__progress-label {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: $c-text;
+  }
+
+  // ─── Close button ─────────────────────────────────────────────────────────
+
+  &__close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: $c-close;
+
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      background-color: $c-close-hover;
+      color: $c-title;
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px map-deep-get($palette, 'brand', '200');
+    }
+  }
+
+  // ─── Themed toasts ────────────────────────────────────────────────────────
+
+  @each $name, $tones in $themes {
+    &--#{$name} {
+      background-color: map.get($tones, bg);
+      border-color: map.get($tones, border);
+
+      .Toast__title {
+        color: map.get($tones, title);
+      }
+
+      .Toast__icon {
+        color: map.get($tones, icon-fg);
+      }
+
+      .Toast__icon-shape {
+        background-color: map.get($tones, icon-bg);
+        color: map.get($tones, icon-fg);
+      }
+
+      .Toast__close {
+        color: map.get($tones, icon-fg);
+
+        &:hover {
+          background-color: rgba(0, 0, 0, 0.04);
+        }
+      }
+
+      .Toast__divider {
+        background-color: map.get($tones, border);
+      }
+    }
+  }
+}

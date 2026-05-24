@@ -1,0 +1,237 @@
+@use 'sass:map';
+@use '../../styles/settings/colors' as colors;
+@use '../../styles/tools/functions' as *;
+
+$palette: colors.$palette;
+
+// ─── Design tokens ────────────────────────────────────────────────────────────
+
+$c-bg:           #ffffff;
+$c-bg-disabled:  map-deep-get($palette, 'gray', '50');
+
+$c-border:        map-deep-get($palette, 'gray', '200');
+$c-border-light:  map-deep-get($palette, 'gray', '100');
+$c-border-hover:  map-deep-get($palette, 'gray', '400');
+
+$c-brand:        map-deep-get($palette, 'brand', '500');
+$c-brand-border: map-deep-get($palette, 'brand', '600');
+$c-brand-ring:   map-deep-get($palette, 'brand', '200');
+
+$c-dot-disabled: map-deep-get($palette, 'gray', '400');
+
+$c-label:           map-deep-get($palette, 'gray', '900');
+$c-label-disabled:  map-deep-get($palette, 'gray', '400');
+$c-hint:            map-deep-get($palette, 'gray', '500');
+$c-error:           map-deep-get($palette, 'rose', '700');
+$c-required:        map-deep-get($palette, 'rose', '700');
+
+$shadow-inset: inset 0 0 0 0.5px rgba(29, 41, 61, 0.04);
+$ring-width: 3px;
+
+// ─── Radio ────────────────────────────────────────────────────────────────────
+
+.Radio {
+  font-family: 'Poppins', sans-serif;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  &__row {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  &__control {
+    position: relative;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 1rem;
+    height: 1rem;
+    box-sizing: border-box;
+  }
+
+  &__native {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: inherit;
+
+    &:disabled { cursor: not-allowed; }
+  }
+
+  &__circle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+
+    background-color: $c-bg;
+    border: 1px solid $c-border;
+    border-radius: 9999px;
+
+    box-shadow: $shadow-inset;
+
+    transition: background-color 0.12s ease, border-color 0.12s ease, box-shadow 0.15s ease;
+  }
+
+  &__dot {
+    width: 50%;
+    height: 50%;
+    border-radius: 9999px;
+    background-color: $c-brand;
+    transform: scale(0);
+    transition: transform 0.12s ease;
+  }
+
+  // ─── States ─────────────────────────────────────────────────────────────────
+
+  &__row:hover &__native:not(:disabled) + &__circle {
+    border-color: $c-border-hover;
+  }
+
+  // Focus — keep the gray border, add the peach ring (matches Figma `focus-brand`).
+  &__native:focus-visible + &__circle {
+    box-shadow: $shadow-inset, 0 0 0 $ring-width $c-brand-ring;
+  }
+
+  &__native:checked + &__circle {
+    border-color: $c-brand-border;
+
+    .Radio__dot { transform: scale(1); }
+  }
+
+  // ─── Disabled ───────────────────────────────────────────────────────────────
+
+  &--disabled {
+    cursor: not-allowed;
+
+    .Radio__row { cursor: not-allowed; }
+
+    .Radio__circle {
+      background-color: $c-bg-disabled;
+      border-color: $c-border-light;
+      box-shadow: none;
+    }
+
+    .Radio__label {
+      color: $c-label-disabled;
+    }
+  }
+
+  &--disabled .Radio__native:checked + .Radio__circle {
+    background-color: $c-bg;
+    border-color: $c-border;
+
+    .Radio__dot {
+      background-color: $c-dot-disabled;
+    }
+  }
+
+  // ─── Error ──────────────────────────────────────────────────────────────────
+
+  &--error {
+    .Radio__circle {
+      border-color: $c-error;
+    }
+
+    .Radio__native:focus-visible + .Radio__circle {
+      box-shadow: $shadow-inset, 0 0 0 $ring-width rgba(199, 0, 54, 0.2);
+    }
+
+    .Radio__message {
+      color: $c-error;
+    }
+  }
+
+  // ─── Label / hint ───────────────────────────────────────────────────────────
+
+  &__label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: $c-label;
+    padding-top: 1px;
+  }
+
+  &__required { color: $c-required; }
+
+  &__message {
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.4;
+    color: $c-hint;
+    padding-left: 1.5rem;
+  }
+
+  // ─── Sizes ──────────────────────────────────────────────────────────────────
+
+  &--sm &__control {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  &--sm &__label   { font-size: 0.8125rem; }
+  &--sm &__message { padding-left: 1.375rem; }
+
+  &--lg &__control {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  &--lg &__label   { font-size: 0.9375rem; }
+  &--lg &__message { padding-left: 1.625rem; }
+}
+
+// ─── RadioGroup ───────────────────────────────────────────────────────────────
+
+.RadioGroup {
+  font-family: 'Poppins', sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  &__label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: $c-label;
+  }
+
+  &__required { color: $c-required; }
+
+  &__options {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  &--vertical &__options {
+    flex-direction: column;
+  }
+
+  &--horizontal &__options {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  &__message {
+    font-size: 0.75rem;
+    color: $c-hint;
+  }
+
+  &--error &__message {
+    color: $c-error;
+  }
+}

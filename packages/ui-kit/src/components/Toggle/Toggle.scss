@@ -1,0 +1,232 @@
+@use 'sass:map';
+@use '../../styles/settings/colors' as colors;
+@use '../../styles/tools/functions' as *;
+
+$palette: colors.$palette;
+
+// ─── Design tokens (mirror Figma toggle vars) ────────────────────────────────
+
+$c-track-off:           map-deep-get($palette, 'gray', '100');   // bg-tertiary-medium
+$c-track-off-border:    map-deep-get($palette, 'gray', '200');   // border-base-strong
+$c-track-on:            map-deep-get($palette, 'brand', '500');  // bg-brand
+$c-track-on-border:     map-deep-get($palette, 'brand', '500');  // border-brand-light
+
+$c-track-disabled-off:        map-deep-get($palette, 'gray', '50');   // bg-secondary-soft
+$c-track-disabled-off-border: map-deep-get($palette, 'gray', '100');  // border-light-medium
+$c-track-disabled-on:         map-deep-get($palette, 'gray', '200');  // dimmed
+$c-track-disabled-on-border:  map-deep-get($palette, 'gray', '200');
+
+$c-knob:                #ffffff;                                 // bg-white
+$c-knob-shadow:         rgba(29, 41, 61, 0.05);                  // shadow-sm
+
+$c-ring:                map-deep-get($palette, 'brand', '200');  // bg-brand-medium / focus-brand
+
+$c-label:               map-deep-get($palette, 'gray', '900');
+$c-label-disabled:      map-deep-get($palette, 'gray', '400');
+$c-hint:                map-deep-get($palette, 'gray', '500');
+$c-error:               map-deep-get($palette, 'rose', '700');
+$c-required:            map-deep-get($palette, 'rose', '700');
+
+// ─── Geometry (Figma-exact) ──────────────────────────────────────────────────
+
+$base-w:    36px;
+$base-h:    20px;
+$base-knob: 16px;
+$base-pad:  2px;     // (20 - 16) / 2
+$base-travel: $base-w - $base-knob - 2 * $base-pad;   // 16px
+
+$lg-w:    44px;
+$lg-h:    24px;
+$lg-knob: 20px;
+$lg-pad:  2px;
+$lg-travel: $lg-w - $lg-knob - 2 * $lg-pad;   // 20px
+
+$ring-spread: 2px;
+$knob-shadow: 0 1px 2px $c-knob-shadow;
+$easing:      cubic-bezier(0.4, 0, 0.2, 1);
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
+.Toggle {
+  font-family: 'Poppins', sans-serif;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  &__row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  // ─── Switch ─────────────────────────────────────────────────────────────────
+
+  &__control {
+    position: relative;
+    flex-shrink: 0;
+    box-sizing: border-box;
+
+    width:  $base-w;
+    height: $base-h;
+  }
+
+  &__native {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: inherit;
+    z-index: 1;
+
+    &:disabled { cursor: not-allowed; }
+  }
+
+  &__track {
+    position: absolute;
+    inset: 0;
+    box-sizing: border-box;
+
+    background-color: $c-track-off;
+    border: 1px solid $c-track-off-border;
+    border-radius: 9999px;
+
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+
+  &__knob {
+    position: absolute;
+    top:  $base-pad;
+    left: $base-pad;
+    box-sizing: border-box;
+
+    width:  $base-knob;
+    height: $base-knob;
+
+    background-color: $c-knob;
+    border-radius: 9999px;
+    box-shadow: $knob-shadow;
+
+    transition: transform 0.18s $easing;
+  }
+
+  // ─── Checked ────────────────────────────────────────────────────────────────
+
+  &__native:checked + &__track {
+    background-color: $c-track-on;
+    border-color: $c-track-on-border;
+
+    .Toggle__knob {
+      transform: translateX($base-travel);
+    }
+  }
+
+  // ─── Focus ──────────────────────────────────────────────────────────────────
+
+  &__native:focus-visible + &__track {
+    box-shadow: 0 0 0 $ring-spread $c-ring;
+  }
+
+  // ─── Disabled ───────────────────────────────────────────────────────────────
+
+  &--disabled {
+    cursor: not-allowed;
+
+    .Toggle__row { cursor: not-allowed; }
+
+    .Toggle__track {
+      background-color: $c-track-disabled-off;
+      border-color: $c-track-disabled-off-border;
+    }
+
+    .Toggle__knob {
+      box-shadow: none;
+    }
+
+    .Toggle__label {
+      color: $c-label-disabled;
+    }
+  }
+
+  &--disabled .Toggle__native:checked + .Toggle__track {
+    background-color: $c-track-disabled-on;
+    border-color: $c-track-disabled-on-border;
+  }
+
+  // ─── Error ──────────────────────────────────────────────────────────────────
+
+  &--error {
+    .Toggle__track {
+      border-color: $c-error;
+    }
+
+    .Toggle__native:focus-visible + .Toggle__track {
+      box-shadow: 0 0 0 $ring-spread rgba(199, 0, 54, 0.2);
+    }
+
+    .Toggle__message {
+      color: $c-error;
+    }
+  }
+
+  // ─── Label / hint ───────────────────────────────────────────────────────────
+
+  &__label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: $c-label;
+  }
+
+  &__required {
+    color: $c-required;
+  }
+
+  &__message {
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.4;
+    color: $c-hint;
+    padding-left: calc(#{$base-w} + 0.5rem);
+  }
+
+  &--label-left &__message {
+    padding-left: 0;
+  }
+
+  // ─── Size: lg ───────────────────────────────────────────────────────────────
+
+  &--lg .Toggle__control {
+    width:  $lg-w;
+    height: $lg-h;
+  }
+
+  &--lg .Toggle__knob {
+    top:  $lg-pad;
+    left: $lg-pad;
+    width:  $lg-knob;
+    height: $lg-knob;
+  }
+
+  &--lg .Toggle__native:checked + .Toggle__track .Toggle__knob {
+    transform: translateX($lg-travel);
+  }
+
+  &--lg .Toggle__label {
+    font-size: 0.9375rem;
+  }
+
+  &--lg .Toggle__message {
+    padding-left: calc(#{$lg-w} + 0.5rem);
+  }
+
+  &--lg.Toggle--label-left .Toggle__message {
+    padding-left: 0;
+  }
+}
