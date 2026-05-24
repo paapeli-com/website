@@ -1,0 +1,32 @@
+@use 'sass:map';
+@use '../../styles/settings/colors' as colors;
+@use '../../styles/tools/functions' as *;
+
+$palette: colors.$palette;
+
+// Track color matches the Figma `bg-quaternary` token (gray-200).
+$c-track: map-deep-get($palette, 'gray', '200');
+
+.Spinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+
+  // Track color flows down via `currentColor` on the track <circle>.
+  color: $c-track;
+
+  &__svg {
+    display: block;
+    animation: spinner-rotate 0.9s linear infinite;
+  }
+
+  &__indicator {
+    transform-origin: center;
+  }
+}
+
+@keyframes spinner-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

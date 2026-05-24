@@ -1,0 +1,273 @@
+@use 'sass:map';
+@use '../../styles/settings/colors' as colors;
+@use '../../styles/tools/functions' as *;
+
+// ─── Design-system reference shortcuts ────────────────────────────────────────
+//
+// Pulls the exact palette shades that the Figma alert component uses. Sticking
+// to the palette means the alert tracks design-system updates automatically.
+
+$palette: colors.$palette;
+
+// Success (emerald)
+$c-success-bg:      map-deep-get($palette, 'emerald', '50');
+$c-success-medium:  map-deep-get($palette, 'emerald', '100');
+$c-success-border:  map-deep-get($palette, 'emerald', '200');
+$c-success-accent:  map-deep-get($palette, 'emerald', '700');
+$c-success-fg:      map-deep-get($palette, 'emerald', '900');
+
+// Danger (rose)
+$c-danger-bg:       map-deep-get($palette, 'rose', '50');
+$c-danger-medium:   map-deep-get($palette, 'rose', '100');
+$c-danger-border:   map-deep-get($palette, 'rose', '200');
+$c-danger-accent:   map-deep-get($palette, 'rose', '700');
+$c-danger-fg:       map-deep-get($palette, 'rose', '900');
+
+// Warning (orange)
+$c-warning-bg:      map-deep-get($palette, 'orange', '50');
+$c-warning-medium:  map-deep-get($palette, 'orange', '100');
+$c-warning-border:  map-deep-get($palette, 'orange', '200');
+$c-warning-accent:  map-deep-get($palette, 'orange', '500');
+$c-warning-fg:      map-deep-get($palette, 'orange', '900');
+
+// Info (blue)
+$c-info-bg:         map-deep-get($palette, 'blue', '50');
+$c-info-medium:     map-deep-get($palette, 'blue', '100');
+$c-info-border:     map-deep-get($palette, 'blue', '200');
+$c-info-accent:     map-deep-get($palette, 'blue', '700');
+$c-info-fg:         map-deep-get($palette, 'blue', '900');
+
+// Default (gray)
+$c-default-bg:      map-deep-get($palette, 'gray', '50');
+$c-default-medium:  map-deep-get($palette, 'gray', '100');
+$c-default-border:  map-deep-get($palette, 'gray', '200');
+$c-default-accent:  map-deep-get($palette, 'gray', '800');
+$c-default-fg:      map-deep-get($palette, 'gray', '900');
+
+// Token shortcuts
+$radius:        12px;
+$radius-sm:     8px;
+$border:        1px;
+$border-top-w:  4px;
+
+// ─── Color mixin ──────────────────────────────────────────────────────────────
+
+@mixin alert-color($bg, $medium, $border, $accent, $fg) {
+  background-color: $bg;
+  border-color: $border;
+  color: $fg;
+
+  .Alert__icon-wrap {
+    color: $accent;
+  }
+
+  .Alert__title,
+  .Alert__title-inline {
+    color: $fg;
+  }
+
+  .Alert__close {
+    color: $fg;
+
+    &:hover {
+      background-color: $medium;
+    }
+  }
+
+  // Top accent border (used by `border-top` type)
+  &.Alert--border-top {
+    border-top-color: $accent;
+  }
+
+  &.Alert--small {
+    .Alert__trailing {
+      color: $accent;
+    }
+  }
+}
+
+// ─── Base ────────────────────────────────────────────────────────────────────
+
+.Alert {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;          // 10px
+
+  width: 100%;
+  padding: 0.875rem 1rem; // 14px / 16px
+  border: $border solid transparent;
+  border-radius: $radius;
+
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.875rem;    // 14px (Body Small)
+  font-weight: 400;
+  line-height: 1.4;
+
+  &__icon-wrap {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__icon {
+    display: block;
+  }
+
+  &__message {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  &__title-inline {
+    font-weight: 500;
+  }
+
+  &__close {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.06);
+    }
+  }
+
+  // ─── Type: complex ──────────────────────────────────────────────────────────
+
+  &--complex {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem 1.125rem;
+
+    .Alert__header {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+    }
+
+    .Alert__title {
+      flex: 1 1 auto;
+      margin: 0;
+      font-size: 1rem;        // 16px
+      font-weight: 500;
+      line-height: 1.25;
+    }
+
+    .Alert__body {
+      font-size: 0.875rem;
+      font-weight: 400;
+      line-height: 1.45;
+      // Indent body to match the heading (icon width + gap).
+      padding-left: calc(20px + 0.625rem);
+    }
+
+    .Alert__actions {
+      margin-top: 0.5rem;
+      padding-left: calc(20px + 0.625rem);
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .Alert__close {
+      align-self: flex-start;
+    }
+  }
+
+  // ─── Type: small (pill) ─────────────────────────────────────────────────────
+
+  &--small {
+    gap: 0.5rem;
+    padding: 0.25rem 0.5rem 0.25rem 0.25rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+
+    .Alert__message {
+      padding: 0 0.125rem;
+    }
+
+    .Alert__trailing {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1rem;
+      height: 1rem;
+    }
+  }
+
+  // ─── Type: border-top ───────────────────────────────────────────────────────
+
+  &--border-top {
+    border-radius: 0 0 $radius $radius;
+    border: $border solid transparent;
+    border-top-width: $border-top-w;
+  }
+
+  // ─── Color variants ─────────────────────────────────────────────────────────
+
+  &--success {
+    @include alert-color(
+      $c-success-bg,
+      $c-success-medium,
+      $c-success-border,
+      $c-success-accent,
+      $c-success-fg
+    );
+  }
+
+  &--danger {
+    @include alert-color(
+      $c-danger-bg,
+      $c-danger-medium,
+      $c-danger-border,
+      $c-danger-accent,
+      $c-danger-fg
+    );
+  }
+
+  &--warning {
+    @include alert-color(
+      $c-warning-bg,
+      $c-warning-medium,
+      $c-warning-border,
+      $c-warning-accent,
+      $c-warning-fg
+    );
+  }
+
+  &--info {
+    @include alert-color(
+      $c-info-bg,
+      $c-info-medium,
+      $c-info-border,
+      $c-info-accent,
+      $c-info-fg
+    );
+  }
+
+  &--default {
+    @include alert-color(
+      $c-default-bg,
+      $c-default-medium,
+      $c-default-border,
+      $c-default-accent,
+      $c-default-fg
+    );
+  }
+}

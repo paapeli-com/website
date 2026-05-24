@@ -1,0 +1,216 @@
+@use 'sass:map';
+@use '../../styles/settings/colors' as colors;
+@use '../../styles/tools/functions' as *;
+
+$palette: colors.$palette;
+
+// ─── Design tokens (mirror Figma variable defs) ──────────────────────────────
+
+$c-bg:                  #ffffff;                                  // bg-variants-white
+$c-bg-disabled:         map-deep-get($palette, 'gray', '50');     // bg-secondary-strong
+$c-bg-checked-disabled: map-deep-get($palette, 'gray', '200');    // bg-quaternary
+
+$c-border:        map-deep-get($palette, 'gray', '200');          // border-base-strong
+$c-border-light:  map-deep-get($palette, 'gray', '100');          // border-light (disabled)
+$c-border-hover:  map-deep-get($palette, 'gray', '400');
+
+$c-brand-bg:     map-deep-get($palette, 'brand', '500');          // bg-brand
+$c-brand-border: map-deep-get($palette, 'brand', '600');          // border-brand
+$c-brand-ring:   map-deep-get($palette, 'brand', '200');          // bg-brand-medium (focus)
+
+$c-check:           #ffffff;                                       // text-white
+$c-check-disabled:  map-deep-get($palette, 'gray', '400');         // text-fg-disabled
+
+$c-label:          map-deep-get($palette, 'gray', '900');
+$c-label-disabled: map-deep-get($palette, 'gray', '400');
+$c-hint:           map-deep-get($palette, 'gray', '500');
+$c-error:          map-deep-get($palette, 'rose', '700');
+$c-required:       map-deep-get($palette, 'rose', '700');
+
+$shadow-inset: inset 0 0 0 0.5px rgba(29, 41, 61, 0.04);
+$ring-width: 3px;
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+.Checkbox {
+  font-family: 'Poppins', sans-serif;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  &__row {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  // ─── Visual box ─────────────────────────────────────────────────────────────
+
+  &__control {
+    position: relative;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 1rem;            // 16px
+    height: 1rem;
+    box-sizing: border-box;
+  }
+
+  &__native {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: inherit;
+
+    &:disabled { cursor: not-allowed; }
+  }
+
+  &__box {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+
+    background-color: $c-bg;
+    border: 1px solid $c-border;
+    border-radius: 4px;     // rounded-xs
+
+    box-shadow: $shadow-inset;
+
+    transition: background-color 0.12s ease, border-color 0.12s ease, box-shadow 0.15s ease;
+  }
+
+  &__check {
+    width: 100%;
+    height: 100%;
+    color: $c-check;
+    opacity: 0;
+    transition: opacity 0.1s ease;
+  }
+
+  // ─── States ─────────────────────────────────────────────────────────────────
+
+  &__row:hover &__native:not(:disabled) + &__box {
+    border-color: $c-border-hover;
+  }
+
+  // Focus — keep the gray border, add the peach ring (matches Figma `focus-brand`).
+  // Use `:focus-visible` first so the ring only shows for keyboard focus, plus a
+  // fallback to `:focus` for inputs the user activates with the pointer (some
+  // platforms still expose focus there).
+  &__native:focus-visible + &__box {
+    box-shadow: $shadow-inset, 0 0 0 $ring-width $c-brand-ring;
+  }
+
+  &__native:checked + &__box {
+    background-color: $c-brand-bg;
+    border-color: $c-brand-border;
+  }
+
+  &__native:checked + &__box &__check,
+  &--indeterminate &__check {
+    opacity: 1;
+  }
+
+  // Indeterminate — wrapper class because :indeterminate on a hidden input
+  // isn't reliably styleable across browsers.
+  &--indeterminate &__box {
+    background-color: $c-brand-bg;
+    border-color: $c-brand-border;
+  }
+
+  // ─── Disabled ───────────────────────────────────────────────────────────────
+
+  &--disabled {
+    cursor: not-allowed;
+
+    .Checkbox__row { cursor: not-allowed; }
+
+    .Checkbox__box {
+      background-color: $c-bg-disabled;
+      border-color: $c-border-light;     // softer than the active border
+      box-shadow: none;
+    }
+
+    .Checkbox__label {
+      color: $c-label-disabled;
+    }
+  }
+
+  &--disabled .Checkbox__native:checked + .Checkbox__box,
+  &--disabled.Checkbox--indeterminate .Checkbox__box {
+    background-color: $c-bg-checked-disabled;
+    border-color: $c-bg-checked-disabled;
+
+    .Checkbox__check {
+      color: $c-check-disabled;
+    }
+  }
+
+  // ─── Error ──────────────────────────────────────────────────────────────────
+
+  &--error {
+    .Checkbox__box {
+      border-color: $c-error;
+    }
+
+    .Checkbox__native:focus-visible + .Checkbox__box {
+      box-shadow: $shadow-inset, 0 0 0 $ring-width rgba(199, 0, 54, 0.2);
+    }
+
+    .Checkbox__message {
+      color: $c-error;
+    }
+  }
+
+  // ─── Label / hint ───────────────────────────────────────────────────────────
+
+  &__label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: $c-label;
+    padding-top: 1px;
+  }
+
+  &__required {
+    color: $c-required;
+  }
+
+  &__message {
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.4;
+    color: $c-hint;
+    padding-left: 1.5rem;
+  }
+
+  // ─── Sizes ──────────────────────────────────────────────────────────────────
+
+  &--sm &__control {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  &--sm &__label   { font-size: 0.8125rem; }
+  &--sm &__message { padding-left: 1.375rem; }
+
+  &--lg &__control {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  &--lg &__label   { font-size: 0.9375rem; }
+  &--lg &__message { padding-left: 1.625rem; }
+}

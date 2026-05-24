@@ -2,6 +2,7 @@
   "name": "@paapeli/ui-kit",
   "version": "0.0.1",
   "private": true,
+  "type":"module",
   "exports": {
     ".": "./src/index.ts",
     "./components": "./src/components/index.ts",
@@ -15,7 +16,6 @@
     "build:styles": "sass src/styles/main.scss dist/styles/main.css --no-source-map"
   },
   "devDependencies": {
-    "sass": "^1.97.3",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@testing-library/jest-dom": "^6.9.1",
@@ -25,6 +25,7 @@
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
     "eslint": "^9.39.1",
+    "sass": "^1.97.3",
     "typescript": "5.9.2",
     "vitest": "^4.0.16"
   },

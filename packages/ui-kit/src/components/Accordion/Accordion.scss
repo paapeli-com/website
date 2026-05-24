@@ -1,0 +1,206 @@
+@use 'sass:map';
+@use '../../styles/settings/colors' as colors;
+@use '../../styles/tools/functions' as *;
+
+// ─── Design tokens ────────────────────────────────────────────────────────────
+
+$palette: colors.$palette;
+
+$c-border:        map-deep-get($palette, 'gray', '200');   // #e5e7eb
+$c-header-open:   map-deep-get($palette, 'gray', '100');   // #f3f4f6
+$c-title:         map-deep-get($palette, 'gray', '900');   // #101828
+$c-body:          map-deep-get($palette, 'gray', '600');   // #4a5565
+$c-chevron:       map-deep-get($palette, 'gray', '900');   // #101828
+
+$radius:          12px;
+$shadow-sm:       0 1px 2px 0 rgba(29, 41, 61, 0.05);
+$transition:      0.22s ease;
+
+// ─── Base ─────────────────────────────────────────────────────────────────────
+
+.Accordion {
+  font-family: 'Poppins', system-ui, sans-serif;
+  width: 100%;
+
+  // ─── Default (bordered, single container) ─────────────────────────────────
+
+  &--default {
+    border: 1px solid $c-border;
+    border-radius: $radius;
+    overflow: hidden;
+
+    .Accordion__item {
+      border-bottom: 1px solid $c-border;
+
+      &--last {
+        border-bottom: none;
+      }
+    }
+  }
+
+  // ─── Flush (no borders, dividers only) ────────────────────────────────────
+
+  &--flush {
+    .Accordion__item {
+      border-bottom: 1px solid $c-border;
+
+      &--last {
+        border-bottom: none;
+      }
+    }
+
+    .Accordion__trigger {
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    .Accordion__body {
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    // No background change on open for flush
+    .Accordion__item--open .Accordion__trigger {
+      background: transparent;
+    }
+  }
+
+  // ─── Separate cards ────────────────────────────────────────────────────────
+
+  &--separate-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .Accordion__item {
+      border: 1px solid $c-border;
+      border-radius: $radius;
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: $shadow-sm;
+    }
+  }
+}
+
+// ─── Item ─────────────────────────────────────────────────────────────────────
+
+.Accordion__item {
+  // no extra base styles needed
+}
+
+// ─── Trigger (header button) ──────────────────────────────────────────────────
+
+.Accordion__trigger {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  width: 100%;
+  padding: 20px 24px;
+
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+
+  transition: background-color $transition;
+
+  &:hover {
+    background-color: $c-header-open;
+  }
+
+  &:focus-visible {
+    outline: 2px solid map-deep-get($palette, 'brand', '500');
+    outline-offset: -2px;
+  }
+}
+
+.Accordion__item--open > .Accordion__trigger {
+  background-color: $c-header-open;
+}
+
+// ─── Leading icon ─────────────────────────────────────────────────────────────
+
+.Accordion__icon-wrap {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  line-height: 1;
+}
+
+// ─── Title area ───────────────────────────────────────────────────────────────
+
+.Accordion__title-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.Accordion__title {
+  display: block;
+  font-size: 1rem;       // 16px
+  font-weight: 500;
+  line-height: 1.5;
+  color: $c-title;
+}
+
+.Accordion__sub-title {
+  display: block;
+  font-size: 0.875rem;   // 14px
+  font-weight: 400;
+  line-height: 1.4;
+  color: $c-body;
+}
+
+// ─── Trailing chevron ─────────────────────────────────────────────────────────
+
+.Accordion__chevron {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: $c-chevron;
+  transition: transform $transition;
+}
+
+.Accordion__item--open > .Accordion__trigger .Accordion__chevron {
+  transform: rotate(180deg);
+}
+
+// ─── Panel (collapsible content) ──────────────────────────────────────────────
+//
+// Two-element collapse:
+//   .Accordion__panel  → grid container, animates 0fr → 1fr
+//   .Accordion__body   → grid child, must stay zero-sizable (overflow:hidden, min-height:0).
+//                        DO NOT add padding/typography here, or the body's
+//                        intrinsic min size becomes > 0 and content leaks
+//                        out when collapsed.
+//   .Accordion__inner  → carries padding + typography.
+
+.Accordion__panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows $transition;
+}
+
+.Accordion__item--open > .Accordion__panel {
+  grid-template-rows: 1fr;
+}
+
+.Accordion__body {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.Accordion__inner {
+  padding: 0 24px 20px;
+
+  font-size: 1rem;       // 16px
+  font-weight: 400;
+  line-height: 1.6;
+  color: $c-body;
+}

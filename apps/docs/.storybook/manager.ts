@@ -12,5 +12,9 @@ addons.setConfig({
     // Brand colors from the design system
     colorPrimary: '#ff7900',   // brand-500
     colorSecondary: '#aa4f00', // brand-700
+
+    // Typography — Poppins is loaded in manager-head.html
+    fontBase: '"Poppins", system-ui, -apple-system, "Segoe UI", sans-serif',
+    fontCode: '"Fira Mono", "Consolas", monospace',
   }),
 });

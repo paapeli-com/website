@@ -1,0 +1,35 @@
+@font-face {
+    font-family: "Untitled";
+    src: url("fonts/Untitled.woff2") format("woff2"),
+        url("fonts/Untitled.ttf") format("truetype"),
+        url("fonts/Untitled.woff") format("woff");
+    font-weight: normal;
+    font-style: normal;
+    font-display: block;
+}
+
+/*
+ * Remap the two primary palette entries to currentColor so icons inherit
+ * the CSS `color` property. The font is COLRv0 with a hardcoded CPAL
+ * palette; without this override, glyphs always render as #101828.
+ */
+@font-palette-values --icon-mono {
+    font-family: "Untitled";
+    base-palette: 0;
+    override-colors: 0 currentColor, 1 currentColor;
+}
+
+.icon {
+    /* Use !important to prevent extensions from overriding this font. */
+    font-family: "Untitled" !important;
+    font-style: normal;
+    font-weight: normal;
+    font-variant: normal;
+    text-transform: none;
+    line-height: 1;
+    font-palette: --icon-mono;
+
+    /* Better Font Rendering =========== */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}

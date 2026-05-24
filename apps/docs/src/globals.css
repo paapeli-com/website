@@ -11,6 +11,15 @@
   --docs-text-muted: #6a7282;
 }
 
+/*
+ * Default the preview iframe body to Poppins so stories that don't set their
+ * own font (e.g. autodocs render blocks) inherit the brand typography.
+ * Poppins itself is loaded via .storybook/preview-head.html.
+ */
+body {
+  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
 .dark {
   --docs-page-bg:    #030712;
   --docs-panel-bg:   #1e2939;

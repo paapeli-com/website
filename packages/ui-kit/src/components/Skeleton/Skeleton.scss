@@ -1,0 +1,195 @@
+@use 'sass:map';
+@use '../../styles/settings/colors' as colors;
+@use '../../styles/tools/functions' as *;
+
+$palette: colors.$palette;
+
+// ─── Design tokens (Figma vars) ──────────────────────────────────────────────
+
+$c-skeleton:        map-deep-get($palette, 'gray', '200');   // bg-quaternary  #e5e7eb
+$c-skeleton-strong: map-deep-get($palette, 'gray', '300');   // bg-gray        #d1d5dc
+$c-skeleton-icon:   map-deep-get($palette, 'gray', '100');   // image icon
+
+$radius-base: 12px;   // border-radius/rounded-base
+$gap-2:  8px;         // spacing/2
+$gap-25: 10px;        // spacing/2.5
+$gap-3:  12px;
+$gap-4:  16px;        // spacing/4
+$gap-5:  20px;        // spacing/5
+$gap-6:  24px;        // spacing/6
+
+// ─── Primitive ───────────────────────────────────────────────────────────────
+
+.Skeleton {
+  display: inline-block;
+  background-color: $c-skeleton;
+  border-radius: 9999px;          // pill default — line bars
+  flex-shrink: 0;
+  vertical-align: middle;
+
+  &--rect {
+    border-radius: 9999px;
+  }
+
+  &--circle {
+    border-radius: 9999px;
+    aspect-ratio: 1;
+  }
+
+  &--image {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    background-color: $c-skeleton-strong;
+    border-radius: $radius-base;
+    color: $c-skeleton-icon;
+  }
+
+  &__image-icon {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+// ─── Pulse animation ─────────────────────────────────────────────────────────
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+
+.Skeleton--animate {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .Skeleton--animate {
+    animation: none;
+  }
+}
+
+// ─── Layouts ─────────────────────────────────────────────────────────────────
+
+.SkeletonLayout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+
+  // Shared sub-layouts
+  &__lines {
+    display: flex;
+    flex-direction: column;
+    gap: $gap-2;
+    width: 100%;
+  }
+
+  &__avatar-row {
+    display: flex;
+    align-items: center;
+    gap: $gap-2;
+  }
+
+  &__inline {
+    display: flex;
+    gap: $gap-2;
+  }
+
+  // ── Card + Image · 384×241 ─────────────────────────────────────────────────
+
+  &--card-image {
+    gap: $gap-3;
+    max-width: 384px;
+  }
+
+  &--card-image .SkeletonLayout__lines {
+    gap: $gap-2;
+  }
+
+  // ── Image + Text · 600×180 ─────────────────────────────────────────────────
+
+  &--image-text {
+    flex-direction: row;
+    align-items: stretch;
+    gap: $gap-6;
+    max-width: 600px;
+
+    .Skeleton--image {
+      flex-shrink: 0;
+    }
+
+    .SkeletonLayout__lines {
+      flex: 1;
+      justify-content: center;
+      gap: $gap-3;
+    }
+  }
+
+  // ── Text · 640×96 ──────────────────────────────────────────────────────────
+
+  &--text {
+    align-items: center;
+    gap: $gap-3;
+    max-width: 640px;
+  }
+
+  // ── Simple text · 640×116 ──────────────────────────────────────────────────
+
+  &--simple-text {
+    gap: $gap-2;
+    max-width: 640px;
+  }
+
+  // ── List · 300×200 ─────────────────────────────────────────────────────────
+
+  &--list {
+    max-width: 300px;
+    gap: 0;
+  }
+
+  &__list-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $gap-3;
+    padding: 12px 0;
+    border-bottom: 1px solid map-deep-get($palette, 'gray', '100');
+  }
+
+  &__list-row:last-child {
+    border-bottom: 0;
+  }
+
+  &__list-row-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  // ── Widget · 300×309 ───────────────────────────────────────────────────────
+
+  &--widget {
+    max-width: 300px;
+    gap: $gap-4;
+  }
+
+  &__widget-header {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__widget-bars {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 8px;
+    height: 220px;
+  }
+
+  &__widget-bar {
+    align-self: stretch;
+  }
+}

@@ -1,0 +1,188 @@
+@use 'sass:map';
+@use '../../styles/settings/colors' as colors;
+@use '../../styles/tools/functions' as *;
+
+$palette: colors.$palette;
+
+// ─── Design tokens (mirror Figma vars) ───────────────────────────────────────
+
+$c-track:        map-deep-get($palette, 'gray', '200');   // bg-quaternary  #e5e7eb
+$c-track-border: map-deep-get($palette, 'gray', '200');   // border-base-medium
+$c-fill:         map-deep-get($palette, 'brand', '500');  // bg-brand        #ff7900
+
+$c-thumb:        #ffffff;                                  // bg-primary-medium
+$c-thumb-border: map-deep-get($palette, 'brand', '500');   // visible only when range thumb is shown alone
+
+$c-tooltip-bg:   map-deep-get($palette, 'gray', '800');    // bg-dark         #1e2939
+$c-tooltip-fg:   #ffffff;                                  // text-white
+
+$c-side-text:    map-deep-get($palette, 'gray', '600');    // text-body
+$c-icon:         map-deep-get($palette, 'gray', '600');
+
+$c-focus-ring:   map-deep-get($palette, 'brand', '200');
+
+// shadow-md: two-stop drop shadow with #1D293D1A (rgba(29,41,61,0.1))
+$thumb-shadow:
+  0 4px 6px -1px rgba(29, 41, 61, 0.1),
+  0 2px 4px -2px rgba(29, 41, 61, 0.1);
+
+$track-h:   8px;
+$thumb-sz:  20px;
+$tooltip-r: 12px;       // rounded-base
+$tooltip-arrow: 5px;
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+.RangeSlider {
+  font-family: 'Poppins', sans-serif;
+  width: 100%;
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  // ── Side decorations ───────────────────────────────────────────────────────
+
+  &__icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: $c-icon;
+  }
+
+  &__side-label {
+    flex-shrink: 0;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    color: $c-side-text;
+  }
+
+  // ── Track + fill ───────────────────────────────────────────────────────────
+
+  &__track-wrap {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    // Reserve room for the thumb's left/right halves so 0% and 100% positions
+    // don't get clipped by the parent flexbox.
+    padding: 0 calc(#{$thumb-sz} / 2);
+  }
+
+  &__track {
+    position: relative;
+    height: $track-h;
+    background-color: $c-track;
+    border: 1px solid $c-track-border;
+    border-radius: 9999px;
+    cursor: pointer;
+    box-sizing: border-box;
+    touch-action: none;
+  }
+
+  &__fill {
+    position: absolute;
+    top: -1px;     // overlap the 1px border so the fill is flush
+    bottom: -1px;
+    background-color: $c-fill;
+    border-radius: 9999px;
+  }
+
+  // ── Thumb ──────────────────────────────────────────────────────────────────
+
+  &__thumb {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: $thumb-sz;
+    height: $thumb-sz;
+    box-sizing: border-box;
+
+    background-color: $c-thumb;
+    border-radius: 9999px;
+    box-shadow: $thumb-shadow;
+
+    cursor: grab;
+    z-index: 1;
+    touch-action: none;
+
+    transition: box-shadow 0.15s ease;
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: $thumb-shadow, 0 0 0 3px $c-focus-ring;
+    }
+
+    &:active,
+    &--active {
+      cursor: grabbing;
+    }
+  }
+
+  // Range mode — give thumbs a faint brand border so they read against the fill
+  &--range &__thumb {
+    border: 1px solid $c-thumb-border;
+  }
+
+  // ── Tooltip ────────────────────────────────────────────────────────────────
+
+  &__tooltip {
+    position: absolute;
+    bottom: calc(100% + #{$tooltip-arrow} + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+
+    padding: 6px 12px;
+    background-color: $c-tooltip-bg;
+    color: $c-tooltip-fg;
+    border-radius: $tooltip-r;
+
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+
+      border-style: solid;
+      border-width: $tooltip-arrow $tooltip-arrow 0 $tooltip-arrow;
+      border-color: $c-tooltip-bg transparent transparent transparent;
+    }
+  }
+
+  // ── Ticks ──────────────────────────────────────────────────────────────────
+
+  &__ticks {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding: 0 calc(#{$thumb-sz} / 2);
+  }
+
+  &__tick {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    color: $c-side-text;
+  }
+
+  // ── Disabled ───────────────────────────────────────────────────────────────
+
+  &--disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+
+    .RangeSlider__track  { cursor: not-allowed; }
+    .RangeSlider__thumb  { cursor: not-allowed; pointer-events: none; }
+  }
+}

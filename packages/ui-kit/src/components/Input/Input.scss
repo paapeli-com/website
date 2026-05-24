@@ -1,0 +1,428 @@
+@use 'sass:map';
+@use 'sass:list';
+@use '../../styles/settings/colors' as colors;
+@use '../../styles/tools/functions' as *;
+
+$palette: colors.$palette;
+
+// ─── Palette shortcuts ────────────────────────────────────────────────────────
+
+$c-gray-50:      map-deep-get($palette, 'gray', '50');
+$c-gray-100:     map-deep-get($palette, 'gray', '100');
+$c-gray-200:     map-deep-get($palette, 'gray', '200');
+$c-gray-300:     map-deep-get($palette, 'gray', '300');
+$c-gray-400:     map-deep-get($palette, 'gray', '400');
+$c-gray-500:     map-deep-get($palette, 'gray', '500');
+$c-gray-600:     map-deep-get($palette, 'gray', '600');
+$c-gray-700:     map-deep-get($palette, 'gray', '700');
+$c-gray-900:     map-deep-get($palette, 'gray', '900');
+
+$c-brand-50:     map-deep-get($palette, 'brand', '50');
+$c-brand-500:    map-deep-get($palette, 'brand', '500');
+
+$c-emerald-50:   map-deep-get($palette, 'emerald', '50');
+$c-emerald-200:  map-deep-get($palette, 'emerald', '200');
+$c-emerald-700:  map-deep-get($palette, 'emerald', '700');
+$c-emerald-900:  map-deep-get($palette, 'emerald', '900');
+
+$c-rose-50:      map-deep-get($palette, 'rose', '50');
+$c-rose-200:     map-deep-get($palette, 'rose', '200');
+$c-rose-700:     map-deep-get($palette, 'rose', '700');
+$c-rose-900:     map-deep-get($palette, 'rose', '900');
+
+// ─── Size map: (height, font-size, h-padding, border-radius) ─────────────────
+
+$sizes: (
+  'sm':   (36px, 13px, 12px, 8px),
+  'base': (40px, 14px, 14px, 10px),
+  'lg':   (48px, 14px, 16px, 10px),
+  'xl':   (52px, 15px, 18px, 12px),
+);
+
+// ─── Base ─────────────────────────────────────────────────────────────────────
+
+.Input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+
+  font-family: 'Poppins', sans-serif;
+
+  // ── Label ────────────────────────────────────────────────────────────────────
+
+  &__label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: $c-gray-900;
+    line-height: 1.4;
+  }
+
+  &__required {
+    color: $c-rose-700;
+  }
+
+  // ── Field wrap ───────────────────────────────────────────────────────────────
+
+  &__field-wrap {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+
+    background-color: $c-gray-50;
+    border: 1px solid $c-gray-200;
+    overflow: hidden;
+
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+
+  // ── Native input ─────────────────────────────────────────────────────────────
+
+  &__native {
+    flex: 1 1 auto;
+    min-width: 0;
+
+    border: 0;
+    outline: none;
+    background: transparent;
+
+    font-family: inherit;
+    font-size: inherit;
+    color: $c-gray-900;
+    line-height: 1.4;
+
+    &::placeholder {
+      color: $c-gray-400;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      color: $c-gray-400;
+      -webkit-text-fill-color: $c-gray-400;
+    }
+
+    &:read-only {
+      cursor: default;
+    }
+  }
+
+  // ── Leading icon (inline) ────────────────────────────────────────────────────
+
+  &__icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: $c-gray-400;
+    transition: color 0.15s ease;
+    pointer-events: none;
+
+    .icon { font-size: 1.15em; line-height: 1; }
+  }
+
+  // ── Clear button ─────────────────────────────────────────────────────────────
+
+  &__clear {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    margin: auto 0;
+    align-self: center;
+
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: $c-gray-400;
+
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    .icon { font-size: 14px; line-height: 1; }
+
+    &:hover:not(:disabled) {
+      background-color: $c-gray-100;
+      color: $c-gray-600;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+  }
+
+  // ── Add-on (left-attached box) ───────────────────────────────────────────────
+
+  &__addon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: stretch;
+
+    background-color: $c-gray-50;
+    border-right: 1px solid $c-gray-200;
+    color: $c-gray-500;
+    white-space: nowrap;
+
+    transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+
+    &--icon {
+      color: $c-gray-400;
+
+      .icon { font-size: 1.15em; line-height: 1; }
+    }
+  }
+
+  // ── Inner action slot ────────────────────────────────────────────────────────
+
+  &__action {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+    margin-left: 4px;
+
+    font-family: inherit;
+    font-size: inherit;
+    white-space: nowrap;
+  }
+
+  // ── Stacked variant (label + input row, both centered) ──────────────────────
+
+  &__stacked {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__stacked-label {
+    display: block;
+    font-weight: 500;
+    line-height: 1;
+    color: $c-gray-900;
+  }
+
+  &__stacked-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    line-height: 1;
+
+    .Input__native {
+      text-align: center;
+      flex: 0 1 auto;
+      height: auto;
+      line-height: 1;
+      padding: 0;
+
+      &::placeholder { text-align: center; }
+    }
+  }
+
+  // ── Hint ─────────────────────────────────────────────────────────────────────
+
+  &__hint {
+    font-size: 0.8125rem;
+    color: $c-gray-500;
+    line-height: 1.4;
+  }
+
+  // ── Sizes ────────────────────────────────────────────────────────────────────
+
+  @each $name, $vals in $sizes {
+    $height:  list.nth($vals, 1);
+    $fs:      list.nth($vals, 2);
+    $hpad:    list.nth($vals, 3);
+    $radius:  list.nth($vals, 4);
+
+    &--#{$name} {
+      font-size: $fs;
+
+      .Input__field-wrap {
+        height: $height;
+        border-radius: $radius;
+      }
+
+      // Default + addon variants: padding on the wrap
+      &.Input--default,
+      &.Input--addon-icon,
+      &.Input--addon-text,
+      &.Input--inner-button {
+        .Input__field-wrap {
+          padding: 0 calc($hpad - 4px) 0 $hpad;
+          gap: calc($hpad * 0.6);
+        }
+      }
+
+      // Add-on box has its own padding and replaces left padding
+      &.Input--addon-icon,
+      &.Input--addon-text {
+        .Input__field-wrap {
+          padding-left: 0;
+        }
+        .Input__addon {
+          padding: 0 $hpad;
+        }
+      }
+
+      &.Input--inner-button {
+        .Input__field-wrap {
+          padding-right: calc($hpad * 0.4);
+        }
+      }
+
+      // Stacked: tight column, size-aware label / row gap
+      &.Input--stacked {
+        .Input__field-wrap {
+          padding: 0 $hpad;
+          gap: 0;
+        }
+
+        $stack-cfg: map.get((
+          'sm':   (10px, 13px, 1px),
+          'base': (11px, 14px, 2px),
+          'lg':   (12px, 14px, 4px),
+          'xl':   (13px, 15px, 6px),
+        ), $name);
+
+        $label-fs: list.nth($stack-cfg, 1);
+        $row-fs:   list.nth($stack-cfg, 2);
+        $row-gap:  list.nth($stack-cfg, 3);
+
+        .Input__stacked       { gap: $row-gap; }
+        .Input__stacked-label { font-size: $label-fs; }
+        .Input__stacked-row   { font-size: $row-fs; }
+      }
+    }
+  }
+
+  // ── Status: success ──────────────────────────────────────────────────────────
+
+  &--success {
+    .Input__field-wrap {
+      background-color: $c-emerald-50;
+      border-color: $c-emerald-200;
+    }
+    .Input__icon,
+    .Input__addon--icon {
+      color: $c-emerald-700;
+    }
+    .Input__addon {
+      border-right-color: $c-emerald-200;
+      background-color: $c-emerald-50;
+    }
+    .Input__addon--text {
+      color: $c-emerald-700;
+    }
+    .Input__native {
+      color: $c-emerald-900;
+      &::placeholder { color: $c-emerald-700; opacity: 0.6; }
+    }
+    .Input__hint {
+      color: $c-emerald-700;
+    }
+  }
+
+  // ── Status: danger ───────────────────────────────────────────────────────────
+
+  &--danger {
+    .Input__field-wrap {
+      background-color: $c-rose-50;
+      border-color: $c-rose-200;
+    }
+    .Input__icon,
+    .Input__addon--icon {
+      color: $c-rose-700;
+    }
+    .Input__addon {
+      border-right-color: $c-rose-200;
+      background-color: $c-rose-50;
+    }
+    .Input__addon--text {
+      color: $c-rose-700;
+    }
+    .Input__native {
+      color: $c-rose-900;
+      &::placeholder { color: $c-rose-700; opacity: 0.6; }
+    }
+    .Input__hint {
+      color: $c-rose-700;
+    }
+  }
+
+  // ── Focused (overrides status border with brand) ─────────────────────────────
+
+  &--focused:not(&--disabled):not(&--readonly) {
+    .Input__field-wrap {
+      background-color: #ffffff;
+      border-color: $c-brand-500;
+    }
+    .Input__icon,
+    .Input__addon--icon {
+      color: $c-brand-500;
+    }
+    .Input__addon {
+      border-right-color: $c-brand-500;
+      background-color: #ffffff;
+    }
+    .Input__addon--text {
+      color: $c-brand-500;
+    }
+    .Input__native {
+      color: $c-gray-900;
+    }
+  }
+
+  // ── Disabled ─────────────────────────────────────────────────────────────────
+
+  &--disabled {
+    .Input__field-wrap {
+      background-color: $c-gray-100;
+      border-color: $c-gray-200;
+      cursor: not-allowed;
+    }
+    .Input__icon,
+    .Input__addon--icon {
+      color: $c-gray-300;
+    }
+    .Input__addon {
+      background-color: $c-gray-100;
+    }
+    .Input__addon--text {
+      color: $c-gray-400;
+    }
+    .Input__native {
+      color: $c-gray-400;
+    }
+    .Input__label,
+    .Input__hint,
+    .Input__stacked-label {
+      opacity: 0.6;
+    }
+  }
+
+  // ── Read-only ────────────────────────────────────────────────────────────────
+
+  &--readonly {
+    .Input__field-wrap {
+      background-color: $c-gray-100;
+      border-color: $c-gray-200;
+    }
+    .Input__addon {
+      background-color: $c-gray-100;
+    }
+  }
+}

@@ -4,6 +4,9 @@ import { withThemeByClassName } from '@storybook/addon-themes';
 import '@paapeli/ui-kit/styles';
 // Docs-specific CSS custom properties (dark/light page chrome)
 import '../src/globals.css';
+// Paapeli icon font — @font-face + per-icon ::before rules
+import 'paapeli-font/style.css';
+import 'paapeli-font/icons.css';
 
 const preview: Preview = {
   decorators: [

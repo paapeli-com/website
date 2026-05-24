@@ -2,6 +2,18 @@
 @use '../settings/font';
 @use '../tools';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Typography-style factory
+//
+// Each key becomes a class prefix (e.g. "caption" → .caption-extralight).
+// The four lists must be the same length — one entry per weight variant.
+//
+// font_weight    → maps to font.$font-weights keys
+// font_sizes     → maps to font.$font-sizes keys  (used as .text-{name})
+// line_height    → maps to font.$line-hights keys (used as .leading-{name})
+// letter_spacing → maps to font.$letter-spacings keys (used as .tracking-{name})
+// ─────────────────────────────────────────────────────────────────────────────
+
 @if (settings.$typography-pack) {
   @include tools.layer('utilities.typography') {
     // Font family — .font-{name}
@@ -29,6 +41,41 @@
     @each $name, $value in font.$letter-spacings {
       .tracking-#{$name} {
         letter-spacing: $value;
+      }
+    }
+
+    // Line height — .leading-{name}
+    @each $name, $value in font.$line-hights {
+      .leading-#{$name} {
+        line-height: $value;
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Typography-style factory — .{style}-{weight}
+    //
+    // Iterates $typography-styles and zips the four lists together so that
+    // every weight variant gets its own combined utility class.
+    // ─────────────────────────────────────────────────────────────────────────
+    @each $style-name, $config in font.$typography-styles {
+      $weights:  map-get($config, 'font_weight');
+      $sizes:    map-get($config, 'font_sizes');
+      $leadings: map-get($config, 'line_height');
+      $trackings: map-get($config, 'letter_spacing');
+
+      @for $i from 1 through length($weights) {
+        $weight-key:   nth($weights,   $i);
+        $size-key:     nth($sizes,     $i);
+        $leading-key:  nth($leadings,  $i);
+        $tracking-key: nth($trackings, $i);
+
+        // .{style}-{weight}  e.g. .caption-extralight
+        .#{$style-name}-#{$weight-key} {
+          font-weight:    map-get(font.$font-weights,    $weight-key);
+          font-size:      map-get(font.$font-sizes,      $size-key);
+          line-height:    map-get(font.$line-hights,    $leading-key);
+          letter-spacing: map-get(font.$letter-spacings, $tracking-key);
+        }
       }
     }
   }
