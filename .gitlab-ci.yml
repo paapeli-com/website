@@ -35,6 +35,9 @@ default:
       IMAGE="${REGISTRY_URL}/paapeli/${APP}"
       docker build --platform "$DOCKER_PLATFORM" -f "ci/docker/${APP}/Dockerfile" -t "${IMAGE}:${TAG}" .
       docker push "${IMAGE}:${TAG}"
+  after_script:
+    - docker rmi "${REGISTRY_URL}/paapeli/${APP}:${CI_COMMIT_TAG:-latest}" || true
+    - docker image prune -f || true
 
 build-web:
   extends: .build-push
