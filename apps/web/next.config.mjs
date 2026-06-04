@@ -6,6 +6,7 @@ const __dirname = path.dirname(__filename);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   reactStrictMode: true,
   // Workspace packages ship TS/SCSS source and must be compiled by Next.
   transpilePackages: ['@paapeli/ui-kit', 'paapeli-font'],

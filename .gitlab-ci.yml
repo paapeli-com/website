@@ -1,0 +1,40 @@
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG'
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH'
+      when: always
+    - when: never
+
+stages:
+  - build
+
+default:
+  image: registry.paapeli.me/docker:28-cli
+  tags:
+    - docker
+  before_script:
+    - printf '%s' "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" -u "$REGISTRY_USER" --password-stdin
+
+variables:
+  DOCKER_HOST: unix:///var/run/docker.sock
+  DOCKER_PLATFORM: linux/amd64
+
+.build-push:
+  stage: build
+  script:
+    - |
+      TAG="${CI_COMMIT_TAG:-latest}"
+      IMAGE="${REGISTRY_URL}/paapeli/${APP}"
+      docker build --platform "$DOCKER_PLATFORM" -f "ci/docker/${APP}/Dockerfile" -t "${IMAGE}:${TAG}" .
+      docker push "${IMAGE}:${TAG}"
+
+build-web:
+  extends: .build-push
+  variables:
+    APP: web
+
+build-docs:
+  extends: .build-push
+  variables:
+    APP: docs
