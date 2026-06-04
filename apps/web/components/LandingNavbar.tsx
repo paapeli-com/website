@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronDown, ChevronRight, ArrowRight, Menu, X, AppWindow } from "lucide-react";
@@ -225,18 +225,59 @@ function PromoCard() {
 
 function MegaMenuPanel({ menu }: { menu: MegaMenu }) {
   return (
-    <div className="absolute inset-x-0 top-full border-b border-[#e5e7eb] bg-white shadow-[0px_4px_6px_-4px_rgba(29,41,61,0.1),0px_10px_15px_-3px_rgba(29,41,61,0.1)]">
-      <div className="mx-auto w-full max-w-[1280px] px-6 py-9">
-        <div className="flex items-start gap-12">
-          {menu.columns.map((col, i) => (
-            <div key={i} className="flex flex-1 flex-col gap-3">
-              {col.map((item) => (
-                <MegaMenuItem key={item.title} item={item} />
-              ))}
-            </div>
-          ))}
-          <PromoCard />
-        </div>
+    <div className="mx-auto w-full max-w-[1280px] px-6 py-9">
+      <div className="flex items-start gap-12">
+        {menu.columns.map((col, i) => (
+          <div key={i} className="flex flex-1 flex-col gap-3">
+            {col.map((item) => (
+              <MegaMenuItem key={item.title} item={item} />
+            ))}
+          </div>
+        ))}
+        <PromoCard />
+      </div>
+    </div>
+  );
+}
+
+/* Always-mounted dropdown wrapper. Handles three animations:
+   • fade in/out as it opens and closes
+   • height tween when switching between menus of different heights
+   • content cross-fade (re-triggered via `key`) on each menu change      */
+function MegaMenuDropdown({ openMenu }: { openMenu: keyof typeof MENUS | null }) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(0);
+  // Keep the last opened menu mounted so its content stays visible while the
+  // dropdown collapses on close, instead of vanishing instantly.
+  const [displayed, setDisplayed] = useState<keyof typeof MENUS | null>(openMenu);
+
+  useEffect(() => {
+    if (openMenu) setDisplayed(openMenu);
+  }, [openMenu]);
+
+  useEffect(() => {
+    if (openMenu && contentRef.current) {
+      setHeight(contentRef.current.scrollHeight);
+    }
+  }, [openMenu, displayed]);
+
+  return (
+    <div
+      aria-hidden={!openMenu}
+      style={{ height: openMenu ? height : 0 }}
+      className={cn(
+        "absolute inset-x-0 top-full overflow-hidden bg-white transition-[height,opacity] duration-300 ease-out",
+        openMenu
+          ? "border-b border-[#e5e7eb] opacity-100 shadow-[0px_4px_6px_-4px_rgba(29,41,61,0.1),0px_10px_15px_-3px_rgba(29,41,61,0.1)]"
+          : "pointer-events-none opacity-0"
+      )}
+    >
+      <div ref={contentRef}>
+        {displayed && (
+          <div key={displayed} className="duration-200 animate-in fade-in">
+            <MegaMenuPanel menu={MENUS[displayed]} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -362,7 +403,7 @@ export const LandingNavbar = () => {
       </div>
 
       {/* Desktop mega menu */}
-      {openMenu && <MegaMenuPanel menu={MENUS[openMenu]} />}
+      <MegaMenuDropdown openMenu={openMenu} />
 
       {/* Mobile menu */}
       {mobileOpen && (
