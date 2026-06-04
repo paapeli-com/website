@@ -8,6 +8,7 @@ workflow:
 
 stages:
   - build
+  - deploy
 
 variables:
   DOCKER_HOST: unix:///var/run/docker.sock
@@ -44,3 +45,32 @@ build-docs:
   extends: .build-push
   variables:
     APP: docs
+
+.deploy:
+  stage: deploy
+  image: registry.paapeli.me/docker:28-cli
+  tags:
+    - cd
+    - stage
+    - thr02-stg-tb01
+  variables:
+    GIT_STRATEGY: none
+  before_script:
+    - |
+      if [ -n "${DOCKER_AUTH_CONFIG:-}" ]; then
+        mkdir -p "$HOME/.docker"
+        printf '%s' "$DOCKER_AUTH_CONFIG" > "$HOME/.docker/config.json"
+        chmod 0600 "$HOME/.docker/config.json"
+      fi
+
+deploy-web:
+  extends: .deploy
+  needs: [build-web]
+  script:
+    - /var/opt/tb-mini/scripts/tb-mini-clients-redeploy web
+
+deploy-docs:
+  extends: .deploy
+  needs: [build-docs]
+  script:
+    - /var/opt/tb-mini/scripts/tb-mini-clients-redeploy docs
