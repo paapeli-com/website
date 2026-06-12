@@ -157,14 +157,16 @@ const MENUS: Record<string, MegaMenu> = {
   },
 };
 
-/* Top-level items, in display order. `menu` links to a MEGA_MENU key. */
+/* Top-level items, in display order. `menu` links to a MEGA_MENU key.
+   Route hrefs are language-relative and get prefixed with the active
+   locale (e.g. "/pricing" -> "/en/pricing") when rendered. */
 const NAV_ITEMS: { label: string; href?: string; menu?: keyof typeof MENUS }[] = [
-  { label: "Home", href: "#" },
+  { label: "Home", href: "/" },
   { label: "Platform", menu: "Platform" },
   { label: "Solution", menu: "Solution" },
   { label: "Ecosystem", menu: "Ecosystem" },
   { label: "Resources", menu: "Resources" },
-  { label: "Pricing", href: "#" },
+  { label: "Pricing", href: "/pricing" },
 ];
 
 const LANGS = [
@@ -322,9 +324,13 @@ function LanguageMenu() {
 /* ------------------------------------------------------------------ */
 
 export const LandingNavbar = () => {
-  const { isRTL } = useLanguage();
+  const { isRTL, language } = useLanguage();
   const [openMenu, setOpenMenu] = useState<keyof typeof MENUS | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  /* Prefix internal routes with the active locale; leave "#" links as-is. */
+  const localize = (href: string) =>
+    href.startsWith("/") ? `/${language}${href === "/" ? "" : href}` : href;
 
   return (
     <header
@@ -334,7 +340,7 @@ export const LandingNavbar = () => {
     >
       <div className="mx-auto flex w-full max-w-[1280px] items-center gap-8 px-6 py-6">
         {/* Logo */}
-        <Link href="#" className="flex shrink-0 items-center gap-1.5">
+        <Link href={localize("/")} className="flex shrink-0 items-center gap-1.5">
           <Image src={paapeliLogo} alt="Paapeli" width={30} height={30} priority />
           <span className="text-xl font-semibold text-foreground">Paapeli</span>
         </Link>
@@ -360,7 +366,7 @@ export const LandingNavbar = () => {
             ) : (
               <Link
                 key={item.label}
-                href={item.href ?? "#"}
+                href={localize(item.href ?? "#")}
                 onMouseEnter={() => setOpenMenu(null)}
                 className="rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
@@ -412,7 +418,7 @@ export const LandingNavbar = () => {
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.label}
-                href={item.href ?? "#"}
+                href={localize(item.href ?? "#")}
                 onClick={() => setMobileOpen(false)}
                 className="rounded-lg px-2 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-[#f9fafb] hover:text-foreground"
               >

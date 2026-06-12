@@ -49,7 +49,7 @@ const COLUMNS: FooterColumn[] = [
       { label: "About", href: "#" },
       { label: "Partners", href: "#" },
       { label: "Careers", href: "#" },
-      { label: "Pricing", href: "#" },
+      { label: "Pricing", href: "/pricing" },
     ],
   },
 ];
@@ -61,8 +61,12 @@ const SOCIALS = [
 ];
 
 export const LandingFooter = () => {
-  const { isRTL } = useLanguage();
+  const { isRTL, language } = useLanguage();
   const year = new Date().getFullYear();
+
+  /* Prefix internal routes with the active locale; leave "#" links as-is. */
+  const localize = (href: string) =>
+    href.startsWith("/") ? `/${language}${href === "/" ? "" : href}` : href;
 
   return (
     <footer dir={isRTL ? "rtl" : "ltr"} className="flex w-full flex-col items-center bg-white">
@@ -71,7 +75,7 @@ export const LandingFooter = () => {
         <div className="flex w-full flex-col items-start gap-12 lg:flex-row lg:gap-24">
           {/* Logo, description, socials */}
           <div className="flex w-full max-w-[384px] flex-col items-start gap-6 lg:shrink-0">
-            <Link href="#" className="flex items-center gap-1.5">
+            <Link href={localize("/")} className="flex items-center gap-1.5">
               <Image src={paapeliLogo} alt="Paapeli" width={30} height={30} />
               <span className="text-xl font-semibold text-foreground">Paapeli</span>
             </Link>
@@ -102,7 +106,7 @@ export const LandingFooter = () => {
                   {col.links.map((link) => (
                     <li key={link.label}>
                       <Link
-                        href={link.href}
+                        href={localize(link.href)}
                         className="text-base text-muted-foreground transition-colors hover:text-foreground"
                       >
                         {link.label}

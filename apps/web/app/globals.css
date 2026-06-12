@@ -116,6 +116,17 @@ All colors MUST be HSL.
     overflow-y: scroll;
   }
 }
+
+@layer utilities {
+  /* Scrollable container without a visible scrollbar. */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
 body {
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;

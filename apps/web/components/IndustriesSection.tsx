@@ -135,7 +135,8 @@ export const IndustriesSection = () => {
 
       <div className="flex w-full max-w-[1280px] flex-col items-center gap-10">
         {/* Nav tabs */}
-        <div className="flex w-full gap-6 overflow-x-auto border-b border-[#e5e7eb]" >
+        {/* justify-center only from sm up: centering an overflowing flex row clips its start edge on small screens. */}
+        <div className="no-scrollbar flex w-full gap-6 overflow-x-auto border-b border-[#e5e7eb] sm:justify-center">
           {INDUSTRIES.map((industry) => {
             const isActive = industry.tab === activeTab;
             return (
