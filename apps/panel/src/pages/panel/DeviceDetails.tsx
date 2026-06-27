@@ -42,7 +42,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, Legend } from "recharts";
 import {
   ArrowLeft, Edit, Play, MoreHorizontal, Eye, RefreshCw, Upload, MapPin,
-  Trash2, Wifi, Clock, Network, Bell, Activity, Thermometer, Gauge,
+  Trash2, Wifi, WifiOff, Clock, Network, Bell, Activity, Thermometer, Gauge,
   Droplet, Zap, Waves, Wind, ChevronDown, ChevronRight, Copy, CheckCheck,
   Search, Download, Plus, AlertTriangle, ShieldCheck, Sparkles, Cpu,
   Brain, X as XIcon, Calendar, Settings as SettingsIcon, FileText,
@@ -299,11 +299,14 @@ const DeviceDetails = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Button onClick={() => setCommandOpen(true)}>
+                <Play className="h-4 w-4 me-2" /> {t("sendCommand")}
+              </Button>
               <Button variant="outline" onClick={() => setEditOpen(true)}>
                 <Edit className="h-4 w-4 me-2" /> {t("edit")}
               </Button>
-              <Button variant="outline" onClick={() => setCommandOpen(true)}>
-                <Play className="h-4 w-4 me-2" /> {t("sendCommand")}
+              <Button variant="outline" onClick={() => setRestartOpen(true)}>
+                <RefreshCw className="h-4 w-4 me-2" /> {t("restart")}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -311,7 +314,6 @@ const DeviceDetails = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => setRestartOpen(true)}><RefreshCw className="h-4 w-4 me-2" /> {t("restartDevice")}</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate(lp("/firmware?tab=devices"))}><Upload className="h-4 w-4 me-2" /> {t("firmwareUpdate")}</DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="text-destructive" onClick={() => setDeleteOpen(true)}>
@@ -401,7 +403,7 @@ const DeviceDetails = () => {
                   </Select>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {channels.map((ch, i) => {
+                  {status === "offline" ? <OfflineNotice /> : channels.map((ch, i) => {
                     const Icon = channelIcon(ch.key);
                     const data = generateSeries(ch, 20, seed + i);
                     const val = data[data.length - 1].v;
@@ -409,7 +411,7 @@ const DeviceDetails = () => {
                       <div key={ch.key} className="flex items-center gap-3">
                         <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
                         <span className="text-sm text-muted-foreground w-24 shrink-0">{ch.label}</span>
-                        <span className={`text-base font-semibold ${ch.color} w-20 text-right shrink-0`}>
+                        <span className={`text-base font-semibold ${ch.color} w-20 text-end shrink-0`}>
                           {val} <span className="text-xs">{ch.unit}</span>
                         </span>
                         <div className="flex-1 h-8 min-w-0">
@@ -429,6 +431,7 @@ const DeviceDetails = () => {
               <Card>
                 <CardHeader><CardTitle className="text-base">{t("deviceHealth")}</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
+                  {status === "offline" ? <OfflineNotice /> : (<>
                   <HealthGauge score={healthScore} />
                   <Separator />
                   <div className="grid grid-cols-2 gap-3">
@@ -447,13 +450,14 @@ const DeviceDetails = () => {
                       </div>
                     </div>
                   </div>
+                  </>)}
                 </CardContent>
               </Card>
             </div>
 
 
             {/* Recent rows */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card>
                 <CardHeader><CardTitle className="text-base">{t("recentActivity")}</CardTitle></CardHeader>
                 <CardContent>
@@ -502,26 +506,6 @@ const DeviceDetails = () => {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader><CardTitle className="text-base">{t("quickActions")}</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" size="sm" title={t("viewRawData")} className="justify-start whitespace-nowrap" onClick={() => setRawOpen(true)}>
-                    <Eye className="h-4 w-4 me-2 shrink-0" /> <span className="truncate">{t("viewRawData")}</span>
-                  </Button>
-                  <Button variant="outline" size="sm" title={t("restartDevice")} className="justify-start whitespace-nowrap" onClick={() => setRestartOpen(true)}>
-                    <RefreshCw className="h-4 w-4 me-2 shrink-0" /> <span className="truncate">{t("restartDevice")}</span>
-                  </Button>
-                  <Button variant="outline" size="sm" title={t("firmwareUpdate")} className="justify-start whitespace-nowrap" onClick={() => navigate(lp("/firmware?tab=devices"))}>
-                    <Upload className="h-4 w-4 me-2 shrink-0" /> <span className="truncate">{t("firmwareUpdate")}</span>
-                  </Button>
-                  <Button variant="outline" size="sm" title={t("moveLocation")} className="justify-start whitespace-nowrap" onClick={() => setMoveOpen(true)}>
-                    <MapPin className="h-4 w-4 me-2 shrink-0" /> <span className="truncate">{t("moveLocation")}</span>
-                  </Button>
-                  <Button variant="outline" size="sm" title={t("deleteDevice")} className="justify-start whitespace-nowrap col-span-2 text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)}>
-                    <Trash2 className="h-4 w-4 me-2 shrink-0" /> <span className="truncate">{t("deleteDevice")}</span>
-                  </Button>
-                </CardContent>
-              </Card>
             </div>
 
             <div className="text-xs text-muted-foreground px-1">
@@ -717,6 +701,17 @@ const DeviceDetails = () => {
 };
 
 // ============ Sub-components ============
+
+const OfflineNotice = ({ compact = false }: { compact?: boolean }) => {
+  const { t } = useLanguage();
+  return (
+    <div className={`flex flex-col items-center justify-center text-center gap-2 ${compact ? "py-6" : "py-10"}`}>
+      <WifiOff className="h-8 w-8 text-muted-foreground/40" />
+      <p className="text-sm font-medium">{t("offlineMetricsTitle")}</p>
+      <p className="text-xs text-muted-foreground max-w-[16rem]">{t("offlineMetricsDesc")}</p>
+    </div>
+  );
+};
 
 const InfoRow = ({ label, value, className = "" }: { label: string; value: React.ReactNode; className?: string }) => {
   const { language } = useLanguage();

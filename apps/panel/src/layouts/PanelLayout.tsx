@@ -244,11 +244,32 @@ export const PanelLayout = ({ children }: PanelLayoutProps) => {
 
   const footerItems: MenuItem[] = [];
 
+  const stripLang = (p: string) => p.replace(/^\/(en|ar|fa)/, "");
+
+  // Determine the single best-matching menu path for the current route.
+  // "Most specific wins" so sibling routes that share a prefix (e.g. /devices vs
+  // /devices/gateways) never both light up — only the longest match is active.
+  const activePath = (() => {
+    const current = stripLang(location.pathname);
+    const collect = (items: MenuItem[], acc: string[] = []): string[] => {
+      items.forEach((it) => {
+        if (it.path) acc.push(stripLang(it.path));
+        if (it.children) collect(it.children, acc);
+      });
+      return acc;
+    };
+    const paths = collect([...mainItems, ...secondaryItems, ...footerItems]);
+    let best = "";
+    for (const p of paths) {
+      const matches = current === p || (p !== "/" && current.startsWith(p + "/"));
+      if (matches && p.length > best.length) best = p;
+    }
+    return best;
+  })();
+
   const isActive = (path?: string) => {
     if (!path) return false;
-    const current = location.pathname.replace(/^\/(en|ar|fa)/, "");
-    const compare = path.replace(/^\/(en|ar|fa)/, "");
-    return current === compare || (compare !== "/" && current.startsWith(compare + "/"));
+    return !!activePath && stripLang(path) === activePath;
   };
 
   const handleLogout = async () => {

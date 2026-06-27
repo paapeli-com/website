@@ -42,7 +42,7 @@ import {
   ArrowLeft, Edit, MoreHorizontal, RefreshCw, Upload, MapPin, Trash2,
   Router, Network, Clock, Cpu, MemoryStick, HardDrive, SignalHigh, Activity,
   Bell, Calendar, Settings as SettingsIcon, ChevronDown, ChevronRight, ChevronLeft,
-  Wifi, Smartphone, AlertTriangle, Shield, Plus,
+  Wifi, WifiOff, Smartphone, AlertTriangle, Shield, Plus,
   Cable, Radio, Copy, CheckCheck, Terminal,
   Radar, Search, EyeOff, RotateCcw, CheckCircle2, Rocket, ArrowRight, X,
 } from "lucide-react";
@@ -103,6 +103,14 @@ const InfoRow = ({ label, value }: { label: string; value: React.ReactNode }) =>
     </div>
   );
 };
+
+const OfflineNotice = ({ t }: { t: (k: string) => string }) => (
+  <div className="flex flex-col items-center justify-center text-center gap-2 py-8">
+    <WifiOff className="h-8 w-8 text-muted-foreground/40" />
+    <p className="text-sm font-medium">{t("offlineMetricsTitle")}</p>
+    <p className="text-xs text-muted-foreground max-w-[16rem]">{t("offlineMetricsDesc")}</p>
+  </div>
+);
 
 const ResourceBar = ({ label, value, tone }: { label: string; value: number; tone: string }) => (
   <div>
@@ -174,7 +182,6 @@ const GatewayDetails = () => {
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "overview");
   const [discoveryConnectorId, setDiscoveryConnectorId] = useState<string>("all");
   const [editOpen, setEditOpen] = useState(false);
-  const [firmwareOpen, setFirmwareOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [restartOpen, setRestartOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -286,7 +293,7 @@ const GatewayDetails = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => navigate(lp("/firmware?tab=devices"))}><Upload className="h-4 w-4 me-2" /> {t("firmwareUpdate")}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveTab("settings")}><Upload className="h-4 w-4 me-2" /> {t("softwareUpdate")}</DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="text-destructive" onClick={() => setDeleteOpen(true)}>
                     <Trash2 className="h-4 w-4 me-2" /> {t("deleteGateway")}
@@ -339,7 +346,7 @@ const GatewayDetails = () => {
                   <InfoRow label={t("connectedDevicesTitle")} value={formatNumber(connectedDevices.length)} />
                   <InfoRow label={t("uptime")} value={formatUptime(gateway.createdAt, t, formatNumber)} />
                   <InfoRow label={t("lastSeen")} value={formatRelativeTime(gateway.lastSeen || gateway.createdAt, t, formatNumber)} />
-                  <InfoRow label={t("firmwareVersionLabel")} value="v3.1.0" />
+                  <InfoRow label={t("softwareVersionLabel")} value="v3.1.0" />
                   <InfoRow label={t("location")} value={<LocationCell path={gateway.location || "Qazvin > Factory A > Network Room"} />} />
                 </CardContent>
               </Card>
@@ -347,15 +354,18 @@ const GatewayDetails = () => {
               <Card>
                 <CardHeader><CardTitle className="text-base">{t("resourceUsage")}</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
+                  {status === "offline" ? <OfflineNotice t={t} /> : (<>
                   <ResourceBar label={t("cpuLabel")} value={cpu} tone={cpu > 80 ? "text-rose-500" : cpu > 60 ? "text-amber-500" : "text-emerald-500"} />
                   <ResourceBar label={t("memoryLabel")} value={mem} tone={mem > 80 ? "text-rose-500" : mem > 60 ? "text-amber-500" : "text-emerald-500"} />
                   <ResourceBar label={t("diskLabel")} value={disk} tone={disk > 80 ? "text-rose-500" : disk > 60 ? "text-amber-500" : "text-emerald-500"} />
+                  </>)}
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader><CardTitle className="text-base">{t("networkLabel")}</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
+                  {status === "offline" ? <OfflineNotice t={t} /> : (<>
                   <div>
                     <div className="flex items-center justify-between text-sm mb-1">
                       <span className="inline-flex items-center gap-2"><SignalHigh className="h-4 w-4" /> {t("signalStrength")}</span>
@@ -376,40 +386,30 @@ const GatewayDetails = () => {
                       </div>
                     </div>
                   </div>
+                  </>)}
                 </CardContent>
               </Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                  <CardTitle className="text-base">{t("recentEvents")}</CardTitle>
-                  <Button variant="link" className="text-primary h-auto p-0" onClick={() => setActiveTab("events")}>{t("viewAll")}</Button>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader><TableRow><TableHead>{t("time")}</TableHead><TableHead>{t("activity")}</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                      {MOCK_GW_EVENTS.slice(0, 5).map((e, i) => (
-                        <TableRow key={i}>
-                          <TableCell className="text-muted-foreground">{formatRelativeTime(e.time, t, formatNumber)}</TableCell>
-                          <TableCell>{t(e.activityKey as any)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader><CardTitle className="text-base">{t("quickActions")}</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" className="justify-start" onClick={() => setRestartOpen(true)}><RefreshCw className="h-4 w-4 me-2" /> {t("restartGateway")}</Button>
-                  <Button variant="outline" className="justify-start" onClick={() => navigate(lp("/firmware?tab=devices"))}><Upload className="h-4 w-4 me-2" /> {t("firmwareUpdate")}</Button>
-                  <Button variant="outline" className="justify-start" onClick={() => setMoveOpen(true)}><MapPin className="h-4 w-4 me-2" /> {t("moveLocation")}</Button>
-                  <Button variant="outline" className="justify-start text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)}><Trash2 className="h-4 w-4 me-2" /> {t("deleteGateway")}</Button>
-                </CardContent>
-              </Card>
-            </div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-base">{t("recentEvents")}</CardTitle>
+                <Button variant="link" className="text-primary h-auto p-0" onClick={() => setActiveTab("events")}>{t("viewAll")}</Button>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader><TableRow><TableHead>{t("time")}</TableHead><TableHead>{t("activity")}</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {MOCK_GW_EVENTS.slice(0, 5).map((e, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="text-muted-foreground">{formatRelativeTime(e.time, t, formatNumber)}</TableCell>
+                        <TableCell>{t(e.activityKey as any)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* CONNECTORS */}
@@ -590,7 +590,6 @@ const GatewayDetails = () => {
         {/* DIALOGS */}
         <CredentialsDialog open={credentialsOpen} onOpenChange={setCredentialsOpen} credentials={credentials} t={t} fa={fa} toast={toast} />
         <EditGatewaySheet open={editOpen} onOpenChange={setEditOpen} gateway={gateway} isRTL={isRTL} />
-        <FirmwareDialog open={firmwareOpen} onOpenChange={setFirmwareOpen} />
         <MoveLocationDialog open={moveOpen} onOpenChange={setMoveOpen} gateway={gateway} />
         <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>
           <AlertDialogContent>
@@ -673,7 +672,7 @@ const ConnectorsTab = ({
                 const meta = CONNECTOR_META[c.type];
                 const Icon = meta.icon;
                 return (
-                  <div key={c.id} className="rounded-lg border border-border p-4 flex items-start gap-3 text-start">
+                  <div key={c.id} className="rounded-lg border border-border p-4 flex items-center gap-3 text-start">
                     <span className="h-9 w-9 rounded-md bg-primary/10 text-primary inline-flex items-center justify-center shrink-0">
                       <Icon className="h-4 w-4" />
                     </span>
@@ -1203,47 +1202,6 @@ const EditGatewaySheet = ({ open, onOpenChange, gateway, isRTL }: any) => {
         </SheetFooter>
       </SheetContent>
     </Sheet>
-  );
-};
-
-const FirmwareDialog = ({ open, onOpenChange }: any) => {
-  const [progress, setProgress] = useState<number | null>(null);
-  const { toast } = useToast();
-  const start = () => {
-    setProgress(0);
-    const id = setInterval(() => setProgress(p => {
-      if (p === null) return 0;
-      if (p >= 100) { clearInterval(id); toast({ title: "Firmware updated" }); return 100; }
-      return p + 10;
-    }), 250);
-  };
-  useEffect(() => { if (!open) setProgress(null); }, [open]);
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Gateway Firmware Update</DialogTitle>
-          <DialogDescription>Push a new firmware image to this gateway.</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <Card><CardContent className="p-3"><div className="text-xs text-muted-foreground">Current</div><div className="text-lg font-semibold">v3.1.0</div></CardContent></Card>
-            <Card className="border-primary/40"><CardContent className="p-3"><div className="text-xs text-muted-foreground">Available</div><div className="text-lg font-semibold text-primary">v3.2.0</div></CardContent></Card>
-          </div>
-          <div><Label>Upload Firmware (.bin)</Label><Input type="file" className="mt-1" /></div>
-          {progress !== null && (
-            <div>
-              <div className="flex items-center justify-between text-sm mb-1"><span>Progress</span><span>{progress}%</span></div>
-              <Progress value={progress} />
-            </div>
-          )}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
-          <Button onClick={start} disabled={progress !== null && progress < 100}>Start Update</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 };
 
