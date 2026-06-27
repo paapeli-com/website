@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface UserDevice {
   id: string;
@@ -91,13 +91,15 @@ const save = (items: UserDevice[]) => {
 
 export const useDevices = () => {
   const [items, setItems] = useState<UserDevice[]>(() => load());
+  // Mirror of latest items so writes persist synchronously even if the caller unmounts right after.
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
 
   const persist = useCallback((updater: (prev: UserDevice[]) => UserDevice[]) => {
-    setItems((prev) => {
-      const next = updater(prev);
-      save(next);
-      return next;
-    });
+    const next = updater(itemsRef.current);
+    itemsRef.current = next;
+    save(next);
+    setItems(next);
   }, []);
 
   const create = useCallback(
@@ -124,7 +126,11 @@ export const useDevices = () => {
   );
 
   useEffect(() => {
-    const sync = () => setItems(load());
+    const sync = () => {
+      const fresh = load();
+      itemsRef.current = fresh;
+      setItems(fresh);
+    };
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) sync();
     };

@@ -331,7 +331,7 @@ const Gateways = () => {
               <Router className="h-12 w-12 text-muted-foreground/50" />
               <p className="text-muted-foreground">{t("noGatewaysYet")}</p>
               <Button onClick={() => navigate(lp("/devices/gateways/new"))} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4 me-2" />
                 {t("addGateway")}
               </Button>
             </div>

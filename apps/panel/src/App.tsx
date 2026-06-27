@@ -33,6 +33,7 @@ import DeviceGroup from "./pages/panel/DeviceGroup";
 import Gateways from "./pages/panel/Gateways";
 import GatewayForm from "./pages/panel/GatewayForm";
 import GatewayDetails from "./pages/panel/GatewayDetails";
+import ConnectorForm from "./pages/panel/ConnectorForm";
 import Alarms from "./pages/panel/Alarms";
 import AlertRuleForm from "./pages/panel/AlertRuleForm";
 import EscalationForm from "./pages/panel/EscalationForm";
@@ -154,6 +155,10 @@ const App = () => (
               <Route path="/:lang/devices/gateways" element={<ProtectedRoute><Gateways /></ProtectedRoute>} />
               <Route path="/devices/gateways/new" element={<ProtectedRoute><GatewayForm /></ProtectedRoute>} />
               <Route path="/:lang/devices/gateways/new" element={<ProtectedRoute><GatewayForm /></ProtectedRoute>} />
+              <Route path="/devices/gateways/:gatewayId/connectors/new" element={<ProtectedRoute><ConnectorForm /></ProtectedRoute>} />
+              <Route path="/:lang/devices/gateways/:gatewayId/connectors/new" element={<ProtectedRoute><ConnectorForm /></ProtectedRoute>} />
+              <Route path="/devices/gateways/:gatewayId/connectors/:connectorId" element={<ProtectedRoute><ConnectorForm /></ProtectedRoute>} />
+              <Route path="/:lang/devices/gateways/:gatewayId/connectors/:connectorId" element={<ProtectedRoute><ConnectorForm /></ProtectedRoute>} />
               <Route path="/devices/gateways/:gatewayId" element={<ProtectedRoute><GatewayDetails /></ProtectedRoute>} />
               <Route path="/:lang/devices/gateways/:gatewayId" element={<ProtectedRoute><GatewayDetails /></ProtectedRoute>} />
               <Route path="/alarms" element={<ProtectedRoute><Alarms /></ProtectedRoute>} />

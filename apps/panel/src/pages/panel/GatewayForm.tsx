@@ -172,7 +172,8 @@ const GatewayForm = () => {
         JSON.stringify({ name: created.name, gatewayId: created.gatewayId, pairingKey: created.pairingKey, protocol, model, location, description, useSsl, useOta, useMonitoring, tags, externalId }),
       );
       toast({ title: t("success") || "Success", description: `${created.name} created` });
-      navigate(lp("/devices/gateways?created=1"));
+      // Open the new gateway directly so the user lands in the onboarding flow.
+      navigate(lp(`/devices/gateways/${created.gatewayId}?created=1`));
     } catch {
       toast({ title: t("error"), description: "Failed to create gateway", variant: "destructive" });
     } finally {

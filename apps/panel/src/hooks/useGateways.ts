@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface UserGateway {
   id: string;
@@ -43,13 +43,16 @@ const save = (items: UserGateway[]) => {
 
 export const useGateways = () => {
   const [items, setItems] = useState<UserGateway[]>(() => load());
+  // Mirror of the latest items so writes can be computed + persisted synchronously,
+  // even if the calling component unmounts (e.g. navigates) right after the write.
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
 
   const persist = useCallback((updater: (prev: UserGateway[]) => UserGateway[]) => {
-    setItems((prev) => {
-      const next = updater(prev);
-      save(next);
-      return next;
-    });
+    const next = updater(itemsRef.current);
+    itemsRef.current = next;
+    save(next);      // write localStorage + notify listeners synchronously, before any unmount
+    setItems(next);  // update this instance
   }, []);
 
   const create = useCallback(
@@ -85,7 +88,11 @@ export const useGateways = () => {
   );
 
   useEffect(() => {
-    const sync = () => setItems(load());
+    const sync = () => {
+      const fresh = load();
+      itemsRef.current = fresh;
+      setItems(fresh);
+    };
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) sync();
     };
