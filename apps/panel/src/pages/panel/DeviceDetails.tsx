@@ -43,7 +43,7 @@ import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tool
 import {
   ArrowLeft, Edit, Play, MoreHorizontal, Eye, RefreshCw, Upload, MapPin,
   Trash2, Wifi, WifiOff, Clock, Network, Bell, Activity, Thermometer, Gauge,
-  Droplet, Zap, Waves, Wind, ChevronDown, ChevronRight, Copy, CheckCheck,
+  Droplet, Zap, Waves, Wind, ChevronDown, ChevronRight, ChevronLeft, Copy, CheckCheck,
   Search, Download, Plus, AlertTriangle, ShieldCheck, Sparkles, Cpu,
   Brain, X as XIcon, Calendar, Settings as SettingsIcon, FileText,
   Lock, KeyRound, ChevronsUpDown,
@@ -73,6 +73,24 @@ const channelIcon = (key: string) => {
   }
 };
 
+// Translate telemetry channel labels and device-profile (type) labels.
+const CHANNEL_LABEL_KEY: Record<string, string> = {
+  value: "chValue", temperature: "chTemperature", humidity: "chHumidity",
+  voltage: "chVoltage", current: "chCurrent", power: "chPower", energy: "chEnergy",
+  pressure: "chPressure", rms: "chRms", peak: "chPeak", frequency: "chFrequency",
+  flow_rate: "chFlowRate", total_volume: "chTotalVolume",
+};
+const chLabel = (ch: Channel, t: (k: any) => string) =>
+  CHANNEL_LABEL_KEY[ch.key] ? t(CHANNEL_LABEL_KEY[ch.key]) : ch.label;
+
+const PROFILE_LABEL_KEY: Record<string, string> = {
+  temperature: "profileTemperature", temperature_humidity: "profileTempHumidity",
+  energy_meter: "profileEnergyMeter", pressure: "profilePressure", vibration: "profileVibration",
+  flow_meter: "profileFlowMeter", humidity: "profileHumidity", voltage: "profileVoltage", generic: "profileGeneric",
+};
+const profileLabelT = (p: string, t: (k: any) => string) =>
+  PROFILE_LABEL_KEY[p] ? t(PROFILE_LABEL_KEY[p]) : p;
+
 // Status of device (deterministic from id)
 const deviceStatus = (d: UserDevice): "online" | "offline" | "error" => {
   const h = (d.id.charCodeAt(d.id.length - 1) || 0) % 10;
@@ -83,12 +101,14 @@ const deviceStatus = (d: UserDevice): "online" | "offline" | "error" => {
 
 const StatCard = ({
   icon: Icon, label, value, tone = "primary", trailing, onClick,
-}: any) => (
+}: any) => {
+  const { isRTL } = useLanguage();
+  return (
   <Card
     className={onClick ? "cursor-pointer hover:shadow-md transition-shadow" : ""}
     onClick={onClick}
   >
-    <CardContent className="p-4 flex items-center gap-3">
+    <CardContent className={`p-4 flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
       <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
         tone === "primary" ? "bg-primary/10 text-primary"
           : tone === "blue" ? "bg-sky-500/10 text-sky-500"
@@ -106,22 +126,23 @@ const StatCard = ({
       {trailing}
     </CardContent>
   </Card>
-);
+  );
+};
 
 const MOCK_ALARMS = [
-  { id: "al-1", time: new Date(Date.now() - 2 * 3600_000).toISOString(), severity: "High", rule: "High Temp Alert", status: "Active" },
-  { id: "al-2", time: new Date(Date.now() - 5 * 3600_000).toISOString(), severity: "Medium", rule: "Temp Fluctuation", status: "Acknowledged" },
-  { id: "al-3", time: new Date(Date.now() - 86400_000).toISOString(), severity: "Low", rule: "Calibration Drift", status: "Cleared" },
+  { id: "al-1", time: new Date(Date.now() - 2 * 3600_000).toISOString(), severity: "High", ruleKey: "ruleHighTemp", status: "Active" },
+  { id: "al-2", time: new Date(Date.now() - 5 * 3600_000).toISOString(), severity: "Medium", ruleKey: "ruleTempFluctuation", status: "Acknowledged" },
+  { id: "al-3", time: new Date(Date.now() - 86400_000).toISOString(), severity: "Low", ruleKey: "ruleCalibrationDrift", status: "Cleared" },
 ];
 
 const MOCK_EVENTS = [
-  { time: new Date(Date.now() - 2 * 60_000).toISOString(), activity: "Telemetry updated", by: "system" },
-  { time: new Date(Date.now() - 15 * 60_000).toISOString(), activity: "Device connected", by: "system" },
-  { time: new Date(Date.now() - 3600_000).toISOString(), activity: "Command sent: Set Threshold", by: "ali@paapeli.io" },
-  { time: new Date(Date.now() - 3 * 3600_000).toISOString(), activity: "High Temperature alarm triggered", by: "rule engine" },
-  { time: new Date(Date.now() - 5 * 3600_000).toISOString(), activity: "Telemetry updated", by: "system" },
-  { time: new Date(Date.now() - 86400_000).toISOString(), activity: "Firmware updated to v2.4.1", by: "ali@paapeli.io" },
-  { time: new Date(Date.now() - 2 * 86400_000).toISOString(), activity: "Device registered", by: "ali@paapeli.io" },
+  { time: new Date(Date.now() - 2 * 60_000).toISOString(), activityKey: "evtTelemetryUpdated", by: "system" },
+  { time: new Date(Date.now() - 15 * 60_000).toISOString(), activityKey: "evtDeviceConnected", by: "system" },
+  { time: new Date(Date.now() - 3600_000).toISOString(), activityKey: "evtCommandSent", by: "ali@paapeli.io" },
+  { time: new Date(Date.now() - 3 * 3600_000).toISOString(), activityKey: "evtAlarmTriggered", by: "rule engine" },
+  { time: new Date(Date.now() - 5 * 3600_000).toISOString(), activityKey: "evtTelemetryUpdated", by: "system" },
+  { time: new Date(Date.now() - 86400_000).toISOString(), activityKey: "evtFirmwareUpdated", by: "ali@paapeli.io" },
+  { time: new Date(Date.now() - 2 * 86400_000).toISOString(), activityKey: "evtDeviceRegistered", by: "ali@paapeli.io" },
 ];
 
 const MOCK_COMMANDS = [
@@ -349,7 +370,7 @@ const DeviceDetails = () => {
             label={t("activeAlarms")}
             value={MOCK_ALARMS.filter(a => a.status === "Active").length}
             tone="rose"
-            trailing={<ChevronRight className="h-4 w-4 text-muted-foreground" />}
+            trailing={isRTL ? <ChevronLeft className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
             onClick={() => setActiveTab("alarms")}
           />
         </div>
@@ -382,7 +403,7 @@ const DeviceDetails = () => {
                 <CardHeader><CardTitle className="text-base">{t("deviceInformation")}</CardTitle></CardHeader>
                 <CardContent className="space-y-2.5 text-sm">
                   <InfoRow label={t("deviceId")} value={device.deviceId} />
-                  <InfoRow label={t("type")} value={profileLabel(profile)} />
+                  <InfoRow label={t("type")} value={profileLabelT(profile, t)} />
                   <InfoRow label={t("protocol")} value={device.protocol} />
                   <InfoRow label={t("gateway")} value={device.gateway || "—"} />
                   <InfoRow label={t("location")} value={<LocationCell path={device.location || "Qazvin > Factory A > Sulfonation > Line 1"} />} />
@@ -421,10 +442,10 @@ const DeviceDetails = () => {
                     const data = generateSeries(ch, 20, seed + i);
                     const val = data[data.length - 1].v;
                     return (
-                      <div key={ch.key} className="flex items-center gap-3">
+                      <div key={ch.key} className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
                         <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="text-sm text-muted-foreground w-24 shrink-0">{ch.label}</span>
-                        <span className={`text-base font-semibold ${ch.color} w-20 text-end shrink-0`}>
+                        <span className="text-sm text-muted-foreground w-24 shrink-0">{chLabel(ch, t)}</span>
+                        <span className={`text-base font-semibold ${ch.color} w-20 ${isRTL ? "text-start" : "text-end"} shrink-0`}>
                           {val} <span className="text-xs">{ch.unit}</span>
                         </span>
                         <div className="flex-1 h-8 min-w-0">
@@ -448,16 +469,16 @@ const DeviceDetails = () => {
                   <HealthGauge score={healthScore} />
                   <Separator />
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
+                    <div className={isRTL ? "text-right" : ""}>
                       <div className="text-xs text-muted-foreground mb-1">{t("failureRisk")}</div>
-                      <div className="flex items-center gap-2">
+                      <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
                         <ShieldCheck className={`h-4 w-4 ${failureRiskKey === "Low" ? "text-emerald-500" : failureRiskKey === "Medium" ? "text-amber-500" : "text-rose-500"}`} />
                         <span className="text-sm font-medium">{failureRisk}</span>
                       </div>
                     </div>
-                    <div>
+                    <div className={isRTL ? "text-right" : ""}>
                       <div className="text-xs text-muted-foreground mb-1">{t("remainingUsefulLife")}</div>
-                      <div className="flex items-center gap-2">
+                      <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
                         <Calendar className="h-4 w-4 text-violet-500" />
                         <span className="text-sm font-medium">{rulDays} {t("days")}</span>
                       </div>
@@ -484,7 +505,7 @@ const DeviceDetails = () => {
                       {MOCK_EVENTS.slice(0, 5).map((e, i) => (
                         <TableRow key={i}>
                           <TableCell className="text-muted-foreground">{formatRelativeTime(e.time, t, formatNumber)}</TableCell>
-                          <TableCell>{e.activity}</TableCell>
+                          <TableCell>{t(e.activityKey as any)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -510,7 +531,7 @@ const DeviceDetails = () => {
                         <TableRow key={a.id}>
                         <TableCell className="text-muted-foreground">{formatRelativeTime(a.time, t, formatNumber)}</TableCell>
                           <TableCell><SeverityBadge severity={a.severity} /></TableCell>
-                          <TableCell>{a.rule}</TableCell>
+                          <TableCell>{t(a.ruleKey as any)}</TableCell>
                           <TableCell><StatusBadge status={a.status} /></TableCell>
                         </TableRow>
                       ))}
@@ -563,7 +584,7 @@ const DeviceDetails = () => {
                     {MOCK_EVENTS.map((e, i) => (
                       <TableRow key={i}>
                         <TableCell className="text-muted-foreground">{formatRelativeTime(e.time, t, formatNumber)}</TableCell>
-                        <TableCell>{e.activity}</TableCell>
+                        <TableCell>{t(e.activityKey as any)}</TableCell>
                         <TableCell className="text-muted-foreground">{e.by}</TableCell>
                       </TableRow>
                     ))}
@@ -736,33 +757,38 @@ const OfflineNotice = ({ compact = false }: { compact?: boolean }) => {
 };
 
 const InfoRow = ({ label, value, className = "" }: { label: string; value: React.ReactNode; className?: string }) => {
-  const { language } = useLanguage();
+  const { language, isRTL } = useLanguage();
   const size = language === "en" ? "text-sm" : "text-[15px]";
   return (
-    <div className={`flex items-start gap-3 ${size}`}>
+    <div className={`flex items-start gap-3 ${isRTL ? "flex-row-reverse" : ""} ${size}`}>
       <span className="text-muted-foreground w-24 shrink-0">{label}</span>
-      <span className={`flex-1 ${className}`}>{value}</span>
+      <span className={`flex-1 ${isRTL ? "text-right" : ""} ${className}`}>{value}</span>
     </div>
   );
 };
 
 const SeverityBadge = ({ severity }: { severity: string }) => {
+  const { t } = useLanguage();
   const cls = severity === "High" ? "bg-rose-500/10 text-rose-600 hover:bg-rose-500/10"
     : severity === "Medium" ? "bg-amber-500/10 text-amber-600 hover:bg-amber-500/10"
     : "bg-sky-500/10 text-sky-600 hover:bg-sky-500/10";
-  return <Badge className={cls}><AlertTriangle className="h-3 w-3 me-1" />{severity}</Badge>;
+  const label = severity === "High" ? t("high") : severity === "Medium" ? t("medium") : t("low");
+  return <Badge className={cls}><AlertTriangle className="h-3 w-3 me-1" />{label}</Badge>;
 };
 
 const StatusBadge = ({ status }: { status: string }) => {
+  const { t } = useLanguage();
   const cls = status === "Active" ? "bg-rose-500/10 text-rose-600 hover:bg-rose-500/10"
     : status === "Acknowledged" ? "bg-sky-500/10 text-sky-600 hover:bg-sky-500/10"
     : "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/10";
-  return <Badge className={cls}>{status}</Badge>;
+  const label = status === "Active" ? t("active") : status === "Acknowledged" ? t("acknowledged") : t("cleared");
+  return <Badge className={cls}>{label}</Badge>;
 };
 
 const HealthGauge = ({ score }: { score: number }) => {
+  const { t } = useLanguage();
   const tone = score >= 80 ? "text-emerald-500" : score >= 60 ? "text-amber-500" : "text-rose-500";
-  const label = score >= 80 ? "Excellent" : score >= 60 ? "Good" : "Needs Attention";
+  const label = score >= 80 ? t("excellent") : score >= 60 ? t("good") : t("needsAttention");
   const stroke = score >= 80 ? "#10B981" : score >= 60 ? "#F59E0B" : "#F43F5E";
   const r = 60, c = Math.PI * r, off = c - (score / 100) * c;
   return (
@@ -797,6 +823,7 @@ const CredentialRow = ({ label, value, mask, onCopy, copied }: { label: string; 
 };
 
 const TelemetryTab = ({ channels, seed }: { channels: Channel[]; seed: number }) => {
+  const { t, isRTL } = useLanguage();
   const [range, setRange] = useState("24h");
   const [selected, setSelected] = useState<string[]>(channels.map(c => c.key));
   const [compare, setCompare] = useState(false);
@@ -833,20 +860,20 @@ const TelemetryTab = ({ channels, seed }: { channels: Channel[]; seed: number })
   return (
     <>
       <Card>
-        <CardContent className="p-4 flex flex-wrap items-center gap-3">
+        <CardContent className={`p-4 flex flex-wrap items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
           <Select value={range} onValueChange={setRange}>
             <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="1h">Last 1 hour</SelectItem>
-              <SelectItem value="24h">Last 24 hours</SelectItem>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
+              <SelectItem value="1h">{t("last1h")}</SelectItem>
+              <SelectItem value="24h">{t("last24h")}</SelectItem>
+              <SelectItem value="7d">{t("last7d")}</SelectItem>
+              <SelectItem value="30d">{t("last30d")}</SelectItem>
             </SelectContent>
           </Select>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
-                Channels ({selected.length}) <ChevronDown className="h-4 w-4 ms-2" />
+                {t("channels")} ({selected.length}) <ChevronDown className="h-4 w-4 ms-2" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
@@ -855,7 +882,7 @@ const TelemetryTab = ({ channels, seed }: { channels: Channel[]; seed: number })
                   e.preventDefault();
                   setSelected(s => s.includes(c.key) ? s.filter(x => x !== c.key) : [...s, c.key]);
                 }}>
-                  <Checkmark on={selected.includes(c.key)} /> {c.label}
+                  <Checkmark on={selected.includes(c.key)} /> {chLabel(c, t)}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -863,7 +890,7 @@ const TelemetryTab = ({ channels, seed }: { channels: Channel[]; seed: number })
           {channels.length > 1 && (
             <div className="flex items-center gap-2">
               <Switch checked={compare} onCheckedChange={setCompare} id="cmp" />
-              <Label htmlFor="cmp" className="text-sm">Compare</Label>
+              <Label htmlFor="cmp" className="text-sm">{t("compare")}</Label>
             </div>
           )}
           <div className="flex-1" />
@@ -874,7 +901,7 @@ const TelemetryTab = ({ channels, seed }: { channels: Channel[]; seed: number })
 
       {compare && combinedData ? (
         <Card>
-          <CardHeader><CardTitle className="text-base">All Channels</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">{t("allChannels")}</CardTitle></CardHeader>
           <CardContent className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={combinedData}>
@@ -898,11 +925,11 @@ const TelemetryTab = ({ channels, seed }: { channels: Channel[]; seed: number })
               <Card key={channel.key}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">{channel.label} <span className="text-muted-foreground text-sm font-normal">({channel.unit})</span></CardTitle>
+                    <CardTitle className="text-base">{chLabel(channel, t)} {channel.unit && <span className="text-muted-foreground text-sm font-normal">({channel.unit})</span>}</CardTitle>
                     <div className="flex gap-3 text-xs">
-                      <span><span className="text-muted-foreground">Min:</span> <span className="font-medium">{s.min.toFixed(channel.decimals ?? 1)}</span></span>
-                      <span><span className="text-muted-foreground">Max:</span> <span className="font-medium">{s.max.toFixed(channel.decimals ?? 1)}</span></span>
-                      <span><span className="text-muted-foreground">Avg:</span> <span className="font-medium">{s.avg.toFixed(channel.decimals ?? 1)}</span></span>
+                      <span><span className="text-muted-foreground">{t("min")}:</span> <span className="font-medium">{s.min.toFixed(channel.decimals ?? 1)}</span></span>
+                      <span><span className="text-muted-foreground">{t("max")}:</span> <span className="font-medium">{s.max.toFixed(channel.decimals ?? 1)}</span></span>
+                      <span><span className="text-muted-foreground">{t("avg")}:</span> <span className="font-medium">{s.avg.toFixed(channel.decimals ?? 1)}</span></span>
                     </div>
                   </div>
                 </CardHeader>
@@ -944,24 +971,24 @@ const DeviceAlarms = () => {
   return (
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
-        <CardTitle className="text-base">Alarms</CardTitle>
+        <CardTitle className="text-base">{t("alarms")}</CardTitle>
         <div className="flex gap-2">
           <Select value={severity} onValueChange={setSeverity}>
-            <SelectTrigger className="h-9 w-32"><SelectValue placeholder="Severity" /></SelectTrigger>
+            <SelectTrigger className="h-9 w-32"><SelectValue placeholder={t("severity")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Severity</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="all">{t("allSeverity")}</SelectItem>
+              <SelectItem value="high">{t("high")}</SelectItem>
+              <SelectItem value="medium">{t("medium")}</SelectItem>
+              <SelectItem value="low">{t("low")}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="h-9 w-32"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectTrigger className="h-9 w-32"><SelectValue placeholder={t("status")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="acknowledged">Acknowledged</SelectItem>
-              <SelectItem value="cleared">Cleared</SelectItem>
+              <SelectItem value="all">{t("allStatus")}</SelectItem>
+              <SelectItem value="active">{t("active")}</SelectItem>
+              <SelectItem value="acknowledged">{t("acknowledged")}</SelectItem>
+              <SelectItem value="cleared">{t("cleared")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -970,9 +997,9 @@ const DeviceAlarms = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Time</TableHead><TableHead>Severity</TableHead>
-              <TableHead>Rule</TableHead><TableHead>Status</TableHead>
-              <TableHead className="text-end">Actions</TableHead>
+              <TableHead>{t("time")}</TableHead><TableHead>{t("severity")}</TableHead>
+              <TableHead>{t("rule")}</TableHead><TableHead>{t("status")}</TableHead>
+              <TableHead className="text-end">{t("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -980,7 +1007,7 @@ const DeviceAlarms = () => {
               <TableRow key={a.id}>
                 <TableCell className="text-muted-foreground">{formatRelativeTime(a.time, t, formatNumber)}</TableCell>
                 <TableCell><SeverityBadge severity={a.severity} /></TableCell>
-                <TableCell>{a.rule}</TableCell>
+                <TableCell>{t(a.ruleKey as any)}</TableCell>
                 <TableCell><StatusBadge status={a.status} /></TableCell>
                 <TableCell className="text-end">
                   <DropdownMenu>
@@ -988,16 +1015,16 @@ const DeviceAlarms = () => {
                       <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => toast({ title: "Alarm viewed", description: a.rule })}>View Alarm</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toast({ title: "Alarm acknowledged", description: a.rule })}>Acknowledge</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toast({ title: "Alarm cleared", description: a.rule })}>Clear Alarm</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toast({ title: t("alarmViewed"), description: t(a.ruleKey as any) })}>{t("viewAlarm")}</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toast({ title: t("alarmAcknowledged"), description: t(a.ruleKey as any) })}>{t("acknowledge")}</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toast({ title: t("alarmCleared"), description: t(a.ruleKey as any) })}>{t("clearAlarm")}</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}
             {filtered.length === 0 && (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No alarms</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">{t("noAlarms")}</TableCell></TableRow>
             )}
           </TableBody>
         </Table>

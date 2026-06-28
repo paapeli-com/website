@@ -426,6 +426,10 @@ html[lang="fa"] pre {
 [dir="rtl"] [role="tablist"] {
   flex-direction: row-reverse;
 }
+/* …and reverse each tab's own content so the icon sits to the right of the label. */
+[dir="rtl"] [role="tab"] {
+  flex-direction: row-reverse;
+}
 
 /* Switch (Radix) in RTL: flip thumb translate so the knob stays inside the track. */
 [dir="rtl"] [role="switch"][data-state="checked"] > span {
@@ -451,6 +455,14 @@ html[lang="fa"] pre {
 [dir="rtl"] [data-panel-page] [class*="CardHeader"],
 [dir="rtl"] [data-panel-page] [class*="CardContent"] {
   text-align: right;
+}
+
+/* Tables in RTL: reverse column order (first column on the far right). */
+[dir="rtl"] [data-panel-page] table {
+  direction: rtl;
+}
+[dir="rtl"] [data-panel-page] table [dir="ltr"] {
+  direction: ltr;
 }
 
 /* Circular count badges – consistent across EN/AR/FA. */

@@ -332,7 +332,7 @@ const DeviceForm = () => {
         </SectionCard>
 
         {/* 2. Basic Information */}
-        <SectionCard step={2} title={t("basicInformation")}>
+        <SectionCard step={2} title={t("basicInformation")} right={<span className="text-xs text-muted-foreground hidden sm:inline">{t("onlyNameRequiredHint")}</span>}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <FieldLabel required hint htmlFor="device-name">{t("name")}</FieldLabel>

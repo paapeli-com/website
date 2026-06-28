@@ -74,9 +74,11 @@ const formatUptime = (createdAt: string, t: (k: string) => string, formatNumber:
   return `${formatNumber(d)}${t("daysShort")} ${formatNumber(h)}${t("hoursShort")}`;
 };
 
-const StatCard = ({ icon: Icon, label, value, tone = "primary", trailing, onClick }: any) => (
+const StatCard = ({ icon: Icon, label, value, tone = "primary", trailing, onClick }: any) => {
+  const { isRTL } = useLanguage();
+  return (
   <Card className={onClick ? "cursor-pointer hover:shadow-md transition-shadow" : ""} onClick={onClick}>
-    <CardContent className="p-4 flex items-center gap-3">
+    <CardContent className={`p-4 flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
       <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
         tone === "primary" ? "bg-primary/10 text-primary"
           : tone === "blue" ? "bg-sky-500/10 text-sky-500"
@@ -94,15 +96,16 @@ const StatCard = ({ icon: Icon, label, value, tone = "primary", trailing, onClic
       {trailing}
     </CardContent>
   </Card>
-);
+  );
+};
 
 const InfoRow = ({ label, value }: { label: string; value: React.ReactNode }) => {
-  const { language } = useLanguage();
+  const { language, isRTL } = useLanguage();
   const size = language === "en" ? "text-sm" : "text-[15px]";
   return (
-    <div className={`flex items-start gap-3 ${size}`}>
+    <div className={`flex items-start gap-3 ${isRTL ? "flex-row-reverse" : ""} ${size}`}>
       <span className="text-muted-foreground w-32 shrink-0">{label}</span>
-      <span className="flex-1">{value}</span>
+      <span className={`flex-1 ${isRTL ? "text-right" : ""}`}>{value}</span>
     </div>
   );
 };
@@ -134,8 +137,8 @@ const SeverityBadge = ({ severity, t }: { severity: string; t: (k: string) => st
 };
 
 const MOCK_GW_ALARMS = [
-  { id: "ga1", time: new Date(Date.now() - 30 * 60_000).toISOString(), severity: "High", rule: "High CPU Usage", status: "Active" },
-  { id: "ga2", time: new Date(Date.now() - 3 * 3600_000).toISOString(), severity: "Medium", rule: "Network Latency Spike", status: "Acknowledged" },
+  { id: "ga1", time: new Date(Date.now() - 30 * 60_000).toISOString(), severity: "High", ruleKey: "ruleHighCpu", status: "Active" },
+  { id: "ga2", time: new Date(Date.now() - 3 * 3600_000).toISOString(), severity: "Medium", ruleKey: "ruleNetworkLatency", status: "Acknowledged" },
 ];
 
 const MOCK_GW_EVENTS = [
@@ -526,7 +529,7 @@ const GatewayDetails = () => {
                       <TableRow key={a.id}>
                         <TableCell className="text-muted-foreground">{formatRelativeTime(a.time, t, formatNumber)}</TableCell>
                         <TableCell><SeverityBadge severity={a.severity} t={t} /></TableCell>
-                        <TableCell>{a.rule}</TableCell>
+                        <TableCell>{t(a.ruleKey as any)}</TableCell>
                         <TableCell><Badge variant="secondary">{a.status === "Active" ? t("active") : a.status === "Acknowledged" ? t("acknowledged") : a.status}</Badge></TableCell>
                       </TableRow>
                     ))}

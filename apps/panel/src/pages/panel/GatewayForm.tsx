@@ -66,18 +66,23 @@ const SectionCard = ({
   step,
   title,
   optional,
+  right,
   children,
 }: {
   step: number;
   title: string;
   optional?: boolean;
+  right?: React.ReactNode;
   children: React.ReactNode;
 }) => (
   <Card className="p-5">
-    <div className="flex items-center gap-2.5 mb-5">
-      <StepBadge n={step} />
-      <h3 className="text-base font-semibold text-foreground">{title}</h3>
-      {optional && <span className="text-sm text-muted-foreground">(Optional)</span>}
+    <div className="flex items-center justify-between gap-3 mb-5">
+      <div className="flex items-center gap-2.5">
+        <StepBadge n={step} />
+        <h3 className="text-base font-semibold text-foreground">{title}</h3>
+        {optional && <span className="text-sm text-muted-foreground">(Optional)</span>}
+      </div>
+      {right}
     </div>
     {children}
   </Card>
@@ -259,7 +264,7 @@ const GatewayForm = () => {
         </SectionCard>
 
         {/* 2. Basic Information */}
-        <SectionCard step={2} title={t("basicInformation")}>
+        <SectionCard step={2} title={t("basicInformation")} right={<span className="text-xs text-muted-foreground hidden sm:inline">{t("onlyNameRequiredHint")}</span>}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <FieldLabel required hint htmlFor="gw-name">{t("name")}</FieldLabel>

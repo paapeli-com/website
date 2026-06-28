@@ -35,6 +35,41 @@ const FieldLabel = ({ children }: { children: React.ReactNode }) => (
   <Label className="text-sm font-medium text-foreground inline-flex items-center gap-1.5 mb-1.5">{children}</Label>
 );
 
+const genUsername = () => "dev-" + generateAccessToken().slice(0, 8).toLowerCase();
+
+// Field with an inline generate (↻) button, used for the MQTT Basic credentials.
+const GenField = ({
+  label, value, onChange, onGenerate, placeholder, type, readOnly,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  onGenerate: () => void;
+  placeholder?: string;
+  type?: string;
+  readOnly?: boolean;
+}) => (
+  <div className="min-w-0">
+    <FieldLabel>{label}</FieldLabel>
+    <div className="flex gap-2">
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        type={type}
+        className="h-11 min-w-0 font-mono text-xs"
+        disabled={readOnly}
+        dir="ltr"
+      />
+      {!readOnly && (
+        <Button type="button" variant="outline" className="h-11 w-11 shrink-0 p-0" onClick={onGenerate} title={placeholder}>
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      )}
+    </div>
+  </div>
+);
+
 interface Props {
   value: SecurityValue;
   onChange?: (v: SecurityValue) => void;
@@ -102,50 +137,32 @@ export const SecurityConfig = ({ value, onChange, readOnly = false }: Props) => 
         )}
 
         {value.method === "basic" && (
-          <div className="space-y-4">
-            <div>
-              <FieldLabel>{t("clientId")}</FieldLabel>
-              <div className="flex gap-2">
-                <Input
-                  value={value.clientId}
-                  onChange={(e) => patch({ clientId: e.target.value })}
-                  placeholder={t("enterClientId")}
-                  className="h-11 font-mono text-xs"
-                  disabled={readOnly}
-                  dir="ltr"
-                />
-                {!readOnly && (
-                  <Button type="button" variant="outline" className="h-11 shrink-0" onClick={() => patch({ clientId: generateAccessToken() })}>
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <FieldLabel>{t("username")}</FieldLabel>
-              <Input
-                value={value.username}
-                onChange={(e) => patch({ username: e.target.value })}
-                placeholder={t("enterUsername")}
-                className="h-11"
-                disabled={readOnly}
-                dir="ltr"
-              />
-            </div>
-            <div>
-              <FieldLabel>{t("password")}</FieldLabel>
-              <Input
-                type="password"
-                value={value.password}
-                onChange={(e) => patch({ password: e.target.value })}
-                placeholder={readOnly ? "••••••••" : t("enterPassword")}
-                className="h-11"
-                disabled={readOnly}
-                dir="ltr"
-              />
-            </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <GenField
+              label={t("clientId")}
+              value={value.clientId}
+              onChange={(v) => patch({ clientId: v })}
+              onGenerate={() => patch({ clientId: generateAccessToken() })}
+              placeholder={t("enterClientId")}
+              readOnly={readOnly}
+            />
+            <GenField
+              label={t("username")}
+              value={value.username}
+              onChange={(v) => patch({ username: v })}
+              onGenerate={() => patch({ username: genUsername() })}
+              placeholder={t("enterUsername")}
+              readOnly={readOnly}
+            />
+            <GenField
+              label={t("password")}
+              value={value.password}
+              onChange={(v) => patch({ password: v })}
+              onGenerate={() => patch({ password: generateAccessToken() })}
+              placeholder={readOnly ? "••••••••" : t("enterPassword")}
+              type={readOnly ? "password" : undefined}
+              readOnly={readOnly}
+            />
           </div>
         )}
 
