@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { PanelLayout } from "@/layouts/PanelLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -40,16 +41,15 @@ import {
   MapPin,
   ChevronDown,
   X as XIcon,
+  Sparkles,
+  LayoutGrid,
 } from "lucide-react";
-
-const LOCATIONS = [
-  "Factory A > Line 1",
-  "Factory A > Sulfonation",
-  "Factory A > Utilities",
-  "Factory B > Boiler",
-  "Factory B > Packaging",
-  "Factory C > WTP",
-];
+import { ShareWithUsers } from "@/components/panel/ShareWithUsers";
+import { SecurityConfig, emptySecurity, type SecurityValue } from "@/components/panel/SecurityConfig";
+import { SensorPicker } from "@/components/panel/SensorPicker";
+import { TemplatePicker } from "@/components/panel/TemplatePicker";
+import { DEVICE_TEMPLATES, POPULAR_SENSORS } from "@/lib/formOptions";
+import { getLocationOptions, getDefaultLocationPath } from "@/lib/locations";
 
 const PROTOCOLS = [
   { value: "MQTT", icon: Radio },
@@ -149,16 +149,38 @@ const DeviceForm = () => {
 
   const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
 
+  // Location options come from the Location feature (side menu → Location).
+  const locationOptions = useMemo(() => getLocationOptions(), []);
+  const defaultLocation = useMemo(() => getDefaultLocationPath(), []);
+
   const [deviceType, setDeviceType] = useState("blank");
+  const [selectedSensors, setSelectedSensors] = useState<string[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState("");
   const [deviceName, setDeviceName] = useState("");
-  const [location, setLocation] = useState("");
+  // Location defaults to the root location, so the user never has to pick one.
+  const [location, setLocation] = useState(() => getDefaultLocationPath());
   const [protocol, setProtocol] = useState("MQTT");
-  const [gateway, setGateway] = useState("");
-  const [useSsl, setUseSsl] = useState(false);
-  const [useOta, setUseOta] = useState(false);
-  const [useMonitoring, setUseMonitoring] = useState(false);
+  const [sharedUsers, setSharedUsers] = useState<string[]>([]);
+  const [security, setSecurity] = useState<SecurityValue>(() => emptySecurity());
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
+
+  // Popular sensors are single-select; picking one applies its protocol and auto-fills the name.
+  const pickSensors = (ids: string[]) => {
+    setSelectedSensors(ids);
+    const sensor = POPULAR_SENSORS.find((s) => s.id === ids[0]);
+    if (sensor) {
+      setProtocol(sensor.protocol);
+      setDeviceName(sensor.name);
+    }
+  };
+
+  // Picking a device template auto-fills the name with the template's title.
+  const pickTemplate = (id: string) => {
+    setSelectedTemplate(id);
+    const tpl = DEVICE_TEMPLATES.find((tt) => tt.id === id);
+    if (tpl) setDeviceName(t(tpl.name as any));
+  };
 
   const addTag = (raw: string) => {
     const v = raw.trim().replace(/,$/, "").trim();
@@ -168,16 +190,12 @@ const DeviceForm = () => {
   };
   const removeTag = (tag: string) => setTags((prev) => prev.filter((t) => t !== tag));
   const [description, setDescription] = useState("");
-  const [externalId, setExternalId] = useState("");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async () => {
     if (!deviceName.trim()) {
       toast({ title: t("error"), description: t("deviceNameRequired"), variant: "destructive" });
-      return;
-    }
-    if (!location) {
-      toast({ title: t("error"), description: t("locationRequired"), variant: "destructive" });
       return;
     }
     setIsLoading(true);
@@ -188,14 +206,16 @@ const DeviceForm = () => {
       const item = create({
         name: trimmedName,
         protocol,
-        location,
-        gateway: gateway || undefined,
-        useSsl,
-        useOta,
-        useMonitoring,
+        location: location || defaultLocation,
+        useSsl: security.method === "ssl",
+        authMethod: security.method,
+        authUsername: security.method === "basic" ? security.username : undefined,
+        authClientId: security.method === "basic" ? security.clientId : undefined,
+        sslCert: security.method === "ssl" ? security.sslCert : undefined,
+        apiKey: security.method === "accessToken" ? security.accessToken : undefined,
+        sharedUsers,
         tags: finalTags.join(", "),
         description,
-        externalId,
       });
       try {
         sessionStorage.setItem(
@@ -206,11 +226,13 @@ const DeviceForm = () => {
             name: item.name,
             protocol: item.protocol,
             location: item.location,
-            gateway: item.gateway,
             tags: item.tags,
             description: item.description,
-            externalId: item.externalId,
             useSsl: !!item.useSsl,
+            authMethod: security.method,
+            clientId: security.clientId,
+            username: security.username,
+            password: security.password,
           }),
         );
       } catch (error) {
@@ -249,15 +271,9 @@ const DeviceForm = () => {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="flex items-start justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{t("createNewDevice")}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{t("deviceFormSubtitle")}</p>
-        </div>
-        <Button variant="outline" size="sm" className="shrink-0">
-          <BookOpen className="h-4 w-4" />
-          {t("browseTemplates")}
-        </Button>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground">{t("createNewDevice")}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t("deviceFormSubtitle")}</p>
       </div>
 
       <div className="space-y-4">
@@ -265,32 +281,54 @@ const DeviceForm = () => {
         <SectionCard step={1} title={t("deviceTypeSection")}>
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5">
             <div>
-              <FieldLabel required>{t("deviceTypeSection")}</FieldLabel>
-              <Select value={deviceType} onValueChange={setDeviceType}>
+              <FieldLabel>{t("deviceTypeSection")}</FieldLabel>
+              <Select
+                value={deviceType}
+                onValueChange={(v) => { setDeviceType(v); if (v !== "popular") setSelectedSensors([]); if (v !== "templates") setSelectedTemplate(""); }}
+              >
                 <SelectTrigger className="h-11">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="blank">
-                    <div className="flex items-center gap-2">
-                      <Smartphone className="h-4 w-4" />
-                      {t("blankDevice")}
-                    </div>
+                    <div className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> {t("blankDevice")}</div>
+                  </SelectItem>
+                  <SelectItem value="popular">
+                    <div className="flex items-center gap-2"><Sparkles className="h-4 w-4" /> {t("popularSensors")}</div>
+                  </SelectItem>
+                  <SelectItem value="templates">
+                    <div className="flex items-center gap-2"><LayoutGrid className="h-4 w-4" /> {t("deviceTemplates")}</div>
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-2">{t("customDeviceFromScratch")}</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                {deviceType === "blank" ? t("customDeviceFromScratch")
+                  : deviceType === "popular" ? t("popularSensorsHint")
+                  : t("deviceTemplatesHint")}
+              </p>
             </div>
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex gap-3 items-start">
               <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center shrink-0">
-                <Smartphone className="h-5 w-5 text-primary-foreground" />
+                {deviceType === "popular" ? <Sparkles className="h-5 w-5 text-primary-foreground" />
+                  : deviceType === "templates" ? <LayoutGrid className="h-5 w-5 text-primary-foreground" />
+                  : <Smartphone className="h-5 w-5 text-primary-foreground" />}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground">{t("blankDevice")}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{t("customDeviceNoPredefined")}</p>
+                <p className="text-sm font-semibold text-foreground">
+                  {deviceType === "blank" ? t("blankDevice") : deviceType === "popular" ? t("popularSensors") : t("deviceTemplates")}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {deviceType === "blank" ? t("customDeviceNoPredefined")
+                    : deviceType === "popular" ? t("popularSensorsDesc")
+                    : t("deviceTemplatesDesc")}
+                </p>
               </div>
             </div>
           </div>
+
+          {/* Progressive disclosure: only after picking Popular Sensors / Templates */}
+          {deviceType === "popular" && <SensorPicker value={selectedSensors} onChange={pickSensors} />}
+          {deviceType === "templates" && <TemplatePicker templates={DEVICE_TEMPLATES} value={selectedTemplate} onChange={pickTemplate} />}
         </SectionCard>
 
         {/* 2. Basic Information */}
@@ -308,79 +346,40 @@ const DeviceForm = () => {
               />
             </div>
             <div>
-              <FieldLabel required hint>{t("location")}</FieldLabel>
+              <FieldLabel hint>{t("location")}</FieldLabel>
               <Select value={location} onValueChange={setLocation}>
                 <SelectTrigger className="h-11">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
                   <SelectValue placeholder={t("selectLocation")} />
                 </SelectTrigger>
                 <SelectContent>
-                  {LOCATIONS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                  {locationOptions.map((l) => <SelectItem key={l.id} value={l.path}>{l.path}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
         </SectionCard>
 
-        {/* 3 + 4 row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* 3. Connectivity */}
-          <SectionCard step={3} title={t("connectivity")}>
-            <FieldLabel required hint>{t("protocolLabel")}</FieldLabel>
-            <div className="grid grid-cols-5 gap-2 mb-4">
-              {PROTOCOLS.map((p) => {
-                const Icon = p.icon;
-                const active = protocol === p.value;
-                return (
-                  <button
-                    key={p.value}
-                    type="button"
-                    onClick={() => setProtocol(p.value)}
-                    className={`flex flex-col items-center gap-1.5 py-3 rounded-lg border-2 transition-colors ${
-                      active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
-                    }`}
-                  >
-                    <Icon className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground"}`} />
-                    <span className={`text-xs font-medium ${active ? "text-primary" : "text-foreground"}`}>
-                      {p.value}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            <FieldLabel hint>{t("gatewayLabel")} <span className="text-muted-foreground font-normal">({t("optional")})</span></FieldLabel>
-            <Select value={gateway} onValueChange={setGateway}>
-              <SelectTrigger className="h-11">
-                <SelectValue placeholder={t("selectGatewayOptional")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="gw-1">Gateway 01 — Factory A</SelectItem>
-                <SelectItem value="gw-2">Gateway 02 — Factory B</SelectItem>
-              </SelectContent>
-            </Select>
-          </SectionCard>
+        {/* 3. Credentials / Security */}
+        <SectionCard step={3} title={t("credentialsSecurity")}>
+          <SecurityConfig value={security} onChange={setSecurity} />
+        </SectionCard>
 
-          {/* 4. Quick Configuration */}
-          <SectionCard step={4} title={t("quickConfiguration")}>
-            <div className="space-y-2.5">
-              <ToggleCard icon={Lock} title={t("sslTls")} desc={t("encryptConnection")} checked={useSsl} onChange={setUseSsl} />
-              <ToggleCard icon={CloudDownload} title={t("otaShort")} desc={t("enableOtaUpdates")} checked={useOta} onChange={setUseOta} />
-              <ToggleCard icon={Activity} title={t("monitoring")} desc={t("enableHealthMonitoring")} checked={useMonitoring} onChange={setUseMonitoring} />
-            </div>
-          </SectionCard>
-        </div>
-
-        {/* 5. Advanced */}
-        <Card className="p-5">
-          <div className="w-full flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <StepBadge n={5} />
-              <h3 className="text-base font-semibold text-foreground">{t("advancedSettings")}</h3>
-              <span className="text-sm text-muted-foreground">({t("optional")})</span>
-            </div>
-            <ChevronDown className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-5">
+        {/* 4. Advanced (collapsible) — includes Share With Users */}
+        <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+          <Card className="p-5">
+            <CollapsibleTrigger asChild>
+              <button type="button" className="w-full flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <StepBadge n={4} />
+                  <h3 className="text-base font-semibold text-foreground">{t("advancedSettings")}</h3>
+                  <span className="text-sm text-muted-foreground">({t("optional")})</span>
+                </div>
+                <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
             <div>
               <FieldLabel hint>{t("tagsLabel")}</FieldLabel>
               <div className="min-h-11 rounded-md border border-input bg-background px-2 py-1.5 flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
@@ -435,17 +434,14 @@ const DeviceForm = () => {
                 rows={3}
               />
             </div>
-            <div>
-              <FieldLabel hint>{t("externalIdLabel")}</FieldLabel>
-              <Input
-                value={externalId}
-                onChange={(e) => setExternalId(e.target.value)}
-                placeholder={t("externalIdentifierOptional")}
-                className="h-11"
-              />
-            </div>
-          </div>
-        </Card>
+              </div>
+              <div className="mt-5 pt-5 border-t border-border">
+                <FieldLabel hint>{t("shareWithUsers")}</FieldLabel>
+                <ShareWithUsers value={sharedUsers} onChange={setSharedUsers} />
+              </div>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
       </div>
 
       <div className="sticky bottom-0 -mx-4 lg:-mx-6 mt-6 bg-background/95 backdrop-blur border-t border-border z-20 px-4 lg:px-6 py-3">

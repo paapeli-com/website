@@ -52,6 +52,9 @@ import {
   PROFILE_CHANNELS, guessProfile, profileLabel, generateSeries, lastValue,
   type Channel, type DeviceProfileKey,
 } from "@/lib/deviceProfiles";
+import { SecurityConfig, type SecurityValue } from "@/components/panel/SecurityConfig";
+import { ShareWithUsers } from "@/components/panel/ShareWithUsers";
+import { getLocationOptions } from "@/lib/locations";
 
 const hasPersian = (v: string) => /[\u0600-\u06FF]/.test(v || "");
 const fa = (v: string) => (hasPersian(v) ? "font-vazirmatn" : "");
@@ -190,6 +193,16 @@ const DeviceDetails = () => {
   const statusLabel = status === "online" ? t("online") : status === "offline" ? t("offline") : t("error");
   const statusDot = status === "online" ? "bg-emerald-500" : status === "offline" ? "bg-muted-foreground/50" : "bg-rose-500";
   const seed = (device.id?.charCodeAt(0) || 1) * 7;
+
+  // Read-only view of the credentials/security method chosen at creation.
+  const securityView: SecurityValue = {
+    method: device.authMethod || (device.useSsl ? "ssl" : "accessToken"),
+    accessToken: device.apiKey,
+    clientId: device.authClientId || "",
+    username: device.authUsername || device.deviceId,
+    password: "",
+    sslCert: device.sslCert || "",
+  };
 
   // Health metrics (deterministic)
   const healthScore = 60 + ((seed * 13) % 38);
@@ -588,6 +601,23 @@ const DeviceDetails = () => {
               </CardContent>
             </Card>
 
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-base flex items-center gap-2"><Lock className="h-4 w-4" /> {t("credentialsSecurity")}</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}><Edit className="h-4 w-4 me-2" /> {t("edit")}</Button>
+              </CardHeader>
+              <CardContent>
+                <SecurityConfig value={securityView} readOnly />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="text-base">{t("shareWithUsers")}</CardTitle></CardHeader>
+              <CardContent>
+                <ShareWithUsers value={device.sharedUsers || []} readOnly />
+              </CardContent>
+            </Card>
+
             <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
               <Card>
                 <CollapsibleTrigger asChild>
@@ -608,14 +638,6 @@ const DeviceDetails = () => {
                       <CredentialRow label={t("mqttPort")} value={device.useSsl ? "8883" : "1883"} />
                       <CredentialRow label={t("mqttUsername")} value={device.deviceId} />
                       <CredentialRow label={t("mqttPassword")} value={device.apiKey} mask />
-                    </div>
-                    <Separator />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>{t("useSslTls")}</Label>
-                        <p className="text-xs text-muted-foreground">{t("encryptMqttTraffic")}</p>
-                      </div>
-                      <Switch checked={!!device.useSsl} disabled />
                     </div>
                   </CardContent>
 
@@ -995,11 +1017,24 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
   const [tags, setTags] = useState<string[]>(
     device?.tags?.split(",").map((t: string) => t.trim()).filter(Boolean) || [],
   );
+  const buildSecurity = (d: any): SecurityValue => ({
+    method: d?.authMethod || (d?.useSsl ? "ssl" : "accessToken"),
+    accessToken: d?.apiKey || "",
+    clientId: d?.authClientId || "",
+    username: d?.authUsername || "",
+    password: "",
+    sslCert: d?.sslCert || "",
+  });
+  const [security, setSecurity] = useState<SecurityValue>(() => buildSecurity(device));
+  const [shared, setShared] = useState<string[]>(device?.sharedUsers || []);
 
   useEffect(() => {
     setName(device?.name || "");
     setDesc(device?.description || "");
     setTags(device?.tags?.split(",").map((t: string) => t.trim()).filter(Boolean) || []);
+    setSecurity(buildSecurity(device));
+    setShared(device?.sharedUsers || []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [device, open]);
 
   const addTag = () => {
@@ -1012,12 +1047,12 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side={isRTL ? "left" : "right"} dir={isRTL ? "rtl" : "ltr"} className="w-full sm:max-w-md">
+      <SheetContent side={isRTL ? "left" : "right"} dir={isRTL ? "rtl" : "ltr"} className="w-full sm:max-w-lg flex flex-col">
         <SheetHeader className={isRTL ? "text-right sm:text-right" : "text-left sm:text-left"}>
           <SheetTitle>{t("editDeviceTitle")}</SheetTitle>
           <SheetDescription>{t("updateDeviceInfo")}</SheetDescription>
         </SheetHeader>
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 flex-1 overflow-y-auto">
           <div>
             <Label>{t("name")}</Label>
             <Input value={name} onChange={e => setName(e.target.value)} className="mt-1" />
@@ -1045,6 +1080,14 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
               />
             </div>
           </div>
+          <div>
+            <Label className="mb-2 block">{t("credentialsSecurity")}</Label>
+            <SecurityConfig value={security} onChange={setSecurity} />
+          </div>
+          <div>
+            <Label className="mb-2 block">{t("shareWithUsers")}</Label>
+            <ShareWithUsers value={shared} onChange={setShared} />
+          </div>
         </div>
         <SheetFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("cancel")}</Button>
@@ -1054,7 +1097,17 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
               const arr = raw ? JSON.parse(raw) : [];
               const idx = arr.findIndex((d: any) => d.id === device.id);
               if (idx >= 0) {
-                arr[idx] = { ...arr[idx], name, description: desc, tags: tags.join(", ") };
+                arr[idx] = {
+                  ...arr[idx],
+                  name, description: desc, tags: tags.join(", "),
+                  authMethod: security.method,
+                  authUsername: security.method === "basic" ? security.username : arr[idx].authUsername,
+                  authClientId: security.method === "basic" ? security.clientId : arr[idx].authClientId,
+                  sslCert: security.method === "ssl" ? security.sslCert : arr[idx].sslCert,
+                  apiKey: security.method === "accessToken" ? security.accessToken : arr[idx].apiKey,
+                  useSsl: security.method === "ssl",
+                  sharedUsers: shared,
+                };
                 localStorage.setItem("paapeli-devices-v1", JSON.stringify(arr));
                 window.dispatchEvent(new Event("paapeli:devices-updated"));
               }
@@ -1204,7 +1257,7 @@ const FirmwareDialog = ({ open, onOpenChange }: any) => {
 const MoveLocationDialog = ({ open, onOpenChange, device }: any) => {
   const [loc, setLoc] = useState(device.location || "");
   const { toast } = useToast();
-  const presets = ["Qazvin > Factory A > Line 1", "Qazvin > Factory A > Sulfonation > Line 1", "Qazvin > Factory B > Boiler", "Tehran > Warehouse"];
+  const presets = getLocationOptions().map((l) => l.path);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>

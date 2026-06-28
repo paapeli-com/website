@@ -11,6 +11,7 @@ import { EditDeviceDialog, SendCommandDialog } from "@/pages/panel/DeviceDetails
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Filter, LayoutGrid, Smartphone, Copy, CheckCheck, Plus, RefreshCw, Trash2, ArrowUpDown, X, ChevronDown, ChevronUp, Eye, MoreHorizontal, Info, Box, Upload, Download, Pencil, UserPlus, Archive } from "lucide-react";
@@ -86,6 +87,10 @@ interface DeviceCredentials {
   description?: string;
   externalId?: string;
   useSsl: boolean;
+  authMethod?: "accessToken" | "basic" | "ssl";
+  clientId?: string;
+  username?: string;
+  password?: string;
 }
 
 // -------- Helpers for list view (mock-derived display metadata) --------
@@ -272,6 +277,9 @@ const Devices = () => {
             description: creds.description,
             externalId: creds.externalId,
             useSsl: creds.useSsl,
+            authMethod: creds.authMethod,
+            authClientId: creds.clientId,
+            authUsername: creds.username,
           });
         }
         setNewDeviceCredentials(creds);
@@ -714,7 +722,6 @@ const Devices = () => {
                         <TableHead>{t("status")}</TableHead>
                         <TableHead>{t("location")}</TableHead>
                         <TableHead>{t("protocol")}</TableHead>
-                        <TableHead>{t("lastValue")}</TableHead>
                         <TableHead>
                           <button
                             onClick={() => setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc')}
@@ -778,7 +785,6 @@ const Devices = () => {
                                 <LocationCell path={meta.location} />
                               </TableCell>
                               <TableCell className="text-sm">{device.protocol}</TableCell>
-                              <TableCell className="text-sm">{meta.lastValue}</TableCell>
                               <TableCell className="text-sm text-muted-foreground">{formattedUpdated}</TableCell>
                               <TableCell onClick={(e) => e.stopPropagation()}>
                                 <div className="flex items-center justify-end gap-1">
@@ -817,14 +823,14 @@ const Devices = () => {
                             </TableRow>
                             {isExpanded && (
                               <TableRow key={`${rowKey}-expand`} className="bg-muted/20 hover:bg-muted/20">
-                                <TableCell colSpan={10} className="p-4">
+                                <TableCell colSpan={9} className="p-4">
                                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                                     <ExpandField label={t("deviceId")} value={deviceId || '—'} />
                                     <ExpandField label={t("deviceTypeLabel")} value={meta.deviceType} />
                                     <ExpandField label={t("gateway")} value={meta.gateway || '—'} />
                                     <ExpandField label={t("channels")} value={meta.sensorType} />
                                   </div>
-                                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <div className="mt-3">
                                     <div className="rounded-lg border bg-background px-4 py-3">
                                       <div className="text-xs text-muted-foreground mb-2">{t("tagsLabel")}</div>
                                       {meta.tags.length > 0 ? (
@@ -836,10 +842,6 @@ const Devices = () => {
                                       ) : (
                                         <div className="text-xs text-muted-foreground italic">—</div>
                                       )}
-                                    </div>
-                                    <div className="rounded-lg border bg-background px-4 py-3">
-                                      <div className="text-xs text-muted-foreground mb-1">{t("externalIdLabel")}</div>
-                                      <div className={`text-sm font-medium ${persianTextClass(meta.externalId)}`}>{meta.externalId || '—'}</div>
                                     </div>
                                   </div>
                                   {meta.description && (
@@ -923,37 +925,126 @@ const Devices = () => {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">{t("apiKey")}</Label>
-                <div className="flex items-center gap-2">
-                  <Input value={newDeviceCredentials.apiKey} readOnly className="font-mono text-sm h-9" />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9 shrink-0"
-                    onClick={() => copyToClipboard(newDeviceCredentials.apiKey, 'apiKey')}
-                  >
-                    {copiedField === 'apiKey' ? <CheckCheck className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-
-              {newDeviceCredentials.protocol === "MQTT" && (
+              {/* Only show the Access Token when that credentials type was selected. */}
+              {(newDeviceCredentials.authMethod || "accessToken") === "accessToken" && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">{t("mqttConnectionCode")}</Label>
-                  <div dir="ltr" className="bg-muted rounded-lg p-3 font-mono text-[11px] leading-relaxed space-y-0.5 overflow-x-auto text-left">
-                    <div>mqtt_server = "mqtt.paapeli.com";</div>
-                    <div>mqtt_port = {newDeviceCredentials.useSsl ? "8883" : "1883"};</div>
-                    <div>mqtt_client_id = "{newDeviceCredentials.name}";</div>
-                    <div>mqtt_user = "";</div>
-                    <div>mqtt_pass = "{newDeviceCredentials.apiKey}";</div>
-                    <div>device_id = "{newDeviceCredentials.deviceId}";</div>
-                    <div className="pt-1.5 border-t border-border mt-1.5">
-                      Topic: api.paapeli.com/api/v1/telemetry/{newDeviceCredentials.deviceId}
-                    </div>
+                  <Label className="text-xs font-semibold">{t("authAccessToken")}</Label>
+                  <div className="flex items-center gap-2">
+                    <Input value={newDeviceCredentials.apiKey} readOnly className="font-mono text-sm h-9" />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 shrink-0"
+                      onClick={() => copyToClipboard(newDeviceCredentials.apiKey, 'apiKey')}
+                    >
+                      {copiedField === 'apiKey' ? <CheckCheck className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                    </Button>
                   </div>
                 </div>
               )}
+
+              {newDeviceCredentials.authMethod === "basic" && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">{t("clientId")}</Label>
+                    <Input value={newDeviceCredentials.clientId || "—"} readOnly className="font-mono text-sm h-9" dir="ltr" />
+                  </div>
+                  {newDeviceCredentials.username ? (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">{t("username")}</Label>
+                      <Input value={newDeviceCredentials.username} readOnly className="font-mono text-sm h-9" dir="ltr" />
+                    </div>
+                  ) : null}
+                </>
+              )}
+
+              {newDeviceCredentials.authMethod === "ssl" && (
+                <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                  {t("sslCredHint")}
+                </div>
+              )}
+
+              {(() => {
+                const auth = newDeviceCredentials.authMethod || "accessToken";
+                // Protocols available depend on the chosen credentials type (ThingsBoard-style):
+                // access token → HTTP/MQTT/CoAP, X.509 (SSL/TLS) → MQTT/CoAP, MQTT Basic → MQTT only.
+                const protos = auth === "basic" ? ["MQTT"] : auth === "ssl" ? ["MQTT", "CoAP"] : ["MQTT", "HTTP", "CoAP"];
+                const token = newDeviceCredentials.apiKey;
+                const did = newDeviceCredentials.deviceId;
+                const tls = !!newDeviceCredentials.useSsl || auth === "ssl";
+                const httpBase = tls ? "https://api.paapeli.com:8443" : "http://api.paapeli.com:8080";
+                const blocks: Record<string, string> = {
+                  HTTP: [
+                    `curl -v -X POST ${httpBase}/api/v1/${token}/telemetry \\`,
+                    `  --header "Content-Type:application/json" \\`,
+                    `  --data "{\\"temperature\\":25}"`,
+                  ].join("\n"),
+                  MQTT: (auth === "basic"
+                    ? [
+                        `mqtt_server = "mqtt.paapeli.com";`,
+                        `mqtt_port   = ${tls ? 8883 : 1883};`,
+                        `client_id   = "${newDeviceCredentials.clientId || did}";`,
+                        `username    = "${newDeviceCredentials.username || ""}";`,
+                        `password    = "${newDeviceCredentials.password || ""}";`,
+                        `topic       = "v1/devices/me/telemetry";`,
+                      ]
+                    : auth === "ssl"
+                    ? [
+                        `mqtt_server = "mqtt.paapeli.com";`,
+                        `mqtt_port   = 8883;`,
+                        `client_id   = "${did}";`,
+                        `ca_cert     = "ca-root.pem";`,
+                        `client_cert = "client.pem";`,
+                        `client_key  = "client.key";`,
+                        `topic       = "v1/devices/me/telemetry";`,
+                      ]
+                    : [
+                        `mqtt_server = "mqtt.paapeli.com";`,
+                        `mqtt_port   = ${tls ? 8883 : 1883};`,
+                        `client_id   = "${did}";`,
+                        `username    = "${token}";`,
+                        `password    = "";`,
+                        `topic       = "v1/devices/me/telemetry";`,
+                      ]).join("\n"),
+                  CoAP: (auth === "ssl"
+                    ? [
+                        `coap-client-openssl -m POST coaps://coap.paapeli.com/api/v1/telemetry \\`,
+                        `  -c client.pem -k client.key \\`,
+                        `  -t json -e "{\\"temperature\\":25}"`,
+                      ]
+                    : [
+                        `coap-client -m POST coap://coap.paapeli.com/api/v1/${token}/telemetry \\`,
+                        `  -t json -e "{\\"temperature\\":25}"`,
+                      ]).join("\n"),
+                };
+                return (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">{t("sendTelemetryInstructions")}</Label>
+                    <Tabs defaultValue={protos[0]}>
+                      <TabsList className="w-full">
+                        {protos.map((p) => (
+                          <TabsTrigger key={p} value={p} className="flex-1">{p}</TabsTrigger>
+                        ))}
+                      </TabsList>
+                      {protos.map((p) => (
+                        <TabsContent key={p} value={p} className="mt-2">
+                          <div className="relative">
+                            <pre dir="ltr" className="bg-muted rounded-lg p-3 pe-10 font-mono text-[11px] leading-relaxed overflow-x-auto whitespace-pre text-left">{blocks[p]}</pre>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 absolute top-2 end-2"
+                              onClick={() => copyToClipboard(blocks[p], `cmd-${p}`)}
+                            >
+                              {copiedField === `cmd-${p}` ? <CheckCheck className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </TabsContent>
+                      ))}
+                    </Tabs>
+                  </div>
+                );
+              })()}
 
               <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg p-3">
                 <p className="text-xs text-amber-800 dark:text-amber-200">

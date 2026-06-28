@@ -14,6 +14,11 @@ export interface UserGateway {
   tags?: string;
   description?: string;
   externalId?: string;
+  authMethod?: "accessToken" | "basic" | "ssl";
+  authUsername?: string;
+  authClientId?: string;
+  sslCert?: string;
+  sharedUsers?: string[];
   createdAt: string;
   lastSeen?: string;
   status?: "online" | "offline" | "error";

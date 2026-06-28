@@ -63,6 +63,9 @@ const markOnboardingDismissed = (id?: string) => {
 };
 
 import { formatRelativeTime } from "@/lib/relativeTime";
+import { SecurityConfig, type SecurityValue } from "@/components/panel/SecurityConfig";
+import { ShareWithUsers } from "@/components/panel/ShareWithUsers";
+import { getLocationOptions } from "@/lib/locations";
 
 const formatUptime = (createdAt: string, t: (k: string) => string, formatNumber: (n: number) => string) => {
   const diff = Date.now() - new Date(createdAt).getTime();
@@ -232,6 +235,16 @@ const GatewayDetails = () => {
     markOnboardingDismissed(gateway.gatewayId);
   };
   const addConnector = () => navigate(lp(`/devices/gateways/${gateway.gatewayId}/connectors/new`));
+
+  // Read-only view of the credentials/security method chosen at creation.
+  const securityView: SecurityValue = {
+    method: gateway.authMethod || (gateway.useSsl ? "ssl" : "accessToken"),
+    accessToken: gateway.pairingKey,
+    clientId: gateway.authClientId || "",
+    username: gateway.authUsername || "",
+    password: "",
+    sslCert: gateway.sslCert || "",
+  };
 
   const goToDiscovery = (connectorId?: string) => {
     setDiscoveryConnectorId(connectorId || "all");
@@ -571,16 +584,22 @@ const GatewayDetails = () => {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader><CardTitle className="text-base flex items-center gap-2"><Shield className="h-4 w-4" /> {t("securitySettings")}</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div><Label>{t("tlsEnforcement")}</Label><p className="text-xs text-muted-foreground">{t("tlsEnforcementDesc")}</p></div>
-                  <Switch checked={!!gateway.useSsl} disabled />
-                </div>
-                <div className="flex items-center justify-between">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-base flex items-center gap-2"><Shield className="h-4 w-4" /> {t("credentialsSecurity")}</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}><Edit className="h-4 w-4 me-2" /> {t("edit")}</Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <SecurityConfig value={securityView} readOnly />
+                <div className="flex items-center justify-between border-t border-border pt-4">
                   <div><Label>{t("autoProvisionDevices")}</Label><p className="text-xs text-muted-foreground">{t("autoProvisionDevicesDesc")}</p></div>
                   <Switch defaultChecked={false} disabled />
                 </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle className="text-base">{t("shareWithUsers")}</CardTitle></CardHeader>
+              <CardContent>
+                <ShareWithUsers value={gateway.sharedUsers || []} readOnly />
               </CardContent>
             </Card>
             <DeploymentCard gateway={gateway} t={t} toast={toast} />
@@ -1152,11 +1171,24 @@ const EditGatewaySheet = ({ open, onOpenChange, gateway, isRTL }: any) => {
     gateway.tags?.split(",").map((s: string) => s.trim()).filter(Boolean) || [],
   );
   const [tagInput, setTagInput] = useState("");
+  const buildSecurity = (g: any): SecurityValue => ({
+    method: g?.authMethod || (g?.useSsl ? "ssl" : "accessToken"),
+    accessToken: g?.pairingKey || "",
+    clientId: g?.authClientId || "",
+    username: g?.authUsername || "",
+    password: "",
+    sslCert: g?.sslCert || "",
+  });
+  const [security, setSecurity] = useState<SecurityValue>(() => buildSecurity(gateway));
+  const [shared, setShared] = useState<string[]>(gateway.sharedUsers || []);
   useEffect(() => {
     setName(gateway.name);
     setDesc(gateway.description || "");
     setTags(gateway.tags?.split(",").map((s: string) => s.trim()).filter(Boolean) || []);
     setTagInput("");
+    setSecurity(buildSecurity(gateway));
+    setShared(gateway.sharedUsers || []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gateway, open]);
   const addTag = (v: string) => {
     const tv = v.trim();
@@ -1165,12 +1197,12 @@ const EditGatewaySheet = ({ open, onOpenChange, gateway, isRTL }: any) => {
   };
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side={isRTL ? "left" : "right"} dir={isRTL ? "rtl" : "ltr"} className="w-full sm:max-w-md">
+      <SheetContent side={isRTL ? "left" : "right"} dir={isRTL ? "rtl" : "ltr"} className="w-full sm:max-w-lg flex flex-col">
         <SheetHeader>
           <SheetTitle>{t("editGateway")}</SheetTitle>
           <SheetDescription>{t("editGatewayDesc")}</SheetDescription>
         </SheetHeader>
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 flex-1 overflow-y-auto">
           <div><Label>{t("name")}</Label><Input value={name} onChange={e => setName(e.target.value)} className="mt-1" /></div>
           <div><Label>{t("description")}</Label><Textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} className="mt-1" /></div>
           <div>
@@ -1195,10 +1227,31 @@ const EditGatewaySheet = ({ open, onOpenChange, gateway, isRTL }: any) => {
             />
             <p className="text-xs text-muted-foreground mt-1">{t("pressEnterTags")}</p>
           </div>
+          <div>
+            <Label className="mb-2 block">{t("credentialsSecurity")}</Label>
+            <SecurityConfig value={security} onChange={setSecurity} />
+          </div>
+          <div>
+            <Label className="mb-2 block">{t("shareWithUsers")}</Label>
+            <ShareWithUsers value={shared} onChange={setShared} />
+          </div>
         </div>
         <SheetFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("cancel")}</Button>
-          <Button onClick={() => { update(gateway.id, { name, description: desc, tags: tags.join(", ") }); toast({ title: t("gatewayUpdated") }); onOpenChange(false); }}>{t("save")}</Button>
+          <Button onClick={() => {
+            update(gateway.id, {
+              name, description: desc, tags: tags.join(", "),
+              authMethod: security.method,
+              authUsername: security.method === "basic" ? security.username : gateway.authUsername,
+              authClientId: security.method === "basic" ? security.clientId : gateway.authClientId,
+              sslCert: security.method === "ssl" ? security.sslCert : gateway.sslCert,
+              pairingKey: security.method === "accessToken" ? security.accessToken : gateway.pairingKey,
+              useSsl: security.method === "ssl",
+              sharedUsers: shared,
+            });
+            toast({ title: t("gatewayUpdated") });
+            onOpenChange(false);
+          }}>{t("save")}</Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>
@@ -1210,7 +1263,7 @@ const MoveLocationDialog = ({ open, onOpenChange, gateway }: any) => {
   const { toast } = useToast();
   const [loc, setLoc] = useState(gateway.location || "");
   useEffect(() => setLoc(gateway.location || ""), [gateway, open]);
-  const presets = ["Qazvin > Factory A > Network Room", "Tehran > DC1 > Rack 4", "Esfahan > Plant > Edge Cabinet"];
+  const presets = getLocationOptions().map((l) => l.path);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
