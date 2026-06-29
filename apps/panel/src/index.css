@@ -431,6 +431,15 @@ html[lang="fa"] pre {
   flex-direction: row-reverse;
 }
 
+/* RTL: reverse justify-between rows (card headers, chart headers, toggle rows,
+   resource bars) so the title/label sits on the right and the control on the
+   left. Flex doesn't auto-reverse from `dir` in this panel, so do it explicitly.
+   Scoped to the page <main> + DIVs only, so the top bar, sidebar, and Radix
+   triggers (buttons) keep their own layout. Opt out with `.rtl-keep`. */
+[dir="rtl"] [data-panel-page] main div.flex.justify-between:not(.rtl-keep) {
+  flex-direction: row-reverse;
+}
+
 /* Switch (Radix) in RTL: flip thumb translate so the knob stays inside the track. */
 [dir="rtl"] [role="switch"][data-state="checked"] > span {
   transform: translateX(-1.25rem);

@@ -918,7 +918,7 @@ const TelemetryTab = ({ channels, seed }: { channels: Channel[]; seed: number })
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className={`grid grid-cols-1 ${datasets.length > 1 ? "lg:grid-cols-2" : ""} gap-4`}>
           {datasets.map(({ channel, data }) => {
             const s = stats(data);
             return (
