@@ -5,7 +5,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web apps/web
 COPY packages packages
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter vite_react_shadcn_ts build
+RUN pnpm --filter paapeli_web build
 
 FROM node:20-alpine AS runner
 ENV NODE_ENV=production PORT=3000
