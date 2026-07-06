@@ -10,15 +10,27 @@ import { cn } from "@/lib/utils";
 /* renders or photography later without touching the page structure.   */
 /* ------------------------------------------------------------------ */
 
-type Pin = { icon: LucideIcon; label: string; top: string; left: string; tint: string };
+type Pin = { icon: LucideIcon; label: string; top: string; left: string; tint: string; delay: string };
 
 const MAP_PINS: Pin[] = [
-  { icon: Dog, label: "Buddy", top: "34%", left: "30%", tint: "bg-primary" },
-  { icon: Baby, label: "Mia", top: "58%", left: "58%", tint: "bg-[#0088b3]" },
-  { icon: Car, label: "Car", top: "26%", left: "70%", tint: "bg-[#1e2939]" },
+  { icon: Dog, label: "Buddy", top: "34%", left: "30%", tint: "bg-primary", delay: "0s" },
+  { icon: Baby, label: "Mia", top: "58%", left: "58%", tint: "bg-[#0088b3]", delay: "0.6s" },
+  { icon: Car, label: "Car", top: "26%", left: "70%", tint: "bg-[#1e2939]", delay: "1.2s" },
 ];
 
-/* A stylised "live map" with a geofence, route trail and pin markers. */
+/* Route the traveling GPS dot follows (pet → car). */
+const ROUTE_PATH = "M180 165 C 250 210 300 250 360 265 S 420 130 425 128";
+
+/* Scoped keyframes for the live-map animations. Names are prefixed to  */
+/* avoid any collision with global styles.                              */
+const MAP_ANIM_CSS = `
+@keyframes lm-dash { to { stroke-dashoffset: -1000; } }
+@keyframes lm-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes lm-breathe { 0%, 100% { opacity: .7; } 50% { opacity: 1; } }
+`;
+
+/* A stylised, animated "live map" with a geofence, a route trail, a    */
+/* traveling GPS dot, a radar sweep and floating pin markers.           */
 export function LiveMapVisual({ className }: { className?: string }) {
   return (
     <div
@@ -27,6 +39,8 @@ export function LiveMapVisual({ className }: { className?: string }) {
         className,
       )}
     >
+      <style>{MAP_ANIM_CSS}</style>
+
       <svg
         viewBox="0 0 600 470"
         className="absolute inset-0 h-full w-full"
@@ -58,6 +72,14 @@ export function LiveMapVisual({ className }: { className?: string }) {
           <line x1="210" y1="0" x2="210" y2="470" />
           <line x1="380" y1="0" x2="380" y2="470" />
         </g>
+
+        {/* Radar sweep expanding from the geofence centre */}
+        <circle cx="185" cy="175" fill="none" stroke="hsl(28 100% 50%)" strokeWidth="2">
+          <animate attributeName="r" values="12;98" dur="3s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.55;0" dur="3s" repeatCount="indefinite" />
+        </circle>
+
+        {/* Geofence — flowing dashes + gentle breathing opacity */}
         <circle
           cx="185"
           cy="175"
@@ -66,16 +88,27 @@ export function LiveMapVisual({ className }: { className?: string }) {
           stroke="hsl(28 100% 50%)"
           strokeWidth="2.5"
           strokeDasharray="7 7"
+          style={{ animation: "lm-dash 12s linear infinite, lm-breathe 3s ease-in-out infinite" }}
         />
+
+        {/* Route trail — dashes flowing from pet to car */}
         <path
-          d="M180 165 C 250 210 300 250 360 265 S 420 130 425 128"
+          d={ROUTE_PATH}
           fill="none"
           stroke="hsl(28 100% 50%)"
           strokeWidth="3"
           strokeLinecap="round"
           strokeDasharray="3 9"
           opacity="0.7"
+          style={{ animation: "lm-dash 1.6s linear infinite" }}
         />
+
+        {/* Traveling GPS dot moving along the route */}
+        <g>
+          <circle r="7" fill="#fff" />
+          <circle r="4.5" fill="hsl(28 100% 50%)" />
+          <animateMotion dur="6s" repeatCount="indefinite" keyPoints="0;1" keyTimes="0;1" calcMode="linear" path={ROUTE_PATH} />
+        </g>
       </svg>
 
       <div className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-[#e5e7eb] bg-white/90 px-2.5 py-1 text-xs font-medium text-foreground shadow-sm backdrop-blur">
@@ -86,16 +119,24 @@ export function LiveMapVisual({ className }: { className?: string }) {
         Live tracking
       </div>
 
-      {MAP_PINS.map(({ icon: Icon, label, top, left, tint }) => (
+      {MAP_PINS.map(({ icon: Icon, label, top, left, tint, delay }) => (
         <div key={label} className="absolute -translate-x-1/2 -translate-y-full" style={{ top, left }}>
-          <div className="flex flex-col items-center">
+          <div
+            className="flex flex-col items-center"
+            style={{ animation: "lm-float 3s ease-in-out infinite", animationDelay: delay }}
+          >
             <span
               className={cn(
-                "flex size-9 items-center justify-center rounded-full text-white shadow-[0px_4px_10px_rgba(29,41,61,0.25)] ring-2 ring-white",
+                "relative flex size-9 items-center justify-center rounded-full text-white shadow-[0px_4px_10px_rgba(29,41,61,0.25)] ring-2 ring-white",
                 tint,
               )}
             >
-              <Icon className="size-[18px]" />
+              {/* Pulsing radar ring behind each marker */}
+              <span
+                className={cn("absolute inset-0 rounded-full opacity-50 motion-safe:animate-ping", tint)}
+                style={{ animationDelay: delay }}
+              />
+              <Icon className="relative size-[18px]" />
             </span>
             <span className="-mt-0.5 size-2 rotate-45 rounded-[2px] bg-white ring-1 ring-[#e5e7eb]" />
           </div>
