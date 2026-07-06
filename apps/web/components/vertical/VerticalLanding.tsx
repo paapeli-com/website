@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, Briefcase, ChevronRight, CircleCheck, Minus, Plus } from "lucide-react";
 
@@ -374,7 +374,14 @@ function Cta({ config }: { config: VerticalConfig }) {
 
 /* ------------------------------ Page ------------------------------- */
 
-export function VerticalLanding({ config }: { config: VerticalConfig }) {
+export function VerticalLanding({
+  config,
+  beforeCta,
+}: {
+  config: VerticalConfig;
+  /** Optional extra section rendered before the closing CTA (per-vertical). */
+  beforeCta?: ReactNode;
+}) {
   const { isRTL } = useLanguage();
   return (
     <div className="min-h-screen bg-background" dir={isRTL ? "rtl" : "ltr"}>
@@ -386,6 +393,7 @@ export function VerticalLanding({ config }: { config: VerticalConfig }) {
         <Showcase config={config} />
         <Stats config={config} />
         <Steps config={config} />
+        {beforeCta}
         <Faq config={config} />
         <Cta config={config} />
       </main>
