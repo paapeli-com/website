@@ -21,7 +21,7 @@ const COLUMNS: FooterColumn[] = [
       { label: "Operations Hub", href: "#" },
       { label: "Edge Hub", href: "#" },
       { label: "Intelligence Hub", href: "#" },
-      { label: "Device Management", href: "#" },
+      { label: "Tracking Hub", href: "/gps-tracking" },
       { label: "OTA Updates", href: "#" },
     ],
   },

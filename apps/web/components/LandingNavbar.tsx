@@ -74,6 +74,12 @@ const MENUS: Record<string, MegaMenu> = {
             "Connect, manage, and monitor industrial assets and edge devices at scale.",
           href: "#",
         },
+        {
+          title: "Tracking Hub",
+          description:
+            "Real-time GPS tracking for pets, kids, and vehicles — geofencing, alerts, and location history in one app.",
+          href: "/gps-tracking",
+        },
       ],
       [
         {
