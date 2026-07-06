@@ -66,13 +66,13 @@ const MENUS: Record<string, MegaMenu> = {
           title: "Operations Hub",
           description:
             "Unified operational visibility, monitoring, and AI-driven insights for industrial environments.",
-          href: "#",
+          href: "/operations-hub",
         },
         {
           title: "Edge Hub",
           description:
             "Connect, manage, and monitor industrial assets and edge devices at scale.",
-          href: "#",
+          href: "/edge-hub",
         },
         {
           title: "Tracking Hub",
@@ -86,13 +86,13 @@ const MENUS: Record<string, MegaMenu> = {
           title: "Intelligence Hub",
           description:
             "Predict failures, detect anomalies, and optimize industrial performance using AI.",
-          href: "#",
+          href: "/intelligence-hub",
         },
         {
           title: "Infrastructure Hub",
           description:
             "Operational intelligence for modern infrastructure and mission-critical environments.",
-          href: "#",
+          href: "/infrastructure-hub",
         },
       ],
     ],

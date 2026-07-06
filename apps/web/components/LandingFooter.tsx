@@ -18,9 +18,9 @@ const COLUMNS: FooterColumn[] = [
   {
     title: "Platform",
     links: [
-      { label: "Operations Hub", href: "#" },
-      { label: "Edge Hub", href: "#" },
-      { label: "Intelligence Hub", href: "#" },
+      { label: "Operations Hub", href: "/operations-hub" },
+      { label: "Edge Hub", href: "/edge-hub" },
+      { label: "Intelligence Hub", href: "/intelligence-hub" },
       { label: "Tracking Hub", href: "/gps-tracking" },
       { label: "OTA Updates", href: "#" },
     ],
