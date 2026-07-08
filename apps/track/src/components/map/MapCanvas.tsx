@@ -1,6 +1,7 @@
 import { Navigation } from "lucide-react";
 import { Device, Geofence, TrackPoint } from "@/data/types";
 import { ASSET_META } from "@/components/DeviceBits";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -29,6 +30,7 @@ export function MapCanvas({
   layer?: "street" | "satellite";
   className?: string;
 }) {
+  const { t, label } = useLanguage();
   const sat = layer === "satellite";
   const trailUpto = trail ? trail.slice(0, (playhead ?? trail.length - 1) + 1) : [];
   const head = trail && playhead != null ? trail[Math.min(playhead, trail.length - 1)] : undefined;
@@ -119,7 +121,7 @@ export function MapCanvas({
           className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary backdrop-blur"
           style={{ left: `${g.x}%`, top: `${g.y - g.radius - 3}%` }}
         >
-          {g.name}
+          {label(g.name)}
         </span>
       ))}
 
@@ -170,7 +172,7 @@ export function MapCanvas({
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500/70" />
           <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
         </span>
-        Live
+        {t("live")}
       </div>
 
       {/* my-location button */}

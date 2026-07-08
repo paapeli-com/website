@@ -6,7 +6,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { TranslationKey } from "@/i18n/translations";
 import { TypeAvatar } from "@/components/DeviceBits";
 import { Button } from "@/components/ui/button";
-import { cn, timeAgo } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 const ALERT_META: Record<AlertType, { icon: LucideIcon; label: TranslationKey; tone: string }> = {
   geofence_exit: { icon: LogOut, label: "geofenceAlert", tone: "bg-destructive/10 text-destructive" },
@@ -17,7 +17,7 @@ const ALERT_META: Record<AlertType, { icon: LucideIcon; label: TranslationKey; t
 };
 
 export default function Alerts() {
-  const { t } = useLanguage();
+  const { t, relTime, label } = useLanguage();
   const [alerts, setAlerts] = useState<Alert[]>(ALERTS);
   const unread = alerts.filter((a) => !a.read).length;
 
@@ -55,10 +55,10 @@ export default function Alerts() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold">{t(m.label)}</p>
-                <p className="truncate text-xs text-muted-foreground">{d.name} · {d.subtitle}</p>
+                <p className="truncate text-xs text-muted-foreground">{d.name} · {label(d.subtitle)}</p>
               </div>
               <div className="flex flex-col items-end gap-1.5">
-                <span className="text-xs text-muted-foreground">{timeAgo(a.at)}</span>
+                <span className="text-xs text-muted-foreground">{relTime(a.at)}</span>
                 <TypeAvatar type={d.type} size={24} />
               </div>
             </div>

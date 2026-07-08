@@ -7,11 +7,10 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { TypeFilter, TypeFilterValue } from "@/components/TypeFilter";
 import { Battery, Signal, StatusPill, TypeAvatar } from "@/components/DeviceBits";
 import { Button } from "@/components/ui/button";
-import { timeAgo } from "@/lib/utils";
 
 export default function Devices() {
   const { devices } = useDevices();
-  const { t, num } = useLanguage();
+  const { t, num, relTime, label } = useLanguage();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<TypeFilterValue>("all");
 
@@ -22,7 +21,7 @@ export default function Devices() {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold">{t("devices")}</h1>
-          <p className="text-sm text-muted-foreground">{num(list.length)} {t("devices").toLowerCase()}</p>
+          <p className="text-sm text-muted-foreground">{num(list.length)} {t("deviceCountUnit")}</p>
         </div>
         <div className="flex items-center gap-3">
           <TypeFilter value={filter} onChange={setFilter} />
@@ -56,10 +55,10 @@ export default function Devices() {
                 <p className="text-xs text-muted-foreground">{d.model}</p>
               </div>
             </div>
-            <span className="text-sm text-muted-foreground">{d.subtitle}</span>
+            <span className="text-sm text-muted-foreground">{label(d.subtitle)}</span>
             <span><StatusPill status={d.status} /></span>
             <span className="flex items-center gap-2"><Battery level={d.battery} /><Signal bars={d.signal} /></span>
-            <span className="text-sm text-muted-foreground">{timeAgo(d.updatedAt)}</span>
+            <span className="text-sm text-muted-foreground">{relTime(d.updatedAt)}</span>
             <ChevronRight className="hidden size-4 text-muted-foreground rtl:rotate-180 lg:block" />
           </button>
         ))}

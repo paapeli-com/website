@@ -1,5 +1,6 @@
 import { BatteryFull, BatteryLow, BatteryMedium, Car, Dog, User, type LucideIcon } from "lucide-react";
 import { AssetType } from "@/data/types";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { cn } from "@/lib/utils";
 
 /* Presentation metadata per asset type. Full class strings (not          */
@@ -50,6 +51,7 @@ export function TypeAvatar({ type, size = 40, className }: { type: AssetType; si
 }
 
 export function StatusPill({ status }: { status: "online" | "offline" }) {
+  const { t } = useLanguage();
   const online = status === "online";
   return (
     <span
@@ -59,18 +61,19 @@ export function StatusPill({ status }: { status: "online" | "offline" }) {
       )}
     >
       <span className={cn("size-1.5 rounded-full", online ? "bg-emerald-500" : "bg-muted-foreground/50")} />
-      {online ? "Online" : "Offline"}
+      {online ? t("online") : t("offline")}
     </span>
   );
 }
 
 export function Battery({ level }: { level: number }) {
+  const { num } = useLanguage();
   const Icon = level > 50 ? BatteryFull : level > 20 ? BatteryMedium : BatteryLow;
   const color = level > 50 ? "text-emerald-500" : level > 20 ? "text-amber-500" : "text-destructive";
   return (
     <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
       <Icon className={cn("size-4", color)} />
-      {level}%
+      {num(level)}%
     </span>
   );
 }

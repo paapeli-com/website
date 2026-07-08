@@ -8,11 +8,11 @@
 /* Cloud-provider products shown in the top-bar product switcher.       */
 /* Shared so every product app offers the same switch list. `id` maps   */
 /* to an icon in the UI; `href` (optional) is where selecting it goes.   */
-export type Product = { id: string; name: string; href?: string };
+export type Product = { id: string; name: string; href?: string; disabled?: boolean };
 
 export const PRODUCTS: Product[] = [
   { id: "aiot", name: "AIoT" },
-  { id: "ai-infra", name: "AI Infra" },
+  { id: "ai-infra", name: "AI Infra", disabled: true },
 ];
 
 export type BrandConfig = {

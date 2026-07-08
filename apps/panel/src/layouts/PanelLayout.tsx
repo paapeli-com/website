@@ -55,6 +55,7 @@ import paapeliLogoDark from "@/assets/paapeli-logo-dark.svg";
 import paapeliLogoFa from "@/assets/paapeli-logo-fa.svg";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { QuickCreatePanel } from "@/components/QuickCreatePanel";
+import { ProductSwitcher } from "@/components/ProductSwitcher";
 
 interface MenuItem {
   title: string;
@@ -453,6 +454,11 @@ export const PanelLayout = ({ children }: PanelLayoutProps) => {
 
         {/* Global Search */}
         <GlobalSearch />
+
+        {/* Product switcher (cloud-provider level) — shown on every page */}
+        <div className="hidden md:block shrink-0">
+          <ProductSwitcher />
+        </div>
 
         {/* Right cluster */}
         <div className="flex items-center gap-1 ms-auto">

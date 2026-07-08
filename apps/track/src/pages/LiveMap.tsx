@@ -9,11 +9,11 @@ import { TypeFilter, TypeFilterValue } from "@/components/TypeFilter";
 import { CommandDrawer } from "@/components/CommandDrawer";
 import { Battery, Signal, StatusPill, TypeAvatar } from "@/components/DeviceBits";
 import { Button } from "@/components/ui/button";
-import { cn, timeAgo } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 export default function LiveMap() {
   const { devices, selectedId, setSelectedId, selected } = useDevices();
-  const { t, num } = useLanguage();
+  const { t, num, relTime, label } = useLanguage();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<TypeFilterValue>("all");
   const [cmdOpen, setCmdOpen] = useState(false);
@@ -22,13 +22,17 @@ export default function LiveMap() {
   const online = devices.filter((d) => d.status === "online").length;
   const shown = filter === "all" ? devices : list;
 
+  // Anchor the info popup next to the selected marker, clamped to stay in view.
+  const popX = selected.x < 30 ? "-10%" : selected.x > 70 ? "-90%" : "-50%";
+  const popY = selected.y < 45 ? "16px" : "calc(-100% - 16px)";
+
   return (
     <div className="flex h-full flex-col gap-4 p-4 lg:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold">{t("liveMap")}</h1>
           <p className="text-sm text-muted-foreground">
-            {num(online)} {t("onlineDevices")} · {num(devices.length)} {t("devices").toLowerCase()}
+            {num(online)} {t("onlineDevices")} · {num(devices.length)} {t("deviceCountUnit")}
           </p>
         </div>
         <TypeFilter value={filter} onChange={setFilter} />
@@ -51,7 +55,7 @@ export default function LiveMap() {
                 <TypeAvatar type={d.type} size={40} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{d.name}</p>
-                  <p className="truncate text-xs text-muted-foreground">{d.subtitle} · {timeAgo(d.updatedAt)}</p>
+                  <p className="truncate text-xs text-muted-foreground">{label(d.subtitle)} · {relTime(d.updatedAt)}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1">
                   <StatusPill status={d.status} />
@@ -72,15 +76,18 @@ export default function LiveMap() {
             className="absolute inset-0 h-full w-full"
           />
 
-          {/* Status card */}
-          <div className="absolute inset-x-3 top-3 z-20 max-w-sm rounded-2xl border border-border bg-card/95 p-4 shadow-lg backdrop-blur ltr:left-3 ltr:right-auto rtl:right-3 rtl:left-auto">
+          {/* Info popup — anchored next to the selected marker */}
+          <div
+            className="absolute z-30 w-72 rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur"
+            style={{ left: `${selected.x}%`, top: `${selected.y}%`, transform: `translate(${popX}, ${popY})` }}
+          >
             <div className="flex items-center gap-3">
               <TypeAvatar type={selected.type} size={44} />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-semibold">{selected.name}</p>
                 <div className="mt-0.5 flex items-center gap-2">
                   <StatusPill status={selected.status} />
-                  <span className="text-xs text-muted-foreground">{timeAgo(selected.updatedAt)}</span>
+                  <span className="text-xs text-muted-foreground">{relTime(selected.updatedAt)}</span>
                 </div>
               </div>
             </div>
@@ -101,7 +108,7 @@ export default function LiveMap() {
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">{selected.type === "vehicle" ? t("speed") : t("type")}</span>
                 <span className="font-medium">
-                  {selected.type === "vehicle" ? `${num(selected.speedKmh)} km/h` : selected.subtitle}
+                  {selected.type === "vehicle" ? `${num(selected.speedKmh)} km/h` : label(selected.subtitle)}
                 </span>
               </div>
             </div>

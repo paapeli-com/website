@@ -10,7 +10,7 @@ import { Battery, Signal, StatusPill, TypeAvatar } from "@/components/DeviceBits
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TranslationKey } from "@/i18n/translations";
-import { cn, timeAgo } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -24,7 +24,7 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
 export default function DeviceDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { t, num } = useLanguage();
+  const { t, num, relTime, label: tl } = useLanguage();
   const device = useMemo(() => DEVICES.find((d) => d.id === id) ?? DEVICES[0], [id]);
   const [cmdOpen, setCmdOpen] = useState(false);
 
@@ -50,7 +50,7 @@ export default function DeviceDetail() {
           <h1 className="text-xl font-bold">{device.name}</h1>
           <div className="mt-0.5 flex items-center gap-2">
             <StatusPill status={device.status} />
-            <span className="text-sm text-muted-foreground">{device.subtitle} · {timeAgo(device.updatedAt)}</span>
+            <span className="text-sm text-muted-foreground">{tl(device.subtitle)} · {relTime(device.updatedAt)}</span>
           </div>
         </div>
         <Button onClick={() => setCmdOpen(true)}>
@@ -84,7 +84,7 @@ export default function DeviceDetail() {
             <Stat label={t("accuracy")} value={device.positioning} />
             <Stat label={isVehicle ? t("speed") : t("steps")} value={isVehicle ? `${num(device.speedKmh)} km/h` : num(health.steps)} />
             <div className="col-span-2">
-              <Stat label={t("lastUpdate")} value={<span className="text-sm font-medium">{timeAgo(device.updatedAt)} · {device.address}</span>} />
+              <Stat label={t("lastUpdate")} value={<span className="text-sm font-medium">{relTime(device.updatedAt)} · {device.address}</span>} />
             </div>
           </div>
         </div>
@@ -123,7 +123,7 @@ export default function DeviceDetail() {
           <p className="p-5 pb-3 text-sm font-semibold">{t("recentTrips")}</p>
           {trips.map((tr) => (
             <div key={tr.id} className="flex items-center justify-between px-5 py-3 text-sm">
-              <span className="text-muted-foreground">{timeAgo(tr.at)}</span>
+              <span className="text-muted-foreground">{relTime(tr.at)}</span>
               <span className="flex gap-4">
                 <span>{num(tr.distanceKm)} km</span>
                 <span className="text-muted-foreground">{num(tr.durationMin)} min</span>

@@ -63,6 +63,8 @@ const en = {
   layers: "Layers",
   street: "Street",
   satellite: "Satellite",
+  live: "Live",
+  deviceCountUnit: "devices",
   onlineDevices: "online",
   overview: "Overview",
   allSafe: "Everyone is safe",
@@ -201,6 +203,8 @@ const fa: Record<TranslationKey, string> = {
   layers: "لایه‌ها",
   street: "خیابان",
   satellite: "ماهواره",
+  live: "زنده",
+  deviceCountUnit: "دستگاه",
   onlineDevices: "آنلاین",
   overview: "نمای کلی",
   allSafe: "همه در امنیت هستند",
@@ -330,6 +334,8 @@ const ar: Record<TranslationKey, string> = {
   layers: "الطبقات",
   street: "شارع",
   satellite: "قمر صناعي",
+  live: "مباشر",
+  deviceCountUnit: "جهاز",
   onlineDevices: "متصل",
   overview: "نظرة عامة",
   allSafe: "الجميع في أمان",
@@ -407,3 +413,11 @@ const ar: Record<TranslationKey, string> = {
 };
 
 export const translations: Record<Language, Record<TranslationKey, string>> = { en, fa, ar };
+
+/* Localized labels for mock-data tokens (asset subtypes & zone names).  */
+/* Looked up via useLanguage().label(token); unknown tokens pass through. */
+export const LABELS: Record<Language, Record<string, string>> = {
+  en: { Dog: "Dog", Cat: "Cat", Kid: "Kid", Elder: "Elder", Car: "Car", Van: "Van", Home: "Home", School: "School", Parking: "Parking" },
+  fa: { Dog: "سگ", Cat: "گربه", Kid: "کودک", Elder: "سالمند", Car: "خودرو", Van: "ون", Home: "خانه", School: "مدرسه", Parking: "پارکینگ" },
+  ar: { Dog: "كلب", Cat: "قطة", Kid: "طفل", Elder: "مسن", Car: "سيارة", Van: "شاحنة", Home: "المنزل", School: "المدرسة", Parking: "موقف" },
+};
