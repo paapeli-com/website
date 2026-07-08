@@ -45,7 +45,7 @@ export default function LiveMap() {
                 onClick={() => setSelectedId(d.id)}
                 className={cn(
                   "mb-1 flex w-full items-center gap-3 rounded-xl p-2.5 text-start transition-colors",
-                  d.id === selectedId ? "bg-primary/10" : "hover:bg-secondary",
+                  d.id === selectedId ? "bg-primary/10" : "hover:bg-muted",
                 )}
               >
                 <TypeAvatar type={d.type} size={40} />
@@ -106,7 +106,7 @@ export default function LiveMap() {
               </div>
             </div>
 
-            <div className="mt-3 flex items-center gap-2 rounded-xl bg-secondary px-3 py-2 text-xs">
+            <div className="mt-3 flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-xs">
               <MapPin className="size-4 shrink-0 text-primary" />
               <span className="flex-1 truncate">{selected.address}</span>
               <button className="shrink-0 font-medium text-primary hover:underline">{t("viewAddress")}</button>

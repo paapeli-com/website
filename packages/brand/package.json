@@ -1,0 +1,15 @@
+{
+  "name": "@paapeli/brand",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shared Paapeli brand: logos, design tokens, Tailwind preset and tenant/white-label config. Single source of truth consumed by every product app.",
+  "type": "module",
+  "exports": {
+    "./tokens.css": "./tokens.css",
+    "./preset": "./preset.ts",
+    "./config": "./config.ts",
+    "./logo.svg": "./assets/paapeli-logo.svg",
+    "./logo-dark.svg": "./assets/paapeli-logo-dark.svg"
+  },
+  "files": ["tokens.css", "preset.ts", "config.ts", "assets"]
+}

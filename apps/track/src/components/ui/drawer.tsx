@@ -31,7 +31,7 @@ export function Drawer({
       >
         <div className="flex items-center justify-between border-b border-border p-5">
           <div className="text-base font-semibold">{title}</div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary">
+          <button onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
             <X className="size-5" />
           </button>
         </div>

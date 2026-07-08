@@ -25,6 +25,9 @@ const en = {
 
   // common
   search: "Search",
+  switchProduct: "Switch product",
+  manageProducts: "Manage Products",
+  newItems: "New Items",
   addDevice: "Add Device",
   refresh: "Refresh",
   save: "Save",
@@ -162,6 +165,9 @@ const fa: Record<TranslationKey, string> = {
   all: "همه",
 
   search: "جستجو",
+  switchProduct: "تغییر محصول",
+  manageProducts: "مدیریت محصولات",
+  newItems: "مورد جدید",
   addDevice: "افزودن دستگاه",
   refresh: "بروزرسانی",
   save: "ذخیره",
@@ -288,6 +294,9 @@ const ar: Record<TranslationKey, string> = {
   all: "الكل",
 
   search: "بحث",
+  switchProduct: "تبديل المنتج",
+  manageProducts: "إدارة المنتجات",
+  newItems: "عنصر جديد",
   addDevice: "إضافة جهاز",
   refresh: "تحديث",
   save: "حفظ",

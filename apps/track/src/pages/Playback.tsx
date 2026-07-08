@@ -56,7 +56,7 @@ export default function Playback() {
             onClick={() => setSelectedId(d.id)}
             className={cn(
               "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors",
-              d.id === selectedId ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-secondary",
+              d.id === selectedId ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted",
             )}
           >
             <TypeAvatar type={d.type} size={22} />
@@ -86,7 +86,7 @@ export default function Playback() {
             max={trail.length - 1}
             value={head}
             onChange={(e) => { setPlaying(false); setHead(+e.target.value); }}
-            className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-secondary accent-primary"
+            className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-muted accent-primary"
           />
           <div className="flex gap-1">
             {SPEEDS.map((s) => (
@@ -95,7 +95,7 @@ export default function Playback() {
                 onClick={() => setSpeed(s)}
                 className={cn(
                   "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors",
-                  speed === s ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
+                  speed === s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
                 )}
               >
                 {num(s)}x

@@ -26,7 +26,7 @@ export function CommandDrawer({ open, onClose, device }: { open: boolean; onClos
   const ActionRow = ({ icon: Icon, label, children, onClick, danger }: any) => (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-start transition-colors hover:bg-secondary disabled:opacity-60"
+      className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-start transition-colors hover:bg-muted disabled:opacity-60"
     >
       <span className={`flex size-9 items-center justify-center rounded-lg ${danger ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}>
         <Icon className="size-5" />
@@ -39,7 +39,7 @@ export function CommandDrawer({ open, onClose, device }: { open: boolean; onClos
   return (
     <>
       <Drawer open={open} onClose={onClose} title={t("commands")}>
-        <div className="mb-4 flex items-center gap-3 rounded-xl bg-secondary p-3">
+        <div className="mb-4 flex items-center gap-3 rounded-xl bg-muted p-3">
           <TypeAvatar type={device.type} size={40} />
           <div>
             <p className="text-sm font-semibold">{device.name}</p>
@@ -76,7 +76,7 @@ export function CommandDrawer({ open, onClose, device }: { open: boolean; onClos
                 <button
                   key={m}
                   onClick={() => { setInterval(m); sent(); }}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${interval === m ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${interval === m ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
                 >
                   {num(m)}m
                 </button>

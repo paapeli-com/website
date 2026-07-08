@@ -1,88 +1,91 @@
 import { NavLink } from "react-router-dom";
-import { Bell, History, MapPin, Radar, Settings, Smartphone, X, type LucideIcon } from "lucide-react";
+import { Bell, History, MapPin, Radar, Settings, Smartphone, type LucideIcon } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { useBrand } from "@/brand/BrandProvider";
 import { TranslationKey } from "@/i18n/translations";
 import { ALERTS } from "@/data/mockData";
 import { cn } from "@/lib/utils";
 
-const NAV: { to: string; key: TranslationKey; icon: LucideIcon; end?: boolean }[] = [
+/* Sidebar styled to match the panel: bg-card, 15rem wide, leaf rows    */
+/* with an orange active bar. Only the menu items differ per product.   */
+
+const MAIN: { to: string; key: TranslationKey; icon: LucideIcon; end?: boolean }[] = [
   { to: "/", key: "liveMap", icon: MapPin, end: true },
   { to: "/devices", key: "devices", icon: Smartphone },
   { to: "/geofences", key: "geofences", icon: Radar },
   { to: "/playback", key: "playback", icon: History },
   { to: "/alerts", key: "alerts", icon: Bell },
+];
+
+const SECONDARY: { to: string; key: TranslationKey; icon: LucideIcon }[] = [
   { to: "/settings", key: "settings", icon: Settings },
 ];
 
-export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose: () => void }) {
+function Item({
+  to,
+  label,
+  Icon,
+  end,
+  badge,
+  onClick,
+}: {
+  to: string;
+  label: string;
+  Icon: LucideIcon;
+  end?: boolean;
+  badge?: number;
+  onClick?: () => void;
+}) {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      onClick={onClick}
+      className={({ isActive }) =>
+        cn(
+          "group relative flex w-full items-center gap-3 rounded-md px-3 py-1.5 text-[13px] transition-colors",
+          isActive ? "bg-primary/5 font-medium text-primary" : "text-foreground/80 hover:bg-muted hover:text-foreground",
+        )
+      }
+    >
+      {({ isActive }) => (
+        <>
+          {isActive && <span className="absolute bottom-1 top-1 w-[3px] rounded-full bg-primary ltr:left-0 rtl:right-0" aria-hidden />}
+          <Icon className={cn("h-4 w-4 shrink-0", isActive && "text-primary")} />
+          <span className="flex-1 truncate text-start">{label}</span>
+          {badge ? (
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+              {badge}
+            </span>
+          ) : null}
+        </>
+      )}
+    </NavLink>
+  );
+}
+
+export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useLanguage();
-  const { brand } = useBrand();
   const unread = ALERTS.filter((a) => !a.read).length;
-
-  const content = (
-    <div className="flex h-full w-64 flex-col border-border bg-card ltr:border-r rtl:border-l">
-      {/* Logo */}
-      <div className="flex h-16 items-center gap-2.5 px-5">
-        <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-lg font-bold text-primary-foreground">
-          {brand.logoText}
-        </span>
-        <span className="text-lg font-semibold">{brand.appName}</span>
-        <button onClick={onClose} className="ml-auto rounded-lg p-1.5 hover:bg-secondary lg:hidden">
-          <X className="size-5" />
-        </button>
-      </div>
-
-      <nav className="flex flex-1 flex-col gap-1 p-3">
-        {NAV.map(({ to, key, icon: Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            onClick={onClose}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-              )
-            }
-          >
-            <Icon className="size-5" />
-            <span className="flex-1">{t(key)}</span>
-            {key === "alerts" && unread > 0 && (
-              <span className="flex size-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                {unread}
-              </span>
-            )}
-          </NavLink>
+  return (
+    <div className="flex h-full flex-col bg-card">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-4">
+        {MAIN.map((it) => (
+          <Item
+            key={it.to}
+            to={it.to}
+            end={it.end}
+            label={t(it.key)}
+            Icon={it.icon}
+            onClick={onNavigate}
+            badge={it.key === "alerts" ? unread : undefined}
+          />
         ))}
       </nav>
-
-      <div className="p-4 text-xs text-muted-foreground">
-        <p>Tenant: {brand.tenantId}</p>
-        <p className="opacity-70">Mock data · demo</p>
-      </div>
+      <nav className="shrink-0 space-y-1 border-t border-border px-2 py-3">
+        {SECONDARY.map((it) => (
+          <Item key={it.to} to={it.to} label={t(it.key)} Icon={it.icon} onClick={onNavigate} />
+        ))}
+      </nav>
     </div>
-  );
-
-  return (
-    <>
-      <aside className="hidden lg:block">{content}</aside>
-      {/* mobile */}
-      <div className={cn("fixed inset-0 z-40 lg:hidden", mobileOpen ? "" : "pointer-events-none")}>
-        <div
-          onClick={onClose}
-          className={cn("absolute inset-0 bg-black/40 transition-opacity", mobileOpen ? "opacity-100" : "opacity-0")}
-        />
-        <div
-          className={cn(
-            "absolute inset-y-0 transition-transform duration-300 ltr:left-0 rtl:right-0",
-            mobileOpen ? "translate-x-0" : "ltr:-translate-x-full rtl:translate-x-full",
-          )}
-        >
-          {content}
-        </div>
-      </div>
-    </>
   );
 }

@@ -47,7 +47,7 @@ export default function Devices() {
           <button
             key={d.id}
             onClick={() => navigate(`/devices/${d.id}`)}
-            className="flex w-full flex-col gap-3 border-b border-border p-4 text-start transition-colors last:border-0 hover:bg-secondary lg:grid lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] lg:items-center lg:gap-4 lg:px-5"
+            className="flex w-full flex-col gap-3 border-b border-border p-4 text-start transition-colors last:border-0 hover:bg-muted lg:grid lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] lg:items-center lg:gap-4 lg:px-5"
           >
             <div className="flex items-center gap-3">
               <TypeAvatar type={d.type} size={40} />

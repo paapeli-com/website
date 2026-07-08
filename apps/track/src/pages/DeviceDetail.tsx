@@ -42,7 +42,7 @@ export default function DeviceDetail() {
     <div className="mx-auto max-w-5xl p-4 lg:p-6">
       {/* Header */}
       <div className="mb-5 flex flex-wrap items-center gap-3">
-        <button onClick={() => navigate(-1)} className="rounded-xl p-2 hover:bg-secondary">
+        <button onClick={() => navigate(-1)} className="rounded-xl p-2 hover:bg-muted">
           <ArrowLeft className="size-5 rtl:rotate-180" />
         </button>
         <TypeAvatar type={device.type} size={48} />
@@ -60,7 +60,7 @@ export default function DeviceDetail() {
       </div>
 
       {/* Tabs */}
-      <div className="mb-4 inline-flex rounded-xl bg-secondary p-1">
+      <div className="mb-4 inline-flex rounded-xl bg-muted p-1">
         {tabs.map((tb) => (
           <button
             key={tb}

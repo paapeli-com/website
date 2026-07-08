@@ -15,7 +15,7 @@ const OPTS: { value: TypeFilterValue; key: TranslationKey }[] = [
 export function TypeFilter({ value, onChange }: { value: TypeFilterValue; onChange: (v: TypeFilterValue) => void }) {
   const { t } = useLanguage();
   return (
-    <div className="inline-flex rounded-xl bg-secondary p-1">
+    <div className="inline-flex rounded-xl bg-muted p-1">
       {OPTS.map((o) => (
         <button
           key={o.value}

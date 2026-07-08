@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { translations, Language, TranslationKey } from "./translations";
-import { DEFAULT_BRAND } from "@/brand/brand";
+import { DEFAULT_BRAND } from "@paapeli/brand/config";
 
 type LanguageContextType = {
   language: Language;

@@ -1,0 +1,107 @@
+/* ------------------------------------------------------------------ */
+/* Paapeli shared design tokens (single source of truth).             */
+/* These values are the exact panel design system, so every app that   */
+/* imports this file renders identically. The only additions are the   */
+/* per asset-type accents (--pet / --person / --vehicle) used by        */
+/* tracking products; they are unused elsewhere and therefore harmless. */
+/* All colors are HSL channel triplets (no hsl() wrapper).             */
+/* ------------------------------------------------------------------ */
+
+@layer base {
+  :root {
+    --background: 0 0% 96%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 28 100% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 197 100% 36%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 54 87% 93%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 28 100% 50%;
+
+    --radius: 0.75rem;
+
+    --gradient-hero: linear-gradient(135deg, hsl(28 100% 50% / 0.1), hsl(197 100% 36% / 0.1));
+    --gradient-feature: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 98%));
+
+    --shadow-card: 0 4px 20px hsl(0 0% 0% / 0.08);
+    --shadow-hover: 0 8px 30px hsl(28 100% 50% / 0.15);
+
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Per asset-type accents (pets / people / vehicles) — additive. */
+    --pet: 32 95% 50%;
+    --person: 197 100% 36%;
+    --vehicle: 160 84% 39%;
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 0 0% 100%;
+
+    --card: 222 47% 13%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 222 47% 13%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 28 100% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 197 100% 36%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 217 33% 18%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 54 87% 93%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 217 33% 18%;
+    --input: 217 33% 18%;
+    --ring: 28 100% 50%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --pet: 32 95% 58%;
+    --person: 197 90% 55%;
+    --vehicle: 160 70% 48%;
+  }
+}

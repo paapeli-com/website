@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useTheme } from "@/lib/useTheme";
 import { useBrand } from "@/brand/BrandProvider";
-import { SAMPLE_TENANTS } from "@/brand/brand";
+import { SAMPLE_TENANTS } from "@paapeli/brand/config";
 import { Language } from "@/i18n/translations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -20,7 +20,7 @@ const LANGS: { code: Language; label: string }[] = [
 
 function LinkRow({ icon: Icon, label, onClick }: any) {
   return (
-    <button onClick={onClick} className="flex w-full items-center gap-3 px-5 py-3.5 text-start transition-colors hover:bg-secondary">
+    <button onClick={onClick} className="flex w-full items-center gap-3 px-5 py-3.5 text-start transition-colors hover:bg-muted">
       <Icon className="size-5 text-muted-foreground" />
       <span className="flex-1 text-sm font-medium">{label}</span>
       <ChevronRight className="size-4 text-muted-foreground rtl:rotate-180" />
@@ -44,7 +44,7 @@ export default function Settings() {
       <Card className="mb-4">
         <CardHeader><CardTitle>{t("account")}</CardTitle></CardHeader>
         <CardContent className="pt-0">
-          <div className="flex items-center gap-3 rounded-xl bg-secondary p-3">
+          <div className="flex items-center gap-3 rounded-xl bg-muted p-3">
             <span className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold text-primary">
               {(user?.email ?? "U")[0].toUpperCase()}
             </span>
@@ -66,7 +66,7 @@ export default function Settings() {
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">{t("language")}</span>
-            <div className="inline-flex rounded-xl bg-secondary p-1">
+            <div className="inline-flex rounded-xl bg-muted p-1">
               {LANGS.map((l) => (
                 <button
                   key={l.code}
@@ -95,7 +95,7 @@ export default function Settings() {
                 onClick={() => setTenant(tn.tenantId)}
                 className={cn(
                   "flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-colors",
-                  brand.tenantId === tn.tenantId ? "border-primary bg-primary/10" : "border-border hover:bg-secondary",
+                  brand.tenantId === tn.tenantId ? "border-primary bg-primary/10" : "border-border hover:bg-muted",
                 )}
               >
                 <span className="size-4 rounded-full" style={{ background: `hsl(${tn.primary})` }} />

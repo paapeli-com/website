@@ -1,80 +1,9 @@
+/* Shared Paapeli design tokens (single source of truth). */
+@import "@paapeli/brand/tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* ------------------------------------------------------------------ */
-/* Track design tokens. Distinct from the industrial panel (violet,    */
-/* rounder, consumer-friendly) but same HSL-variable system, so        */
-/* white-labeling = overriding --primary / --primary-foreground etc.   */
-/* at runtime via the BrandProvider.                                   */
-/* ------------------------------------------------------------------ */
-
-@layer base {
-  :root {
-    --background: 240 30% 99%;
-    --foreground: 240 12% 12%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 240 12% 12%;
-
-    --primary: 250 84% 60%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 240 6% 96%;
-    --secondary-foreground: 240 10% 20%;
-
-    --muted: 240 6% 96%;
-    --muted-foreground: 240 4% 46%;
-
-    --accent: 250 90% 96%;
-    --accent-foreground: 250 55% 42%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 250 84% 60%;
-
-    --radius: 1rem;
-
-    /* Per asset-type accents */
-    --pet: 32 95% 55%;
-    --person: 199 89% 48%;
-    --vehicle: 160 84% 39%;
-  }
-
-  .dark {
-    --background: 240 14% 8%;
-    --foreground: 0 0% 98%;
-
-    --card: 240 12% 11%;
-    --card-foreground: 0 0% 98%;
-
-    --primary: 252 90% 68%;
-    --primary-foreground: 240 14% 8%;
-
-    --secondary: 240 8% 16%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 240 8% 16%;
-    --muted-foreground: 240 5% 65%;
-
-    --accent: 250 40% 20%;
-    --accent-foreground: 250 90% 90%;
-
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 240 8% 20%;
-    --input: 240 8% 20%;
-    --ring: 252 90% 68%;
-
-    --pet: 32 95% 60%;
-    --person: 199 89% 55%;
-    --vehicle: 160 70% 48%;
-  }
-}
 
 @layer base {
   * {
