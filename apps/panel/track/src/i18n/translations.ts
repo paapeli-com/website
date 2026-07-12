@@ -84,6 +84,7 @@ const en = {
   sortUpdated: "Last Updated",
   clear: "Clear",
   positioning: "Positioning",
+  allDevices: "All Devices",
 
   // device detail
   activity: "Activity",
@@ -240,6 +241,7 @@ const fa: Record<TranslationKey, string> = {
   sortUpdated: "آخرین بروزرسانی",
   clear: "پاک کردن",
   positioning: "موقعیت‌یابی",
+  allDevices: "همه دستگاه‌ها",
 
   activity: "فعالیت",
   trips: "سفرها",
@@ -387,6 +389,7 @@ const ar: Record<TranslationKey, string> = {
   sortUpdated: "آخر تحديث",
   clear: "مسح",
   positioning: "تحديد الموقع",
+  allDevices: "كل الأجهزة",
 
   activity: "النشاط",
   trips: "الرحلات",

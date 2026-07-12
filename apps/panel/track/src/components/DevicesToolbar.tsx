@@ -7,7 +7,7 @@ import {
   Columns3,
   Filter,
   LayoutGrid,
-  List,
+  ListTree,
   RefreshCw,
   Search,
   Table,
@@ -26,8 +26,11 @@ export type SortKey = "nameAsc" | "nameDesc" | "updated" | "status";
 export type StatusFilter = "all" | "online" | "offline";
 export type PosFilter = "all" | "GPS" | "LBS" | "WiFi";
 export type TypeFilterV = "all" | AssetType;
+export type ViewMode = "table" | "tree";
 
 type Props = {
+  view: ViewMode;
+  setView: (v: ViewMode) => void;
   search: string;
   setSearch: (v: string) => void;
   sort: SortKey;
@@ -78,12 +81,23 @@ export function DevicesToolbar(props: Props) {
         />
       </div>
 
-      {/* View toggles (table active; others reserved) */}
+      {/* View toggles — table + tree (grid/board reserved) */}
       <div className="hidden items-center gap-0.5 rounded-xl border border-border bg-card p-1 sm:inline-flex">
-        <button className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground" aria-label="Table view">
+        <button
+          onClick={() => props.setView("table")}
+          className={cn("flex size-8 items-center justify-center rounded-lg transition-colors", props.view === "table" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}
+          aria-label="Table view"
+        >
           <Table className="size-4" />
         </button>
-        {[Columns3, LayoutGrid, List].map((Icon, i) => (
+        <button
+          onClick={() => props.setView("tree")}
+          className={cn("flex size-8 items-center justify-center rounded-lg transition-colors", props.view === "tree" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}
+          aria-label="Tree view"
+        >
+          <ListTree className="size-4" />
+        </button>
+        {[LayoutGrid, Columns3].map((Icon, i) => (
           <button key={i} disabled className="flex size-8 cursor-not-allowed items-center justify-center rounded-lg text-muted-foreground/40">
             <Icon className="size-4" />
           </button>
