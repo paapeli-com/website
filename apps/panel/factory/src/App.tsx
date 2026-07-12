@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { DomainRouter } from "@/components/DomainRouter";
 import Index from "./pages/Index";
@@ -75,9 +76,10 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
       <LanguageProvider>
         <AuthProvider>
+          <WorkspaceProvider>
           <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -225,6 +227,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </TooltipProvider>
+          </WorkspaceProvider>
         </AuthProvider>
       </LanguageProvider>
     </BrowserRouter>

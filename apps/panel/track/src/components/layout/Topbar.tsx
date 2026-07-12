@@ -1,10 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Bell, LogOut, Menu, Moon, Plus, Search, Settings as SettingsIcon, Sun } from "lucide-react";
+import { Bell, Building2, Check, LogOut, Menu, Moon, Plus, Search, Settings as SettingsIcon, Sun } from "lucide-react";
 import paapeliLogo from "@paapeli/brand/logo.svg";
 import paapeliLogoDark from "@paapeli/brand/logo-dark.svg";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { CURRENT_USER } from "@paapeli/brand/config";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useBrand } from "@/brand/BrandProvider";
 import { useTheme } from "@/lib/useTheme";
 import { Button } from "@/components/ui/button";
@@ -18,11 +20,13 @@ const iconBtn =
 export function Topbar({ onMenu }: { onMenu: () => void }) {
   const { t } = useLanguage();
   const { user, logout } = useAuth();
+  const { workspaces, activeId: activeWs, setActive: setActiveWs } = useWorkspace();
   const { brand } = useBrand();
   const { dark, toggle } = useTheme();
   const navigate = useNavigate();
   const unread = ALERTS.filter((a) => !a.read).length;
-  const initial = (user?.email ?? "U")[0].toUpperCase();
+  const displayName = CURRENT_USER.name;
+  const initial = CURRENT_USER.initial;
 
   return (
     <header className="z-40 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-background/95 px-3 backdrop-blur lg:px-4">
@@ -79,9 +83,36 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
             <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
               {initial}
             </span>
-            <span className="hidden max-w-[160px] truncate text-sm font-medium md:inline">{user?.email}</span>
+            <span dir="rtl" style={{ fontFamily: "'Vazirmatn', sans-serif" }} className="hidden max-w-[180px] truncate text-sm font-medium md:inline">{displayName}</span>
           </button>
-          <div className="invisible absolute z-50 mt-1 w-52 rounded-lg border border-border bg-popover py-1 opacity-0 shadow-lg transition-all group-hover:visible group-hover:opacity-100 ltr:right-0 rtl:left-0">
+          <div className="invisible absolute z-50 mt-1 w-64 rounded-lg border border-border bg-popover py-1 opacity-0 shadow-lg transition-all group-hover:visible group-hover:opacity-100 ltr:right-0 rtl:left-0">
+            {/* Account header */}
+            <div className="px-3 py-2">
+              <p dir="rtl" style={{ fontFamily: "'Vazirmatn', sans-serif" }} className="truncate text-sm font-medium">{displayName}</p>
+              <p className="truncate text-xs text-muted-foreground">{CURRENT_USER.email}</p>
+            </div>
+            <div className="h-px bg-border" />
+
+            {/* Workspace switcher (always shows the current workspace) */}
+            <div className="px-3 pb-1 pt-2 text-xs font-medium text-muted-foreground">{t("workspaces")}</div>
+            {workspaces.map((ws) => {
+              const isActive = ws.id === activeWs;
+              return (
+                <button
+                  key={ws.id}
+                  onClick={() => setActiveWs(ws.id)}
+                  className={`flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-muted ${isActive ? "font-medium text-primary" : ""}`}
+                >
+                  <span className={`flex size-6 items-center justify-center rounded-md ${isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                    <Building2 className="size-4" />
+                  </span>
+                  <span className="flex-1 truncate text-start">{ws.name}</span>
+                  {isActive && <Check className="size-4" />}
+                </button>
+              );
+            })}
+
+            <div className="my-1 h-px bg-border" />
             <button
               onClick={() => navigate("/settings")}
               className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-muted"
@@ -89,7 +120,6 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
               <SettingsIcon className="size-4" />
               {t("settings")}
             </button>
-            <div className="my-1 h-px bg-border" />
             <button
               onClick={() => { logout(); navigate("/login"); }}
               className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted"

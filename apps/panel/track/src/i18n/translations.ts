@@ -76,6 +76,14 @@ const en = {
   status: "Status",
   updated: "Updated",
   viewDetails: "View details",
+  searchDevices: "Search in devices",
+  filters: "Filters",
+  sortBy: "Sort",
+  sortNameAz: "Name A-Z",
+  sortNameZa: "Name Z-A",
+  sortUpdated: "Last Updated",
+  clear: "Clear",
+  positioning: "Positioning",
 
   // device detail
   activity: "Activity",
@@ -146,6 +154,15 @@ const en = {
   brand: "Brand & white-label",
   tenant: "Tenant",
   appearance: "Appearance",
+
+  // workspace
+  workspace: "Workspace",
+  workspaces: "Workspaces",
+  addWorkspace: "Add workspace",
+  workspaceName: "Workspace name",
+  maxWorkspaces: "You can create or join up to 5 workspaces.",
+  create: "Create",
+  solutions: "Solutions",
 };
 
 export type TranslationKey = keyof typeof en;
@@ -215,6 +232,14 @@ const fa: Record<TranslationKey, string> = {
   status: "وضعیت",
   updated: "بروزرسانی",
   viewDetails: "مشاهده جزئیات",
+  searchDevices: "جستجو در دستگاه‌ها",
+  filters: "فیلترها",
+  sortBy: "مرتب‌سازی",
+  sortNameAz: "نام A-Z",
+  sortNameZa: "نام Z-A",
+  sortUpdated: "آخرین بروزرسانی",
+  clear: "پاک کردن",
+  positioning: "موقعیت‌یابی",
 
   activity: "فعالیت",
   trips: "سفرها",
@@ -279,6 +304,14 @@ const fa: Record<TranslationKey, string> = {
   brand: "برند و وایت‌لیبل",
   tenant: "مستأجر",
   appearance: "ظاهر",
+
+  workspace: "فضای کاری",
+  workspaces: "فضاهای کاری",
+  addWorkspace: "افزودن فضای کاری",
+  workspaceName: "نام فضای کاری",
+  maxWorkspaces: "می‌توانید تا ۵ فضای کاری بسازید یا عضو شوید.",
+  create: "ایجاد",
+  solutions: "سولوشن‌ها",
 };
 
 const ar: Record<TranslationKey, string> = {
@@ -346,6 +379,14 @@ const ar: Record<TranslationKey, string> = {
   status: "الحالة",
   updated: "محدّث",
   viewDetails: "عرض التفاصيل",
+  searchDevices: "بحث في الأجهزة",
+  filters: "عوامل التصفية",
+  sortBy: "الفرز",
+  sortNameAz: "الاسم A-Z",
+  sortNameZa: "الاسم Z-A",
+  sortUpdated: "آخر تحديث",
+  clear: "مسح",
+  positioning: "تحديد الموقع",
 
   activity: "النشاط",
   trips: "الرحلات",
@@ -410,6 +451,14 @@ const ar: Record<TranslationKey, string> = {
   brand: "العلامة والوايت ليبل",
   tenant: "المستأجر",
   appearance: "المظهر",
+
+  workspace: "مساحة العمل",
+  workspaces: "مساحات العمل",
+  addWorkspace: "إضافة مساحة عمل",
+  workspaceName: "اسم مساحة العمل",
+  maxWorkspaces: "يمكنك إنشاء أو الانضمام إلى ٥ مساحات عمل كحد أقصى.",
+  create: "إنشاء",
+  solutions: "الحلول",
 };
 
 export const translations: Record<Language, Record<TranslationKey, string>> = { en, fa, ar };

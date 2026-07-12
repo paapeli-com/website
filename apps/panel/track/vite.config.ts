@@ -4,9 +4,11 @@ import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  // Served under the panel host at /AIoT/track (GPS Tracking solution).
+  base: "/AIoT/track/",
   server: {
     host: "::",
-    port: 8081,
+    port: 8082,
   },
   plugins: [react()],
   resolve: {

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { PanelLayout } from "@/layouts/PanelLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,7 +19,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Camera, Mail, User as UserIcon, Shield, LogOut } from "lucide-react";
+import { Camera, Mail, User as UserIcon, Shield, LogOut, Building2, Plus, Check } from "lucide-react";
 import sinaProfileImg from "@/assets/sina-profile.png";
 
 const AVATAR_STORAGE_KEY = "paapeli.profile.avatar.";
@@ -26,6 +27,7 @@ const AVATAR_STORAGE_KEY = "paapeli.profile.avatar.";
 const AccountSettings = () => {
   const { t, isRTL, language } = useLanguage();
   const { user, signOut } = useAuth();
+  const { workspaces, activeId: activeWs, setActive: setActiveWs, addWorkspace, canAdd } = useWorkspace();
   const navigate = useNavigate();
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -40,6 +42,7 @@ const AccountSettings = () => {
   const storageKey = AVATAR_STORAGE_KEY + (username || "anon");
   const [avatar, setAvatar] = useState<string | null>(null);
   const [displayNameInput, setDisplayNameInput] = useState(displayName);
+  const [newWs, setNewWs] = useState("");
 
   useEffect(() => {
     if (!user) {
@@ -206,6 +209,58 @@ const AccountSettings = () => {
               {t("saveChanges")}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Workspaces (cloud-level) */}
+      <Card className="mt-4">
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Building2 className="h-4 w-4" />
+            {language === "en" ? "Workspaces" : language === "ar" ? "مساحات العمل" : "فضاهای کاری"}
+          </div>
+          <div className="space-y-2">
+            {workspaces.map((ws) => {
+              const isActive = ws.id === activeWs;
+              return (
+                <button
+                  key={ws.id}
+                  onClick={() => setActiveWs(ws.id)}
+                  className={`flex w-full items-center gap-3 rounded-lg border p-3 text-start transition-colors ${isActive ? "border-primary bg-primary/5" : "hover:bg-muted"}`}
+                >
+                  <span className={`flex h-9 w-9 items-center justify-center rounded-md ${isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                    <Building2 className="h-5 w-5" />
+                  </span>
+                  <span className="flex-1 truncate text-sm font-medium">{ws.name}</span>
+                  {isActive && <Check className="h-4 w-4 text-primary" />}
+                </button>
+              );
+            })}
+          </div>
+          {canAdd && (
+            <div className="flex gap-2">
+              <Input
+                value={newWs}
+                onChange={(e) => setNewWs(e.target.value)}
+                placeholder={language === "en" ? "Workspace name" : language === "ar" ? "اسم مساحة العمل" : "نام فضای کاری"}
+              />
+              <Button
+                onClick={() => { if (addWorkspace(newWs)) setNewWs(""); }}
+                disabled={!newWs.trim()}
+                className="shrink-0 gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                {language === "en" ? "Create" : language === "ar" ? "إنشاء" : "ایجاد"}
+              </Button>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            {language === "en"
+              ? "You can create or join up to 5 workspaces."
+              : language === "ar"
+              ? "يمكنك إنشاء أو الانضمام إلى ٥ مساحات عمل كحد أقصى."
+              : "می‌توانید تا ۵ فضای کاری بسازید یا عضو شوید."}
+          </p>
         </CardContent>
       </Card>
     </PanelLayout>

@@ -6,14 +6,43 @@
 /* ------------------------------------------------------------------ */
 
 /* Cloud-provider products shown in the top-bar product switcher.       */
-/* Shared so every product app offers the same switch list. `id` maps   */
-/* to an icon in the UI; `href` (optional) is where selecting it goes.   */
-export type Product = { id: string; name: string; href?: string; disabled?: boolean };
+/* Shared so every product app offers the same switch list. A product   */
+/* may contain one or more Solutions (specialised domains/apps) that     */
+/* appear as a tree under the product.                                   */
+export type Solution = { id: string; name: string; href?: string; disabled?: boolean };
+export type Product = { id: string; name: string; href?: string; disabled?: boolean; solutions?: Solution[] };
 
 export const PRODUCTS: Product[] = [
-  { id: "aiot", name: "AIoT" },
-  { id: "ai-infra", name: "AI Infra", disabled: true },
+  {
+    id: "aiot",
+    name: "AIoT",
+    solutions: [
+      { id: "track", name: "GPS Tracking" },
+      { id: "SmartFactory", name: "Smart Factory" },
+    ],
+  },
+  { id: "ai", name: "AI Infra", disabled: true },
 ];
+
+/* Base URL segment for the product that owns the solutions above.       */
+/* Solution routes are `/{PRODUCT_BASE}/{solutionId}` on one host, e.g.  */
+/* panel.paapeli.com/AIoT/track and panel.paapeli.com/AIoT/factory.       */
+export const PRODUCT_BASE = "AIoT";
+
+export function solutionPath(solutionId: string) {
+  return `/${PRODUCT_BASE}/${solutionId}`;
+}
+
+/* Current user shown in the top toolbar. Single source of truth for     */
+/* every solution's header (name, email, initial). Mock for now; later    */
+/* replaced by a fetch from the gateway / auth API — same shape.          */
+export type CurrentUser = { name: string; email: string; initial: string };
+
+export const CURRENT_USER: CurrentUser = {
+  name: "هلدینگ هوشمند سینا",
+  email: "sina@paapeli.com",
+  initial: "س",
+};
 
 export type BrandConfig = {
   tenantId: string;

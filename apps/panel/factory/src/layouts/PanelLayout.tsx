@@ -27,6 +27,8 @@ import {
   Activity,
   Bot,
   Wrench,
+  Building2,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -39,9 +41,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { CURRENT_USER } from "@paapeli/brand/config";
 import {
   Tooltip,
   TooltipContent,
@@ -134,10 +139,11 @@ const PanelPageSkeleton = ({ isRTL, loadingText }: { isRTL: boolean; loadingText
 export const PanelLayout = ({ children }: PanelLayoutProps) => {
   const { t, isRTL, language, setLanguage } = useLanguage();
   const { signOut, user } = useAuth();
+  const { workspaces, activeId: activeWs, setActive: setActiveWs } = useWorkspace();
   const username = user?.getUsername?.() || "";
   const isSina = username === "sina";
-  const accountDisplayName = isSina ? "هلدینگ هوشمند سینا" : username || "User";
-  const avatarInitial = isSina ? "س" : (username?.[0]?.toUpperCase() || "U");
+  const accountDisplayName = CURRENT_USER.name;
+  const avatarInitial = CURRENT_USER.initial;
   const [customAvatar, setCustomAvatar] = useState<string | null>(null);
   useEffect(() => {
     try {
@@ -555,6 +561,26 @@ export const PanelLayout = ({ children }: PanelLayoutProps) => {
               >
                 {accountDisplayName}
               </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="py-1 text-xs font-normal text-muted-foreground">
+                {language === "en" ? "Workspaces" : language === "ar" ? "مساحات العمل" : "فضاهای کاری"}
+              </DropdownMenuLabel>
+              {workspaces.map((ws) => {
+                const isActive = ws.id === activeWs;
+                return (
+                  <DropdownMenuItem
+                    key={ws.id}
+                    onClick={() => setActiveWs(ws.id)}
+                    className={isActive ? "text-primary font-medium" : ""}
+                  >
+                    <span className={`me-2 flex h-6 w-6 items-center justify-center rounded-md ${isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                      <Building2 className="h-4 w-4" />
+                    </span>
+                    <span className="flex-1 truncate">{ws.name}</span>
+                    {isActive && <Check className="h-4 w-4" />}
+                  </DropdownMenuItem>
+                );
+              })}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => navigate(lp("/account-settings"))}>
                 <Settings className="h-4 w-4 mr-2" />

@@ -384,18 +384,19 @@ export const LandingNavbar = () => {
 
         {/* Right side */}
         <div className="ml-auto flex items-center gap-3 lg:ml-0">
-          <Link
-            href="#"
+          {/* Full navigation so the host redirects to the panel login on 8080. */}
+          <a
+            href="/login"
             className="hidden h-10 items-center justify-center rounded-lg border border-[#e5e7eb] bg-[#f9fafb] px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-[0px_1px_0.25px_rgba(29,41,61,0.02)] transition-colors hover:bg-[#f3f4f6] sm:inline-flex"
           >
             Login
-          </Link>
-          <Link
-            href="#"
+          </a>
+          <a
+            href="/login"
             className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-[0px_1px_0.25px_rgba(29,41,61,0.02)] transition-colors hover:bg-primary/90"
           >
-            Sign up
-          </Link>
+            Dashboard
+          </a>
 
           <div className="hidden h-5 w-px bg-[#e5e7eb] lg:block" />
           <div className="hidden lg:block">
@@ -431,13 +432,12 @@ export const LandingNavbar = () => {
                 {item.label}
               </Link>
             ))}
-            <Link
-              href="#"
-              onClick={() => setMobileOpen(false)}
+            <a
+              href="/login"
               className="mt-2 rounded-lg border border-[#e5e7eb] bg-[#f9fafb] px-2 py-2.5 text-center text-sm font-medium text-muted-foreground sm:hidden"
             >
               Login
-            </Link>
+            </a>
             <div className="mt-3 border-t border-[#e5e7eb] pt-3">
               <LanguageMenu />
             </div>

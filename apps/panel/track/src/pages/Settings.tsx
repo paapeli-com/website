@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ChevronRight, Info, KeyRound, LogOut, Map, Palette, ShieldCheck } from "lucide-react";
+import { Building2, ChevronRight, Info, KeyRound, LogOut, Map, Palette, Plus, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useTheme } from "@/lib/useTheme";
 import { useBrand } from "@/brand/BrandProvider";
@@ -33,8 +35,14 @@ export default function Settings() {
   const { t, language, setLanguage } = useLanguage();
   const { dark, toggle } = useTheme();
   const { brand, setTenant } = useBrand();
+  const { workspaces, activeId, setActive, addWorkspace, canAdd } = useWorkspace();
   const navigate = useNavigate();
+  const [newWs, setNewWs] = useState("");
   const soon = () => toast(t("comingSoon"));
+
+  const handleAddWorkspace = () => {
+    if (addWorkspace(newWs)) setNewWs("");
+  };
 
   return (
     <div className="mx-auto max-w-2xl p-4 lg:p-6">
@@ -53,6 +61,53 @@ export default function Settings() {
               <p className="text-xs text-muted-foreground">{t("profile")}</p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Workspaces */}
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Building2 className="size-4" />{t("workspaces")}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 pt-0">
+          <div className="flex flex-col gap-2">
+            {workspaces.map((ws) => {
+              const isActive = ws.id === activeId;
+              return (
+                <button
+                  key={ws.id}
+                  onClick={() => setActive(ws.id)}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl border p-3 text-start transition-colors",
+                    isActive ? "border-primary bg-primary/5" : "border-border hover:bg-muted",
+                  )}
+                >
+                  <span className={cn("flex size-9 items-center justify-center rounded-lg", isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
+                    <Building2 className="size-5" />
+                  </span>
+                  <span className="flex-1 text-sm font-medium">{ws.name}</span>
+                  {isActive && <span className="text-xs font-medium text-primary">{t("active")}</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          {canAdd && (
+            <div className="flex gap-2">
+              <input
+                value={newWs}
+                onChange={(e) => setNewWs(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddWorkspace()}
+                placeholder={t("workspaceName")}
+                className="h-10 flex-1 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+              />
+              <Button onClick={handleAddWorkspace} disabled={!newWs.trim()}>
+                <Plus className="size-4" />
+                {t("create")}
+              </Button>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">{t("maxWorkspaces")}</p>
         </CardContent>
       </Card>
 

@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { BrandProvider } from "@/brand/BrandProvider";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { DeviceProvider } from "@/contexts/DeviceContext";
 import { AppShell } from "@/components/layout/AppShell";
 
@@ -25,9 +26,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <BrandProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
         <LanguageProvider>
           <AuthProvider>
+            <WorkspaceProvider>
             <DeviceProvider>
               <Toaster richColors position="top-center" />
               <Routes>
@@ -51,6 +53,7 @@ export default function App() {
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </DeviceProvider>
+            </WorkspaceProvider>
           </AuthProvider>
         </LanguageProvider>
       </BrowserRouter>

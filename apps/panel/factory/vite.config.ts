@@ -5,9 +5,11 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // Served under the panel host at /AIoT/SmartFactory (Smart Factory solution).
+  base: "/AIoT/SmartFactory/",
   server: {
     host: "::",
-    port: 8080,
+    port: 8081,
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
