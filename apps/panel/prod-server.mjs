@@ -103,8 +103,22 @@ const serveStatic = (root, base, req, res) => {
 
 // Reverse-proxy a request to the internal web (Next) server.
 const proxyToWeb = (req, res) => {
+  // The external hop (browser → Caddy) is HTTPS, but the internal hop
+  // (this host → Next child on 127.0.0.1:WEB_PORT) is plain HTTP. If we pass
+  // Caddy's `X-Forwarded-Proto: https` down to the child, Next's i18n
+  // middleware builds an absolute rewrite URL with an `https://` scheme
+  // (e.g. https://localhost:3100/en). Because that scheme doesn't match the
+  // http origin the child is actually served over, Next treats the rewrite as
+  // cross-origin and re-fetches it over TLS against its own HTTP port →
+  // `EPROTO: wrong version number`. Strip the scheme/host-forwarding headers
+  // so the child sees its real internal http origin and resolves the rewrite
+  // in-process. (The browser still sees HTTPS via Caddy; the web app never
+  // reads these headers server-side, so nothing downstream is affected.)
+  const headers = { ...req.headers };
+  delete headers["x-forwarded-proto"];
+  delete headers["x-forwarded-host"];
   const p = http.request(
-    { hostname: "127.0.0.1", port: WEB_PORT, path: req.url, method: req.method, headers: req.headers },
+    { hostname: "127.0.0.1", port: WEB_PORT, path: req.url, method: req.method, headers },
     (pr) => {
       res.writeHead(pr.statusCode || 502, pr.headers);
       pr.pipe(res);
