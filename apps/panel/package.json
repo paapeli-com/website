@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Panel host — serves every AIoT solution (Smart Factory, GPS Tracking) on one origin/port (8080) with /{product}/{solution} routing.",
   "scripts": {
-    "dev": "node dev-server.mjs"
+    "dev": "node dev-server.mjs",
+    "start": "node prod-server.mjs"
   },
   "dependencies": {
     "next": "^15.1.0"
