@@ -49,6 +49,11 @@ build-docs:
   variables:
     APP: docs
 
+build-panel:
+  extends: .build-push
+  variables:
+    APP: panel
+
 .deploy:
   stage: deploy
   image: registry.paapeli.me/docker:28-cli
@@ -78,3 +83,9 @@ deploy-docs:
   needs: [build-docs]
   script:
     - /var/opt/tb-mini/scripts/tb-mini-clients-redeploy docs
+
+deploy-panel:
+  extends: .deploy
+  needs: [build-panel]
+  script:
+    - /var/opt/tb-mini/scripts/tb-mini-clients-redeploy panel
