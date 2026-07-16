@@ -3,7 +3,7 @@ import { Pause, Play } from "lucide-react";
 import { useDevices } from "@/contexts/DeviceContext";
 import { getTrack, GEOFENCES } from "@/data/mockData";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { MapCanvas } from "@/components/map/MapCanvas";
+import { LeafletMap } from "@/components/map/LeafletMap";
 import { TypeAvatar } from "@/components/DeviceBits";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -65,13 +65,13 @@ export default function Playback() {
         ))}
       </div>
 
-      <MapCanvas
+      <LeafletMap
         devices={[selected]}
         selectedId={selected.id}
         geofences={geofences}
         trail={trail}
         playhead={head}
-        className="aspect-[16/9] w-full"
+        className="aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border"
       />
 
       {/* Controls */}

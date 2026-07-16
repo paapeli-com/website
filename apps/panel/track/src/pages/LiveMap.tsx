@@ -4,7 +4,7 @@ import { ChevronRight, MapPin, Send, SlidersHorizontal } from "lucide-react";
 import { useDevices } from "@/contexts/DeviceContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { GEOFENCES } from "@/data/mockData";
-import { MapCanvas } from "@/components/map/MapCanvas";
+import { LeafletMap } from "@/components/map/LeafletMap";
 import { TypeFilter, TypeFilterValue } from "@/components/TypeFilter";
 import { CommandDrawer } from "@/components/CommandDrawer";
 import { Battery, Signal, StatusPill, TypeAvatar } from "@/components/DeviceBits";
@@ -21,10 +21,6 @@ export default function LiveMap() {
   const list = useMemo(() => devices.filter((d) => filter === "all" || d.type === filter), [devices, filter]);
   const online = devices.filter((d) => d.status === "online").length;
   const shown = filter === "all" ? devices : list;
-
-  // Anchor the info popup next to the selected marker, clamped to stay in view.
-  const popX = selected.x < 30 ? "-10%" : selected.x > 70 ? "-90%" : "-50%";
-  const popY = selected.y < 45 ? "16px" : "calc(-100% - 16px)";
 
   return (
     <div className="flex h-full flex-col gap-4 p-4 lg:p-6">
@@ -67,8 +63,8 @@ export default function LiveMap() {
         </div>
 
         {/* Map + status card */}
-        <div className="relative min-h-[420px] overflow-hidden rounded-2xl">
-          <MapCanvas
+        <div className="relative min-h-[420px] overflow-hidden rounded-2xl border border-border">
+          <LeafletMap
             devices={shown}
             selectedId={selectedId}
             onSelect={setSelectedId}
@@ -76,11 +72,9 @@ export default function LiveMap() {
             className="absolute inset-0 h-full w-full"
           />
 
-          {/* Info popup — anchored next to the selected marker */}
-          <div
-            className="absolute z-30 w-72 rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur"
-            style={{ left: `${selected.x}%`, top: `${selected.y}%`, transform: `translate(${popX}, ${popY})` }}
-          >
+          {/* Selected-device card (floating over the map) */}
+          <div className="absolute bottom-3 z-[1000] w-72 rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur ltr:left-3 rtl:right-3">
+
             <div className="flex items-center gap-3">
               <TypeAvatar type={selected.type} size={44} />
               <div className="min-w-0 flex-1">

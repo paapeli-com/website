@@ -19,6 +19,9 @@ export type Device = {
   /** Normalized map position (0..100) for the stylised canvas map. */
   x: number;
   y: number;
+  /** Real geo coordinates for the Leaflet/OSM live map. */
+  lat: number;
+  lng: number;
   speedKmh: number;
   address: string;
   updatedAt: string; // ISO
@@ -30,7 +33,11 @@ export type Geofence = {
   name: string;
   x: number;
   y: number;
-  radius: number; // map units
+  radius: number; // map units (stylised canvas)
+  /** Real geo center + radius (meters) for the Leaflet/OSM live map. */
+  lat: number;
+  lng: number;
+  radiusM: number;
   active: boolean;
   deviceIds: string[];
 };
@@ -45,7 +52,7 @@ export type Alert = {
   read: boolean;
 };
 
-export type TrackPoint = { x: number; y: number; at: string };
+export type TrackPoint = { lat: number; lng: number; at: string };
 
 export type Trip = { id: string; at: string; distanceKm: number; durationMin: number; maxSpeedKmh: number };
 

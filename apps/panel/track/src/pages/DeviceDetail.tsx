@@ -4,7 +4,7 @@ import { ArrowLeft, Send } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { DEVICES, GEOFENCES, getHealth, getTrack, getTrips } from "@/data/mockData";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { MapCanvas } from "@/components/map/MapCanvas";
+import { LeafletMap } from "@/components/map/LeafletMap";
 import { CommandDrawer } from "@/components/CommandDrawer";
 import { Battery, Signal, StatusPill, TypeAvatar } from "@/components/DeviceBits";
 import { Button } from "@/components/ui/button";
@@ -77,7 +77,7 @@ export default function DeviceDetail() {
 
       {tab === "overview" && (
         <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-          <MapCanvas devices={[device]} selectedId={device.id} geofences={geofences} trail={trail} className="aspect-[4/3] w-full" />
+          <LeafletMap devices={[device]} selectedId={device.id} geofences={geofences} trail={trail} className="aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border" />
           <div className="grid grid-cols-2 gap-3">
             <Stat label={t("battery")} value={<Battery level={device.battery} />} />
             <Stat label={t("signal")} value={<Signal bars={device.signal} />} />

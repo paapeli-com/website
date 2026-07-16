@@ -4,7 +4,7 @@ import { Plus, Radar } from "lucide-react";
 import { DEVICES, GEOFENCES } from "@/data/mockData";
 import { Geofence } from "@/data/types";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { MapCanvas } from "@/components/map/MapCanvas";
+import { LeafletMap } from "@/components/map/LeafletMap";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 
@@ -29,7 +29,7 @@ export default function Geofences() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
-        <MapCanvas devices={DEVICES} geofences={zones.filter((z) => z.active)} className="aspect-[4/3] w-full" />
+        <LeafletMap devices={DEVICES} geofences={zones} className="aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border" />
 
         <div className="flex flex-col gap-3">
           {zones.map((z) => (

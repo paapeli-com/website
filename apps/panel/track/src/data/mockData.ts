@@ -24,6 +24,8 @@ export const DEVICES: Device[] = [
     positioning: "GPS",
     x: 34,
     y: 38,
+    lat: 40.7829,
+    lng: -73.9654,
     speedKmh: 3,
     address: "Central Park, Willow St.",
     updatedAt: ago(0),
@@ -44,6 +46,8 @@ export const DEVICES: Device[] = [
     positioning: "LBS",
     x: 22,
     y: 62,
+    lat: 40.7805,
+    lng: -73.9680,
     speedKmh: 0,
     address: "Home, Maple Ave.",
     updatedAt: ago(181),
@@ -64,6 +68,8 @@ export const DEVICES: Device[] = [
     positioning: "GPS",
     x: 58,
     y: 55,
+    lat: 40.7842,
+    lng: -73.9612,
     speedKmh: 5,
     address: "Lincoln Elementary School",
     updatedAt: ago(1),
@@ -84,6 +90,8 @@ export const DEVICES: Device[] = [
     positioning: "GPS",
     x: 48,
     y: 26,
+    lat: 40.7860,
+    lng: -73.9668,
     speedKmh: 1,
     address: "Riverside Walk",
     updatedAt: ago(4),
@@ -104,6 +112,8 @@ export const DEVICES: Device[] = [
     positioning: "GPS",
     x: 72,
     y: 30,
+    lat: 40.7818,
+    lng: -73.9585,
     speedKmh: 48,
     address: "5th Avenue, Downtown",
     updatedAt: ago(0),
@@ -124,6 +134,8 @@ export const DEVICES: Device[] = [
     positioning: "LBS",
     x: 80,
     y: 70,
+    lat: 40.7788,
+    lng: -73.9560,
     speedKmh: 0,
     address: "Warehouse District",
     updatedAt: ago(46),
@@ -132,9 +144,9 @@ export const DEVICES: Device[] = [
 ];
 
 export const GEOFENCES: Geofence[] = [
-  { id: "g-home", name: "Home", x: 26, y: 60, radius: 14, active: true, deviceIds: ["d-buddy", "d-luna"] },
-  { id: "g-school", name: "School", x: 58, y: 55, radius: 12, active: true, deviceIds: ["d-mia"] },
-  { id: "g-work", name: "Parking", x: 74, y: 30, radius: 10, active: false, deviceIds: ["d-tesla"] },
+  { id: "g-home", name: "Home", x: 26, y: 60, radius: 14, lat: 40.7805, lng: -73.9680, radiusM: 220, active: true, deviceIds: ["d-buddy", "d-luna"] },
+  { id: "g-school", name: "School", x: 58, y: 55, radius: 12, lat: 40.7842, lng: -73.9612, radiusM: 170, active: true, deviceIds: ["d-mia"] },
+  { id: "g-work", name: "Parking", x: 74, y: 30, radius: 10, lat: 40.7818, lng: -73.9585, radiusM: 140, active: false, deviceIds: ["d-tesla"] },
 ];
 
 export const ALERTS: Alert[] = [
@@ -146,21 +158,21 @@ export const ALERTS: Alert[] = [
   { id: "a6", deviceId: "d-tesla", type: "geofence_exit", at: ago(320), read: true },
 ];
 
-/* A gentle wiggly path around a start point, for map trails / playback. */
-export function makeTrack(startX: number, startY: number, n = 40): TrackPoint[] {
+/* A gentle wiggly geo path near a start point, for map trails / playback. */
+export function makeTrack(startLat: number, startLng: number, n = 44): TrackPoint[] {
   const pts: TrackPoint[] = [];
-  let x = startX;
-  let y = startY;
+  let lat = startLat;
+  let lng = startLng;
   for (let i = 0; i < n; i++) {
-    x += Math.sin(i / 3) * 1.6 + (Math.random() - 0.5) * 0.8;
-    y += Math.cos(i / 4) * 1.4 + (Math.random() - 0.5) * 0.8;
-    pts.push({ x: Math.max(4, Math.min(96, x)), y: Math.max(4, Math.min(96, y)), at: ago((n - i) * 3) });
+    lat += Math.sin(i / 3) * 0.0004 + (Math.random() - 0.5) * 0.0002;
+    lng += Math.cos(i / 4) * 0.00055 + (Math.random() - 0.5) * 0.0002;
+    pts.push({ lat, lng, at: ago((n - i) * 3) });
   }
   return pts;
 }
 
 export function getTrack(device: Device): TrackPoint[] {
-  return makeTrack(device.x - 18, device.y - 10, 44);
+  return makeTrack(device.lat - 0.004, device.lng - 0.006, 44);
 }
 
 export function getHealth(device: Device): Health {
