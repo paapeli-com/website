@@ -39,15 +39,18 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, Legend } from "recharts";
+import { LineChart, Line, Area, AreaChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, Legend } from "recharts";
 import {
   ArrowLeft, Edit, Play, MoreHorizontal, Eye, RefreshCw, Upload, MapPin,
   Trash2, Wifi, WifiOff, Clock, Network, Bell, Activity, Thermometer, Gauge,
   Droplet, Zap, Waves, Wind, ChevronDown, ChevronRight, ChevronLeft, Copy, CheckCheck,
   Search, Download, Plus, AlertTriangle, ShieldCheck, Sparkles, Cpu,
   Brain, X as XIcon, Calendar, Settings as SettingsIcon, FileText,
-  Lock, KeyRound, ChevronsUpDown,
+  Lock, KeyRound, ChevronsUpDown, ChevronsLeft, ChevronsRight, LayoutGrid, ArrowUp, ArrowDown,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useDashboards } from "@/hooks/useDashboards";
+import { SmartPagination } from "@/components/SmartPagination";
 import {
   PROFILE_CHANNELS, guessProfile, profileLabel, generateSeries, lastValue,
   type Channel, type DeviceProfileKey,
@@ -380,7 +383,7 @@ const DeviceDetails = () => {
           <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start h-auto p-0 gap-2">
             {[
               { v: "overview", label: t("overview"), icon: Activity },
-              { v: "telemetry", label: t("telemetry"), icon: Waves },
+              { v: "telemetry", label: language === "fa" ? "آخرین داده" : language === "ar" ? "أحدث البيانات" : "Latest Data", icon: Waves },
               { v: "alarms", label: t("alarms"), icon: Bell, badge: MOCK_ALARMS.filter(a => a.status === "Active").length },
               
               { v: "events", label: t("events"), icon: Calendar },
@@ -822,133 +825,456 @@ const CredentialRow = ({ label, value, mask, onCopy, copied }: { label: string; 
   );
 };
 
+/* Latest-telemetry tab (ThingsBoard-style): key/value table with select,
+   pagination, delete strategy, and "show on widget → add to dashboard".
+   Data is mock; later it reads latest telemetry from the gateway. */
+const TELEMETRY_EXTRA: { key: string; value: string }[] = [
+  { key: "active", value: "true" },
+  { key: "battery_level", value: "60" },
+  { key: "error_count", value: "0" },
+  { key: "firmware_version", value: "2.4.1" },
+  { key: "latency_ms", value: "34" },
+  { key: "packets_sent", value: "18342" },
+  { key: "rssi_dbm", value: "-72" },
+  { key: "signal_quality", value: "good" },
+  { key: "uptime_s", value: "84213" },
+];
+
+const fmtDateTime = (ms: number) => {
+  const d = new Date(ms);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+};
+
+const TELE_WIDGETS = ["Tables", "Charts", "Cards", "Analogue gauges", "Alarm widgets"] as const;
+
+const TELE_L = {
+  en: { actions: "Actions", addToWidget: "Add to Widget", title: "Latest Data", lastUpdate: "Last update time", key: "Key", value: "Value", selected: "telemetry units selected", showOnWidget: "Show on widget", del: "Delete", deleteStrategy: "Delete strategy", strategy: "Strategy", delAll: "Delete all data", delExcept: "Delete all data except latest value", delLatest: "Delete latest value", delPeriod: "Delete all data for time period", cancel: "Cancel", itemsPerPage: "Items per page:", of: "of", timeSeriesTable: "Time series table", realtime: "Realtime - last 1 hour", timestamp: "Timestamp", addToDashboard: "Add to dashboard", addWidget: "Add widget to dashboard", selectExisting: "Select existing dashboard", createNew: "Create new dashboard", dashboard: "Dashboard", newTitle: "New dashboard title", openDashboard: "Open dashboard", add: "Add", deleted: "Telemetry deleted", added: "Widget added to dashboard", empty: "No telemetry", search: "Search keys", export: "Export", widget: "Widget", noDashboards: "No dashboards available", deleteOneTitle: "Delete telemetry?", deleteOneDesc: "This telemetry key will be permanently removed:", exported: "Data exported" },
+  fa: { actions: "عملیات", addToWidget: "افزودن به ویجت", title: "آخرین داده", lastUpdate: "زمان آخرین به‌روزرسانی", key: "کلید", value: "مقدار", selected: "تله‌متری انتخاب شد", showOnWidget: "نمایش در ویجت", del: "حذف", deleteStrategy: "راهبرد حذف", strategy: "راهبرد", delAll: "حذف همه‌ی داده‌ها", delExcept: "حذف همه‌ی داده‌ها به‌جز آخرین مقدار", delLatest: "حذف آخرین مقدار", delPeriod: "حذف داده‌ها برای یک بازه‌ی زمانی", cancel: "انصراف", itemsPerPage: "تعداد در هر صفحه:", of: "از", timeSeriesTable: "جدول سری‌زمانی", realtime: "زنده - یک ساعت اخیر", timestamp: "زمان", addToDashboard: "افزودن به داشبورد", addWidget: "افزودن ویجت به داشبورد", selectExisting: "انتخاب داشبورد موجود", createNew: "ایجاد داشبورد جدید", dashboard: "داشبورد", newTitle: "عنوان داشبورد جدید", openDashboard: "باز کردن داشبورد", add: "افزودن", deleted: "تله‌متری حذف شد", added: "ویجت به داشبورد اضافه شد", empty: "تله‌متری وجود ندارد", search: "جستجوی کلید", export: "خروجی", widget: "ویجت", noDashboards: "داشبوردی وجود ندارد", deleteOneTitle: "این داده حذف شود؟", deleteOneDesc: "این کلید تله‌متری برای همیشه حذف می‌شود:", exported: "خروجی داده‌ها گرفته شد" },
+  ar: { actions: "إجراءات", addToWidget: "إضافة إلى وِدجت", title: "أحدث البيانات", lastUpdate: "وقت آخر تحديث", key: "المفتاح", value: "القيمة", selected: "وحدة قياس محددة", showOnWidget: "عرض في وِدجت", del: "حذف", deleteStrategy: "استراتيجية الحذف", strategy: "الاستراتيجية", delAll: "حذف كل البيانات", delExcept: "حذف كل البيانات عدا آخر قيمة", delLatest: "حذف آخر قيمة", delPeriod: "حذف البيانات لفترة زمنية", cancel: "إلغاء", itemsPerPage: "عناصر لكل صفحة:", of: "من", timeSeriesTable: "جدول السلاسل الزمنية", realtime: "مباشر - آخر ساعة", timestamp: "الطابع الزمني", addToDashboard: "إضافة إلى اللوحة", addWidget: "إضافة وِدجت إلى اللوحة", selectExisting: "اختر لوحة موجودة", createNew: "إنشاء لوحة جديدة", dashboard: "اللوحة", newTitle: "عنوان اللوحة الجديدة", openDashboard: "فتح اللوحة", add: "إضافة", deleted: "تم حذف القياس", added: "تمت إضافة الوِدجت", empty: "لا توجد قياسات", search: "بحث المفاتيح", export: "تصدير", widget: "وِدجت", noDashboards: "لا توجد لوحات", deleteOneTitle: "حذف هذا القياس؟", deleteOneDesc: "سيتم حذف مفتاح القياس هذا نهائيًا:", exported: "تم تصدير البيانات" },
+} as const;
+
+const WIDGET_COLORS = ["hsl(28 100% 50%)", "hsl(197 100% 40%)", "hsl(160 84% 39%)", "hsl(280 70% 55%)", "hsl(340 80% 55%)"];
+const PREVIEW_ALARMS = [
+  { sev: "bg-rose-500", msg: "High temperature", time: "2m ago" },
+  { sev: "bg-amber-500", msg: "Vibration warning", time: "18m ago" },
+  { sev: "bg-rose-500", msg: "Pressure critical", time: "1h ago" },
+  { sev: "bg-sky-500", msg: "Device reconnected", time: "3h ago" },
+];
+const numVal = (rows: { key: string; value: string }[], k: string) => {
+  const n = parseFloat(rows.find((x) => x.key === k)?.value ?? "");
+  return Number.isNaN(n) ? null : n;
+};
+
+function TeleGauge({ label, pct, value }: { label: string; pct: number; value: string }) {
+  const C = Math.PI * 40;
+  const [on, setOn] = useState(false);
+  useEffect(() => { const id = requestAnimationFrame(() => setOn(true)); return () => cancelAnimationFrame(id); }, []);
+  return (
+    <div className="flex flex-col items-center rounded-xl border border-border p-3">
+      <svg viewBox="0 0 100 58" className="w-full max-w-[130px]">
+        <path d="M10 54 A40 40 0 0 1 90 54" fill="none" stroke="hsl(var(--muted))" strokeWidth="9" strokeLinecap="round" />
+        <path d="M10 54 A40 40 0 0 1 90 54" fill="none" stroke="hsl(28 100% 50%)" strokeWidth="9" strokeLinecap="round"
+          strokeDasharray={C} strokeDashoffset={on ? C * (1 - pct / 100) : C} style={{ transition: "stroke-dashoffset 1s ease" }} />
+      </svg>
+      <p className="-mt-1 text-lg font-bold text-primary">{value}</p>
+      <p className="w-full truncate text-center text-xs text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+/* Preview shown in the "Add to Widget" dialog — switches on the chosen
+   widget bundle (Tables / Charts / Cards / Analogue gauges / Alarm widgets). */
+function TeleWidgetPreview({ type, keys, rows, timestampLabel }: { type: string; keys: string[]; rows: { key: string; value: string }[]; timestampLabel: string }) {
+  const numericKeys = keys.filter((k) => numVal(rows, k) !== null);
+  const series = useMemo(
+    () => Array.from({ length: 24 }, (_, i) => {
+      const row: Record<string, number> = { t: i };
+      numericKeys.forEach((k, idx) => {
+        const base = numVal(rows, k) ?? 50;
+        row[k] = Math.max(0, base + Math.sin((i + idx) / 3) * base * 0.14 + (Math.random() - 0.5) * base * 0.08);
+      });
+      return row;
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [type, keys.join(",")],
+  );
+
+  if (type === "Charts") {
+    return (
+      <div className="h-64 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={series}>
+            <defs>
+              {numericKeys.map((k, i) => (
+                <linearGradient key={k} id={`tg-${i}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={WIDGET_COLORS[i % WIDGET_COLORS.length]} stopOpacity={0.35} />
+                  <stop offset="100%" stopColor={WIDGET_COLORS[i % WIDGET_COLORS.length]} stopOpacity={0} />
+                </linearGradient>
+              ))}
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+            <XAxis dataKey="t" hide />
+            <YAxis width={32} tick={{ fontSize: 11 }} />
+            <RTooltip />
+            {numericKeys.map((k, i) => (
+              <Area key={k} type="monotone" dataKey={k} stroke={WIDGET_COLORS[i % WIDGET_COLORS.length]} strokeWidth={2} fill={`url(#tg-${i})`} isAnimationActive animationDuration={900} />
+            ))}
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  }
+
+  if (type === "Cards") {
+    return (
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {keys.map((k, i) => (
+          <div key={k} className="rounded-xl border border-border p-4">
+            <p className="truncate text-xs text-muted-foreground">{k}</p>
+            <p className="mt-1 text-2xl font-bold text-primary">{rows.find((x) => x.key === k)?.value ?? "—"}</p>
+            <div className="mt-2 h-8">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={series}>
+                  <Area type="monotone" dataKey={numericKeys.includes(k) ? k : numericKeys[0]} stroke={WIDGET_COLORS[i % WIDGET_COLORS.length]} strokeWidth={1.5} fill={WIDGET_COLORS[i % WIDGET_COLORS.length]} fillOpacity={0.15} isAnimationActive />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (type === "Analogue gauges") {
+    const gk = (numericKeys.length ? numericKeys : keys).slice(0, 6);
+    return (
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        {gk.map((k) => {
+          const base = numVal(rows, k) ?? 60;
+          const pct = Math.max(4, Math.min(100, base > 100 ? base % 100 : base));
+          return <TeleGauge key={k} label={k} pct={pct} value={rows.find((x) => x.key === k)?.value ?? "—"} />;
+        })}
+      </div>
+    );
+  }
+
+  if (type === "Alarm widgets") {
+    return (
+      <div className="divide-y divide-border rounded-lg border border-border">
+        {PREVIEW_ALARMS.map((a, i) => (
+          <div key={i} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+            <span className={`h-2 w-2 shrink-0 rounded-full ${a.sev}`} />
+            <span className="flex-1">{a.msg}</span>
+            <span className="text-xs text-muted-foreground">{a.time}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Tables (default)
+  return (
+    <div className="max-h-72 overflow-auto rounded-lg border border-border">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/40 hover:bg-muted/40">
+            <TableHead>{timestampLabel}</TableHead>
+            {keys.map((k) => <TableHead key={k}>{k}</TableHead>)}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {Array.from({ length: 6 }, (_, i) => {
+            const time = Date.now() - i * 5 * 60_000;
+            return (
+              <TableRow key={i}>
+                <TableCell className="whitespace-nowrap text-muted-foreground">{fmtDateTime(time)}</TableCell>
+                {keys.map((k) => <TableCell key={k}>{rows.find((x) => x.key === k)?.value ?? "—"}</TableCell>)}
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
 const TelemetryTab = ({ channels, seed }: { channels: Channel[]; seed: number }) => {
-  const { t, isRTL } = useLanguage();
-  const [range, setRange] = useState("24h");
-  const [selected, setSelected] = useState<string[]>(channels.map(c => c.key));
-  const [compare, setCompare] = useState(false);
+  const { language, isRTL, t } = useLanguage();
+  const L = TELE_L[(language as "en" | "fa" | "ar")] ?? TELE_L.en;
+  const { toast } = useToast();
+  const { items: dashboards } = useDashboards();
 
-  const points = range === "1h" ? 30 : range === "24h" ? 48 : 60;
-  const datasets = channels
-    .filter(c => selected.includes(c.key))
-    .map(c => ({ channel: c, data: generateSeries(c, points, seed + c.key.length) }));
+  const initialRows = useMemo(() => {
+    const base = channels.map((c, i) => {
+      const v = generateSeries(c, 2, seed + c.key.length)[1].v;
+      return { key: c.key, value: `${v.toFixed(c.decimals ?? 1)}${c.unit ? " " + c.unit : ""}`, updatedAt: Date.now() - (i * 41 + 7) * 1000 };
+    });
+    const extra = TELEMETRY_EXTRA.map((r, i) => ({ ...r, updatedAt: Date.now() - (i * 53 + 130) * 1000 }));
+    return [...base, ...extra];
+  }, [channels, seed]);
 
-  const stats = (data: { v: number }[]) => {
-    const v = data.map(d => d.v);
-    return { min: Math.min(...v), max: Math.max(...v), avg: v.reduce((a, b) => a + b, 0) / v.length };
+  const [rows, setRows] = useState(initialRows);
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [sortAsc, setSortAsc] = useState(true);
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [strategy, setStrategy] = useState("all");
+  const [confirmKey, setConfirmKey] = useState<string | null>(null);
+  const [widgetOpen, setWidgetOpen] = useState(false);
+  const [widgetType, setWidgetType] = useState<string>(TELE_WIDGETS[0]);
+  const [addOpen, setAddOpen] = useState(false);
+  const [dashMode, setDashMode] = useState<"existing" | "new">("existing");
+  const [existingDash, setExistingDash] = useState("");
+  const [newDash, setNewDash] = useState("");
+  const [openDash, setOpenDash] = useState(false);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return [...rows]
+      .filter((r) => !q || r.key.toLowerCase().includes(q))
+      .sort((a, b) => (sortAsc ? a.key.localeCompare(b.key) : b.key.localeCompare(a.key)));
+  }, [rows, sortAsc, query]);
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(currentPage, totalPages);
+  const startIndex = (page - 1) * pageSize;
+  const pageRows = filtered.slice(startIndex, startIndex + pageSize);
+
+  const allOnPageChecked = pageRows.length > 0 && pageRows.every((r) => selected.has(r.key));
+  const toggleAll = () => setSelected((prev) => {
+    const next = new Set(prev);
+    if (allOnPageChecked) pageRows.forEach((r) => next.delete(r.key));
+    else pageRows.forEach((r) => next.add(r.key));
+    return next;
+  });
+  const toggleOne = (k: string) => setSelected((prev) => {
+    const n = new Set(prev);
+    if (n.has(k)) n.delete(k); else n.add(k);
+    return n;
+  });
+
+  // Bulk delete keeps the strategy dialog; single-row delete is a plain confirm.
+  const confirmBulkDelete = () => {
+    const keys = [...selected];
+    setRows((rs) => rs.filter((r) => !keys.includes(r.key)));
+    setSelected(new Set());
+    setDeleteOpen(false);
+    toast({ title: L.deleted });
+  };
+  const confirmRowDelete = () => {
+    if (!confirmKey) return;
+    const k = confirmKey;
+    setRows((rs) => rs.filter((r) => r.key !== k));
+    setSelected((prev) => { const n = new Set(prev); n.delete(k); return n; });
+    setConfirmKey(null);
+    toast({ title: L.deleted });
   };
 
-  const exportData = (type: "csv" | "xlsx") => {
-    const lines = ["time," + datasets.map(d => d.channel.key).join(",")];
-    for (let i = 0; i < points; i++) {
-      lines.push(i + "," + datasets.map(d => d.data[i].v).join(","));
-    }
-    const blob = new Blob([lines.join("\n")], { type: type === "csv" ? "text/csv" : "application/vnd.ms-excel" });
+  const exportCsv = () => {
+    const esc = (s: string) => `"${String(s).replace(/"/g, '""')}"`;
+    const header = [L.lastUpdate, L.key, L.value].map(esc).join(",");
+    const body = filtered.map((r) => [fmtDateTime(r.updatedAt), r.key, r.value].map(esc).join(",")).join("\n");
+    const blob = new Blob(["﻿" + header + "\n" + body], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `telemetry.${type}`; a.click();
+    a.href = url; a.download = "latest-data.csv"; a.click();
     URL.revokeObjectURL(url);
+    toast({ title: L.exported });
   };
 
-  // Combined chart data
-  const combinedData = compare ? Array.from({ length: points }, (_, i) => {
-    const row: any = { t: i };
-    datasets.forEach(d => { row[d.channel.key] = d.data[i].v; });
-    return row;
-  }) : null;
+  const selectedKeys = [...selected];
+  const confirmAdd = () => { setAddOpen(false); toast({ title: L.added }); };
 
   return (
     <>
       <Card>
-        <CardContent className={`p-4 flex flex-wrap items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-          <Select value={range} onValueChange={setRange}>
-            <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1h">{t("last1h")}</SelectItem>
-              <SelectItem value="24h">{t("last24h")}</SelectItem>
-              <SelectItem value="7d">{t("last7d")}</SelectItem>
-              <SelectItem value="30d">{t("last30d")}</SelectItem>
-            </SelectContent>
-          </Select>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                {t("channels")} ({selected.length}) <ChevronDown className="h-4 w-4 ms-2" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {channels.map(c => (
-                <DropdownMenuItem key={c.key} onClick={(e) => {
-                  e.preventDefault();
-                  setSelected(s => s.includes(c.key) ? s.filter(x => x !== c.key) : [...s, c.key]);
-                }}>
-                  <Checkmark on={selected.includes(c.key)} /> {chLabel(c, t)}
-                </DropdownMenuItem>
+        {/* Toolbar (search + export), matching the Events tab */}
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
+          <CardTitle className="text-base">{L.title}</CardTitle>
+          <div className="flex items-center gap-2">
+            <div className="relative" dir={isRTL ? "rtl" : "ltr"}>
+              <Search className={`h-4 w-4 absolute ${isRTL ? "right-2.5" : "start-2.5"} top-1/2 -translate-y-1/2 text-muted-foreground`} />
+              <Input
+                value={query}
+                onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
+                placeholder={L.search}
+                className={`${isRTL ? "pr-8 w-56 h-9 text-right placeholder:text-right" : "ps-8 w-56 h-9 text-left placeholder:text-left"}`}
+              />
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm"><Download className="h-4 w-4 me-2" /> {L.export} <ChevronDown className="h-4 w-4 ms-1" /></Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={exportCsv}><FileText className="h-4 w-4 me-2" /> .CSV</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {/* Actions — disabled until rows are selected (like the device list) */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={selected.size === 0}>{L.actions} <ChevronDown className="h-4 w-4 ms-1" /></Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setWidgetOpen(true)}><LayoutGrid className="h-4 w-4 me-2" /> {L.addToWidget}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setStrategy("all"); setDeleteOpen(true); }} className="text-destructive focus:text-destructive"><Trash2 className="h-4 w-4 me-2" /> {L.del}</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40 hover:bg-muted/40">
+                <TableHead className="w-10"><Checkbox checked={allOnPageChecked} onCheckedChange={toggleAll} /></TableHead>
+                <TableHead>{L.lastUpdate}</TableHead>
+                <TableHead>
+                  <button className="inline-flex items-center gap-1" onClick={() => setSortAsc((a) => !a)}>
+                    {L.key} {sortAsc ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
+                  </button>
+                </TableHead>
+                <TableHead>{L.value}</TableHead>
+                <TableHead className="w-10" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pageRows.map((r) => (
+                <TableRow key={r.key} data-state={selected.has(r.key) ? "selected" : undefined}>
+                  <TableCell><Checkbox checked={selected.has(r.key)} onCheckedChange={() => toggleOne(r.key)} /></TableCell>
+                  <TableCell className="whitespace-nowrap text-muted-foreground">{fmtDateTime(r.updatedAt)}</TableCell>
+                  <TableCell className="font-medium">{r.key}</TableCell>
+                  <TableCell>{r.value}</TableCell>
+                  <TableCell>
+                    <button onClick={() => setConfirmKey(r.key)} className="text-muted-foreground hover:text-destructive" aria-label={L.del}><Trash2 className="h-4 w-4" /></button>
+                  </TableCell>
+                </TableRow>
               ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {channels.length > 1 && (
-            <div className="flex items-center gap-2">
-              <Switch checked={compare} onCheckedChange={setCompare} id="cmp" />
-              <Label htmlFor="cmp" className="text-sm">{t("compare")}</Label>
+              {pageRows.length === 0 && (
+                <TableRow><TableCell colSpan={5} className="py-8 text-center text-muted-foreground">{L.empty}</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+
+          {/* Pagination — same pattern as the device list */}
+          {total > pageSize && (
+            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border px-4 py-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">{t("rowsPerPage")}</span>
+                <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setCurrentPage(1); }}>
+                  <SelectTrigger className="w-[72px] h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent position="popper" className="min-w-[70px]" sideOffset={4}>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-muted-foreground ml-3">{startIndex + 1}-{Math.min(startIndex + pageSize, total)} {t("of")} {total}</span>
+              </div>
+              <SmartPagination currentPage={page} totalPages={totalPages} onChange={setCurrentPage} />
             </div>
           )}
-          <div className="flex-1" />
-          <Button variant="outline" size="sm" onClick={() => exportData("csv")}><Download className="h-4 w-4 me-2" /> CSV</Button>
-          <Button variant="outline" size="sm" onClick={() => exportData("xlsx")}><Download className="h-4 w-4 me-2" /> Excel</Button>
         </CardContent>
       </Card>
 
-      {compare && combinedData ? (
-        <Card>
-          <CardHeader><CardTitle className="text-base">{t("allChannels")}</CardTitle></CardHeader>
-          <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={combinedData}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis dataKey="t" />
-                <YAxis />
-                <RTooltip />
-                <Legend />
-                {datasets.map(d => (
-                  <Line key={d.channel.key} type="monotone" dataKey={d.channel.key} stroke={d.channel.stroke} strokeWidth={2} dot={false} />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className={`grid grid-cols-1 ${datasets.length > 1 ? "lg:grid-cols-2" : ""} gap-4`}>
-          {datasets.map(({ channel, data }) => {
-            const s = stats(data);
-            return (
-              <Card key={channel.key}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">{chLabel(channel, t)} {channel.unit && <span className="text-muted-foreground text-sm font-normal">({channel.unit})</span>}</CardTitle>
-                    <div className="flex gap-3 text-xs">
-                      <span><span className="text-muted-foreground">{t("min")}:</span> <span className="font-medium">{s.min.toFixed(channel.decimals ?? 1)}</span></span>
-                      <span><span className="text-muted-foreground">{t("max")}:</span> <span className="font-medium">{s.max.toFixed(channel.decimals ?? 1)}</span></span>
-                      <span><span className="text-muted-foreground">{t("avg")}:</span> <span className="font-medium">{s.avg.toFixed(channel.decimals ?? 1)}</span></span>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="h-56">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={data}>
-                      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                      <XAxis dataKey="t" />
-                      <YAxis />
-                      <RTooltip />
-                      <Line type="monotone" dataKey="v" stroke={channel.stroke} strokeWidth={2} dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+      {/* Bulk delete — strategy dialog (from the selection bar) */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent dir={isRTL ? "rtl" : "ltr"}>
+          <DialogHeader><DialogTitle>{L.deleteStrategy}</DialogTitle></DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label>{L.strategy}</Label>
+            <Select value={strategy} onValueChange={setStrategy}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{L.delAll}</SelectItem>
+                <SelectItem value="except">{L.delExcept}</SelectItem>
+                <SelectItem value="latest">{L.delLatest}</SelectItem>
+                <SelectItem value="period">{L.delPeriod}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>{L.cancel}</Button>
+            <Button variant="destructive" onClick={confirmBulkDelete}>{L.del}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Single-row delete — plain confirmation */}
+      <AlertDialog open={!!confirmKey} onOpenChange={(o) => { if (!o) setConfirmKey(null); }}>
+        <AlertDialogContent dir={isRTL ? "rtl" : "ltr"}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{L.deleteOneTitle}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {L.deleteOneDesc} <span className="font-medium text-foreground">{confirmKey}</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{L.cancel}</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={confirmRowDelete}>{L.del}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Show on widget dialog */}
+      <Dialog open={widgetOpen} onOpenChange={setWidgetOpen}>
+        <DialogContent dir={isRTL ? "rtl" : "ltr"} className="max-w-2xl">
+          <DialogHeader><DialogTitle>{L.addToWidget}</DialogTitle></DialogHeader>
+          <div className={`flex items-center gap-2 ${isRTL ? "justify-start" : "justify-end"}`}>
+            <span className="text-sm text-muted-foreground">{L.widget}</span>
+            <Select value={widgetType} onValueChange={setWidgetType}>
+              <SelectTrigger className="h-8 w-52"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {TELE_WIDGETS.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="py-1">
+            <TeleWidgetPreview type={widgetType} keys={selectedKeys} rows={rows} timestampLabel={L.timestamp} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWidgetOpen(false)}>{L.cancel}</Button>
+            <Button onClick={() => { setWidgetOpen(false); setAddOpen(true); }}><LayoutGrid className="h-4 w-4 me-2" /> {L.addToDashboard}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add to dashboard dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent dir={isRTL ? "rtl" : "ltr"} className="max-w-xl">
+          <DialogHeader><DialogTitle>{L.addWidget}</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
+            <button type="button" onClick={() => setDashMode("existing")} className={`rounded-lg border p-3 text-start ${dashMode === "existing" ? "border-primary ring-1 ring-primary" : "border-border"}`}>
+              <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+                <span className={`h-3.5 w-3.5 rounded-full border ${dashMode === "existing" ? "border-primary bg-primary" : "border-input"}`} /> {L.selectExisting}
+              </div>
+              {dashboards.length === 0 ? (
+                <div className="flex h-9 items-center rounded-md border border-input px-3 text-sm text-muted-foreground">{L.noDashboards}</div>
+              ) : (
+                <Select value={existingDash} onValueChange={setExistingDash} disabled={dashMode !== "existing"}>
+                  <SelectTrigger><SelectValue placeholder={L.dashboard} /></SelectTrigger>
+                  <SelectContent>
+                    {dashboards.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            </button>
+            <button type="button" onClick={() => setDashMode("new")} className={`rounded-lg border p-3 text-start ${dashMode === "new" ? "border-primary ring-1 ring-primary" : "border-border"}`}>
+              <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+                <span className={`h-3.5 w-3.5 rounded-full border ${dashMode === "new" ? "border-primary bg-primary" : "border-input"}`} /> {L.createNew}
+              </div>
+              <Input placeholder={L.newTitle} disabled={dashMode !== "new"} value={newDash} onChange={(e) => setNewDash(e.target.value)} />
+            </button>
+          </div>
+          <label className="flex items-center gap-2 text-sm"><Checkbox checked={openDash} onCheckedChange={(v) => setOpenDash(!!v)} /> {L.openDashboard}</label>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddOpen(false)}>{L.cancel}</Button>
+            <Button onClick={confirmAdd} disabled={dashMode === "existing" ? !existingDash : !newDash.trim()}>{L.add}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
