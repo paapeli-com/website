@@ -426,41 +426,26 @@ const DeviceDetails = () => {
               </Card>
 
 
-              {/* Latest Values */}
+              {/* Latest Values — last 5 telemetry keys (same data as the Latest Data tab) */}
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                  <CardTitle className="text-base">{t("latestValues")}</CardTitle>
-                  <Select defaultValue="realtime">
-                    <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="realtime">{t("realTime")}</SelectItem>
-                      <SelectItem value="1h">{t("last1h")}</SelectItem>
-                      <SelectItem value="24h">{t("last24h")}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {status === "offline" ? <OfflineNotice /> : channels.map((ch, i) => {
-                    const Icon = channelIcon(ch.key);
-                    const data = generateSeries(ch, 20, seed + i);
-                    const val = data[data.length - 1].v;
-                    return (
-                      <div key={ch.key} className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-                        <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="text-sm text-muted-foreground w-24 shrink-0">{chLabel(ch, t)}</span>
-                        <span className={`text-base font-semibold ${ch.color} w-20 ${isRTL ? "text-start" : "text-end"} shrink-0`}>
-                          {val} <span className="text-xs">{ch.unit}</span>
-                        </span>
-                        <div className="flex-1 h-8 min-w-0">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={data}>
-                              <Line dataKey="v" stroke={ch.stroke} strokeWidth={1.5} dot={false} />
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
+                <CardHeader><CardTitle className="text-base">{t("latestValues")}</CardTitle></CardHeader>
+                <CardContent>
+                  {status === "offline" ? <OfflineNotice /> : (
+                    <>
+                      <div className="divide-y divide-border">
+                        {[...buildTelemetryRows(channels, seed)]
+                          .sort((a, b) => b.updatedAt - a.updatedAt)
+                          .slice(0, 5)
+                          .map((r) => (
+                            <div key={r.key} className={`flex items-center justify-between gap-3 py-2.5 ${isRTL ? "flex-row-reverse" : ""}`}>
+                              <span className="text-sm text-muted-foreground truncate">{r.key}</span>
+                              <span className="text-sm font-semibold text-foreground shrink-0 tabular-nums">{r.value}</span>
+                            </div>
+                          ))}
                       </div>
-                    );
-                  })}
+                      <Button variant="link" className="text-primary w-full mt-2" onClick={() => setActiveTab("telemetry")}>{t("viewAllData")}</Button>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
@@ -846,12 +831,23 @@ const fmtDateTime = (ms: number) => {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 };
 
+/* Latest telemetry rows (key/value/updatedAt) — shared by the Latest Data
+   tab and the Overview "Latest Values" card so both show the same data. */
+export function buildTelemetryRows(channels: Channel[], seed: number) {
+  const base = channels.map((c, i) => {
+    const v = generateSeries(c, 2, seed + c.key.length)[1].v;
+    return { key: c.key, value: `${v.toFixed(c.decimals ?? 1)}${c.unit ? " " + c.unit : ""}`, updatedAt: Date.now() - (i * 41 + 7) * 1000 };
+  });
+  const extra = TELEMETRY_EXTRA.map((r, i) => ({ ...r, updatedAt: Date.now() - (i * 53 + 130) * 1000 }));
+  return [...base, ...extra];
+}
+
 const TELE_WIDGETS = ["Tables", "Charts", "Cards", "Analogue gauges", "Alarm widgets"] as const;
 
 const TELE_L = {
-  en: { actions: "Actions", addToWidget: "Add to Widget", title: "Latest Data", lastUpdate: "Last update time", key: "Key", value: "Value", selected: "telemetry units selected", showOnWidget: "Show on widget", del: "Delete", deleteStrategy: "Delete strategy", strategy: "Strategy", delAll: "Delete all data", delExcept: "Delete all data except latest value", delLatest: "Delete latest value", delPeriod: "Delete all data for time period", cancel: "Cancel", itemsPerPage: "Items per page:", of: "of", timeSeriesTable: "Time series table", realtime: "Realtime - last 1 hour", timestamp: "Timestamp", addToDashboard: "Add to dashboard", addWidget: "Add widget to dashboard", selectExisting: "Select existing dashboard", createNew: "Create new dashboard", dashboard: "Dashboard", newTitle: "New dashboard title", openDashboard: "Open dashboard", add: "Add", deleted: "Telemetry deleted", added: "Widget added to dashboard", empty: "No telemetry", search: "Search keys", export: "Export", widget: "Widget", noDashboards: "No dashboards available", deleteOneTitle: "Delete telemetry?", deleteOneDesc: "This telemetry key will be permanently removed:", exported: "Data exported" },
-  fa: { actions: "عملیات", addToWidget: "افزودن به ویجت", title: "آخرین داده", lastUpdate: "زمان آخرین به‌روزرسانی", key: "کلید", value: "مقدار", selected: "تله‌متری انتخاب شد", showOnWidget: "نمایش در ویجت", del: "حذف", deleteStrategy: "راهبرد حذف", strategy: "راهبرد", delAll: "حذف همه‌ی داده‌ها", delExcept: "حذف همه‌ی داده‌ها به‌جز آخرین مقدار", delLatest: "حذف آخرین مقدار", delPeriod: "حذف داده‌ها برای یک بازه‌ی زمانی", cancel: "انصراف", itemsPerPage: "تعداد در هر صفحه:", of: "از", timeSeriesTable: "جدول سری‌زمانی", realtime: "زنده - یک ساعت اخیر", timestamp: "زمان", addToDashboard: "افزودن به داشبورد", addWidget: "افزودن ویجت به داشبورد", selectExisting: "انتخاب داشبورد موجود", createNew: "ایجاد داشبورد جدید", dashboard: "داشبورد", newTitle: "عنوان داشبورد جدید", openDashboard: "باز کردن داشبورد", add: "افزودن", deleted: "تله‌متری حذف شد", added: "ویجت به داشبورد اضافه شد", empty: "تله‌متری وجود ندارد", search: "جستجوی کلید", export: "خروجی", widget: "ویجت", noDashboards: "داشبوردی وجود ندارد", deleteOneTitle: "این داده حذف شود؟", deleteOneDesc: "این کلید تله‌متری برای همیشه حذف می‌شود:", exported: "خروجی داده‌ها گرفته شد" },
-  ar: { actions: "إجراءات", addToWidget: "إضافة إلى وِدجت", title: "أحدث البيانات", lastUpdate: "وقت آخر تحديث", key: "المفتاح", value: "القيمة", selected: "وحدة قياس محددة", showOnWidget: "عرض في وِدجت", del: "حذف", deleteStrategy: "استراتيجية الحذف", strategy: "الاستراتيجية", delAll: "حذف كل البيانات", delExcept: "حذف كل البيانات عدا آخر قيمة", delLatest: "حذف آخر قيمة", delPeriod: "حذف البيانات لفترة زمنية", cancel: "إلغاء", itemsPerPage: "عناصر لكل صفحة:", of: "من", timeSeriesTable: "جدول السلاسل الزمنية", realtime: "مباشر - آخر ساعة", timestamp: "الطابع الزمني", addToDashboard: "إضافة إلى اللوحة", addWidget: "إضافة وِدجت إلى اللوحة", selectExisting: "اختر لوحة موجودة", createNew: "إنشاء لوحة جديدة", dashboard: "اللوحة", newTitle: "عنوان اللوحة الجديدة", openDashboard: "فتح اللوحة", add: "إضافة", deleted: "تم حذف القياس", added: "تمت إضافة الوِدجت", empty: "لا توجد قياسات", search: "بحث المفاتيح", export: "تصدير", widget: "وِدجت", noDashboards: "لا توجد لوحات", deleteOneTitle: "حذف هذا القياس؟", deleteOneDesc: "سيتم حذف مفتاح القياس هذا نهائيًا:", exported: "تم تصدير البيانات" },
+  en: { actions: "Actions", addToWidget: "Add to Widget", title: "Latest Data", lastUpdate: "Last update time", key: "Key", value: "Value", selected: "telemetry units selected", showOnWidget: "Show on widget", del: "Delete", deleteStrategy: "Delete strategy", strategy: "Strategy", delAll: "Delete all data", delExcept: "Delete all data except latest value", delLatest: "Delete latest value", delPeriod: "Delete all data for time period", cancel: "Cancel", itemsPerPage: "Items per page:", of: "of", timeSeriesTable: "Time series table", realtime: "Realtime - last 1 hour", timestamp: "Timestamp", addToDashboard: "Add to dashboard", addWidget: "Add widget to dashboard", selectExisting: "Select existing dashboard", createNew: "Create new dashboard", dashboard: "Dashboard", newTitle: "New dashboard title", openDashboard: "Open dashboard", add: "Add", deleted: "Telemetry deleted", added: "Widget added to dashboard", empty: "No telemetry", search: "Search keys", export: "Export", widget: "Widget", noDashboards: "No dashboards available", deleteOneTitle: "Delete telemetry?", deleteOneDesc: "This telemetry key will be permanently removed:", exported: "Data exported", range1m: "Last 1 minute", range10m: "Last 10 minutes", range1h: "Last 1 hour" },
+  fa: { actions: "عملیات", addToWidget: "افزودن به ویجت", title: "آخرین داده", lastUpdate: "زمان آخرین به‌روزرسانی", key: "کلید", value: "مقدار", selected: "تله‌متری انتخاب شد", showOnWidget: "نمایش در ویجت", del: "حذف", deleteStrategy: "راهبرد حذف", strategy: "راهبرد", delAll: "حذف همه‌ی داده‌ها", delExcept: "حذف همه‌ی داده‌ها به‌جز آخرین مقدار", delLatest: "حذف آخرین مقدار", delPeriod: "حذف داده‌ها برای یک بازه‌ی زمانی", cancel: "انصراف", itemsPerPage: "تعداد در هر صفحه:", of: "از", timeSeriesTable: "جدول سری‌زمانی", realtime: "زنده - یک ساعت اخیر", timestamp: "زمان", addToDashboard: "افزودن به داشبورد", addWidget: "افزودن ویجت به داشبورد", selectExisting: "انتخاب داشبورد موجود", createNew: "ایجاد داشبورد جدید", dashboard: "داشبورد", newTitle: "عنوان داشبورد جدید", openDashboard: "باز کردن داشبورد", add: "افزودن", deleted: "تله‌متری حذف شد", added: "ویجت به داشبورد اضافه شد", empty: "تله‌متری وجود ندارد", search: "جستجوی کلید", export: "خروجی", widget: "ویجت", noDashboards: "داشبوردی وجود ندارد", deleteOneTitle: "این داده حذف شود؟", deleteOneDesc: "این کلید تله‌متری برای همیشه حذف می‌شود:", exported: "خروجی داده‌ها گرفته شد", range1m: "۱ دقیقه‌ی اخیر", range10m: "۱۰ دقیقه‌ی اخیر", range1h: "۱ ساعت اخیر" },
+  ar: { actions: "إجراءات", addToWidget: "إضافة إلى وِدجت", title: "أحدث البيانات", lastUpdate: "وقت آخر تحديث", key: "المفتاح", value: "القيمة", selected: "وحدة قياس محددة", showOnWidget: "عرض في وِدجت", del: "حذف", deleteStrategy: "استراتيجية الحذف", strategy: "الاستراتيجية", delAll: "حذف كل البيانات", delExcept: "حذف كل البيانات عدا آخر قيمة", delLatest: "حذف آخر قيمة", delPeriod: "حذف البيانات لفترة زمنية", cancel: "إلغاء", itemsPerPage: "عناصر لكل صفحة:", of: "من", timeSeriesTable: "جدول السلاسل الزمنية", realtime: "مباشر - آخر ساعة", timestamp: "الطابع الزمني", addToDashboard: "إضافة إلى اللوحة", addWidget: "إضافة وِدجت إلى اللوحة", selectExisting: "اختر لوحة موجودة", createNew: "إنشاء لوحة جديدة", dashboard: "اللوحة", newTitle: "عنوان اللوحة الجديدة", openDashboard: "فتح اللوحة", add: "إضافة", deleted: "تم حذف القياس", added: "تمت إضافة الوِدجت", empty: "لا توجد قياسات", search: "بحث المفاتيح", export: "تصدير", widget: "وِدجت", noDashboards: "لا توجد لوحات", deleteOneTitle: "حذف هذا القياس؟", deleteOneDesc: "سيتم حذف مفتاح القياس هذا نهائيًا:", exported: "تم تصدير البيانات", range1m: "آخر دقيقة", range10m: "آخر ١٠ دقائق", range1h: "آخر ساعة" },
 } as const;
 
 const WIDGET_COLORS = ["hsl(28 100% 50%)", "hsl(197 100% 40%)", "hsl(160 84% 39%)", "hsl(280 70% 55%)", "hsl(340 80% 55%)"];
@@ -1005,14 +1001,7 @@ const TelemetryTab = ({ channels, seed }: { channels: Channel[]; seed: number })
   const { toast } = useToast();
   const { items: dashboards } = useDashboards();
 
-  const initialRows = useMemo(() => {
-    const base = channels.map((c, i) => {
-      const v = generateSeries(c, 2, seed + c.key.length)[1].v;
-      return { key: c.key, value: `${v.toFixed(c.decimals ?? 1)}${c.unit ? " " + c.unit : ""}`, updatedAt: Date.now() - (i * 41 + 7) * 1000 };
-    });
-    const extra = TELEMETRY_EXTRA.map((r, i) => ({ ...r, updatedAt: Date.now() - (i * 53 + 130) * 1000 }));
-    return [...base, ...extra];
-  }, [channels, seed]);
+  const initialRows = useMemo(() => buildTelemetryRows(channels, seed), [channels, seed]);
 
   const [rows, setRows] = useState(initialRows);
   const [query, setQuery] = useState("");
@@ -1020,6 +1009,7 @@ const TelemetryTab = ({ channels, seed }: { channels: Channel[]; seed: number })
   const [sortAsc, setSortAsc] = useState(true);
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [range, setRange] = useState("1h");
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [strategy, setStrategy] = useState("all");
@@ -1095,7 +1085,15 @@ const TelemetryTab = ({ channels, seed }: { channels: Channel[]; seed: number })
         {/* Toolbar (search + export), matching the Events tab */}
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
           <CardTitle className="text-base">{L.title}</CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={range} onValueChange={setRange}>
+              <SelectTrigger className="h-9 w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1m">{L.range1m}</SelectItem>
+                <SelectItem value="10m">{L.range10m}</SelectItem>
+                <SelectItem value="1h">{L.range1h}</SelectItem>
+              </SelectContent>
+            </Select>
             <div className="relative" dir={isRTL ? "rtl" : "ltr"}>
               <Search className={`h-4 w-4 absolute ${isRTL ? "right-2.5" : "start-2.5"} top-1/2 -translate-y-1/2 text-muted-foreground`} />
               <Input
