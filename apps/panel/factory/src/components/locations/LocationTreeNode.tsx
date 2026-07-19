@@ -30,6 +30,8 @@ export interface TreeNode {
   children?: TreeNode[];
   /** Direct (non-recursive) asset/device count attached to this node */
   directAssetCount?: number;
+  /** Free-form tags shown in the detail panel */
+  tags?: string[];
 }
 
 interface LocationTreeNodeProps {

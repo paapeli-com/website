@@ -25,15 +25,19 @@ interface AddNodeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   parentType?: "organization" | "location" | "area" | "asset" | null;
-  onAdd: (name: string, type: NodeType) => void;
+  onAdd: (name: string, type: NodeType, tags: string[]) => void;
 }
 
 export const AddNodeDialog = ({ open, onOpenChange, parentType, onAdd }: AddNodeDialogProps) => {
   const { t } = useLanguage();
   const [name, setName] = useState("");
   const [type, setType] = useState<NodeType | "">("");
+  const [tags, setTags] = useState("");
 
-  // Determine allowed types based on parent
+  // Allowed child types by parent:
+  //   root (organization) → Location, Unit, Asset
+  //   location            → Unit, Asset
+  //   unit (area)         → Asset
   const allowedTypes: { value: NodeType; label: string; icon: React.ReactNode }[] = [];
   if (!parentType || parentType === "organization") {
     allowedTypes.push({ value: "location", label: t("locationLabel"), icon: <MapPin className="h-4 w-4" /> });
@@ -41,15 +45,17 @@ export const AddNodeDialog = ({ open, onOpenChange, parentType, onAdd }: AddNode
   if (!parentType || parentType === "organization" || parentType === "location") {
     allowedTypes.push({ value: "area", label: t("areaUnit"), icon: <Factory className="h-4 w-4" /> });
   }
-  if (!parentType || parentType === "location" || parentType === "area") {
+  if (!parentType || parentType === "organization" || parentType === "location" || parentType === "area") {
     allowedTypes.push({ value: "asset", label: t("assets"), icon: <Cpu className="h-4 w-4" /> });
   }
 
   const handleAdd = () => {
     if (name.trim() && type) {
-      onAdd(name.trim(), type as NodeType);
+      const tagList = tags.split(",").map((s) => s.trim()).filter(Boolean);
+      onAdd(name.trim(), type as NodeType, tagList);
       setName("");
       setType("");
+      setTags("");
       onOpenChange(false);
     }
   };
@@ -85,6 +91,15 @@ export const AddNodeDialog = ({ open, onOpenChange, parentType, onAdd }: AddNode
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t("enterNodeName")}
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{t("tags")}</Label>
+            <Input
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder={t("enterTags")}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
             />
           </div>
