@@ -207,6 +207,7 @@ const Locations = () => {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [addParentType, setAddParentType] = useState<TreeNode["type"] | null>(null);
   const [addParentId, setAddParentId] = useState<string | null>(null);
+  const [addDefaultType, setAddDefaultType] = useState<"location" | "area" | "asset" | null>(null);
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameTarget, setRenameTarget] = useState<TreeNode | null>(null);
@@ -323,14 +324,18 @@ const Locations = () => {
 
   // ----- UI handlers -----
   const handleTopAddLocation = () => {
-    setAddParentId(selectedNode?.id || "org-root");
-    setAddParentType(selectedNode?.type || "organization");
+    // Footer button: add under the selected container (or the root).
+    const target = selectedNode && selectedNode.type !== "asset" ? selectedNode : null;
+    setAddParentId(target?.id || "org-root");
+    setAddParentType(target?.type || "organization");
+    setAddDefaultType(null);
     setAddDialogOpen(true);
   };
 
-  const handleAddLocationOnNode = (node: TreeNode) => {
+  const handleAddChild = (node: TreeNode, type: "location" | "area" | "asset") => {
     setAddParentId(node.id);
     setAddParentType(node.type);
+    setAddDefaultType(type);
     setAddDialogOpen(true);
   };
 
@@ -371,15 +376,7 @@ const Locations = () => {
   return (
     <PanelLayout pageTitle={t("locations")}>
       {/* Header */}
-      <PageHeader
-        title={t("locations")}
-        actions={
-          <Button onClick={handleTopAddLocation} className="h-10 gap-2">
-            <Plus className="h-4 w-4" />
-            {t("addNode")}
-          </Button>
-        }
-      />
+      <PageHeader title={t("locations")} />
 
       <div className="flex gap-4 h-[calc(100vh-220px)]">
         {/* Left: Tree */}
@@ -413,45 +410,19 @@ const Locations = () => {
               onSelect={setSelectedNode}
               onToggle={toggleExpand}
               onRename={(n) => { setRenameTarget(n); setRenameDialogOpen(true); }}
-              onAddLocation={handleAddLocationOnNode}
-              onAddAsset={handleAddAssetOnNode}
+              onAddChild={handleAddChild}
               onMove={handleMove}
               onDuplicate={handleDuplicate}
               onDelete={(n) => { setDeleteTarget(n); setDeleteDialogOpen(true); }}
             />
           </ScrollArea>
-          {/* Tree controls (expand all / collapse all / refresh) */}
-          <div className="p-2 border-t flex items-center justify-center gap-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-9 w-9" onClick={expandAll}>
-                    <ChevronsUpDown className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{t("expandAll")}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-9 w-9" onClick={collapseAll}>
-                    <ChevronsDownUp className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{t("collapseAll")}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-9 w-9" onClick={handleRefresh} disabled={refreshing}>
-                    {refreshing ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{t("refresh")}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+          {/* Primary add action, contextual to the tree (adds under the
+              selected container, or the root). */}
+          <div className="p-2 border-t">
+            <Button className="w-full gap-2" onClick={handleTopAddLocation}>
+              <Plus className="h-4 w-4" />
+              {t("addNode")}
+            </Button>
           </div>
         </Card>
 
@@ -464,7 +435,7 @@ const Locations = () => {
               assets={previewAssets}
               totalAssetCount={totalAssetCount}
               parentNode={parentNode}
-              onAddAsset={() => selectedNode && handleAddAssetOnNode(selectedNode)}
+              onAddAsset={() => selectedNode && handleAddChild(selectedNode, "asset")}
               onViewAllAssets={handleViewAllAssets}
               onNavigateAsset={handleNavigateAsset}
               onSelectAncestor={(n) => setSelectedNode(n)}
@@ -478,6 +449,8 @@ const Locations = () => {
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
         parentType={addParentType}
+        parentName={addParentId ? findNode(tree, addParentId)?.name : undefined}
+        defaultType={addDefaultType}
         onAdd={handleAdd}
       />
       <RenameNodeDialog

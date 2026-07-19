@@ -45,8 +45,7 @@ interface LocationTreeNodeProps {
   onSelect: (node: TreeNode) => void;
   onToggle: (nodeId: string) => void;
   onRename: (node: TreeNode) => void;
-  onAddLocation: (node: TreeNode) => void;
-  onAddAsset: (node: TreeNode) => void;
+  onAddChild: (node: TreeNode, type: "location" | "area" | "asset") => void;
   onMove: (node: TreeNode) => void;
   onDuplicate: (node: TreeNode) => void;
   onDelete: (node: TreeNode) => void;
@@ -68,8 +67,12 @@ const getNodeIcon = (type: string, isSelected: boolean) => {
   }
 };
 
-const canHaveChildren = (type: string) => type !== "asset";
-const canHaveAssets = (type: string) => type === "location" || type === "area";
+// Graph rules — which child types each node type may contain:
+//   organization → location, unit, asset   location → unit, asset
+//   unit (area)  → asset                    asset    → (none)
+const canAddLocation = (type: string) => type === "organization";
+const canAddArea = (type: string) => type === "organization" || type === "location";
+const canAddAsset = (type: string) => type === "organization" || type === "location" || type === "area";
 
 export const LocationTreeNode = ({
   node,
@@ -82,8 +85,7 @@ export const LocationTreeNode = ({
   onSelect,
   onToggle,
   onRename,
-  onAddLocation,
-  onAddAsset,
+  onAddChild,
   onMove,
   onDuplicate,
   onDelete,
@@ -174,31 +176,35 @@ export const LocationTreeNode = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align={isRTL ? "start" : "end"} className="w-44 bg-popover z-50">
-            {node.type === "organization" ? (
-              // The root can only be renamed.
-              <DropdownMenuItem onClick={() => onRename(node)}>
-                <Pencil className="h-3.5 w-3.5" />
-                {t("rename")}
+            {/* Add actions — gated by the graph hierarchy */}
+            {canAddLocation(node.type) && (
+              <DropdownMenuItem onClick={() => onAddChild(node, "location")}>
+                <MapPin className="h-3.5 w-3.5" />
+                {t("addLocation")}
               </DropdownMenuItem>
-            ) : (
+            )}
+            {canAddArea(node.type) && (
+              <DropdownMenuItem onClick={() => onAddChild(node, "area")}>
+                <Factory className="h-3.5 w-3.5" />
+                {t("addUnit")}
+              </DropdownMenuItem>
+            )}
+            {canAddAsset(node.type) && (
+              <DropdownMenuItem onClick={() => onAddChild(node, "asset")}>
+                <Cpu className="h-3.5 w-3.5" />
+                {t("addAsset")}
+              </DropdownMenuItem>
+            )}
+            {node.type !== "asset" && <DropdownMenuSeparator />}
+
+            <DropdownMenuItem onClick={() => onRename(node)}>
+              <Pencil className="h-3.5 w-3.5" />
+              {t("rename")}
+            </DropdownMenuItem>
+
+            {/* Root can only be renamed; everything else can be moved/removed. */}
+            {node.type !== "organization" && (
               <>
-                {canHaveChildren(node.type) && (
-                  <DropdownMenuItem onClick={() => onAddLocation(node)}>
-                    <Plus className="h-3.5 w-3.5" />
-                    {t("addLocation")}
-                  </DropdownMenuItem>
-                )}
-                {canHaveAssets(node.type) && (
-                  <DropdownMenuItem onClick={() => onAddAsset(node)}>
-                    <Cpu className="h-3.5 w-3.5" />
-                    {t("addAsset")}
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => onRename(node)}>
-                  <Pencil className="h-3.5 w-3.5" />
-                  {t("rename")}
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onMove(node)}>
                   <Move className="h-3.5 w-3.5" />
                   {t("move")}
@@ -233,8 +239,7 @@ export const LocationTreeNode = ({
           onSelect={onSelect}
           onToggle={onToggle}
           onRename={onRename}
-          onAddLocation={onAddLocation}
-          onAddAsset={onAddAsset}
+          onAddChild={onAddChild}
           onMove={onMove}
           onDuplicate={onDuplicate}
           onDelete={onDelete}
