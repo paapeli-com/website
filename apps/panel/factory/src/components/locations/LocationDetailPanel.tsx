@@ -149,6 +149,23 @@ export const LocationDetailPanel = ({
         <ContextCard label={t("lastUpdated")} value={"—"} />
       </div>
 
+      {/* Tags */}
+      {node.tags && node.tags.length > 0 && (
+        <div className="space-y-2">
+          <div className="text-xs text-muted-foreground">{t("tags")}</div>
+          <div className="flex flex-wrap gap-2">
+            {node.tags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Tabs + preview list */}
       <div className="rounded-lg border bg-card">
         <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b">

@@ -8,7 +8,7 @@ export const LOCATIONS_STORAGE_KEY = "paapeli-locations-tree-v1";
 // Mirrors the seed used by the Location page so options exist before the user opens it.
 const seedLocationTree = (): TreeNode => ({
   id: "org-root",
-  name: "Paapeli Corp",
+  name: "Root Directory",
   type: "organization",
   children: [
     {

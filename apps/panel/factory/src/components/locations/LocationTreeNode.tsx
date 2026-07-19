@@ -30,6 +30,8 @@ export interface TreeNode {
   children?: TreeNode[];
   /** Direct (non-recursive) asset/device count attached to this node */
   directAssetCount?: number;
+  /** Free-form tags shown in the detail panel */
+  tags?: string[];
 }
 
 interface LocationTreeNodeProps {
@@ -160,55 +162,63 @@ export const LocationTreeNode = ({
           <span className="flex-1" />
         </button>
 
-        {node.type !== "organization" && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Actions"
-                className={`h-6 w-6 opacity-0 group-hover:opacity-100 shrink-0 transition-opacity ${isRTL ? "ml-1 mr-0" : "mr-1 ml-0"}`}
-              >
-                <MoreHorizontal className="h-3.5 w-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align={isRTL ? "start" : "end"} className="w-44 bg-popover z-50">
-              {canHaveChildren(node.type) && (
-                <DropdownMenuItem onClick={() => onAddLocation(node)}>
-                  <Plus className="h-3.5 w-3.5" />
-                  {t("addLocation")}
-                </DropdownMenuItem>
-              )}
-              {canHaveAssets(node.type) && (
-                <DropdownMenuItem onClick={() => onAddAsset(node)}>
-                  <Cpu className="h-3.5 w-3.5" />
-                  {t("addAsset")}
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Actions"
+              className={`h-6 w-6 opacity-0 group-hover:opacity-100 shrink-0 transition-opacity ${isRTL ? "ml-1 mr-0" : "mr-1 ml-0"}`}
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align={isRTL ? "start" : "end"} className="w-44 bg-popover z-50">
+            {node.type === "organization" ? (
+              // The root can only be renamed.
               <DropdownMenuItem onClick={() => onRename(node)}>
                 <Pencil className="h-3.5 w-3.5" />
                 {t("rename")}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onMove(node)}>
-                <Move className="h-3.5 w-3.5" />
-                {t("move")}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDuplicate(node)}>
-                <Copy className="h-3.5 w-3.5" />
-                {t("duplicate")}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => onDelete(node)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                {t("delete")}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+            ) : (
+              <>
+                {canHaveChildren(node.type) && (
+                  <DropdownMenuItem onClick={() => onAddLocation(node)}>
+                    <Plus className="h-3.5 w-3.5" />
+                    {t("addLocation")}
+                  </DropdownMenuItem>
+                )}
+                {canHaveAssets(node.type) && (
+                  <DropdownMenuItem onClick={() => onAddAsset(node)}>
+                    <Cpu className="h-3.5 w-3.5" />
+                    {t("addAsset")}
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => onRename(node)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  {t("rename")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onMove(node)}>
+                  <Move className="h-3.5 w-3.5" />
+                  {t("move")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onDuplicate(node)}>
+                  <Copy className="h-3.5 w-3.5" />
+                  {t("duplicate")}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => onDelete(node)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  {t("delete")}
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       {hasChildren && isExpanded && node.children!.map((child) => (
         <LocationTreeNode

@@ -150,6 +150,8 @@ export const translations = {
     
     // Add Forms
     addNew: "Add New",
+    addNode: "Add Node",
+    enterTags: "Comma-separated tags",
     addDevice: "Add Device",
     addGroup: "Add Group",
     addGateway: "Add Gateway",
@@ -2229,6 +2231,8 @@ export const translations = {
     
     // Add Forms
     addNew: "إضافة جديد",
+    addNode: "إضافة عقدة",
+    enterTags: "علامات مفصولة بفاصلة",
     addDevice: "إضافة جهاز",
     addGroup: "إضافة مجموعة",
     addGateway: "إضافة بوابة",
@@ -4294,6 +4298,8 @@ export const translations = {
     
     // Add Forms
     addNew: "افزودن جدید",
+    addNode: "افزودن نود",
+    enterTags: "برچسب‌ها را با کاما جدا کنید",
     addDevice: "افزودن دستگاه",
     addGroup: "افزودن گروه",
     addGateway: "افزودن گیت‌وی",

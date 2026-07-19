@@ -31,7 +31,7 @@ import { PageHeader } from "@/components/PageHeader";
 // ---------- Seed industrial hierarchy ----------
 const seedTree = (): TreeNode => ({
   id: "org-root",
-  name: "Paapeli Corp",
+  name: "Root Directory",
   type: "organization",
   children: [
     {
@@ -171,7 +171,12 @@ const loadTree = (): TreeNode => {
     const raw = localStorage.getItem(LOCATIONS_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === "object") return parsed as TreeNode;
+      if (parsed && typeof parsed === "object") {
+        const node = parsed as TreeNode;
+        // Migrate the old default root name to "Root Directory".
+        if (node.id === "org-root" && node.name === "Paapeli Corp") node.name = "Root Directory";
+        return node;
+      }
     }
   } catch {}
   return seedTree();
@@ -247,11 +252,12 @@ const Locations = () => {
   const collapseAll = () => setExpandedNodes(new Set(["org-root"]));
 
   // ----- Mutations -----
-  const handleAdd = (name: string, type: "location" | "area" | "asset") => {
+  const handleAdd = (name: string, type: "location" | "area" | "asset", tags: string[] = []) => {
     const newNode: TreeNode = {
       id: `node-${Date.now()}-${nextId++}`,
       name,
       type,
+      tags: tags.length ? tags : undefined,
       children: type === "asset" ? undefined : [],
     };
     setTree((prev) => {
@@ -367,53 +373,11 @@ const Locations = () => {
       {/* Header */}
       <PageHeader
         title={t("locations")}
-        count={(() => {
-          let n = 0;
-          const walk = (node: TreeNode) => {
-            if (node.type === "location") n++;
-            node.children?.forEach(walk);
-          };
-          walk(tree);
-          return n;
-        })()}
-        countLabel={t("locations")}
         actions={
-          <>
-            <Button onClick={handleTopAddLocation} className="h-10 gap-2">
-              <Plus className="h-4 w-4" />
-              {t("addLocation")}
-            </Button>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-10 w-10" onClick={expandAll}>
-                    <ChevronsUpDown className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{t("expandAll")}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-10 w-10" onClick={collapseAll}>
-                    <ChevronsDownUp className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{t("collapseAll")}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-10 w-10" onClick={handleRefresh} disabled={refreshing}>
-                    {refreshing ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{t("refresh")}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </>
+          <Button onClick={handleTopAddLocation} className="h-10 gap-2">
+            <Plus className="h-4 w-4" />
+            {t("addNode")}
+          </Button>
         }
       />
 
@@ -456,11 +420,38 @@ const Locations = () => {
               onDelete={(n) => { setDeleteTarget(n); setDeleteDialogOpen(true); }}
             />
           </ScrollArea>
-          <div className="p-2 border-t">
-            <Button variant="outline" size="sm" className="w-full" onClick={handleTopAddLocation}>
-              <Plus className="h-4 w-4" />
-              {t("addLocation")}
-            </Button>
+          {/* Tree controls (expand all / collapse all / refresh) */}
+          <div className="p-2 border-t flex items-center justify-center gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-9 w-9" onClick={expandAll}>
+                    <ChevronsUpDown className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t("expandAll")}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-9 w-9" onClick={collapseAll}>
+                    <ChevronsDownUp className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t("collapseAll")}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-9 w-9" onClick={handleRefresh} disabled={refreshing}>
+                    {refreshing ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t("refresh")}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </Card>
 
