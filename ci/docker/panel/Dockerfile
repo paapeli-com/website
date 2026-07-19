@@ -23,7 +23,9 @@ COPY --from=builder /app/apps/web/public ./apps/web/public
 # Vite SPAs — served as static files by the host.
 COPY --from=builder /app/apps/panel/factory/dist ./apps/panel/factory/dist
 COPY --from=builder /app/apps/panel/track/dist ./apps/panel/track/dist
-# The single-origin host server (serves the SPAs + proxies to web).
+# The single-origin host server (serves the SPAs + proxies to web) and the
+# product-agnostic login page it serves at /login.
 COPY --from=builder /app/apps/panel/prod-server.mjs ./prod-server.mjs
+COPY --from=builder /app/apps/panel/login.html ./login.html
 EXPOSE 8080
 CMD ["node", "prod-server.mjs"]
