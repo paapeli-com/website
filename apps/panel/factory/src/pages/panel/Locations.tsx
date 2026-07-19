@@ -23,54 +23,23 @@ import {
 import { LocationTreeNode, type TreeNode } from "@/components/locations/LocationTreeNode";
 import { LocationDetailPanel, type AssetPreview } from "@/components/locations/LocationDetailPanel";
 import { AddNodeDialog } from "@/components/locations/AddNodeDialog";
+import { AddChildNodeDialog } from "@/components/locations/AddChildNodeDialog";
 import { RenameNodeDialog } from "@/components/locations/RenameNodeDialog";
 import { DeleteNodeDialog } from "@/components/locations/DeleteNodeDialog";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
+import { useGetAssetTreeQuery, type PaapeliTreeNode } from "@paapeli/api";
 
-// ---------- Seed industrial hierarchy ----------
-const seedTree = (): TreeNode => ({
-  id: "org-root",
-  name: "Paapeli Corp",
-  type: "organization",
-  children: [
-    {
-      id: "loc-qazvin",
-      name: "Qazvin",
-      type: "location",
-      children: [
-        {
-          id: "loc-factory-a",
-          name: "Factory A",
-          type: "location",
-          children: [
-            {
-              id: "loc-sulfonation",
-              name: "Sulfonation",
-              type: "area",
-              directAssetCount: 18,
-              children: [
-                { id: "loc-line-1", name: "Line 1", type: "area", directAssetCount: 12, children: [] },
-                { id: "loc-line-2", name: "Line 2", type: "area", directAssetCount: 12, children: [] },
-              ],
-            },
-            { id: "loc-nitration", name: "Nitration", type: "area", directAssetCount: 24, children: [] },
-            { id: "loc-packaging", name: "Packaging", type: "area", directAssetCount: 16, children: [] },
-          ],
-        },
-        {
-          id: "loc-factory-b",
-          name: "Factory B",
-          type: "location",
-          directAssetCount: 0,
-          children: [
-            { id: "loc-line-b1", name: "Line B1", type: "area", directAssetCount: 8, children: [] },
-          ],
-        },
-      ],
-    },
-  ],
+const ROOT_ASSET_ID = "7c613570-836f-11f1-a92c-4f03335be81b";
+
+const mapApiTreeNode = (node: PaapeliTreeNode): TreeNode => ({
+  id: node.id,
+  name: node.name,
+  type: node.type || "asset",
+  children: node.children?.map(mapApiTreeNode) ?? [],
 });
+
+const EMPTY_TREE: TreeNode = { id: ROOT_ASSET_ID, name: "", type: "location", children: [] };
 
 // ---------- Mock assets per location ----------
 const MOCK_ASSETS_BY_LOCATION: Record<string, AssetPreview[]> = {
@@ -164,36 +133,20 @@ const computeAssetCounts = (root: TreeNode): Map<string, number> => {
 
 let nextId = 1;
 
-const LOCATIONS_STORAGE_KEY = "paapeli-locations-tree-v1";
-
-const loadTree = (): TreeNode => {
-  try {
-    const raw = localStorage.getItem(LOCATIONS_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === "object") return parsed as TreeNode;
-    }
-  } catch {}
-  return seedTree();
-};
-
-const saveTree = (tree: TreeNode) => {
-  try {
-    localStorage.setItem(LOCATIONS_STORAGE_KEY, JSON.stringify(tree));
-  } catch {}
-};
-
 const Locations = () => {
   const { t, isRTL, language } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [tree, setTree] = useState<TreeNode>(loadTree);
+  const { data: apiTree, isLoading: treeLoading, isError: treeError, refetch: refetchTree } = useGetAssetTreeQuery(ROOT_ASSET_ID);
 
-  useEffect(() => { saveTree(tree); }, [tree]);
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(
-    new Set(["org-root", "loc-qazvin", "loc-factory-a", "loc-sulfonation"])
-  );
+  const [tree, setTree] = useState<TreeNode>(EMPTY_TREE);
+
+  useEffect(() => {
+    if (apiTree) setTree(mapApiTreeNode(apiTree));
+  }, [apiTree]);
+
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set([ROOT_ASSET_ID]));
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
@@ -203,19 +156,21 @@ const Locations = () => {
   const [addParentType, setAddParentType] = useState<TreeNode["type"] | null>(null);
   const [addParentId, setAddParentId] = useState<string | null>(null);
 
+  const [addChildDialogOpen, setAddChildDialogOpen] = useState(false);
+  const [addChildParent, setAddChildParent] = useState<TreeNode | null>(null);
+
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameTarget, setRenameTarget] = useState<TreeNode | null>(null);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<TreeNode | null>(null);
 
-  // Default select Line 1 for showcase
+  // Select the root node once the tree has loaded
   useEffect(() => {
-    if (!selectedNode) {
-      const initial = findNode(tree, "loc-line-1");
-      if (initial) setSelectedNode(initial);
+    if (!selectedNode && apiTree) {
+      setSelectedNode(mapApiTreeNode(apiTree));
     }
-  }, []); // eslint-disable-line
+  }, [apiTree]); // eslint-disable-line
 
   const matchingIds = useMemo(
     () => (searchQuery ? collectMatchingIds(tree, searchQuery) : new Set<string>()),
@@ -244,7 +199,7 @@ const Locations = () => {
     collectIds(tree, all);
     setExpandedNodes(all);
   };
-  const collapseAll = () => setExpandedNodes(new Set(["org-root"]));
+  const collapseAll = () => setExpandedNodes(new Set([ROOT_ASSET_ID]));
 
   // ----- Mutations -----
   const handleAdd = (name: string, type: "location" | "area" | "asset") => {
@@ -256,14 +211,14 @@ const Locations = () => {
     };
     setTree((prev) => {
       const updated = JSON.parse(JSON.stringify(prev)) as TreeNode;
-      const parent = findNode(updated, addParentId || "org-root");
+      const parent = findNode(updated, addParentId || ROOT_ASSET_ID);
       if (parent) {
         if (!parent.children) parent.children = [];
         parent.children.push(newNode);
       }
       return updated;
     });
-    setExpandedNodes((p) => new Set([...p, addParentId || "org-root"]));
+    setExpandedNodes((p) => new Set([...p, addParentId || ROOT_ASSET_ID]));
     toast.success(t("success"));
   };
 
@@ -283,7 +238,7 @@ const Locations = () => {
     if (!deleteTarget) return;
     setTree((prev) => {
       const updated = mapTree(JSON.parse(JSON.stringify(prev)), (n) => (n.id === deleteTarget.id ? null : n));
-      return updated || seedTree();
+      return updated || EMPTY_TREE;
     });
     if (selectedNode?.id === deleteTarget.id) setSelectedNode(null);
     setDeleteDialogOpen(false);
@@ -317,15 +272,16 @@ const Locations = () => {
 
   // ----- UI handlers -----
   const handleTopAddLocation = () => {
-    setAddParentId(selectedNode?.id || "org-root");
-    setAddParentType(selectedNode?.type || "organization");
+    setAddParentId(selectedNode?.id || ROOT_ASSET_ID);
+    setAddParentType(selectedNode?.type || "location");
     setAddDialogOpen(true);
   };
 
   const handleAddLocationOnNode = (node: TreeNode) => {
     setAddParentId(node.id);
-    setAddParentType(node.type);
-    setAddDialogOpen(true);
+    setAddChildParent(node);
+    setExpandedNodes((p) => new Set([...p, node.id]));
+    setAddChildDialogOpen(true);
   };
 
   const buildLocationPath = (id: string) =>
@@ -348,12 +304,11 @@ const Locations = () => {
     navigate(getLocalizedPath(`/devices/${assetId}`));
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-      toast.success(t("success"));
-    }, 600);
+    await refetchTree();
+    setRefreshing(false);
+    toast.success(t("success"));
   };
 
   // ----- Derived for detail panel -----
@@ -439,22 +394,28 @@ const Locations = () => {
             </div>
           </CardHeader>
           <ScrollArea className="flex-1 px-2 pb-2">
-            <LocationTreeNode
-              node={tree}
-              expandedNodes={expandedNodes}
-              selectedNodeId={selectedNode?.id || null}
-              searchQuery={searchQuery}
-              matchingIds={matchingIds}
-              assetCounts={assetCounts}
-              onSelect={setSelectedNode}
-              onToggle={toggleExpand}
-              onRename={(n) => { setRenameTarget(n); setRenameDialogOpen(true); }}
-              onAddLocation={handleAddLocationOnNode}
-              onAddAsset={handleAddAssetOnNode}
-              onMove={handleMove}
-              onDuplicate={handleDuplicate}
-              onDelete={(n) => { setDeleteTarget(n); setDeleteDialogOpen(true); }}
-            />
+            {treeLoading ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">{t("loading") || "Loading..."}</div>
+            ) : treeError ? (
+              <div className="py-10 text-center text-sm text-destructive">{t("errorStatus") || "Failed to load locations"}</div>
+            ) : (
+              <LocationTreeNode
+                node={tree}
+                expandedNodes={expandedNodes}
+                selectedNodeId={selectedNode?.id || null}
+                searchQuery={searchQuery}
+                matchingIds={matchingIds}
+                assetCounts={assetCounts}
+                onSelect={setSelectedNode}
+                onToggle={toggleExpand}
+                onRename={(n) => { setRenameTarget(n); setRenameDialogOpen(true); }}
+                onAddLocation={handleAddLocationOnNode}
+                onAddAsset={handleAddAssetOnNode}
+                onMove={handleMove}
+                onDuplicate={handleDuplicate}
+                onDelete={(n) => { setDeleteTarget(n); setDeleteDialogOpen(true); }}
+              />
+            )}
           </ScrollArea>
           <div className="p-2 border-t">
             <Button variant="outline" size="sm" className="w-full" onClick={handleTopAddLocation}>
@@ -487,6 +448,13 @@ const Locations = () => {
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
         parentType={addParentType}
+        onAdd={handleAdd}
+      />
+      <AddChildNodeDialog
+        open={addChildDialogOpen}
+        onOpenChange={setAddChildDialogOpen}
+        parentId={addChildParent?.id || ""}
+        parentName={addChildParent?.name || ""}
         onAdd={handleAdd}
       />
       <RenameNodeDialog

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/store/authStore";
 import { CognitoUserPool, CognitoUser } from 'amazon-cognito-identity-js';
 import paapeliLogo from "@/assets/paapeli-logo.svg";
 import { toast } from "sonner";

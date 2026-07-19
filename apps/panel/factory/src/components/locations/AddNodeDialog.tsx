@@ -17,9 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MapPin, Factory, Cpu } from "lucide-react";
+import { useCreateAssetMutation } from "@paapeli/api";
+import { toast } from "sonner";
 
 type NodeType = "location" | "area" | "asset";
+
+const ASSET_TYPE_OPTIONS = [{ value: "default", label: "default" }] as const;
 
 interface AddNodeDialogProps {
   open: boolean;
@@ -28,30 +31,35 @@ interface AddNodeDialogProps {
   onAdd: (name: string, type: NodeType) => void;
 }
 
-export const AddNodeDialog = ({ open, onOpenChange, parentType, onAdd }: AddNodeDialogProps) => {
+export const AddNodeDialog = ({ open, onOpenChange, onAdd }: AddNodeDialogProps) => {
   const { t } = useLanguage();
   const [name, setName] = useState("");
-  const [type, setType] = useState<NodeType | "">("");
-
-  // Determine allowed types based on parent
-  const allowedTypes: { value: NodeType; label: string; icon: React.ReactNode }[] = [];
-  if (!parentType || parentType === "organization") {
-    allowedTypes.push({ value: "location", label: t("locationLabel"), icon: <MapPin className="h-4 w-4" /> });
-  }
-  if (!parentType || parentType === "organization" || parentType === "location") {
-    allowedTypes.push({ value: "area", label: t("areaUnit"), icon: <Factory className="h-4 w-4" /> });
-  }
-  if (!parentType || parentType === "location" || parentType === "area") {
-    allowedTypes.push({ value: "asset", label: t("assets"), icon: <Cpu className="h-4 w-4" /> });
-  }
+  const [assetType, setAssetType] = useState<string>("default");
+  const createAsset = useCreateAssetMutation();
 
   const handleAdd = () => {
-    if (name.trim() && type) {
-      onAdd(name.trim(), type as NodeType);
-      setName("");
-      setType("");
-      onOpenChange(false);
-    }
+    if (!name.trim() || !assetType || createAsset.isPending) return;
+    createAsset.mutate(
+      {
+        name: name.trim(),
+        type: assetType,
+        label: null,
+        description: null,
+        parentId: null,
+        customerId: null,
+      },
+      {
+        onSuccess: () => {
+          onAdd(name.trim(), "asset");
+          setName("");
+          setAssetType("default");
+          onOpenChange(false);
+        },
+        onError: () => {
+          toast.error("Failed to create asset");
+        },
+      }
+    );
   };
 
   return (
@@ -63,17 +71,14 @@ export const AddNodeDialog = ({ open, onOpenChange, parentType, onAdd }: AddNode
         <div className="space-y-4 py-2">
           <div className="space-y-2">
             <Label>{t("selectNodeType")}</Label>
-            <Select value={type} onValueChange={(v) => setType(v as NodeType)}>
+            <Select value={assetType} onValueChange={setAssetType}>
               <SelectTrigger>
                 <SelectValue placeholder={t("selectNodeType")} />
               </SelectTrigger>
               <SelectContent>
-                {allowedTypes.map((t) => (
-                  <SelectItem key={t.value} value={t.value}>
-                    <div className="flex items-center gap-2">
-                      {t.icon}
-                      {t.label}
-                    </div>
+                {ASSET_TYPE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -93,7 +98,7 @@ export const AddNodeDialog = ({ open, onOpenChange, parentType, onAdd }: AddNode
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("cancel")}
           </Button>
-          <Button onClick={handleAdd} disabled={!name.trim() || !type}>
+          <Button onClick={handleAdd} disabled={!name.trim() || !assetType || createAsset.isPending}>
             {t("create")}
           </Button>
         </DialogFooter>

@@ -26,7 +26,7 @@ import { localizedNodeName } from "@/lib/locationLabels";
 export interface TreeNode {
   id: string;
   name: string;
-  type: "organization" | "location" | "area" | "asset";
+  type: string;
   children?: TreeNode[];
   /** Direct (non-recursive) asset/device count attached to this node */
   directAssetCount?: number;

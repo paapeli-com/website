@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/store/authStore";
 import { Settings, LogOut } from "lucide-react";
 import paapeliLogo from "@/assets/paapeli-logo.png";
 import { cn } from "@/lib/utils";

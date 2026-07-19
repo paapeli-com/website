@@ -1,5 +1,7 @@
 import { ReactNode } from "react";
 import { isAuthenticated, goToLogin } from "@paapeli/brand/session";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/store/authStore";
 
 interface ProtectedRouteProps {
   children: ReactNode;

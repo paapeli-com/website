@@ -13,17 +13,25 @@ const KEY = "paapeli_session";
 export const IDLE_MS = 60 * 60 * 1000; // 1 hour of inactivity
 export const LOGIN_URL = "/login";
 
-export type Session = { email: string; name: string; initial: string; expiresAt: number };
+/** `token` is the bearer JWT returned by the login API — carried in the same
+ *  session object so every product app can attach it to its own API client. */
+export type Session = { email: string; name: string; initial: string; expiresAt: number; token?: string };
 
-export function signIn(email = CURRENT_USER.email): Session {
+export function signIn(email = CURRENT_USER.email, token?: string): Session {
   const s: Session = {
     email: email || CURRENT_USER.email,
     name: CURRENT_USER.name,
     initial: CURRENT_USER.initial,
     expiresAt: Date.now() + IDLE_MS,
+    token,
   };
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
   return s;
+}
+
+/** The bearer token from the current session, if any (set at /login). */
+export function getToken(): string | null {
+  return getSession()?.token ?? null;
 }
 
 export function getSession(): Session | null {

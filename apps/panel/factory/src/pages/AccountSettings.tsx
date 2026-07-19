@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useAuth } from "@/contexts/AuthContext";
 import { CURRENT_USER } from "@paapeli/brand/config";
 import { signOut as endSession } from "@paapeli/brand/session";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useAuth } from "@/store/authStore";
+import { useWorkspace } from "@/store/workspaceStore";
 import { PanelLayout } from "@/layouts/PanelLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";

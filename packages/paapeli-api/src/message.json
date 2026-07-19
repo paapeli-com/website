@@ -1,0 +1,1555 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Paapeli Gateway API",
+    "description": "Edge gateway and facade in front of ThingsBoard",
+    "version": "0.0.1"
+  },
+  "servers": [
+    {
+      "url": "http://192.168.110.1:8081",
+      "description": "Generated server url"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Time series",
+      "description": "Time series endpoints"
+    },
+    {
+      "name": "Device RPC",
+      "description": "Device RPC endpoints"
+    },
+    {
+      "name": "Devices",
+      "description": "Device management endpoints"
+    },
+    {
+      "name": "Authentication",
+      "description": "Auth endpoints"
+    },
+    {
+      "name": "Assets",
+      "description": "Asset management endpoints"
+    }
+  ],
+  "paths": {
+    "/api/v1/aiot/devices": {
+      "put": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Update device",
+        "description": "Edit device name,label and description",
+        "operationId": "editDevice",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaapeliEditDeviceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliEditDeviceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliEditDeviceResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create a device",
+        "description": "Create a new device under an asset. Note: 'credentialValue' is **not required** when credentialType = ACCESS_TOKEN (Backend will auto-generate the token).",
+        "operationId": "createDevice",
+        "requestBody": {
+          "description": "Device creation payload",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaapeliCreateDeviceRequest"
+              },
+              "examples": {
+                "ACCESS_TOKEN (Recommended)": {
+                  "summary": "Simple access token credential (most common)",
+                  "description": "ThingsBoard will generate the access token automatically.",
+                  "value": {
+                    "label": "Living Room Sensor",
+                    "type": "default",
+                    "name": "temp-sensor-living",
+                    "description": "Monitors room temperature",
+                    "isGateway": false,
+                    "credentialType": "ACCESS_TOKEN",
+                    "assetId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                  }
+                },
+                "X509_CERTIFICATE": {
+                  "summary": "X.509 Certificate credential",
+                  "description": "Requires credentialValue containing the certificate data.",
+                  "value": {
+                    "label": "Secure Gateway",
+                    "type": "gateway",
+                    "name": "secure-gw-01",
+                    "description": "X509 secured gateway",
+                    "isGateway": true,
+                    "credentialType": "X509_CERTIFICATE",
+                    "credentialValue": "-----BEGIN CERTIFICATE-----\nMIIC...\n-----END CERTIFICATE-----",
+                    "assetId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                  }
+                },
+                "MQTT_BASIC": {
+                  "summary": "MQTT Basic credentials",
+                  "description": "Requires escaped json style credential.",
+                  "value": {
+                    "label": "MQTT Device",
+                    "type": "sensor",
+                    "name": "mqtt-sensor-01",
+                    "credentialType": "MQTT_BASIC",
+                    "credentialValue": "{\"clientId\":\"5euh5nzm34bjjh1efmlt\",\"userName\":\"onasd1lgwasmjl7v2v7h\",\"password\":\"b9xtm4ny8kt9zewaga5o\"}",
+                    "assetId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Device created successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliCreateDeviceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliCreateDeviceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliCreateDeviceResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/tb/events": {
+      "post": {
+        "tags": [
+          "internal-controller"
+        ],
+        "operationId": "handleEvent",
+        "parameters": [
+          {
+            "name": "X-Paapeli-Ingestion-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TbProjectEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/internal/tb/events/device-activities": {
+      "post": {
+        "tags": [
+          "internal-controller"
+        ],
+        "operationId": "ingest",
+        "parameters": [
+          {
+            "name": "X-Paapeli-Ingestion-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThingsBoardDeviceActivityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceActivityIngestionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/rpc": {
+      "post": {
+        "tags": [
+          "Device RPC"
+        ],
+        "summary": "Send RPC command",
+        "description": "Send a Remote Procedure Call (RPC) to a device.\n- action: Name of the function/method the device should execute\n- params: Parameters for that function (can be null)\n",
+        "operationId": "sendRPC",
+        "requestBody": {
+          "description": "RPC command",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaapeliDeviceRPC"
+              },
+              "examples": {
+                "Set Temperature Example": {
+                  "description": "Set Temperature Example",
+                  "value": {
+                    "action": "setTemperature",
+                    "deviceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                    "deviceName": "living-room-sensor",
+                    "params": {
+                      "temperature": 23.5,
+                      "unit": "C"
+                    },
+                    "isOneWay": false,
+                    "queue": false
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "RPC sent successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliMessage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliMessage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliMessage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Login user",
+        "description": "Authenticate with username and password.\nThe returned token must be used in subsequent requests as:\nAuthorization: Bearer \u003Ctoken\u003E\n",
+        "operationId": "login",
+        "requestBody": {
+          "description": "Login credentials",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaapeliAuthRequest"
+              },
+              "examples": {
+                "Login Example": {
+                  "description": "Login Example",
+                  "value": {
+                    "username": "admin@paapeli.me",
+                    "password": "your-secure-password"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAuthResponse"
+                },
+                "examples": {
+                  "Successful Login": {
+                    "description": "Successful Login",
+                    "value": {
+                      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAuthResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/aiot/assets": {
+      "post": {
+        "tags": [
+          "Assets"
+        ],
+        "summary": "Create an asset",
+        "description": "Create root assets by setting parentId to null, or child assets by specifying a parentId.",
+        "operationId": "createAsset",
+        "requestBody": {
+          "description": "Asset creation payload",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaapeliAsset"
+              },
+              "examples": {
+                "Root Asset": {
+                  "summary": "Create a top-level (root) asset",
+                  "description": "Root Asset",
+                  "value": {
+                    "name": "Main Factory",
+                    "type": "default",
+                    "label": "Factory HQ",
+                    "description": "Main production facility",
+                    "parentId": null
+                  }
+                },
+                "Child Asset": {
+                  "summary": "Create asset under a parent",
+                  "description": "Child Asset",
+                  "value": {
+                    "name": "Production Line 1",
+                    "type": "production",
+                    "label": "Line A",
+                    "description": "Primary assembly line",
+                    "parentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Asset created successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAsset"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAsset"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAsset"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/timeseries/history/{deviceId}": {
+      "get": {
+        "tags": [
+          "Time series"
+        ],
+        "summary": "Get device time series",
+        "description": "Get device time series. This includes all sensor keys",
+        "operationId": "getDeviceTimeSeriesData",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/EntityFieldItem"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/EntityFieldItem"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/devices/{deviceId}": {
+      "get": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Device details",
+        "description": "Get device details by device UUID",
+        "operationId": "getDeviceById",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceAssetProjection"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceAssetProjection"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Delete a device",
+        "description": "Delete a device and all its related data",
+        "operationId": "deleteDevice",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliMessage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliMessage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/devices/{deviceId}/activities": {
+      "get": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Device activities",
+        "description": "Get device activities by device UUID",
+        "operationId": "getDeviceActivities",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseDeviceActivityResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseDeviceActivityResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/devices/tenant": {
+      "get": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Tenant device list",
+        "description": "List tenant devices",
+        "operationId": "getTenantDevices",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseDeviceAssetProjection"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseDeviceAssetProjection"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/devices/asset/{assetId}": {
+      "get": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Asset device list",
+        "description": "List devices belonging to an asset",
+        "operationId": "getAssetDevices",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseDeviceAssetProjection"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseDeviceAssetProjection"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/assets/tree/{rootAssetId}": {
+      "get": {
+        "tags": [
+          "Assets"
+        ],
+        "summary": "Get assets hierarchy",
+        "description": "Get a tree representation of assets hierarchy starting from the given root asset.",
+        "operationId": "getTree",
+        "parameters": [
+          {
+            "name": "rootAssetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliTreeNode"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliTreeNode"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PaapeliEditDeviceRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "EntityId": {
+        "type": "object",
+        "properties": {
+          "entityType": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "PaapeliEditDeviceResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "profileId": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "tenantId": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "customerId": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "TbProjectEvent": {
+        "type": "object",
+        "properties": {
+          "eventType": {
+            "type": "string"
+          },
+          "entityType": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "lastActivityTime": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "lastConnectTime": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "lastDisconnectTime": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "rawEvent": {
+            "type": "object",
+            "additionalProperties": {
+
+            }
+          }
+        }
+      },
+      "JsonNode": {
+        "type": "object",
+        "properties": {
+          "empty": {
+            "type": "boolean"
+          },
+          "array": {
+            "type": "boolean"
+          },
+          "null": {
+            "type": "boolean"
+          },
+          "object": {
+            "type": "boolean"
+          },
+          "float": {
+            "type": "boolean"
+          },
+          "pojo": {
+            "type": "boolean"
+          },
+          "floatingPointNumber": {
+            "type": "boolean"
+          },
+          "short": {
+            "type": "boolean"
+          },
+          "int": {
+            "type": "boolean"
+          },
+          "long": {
+            "type": "boolean"
+          },
+          "double": {
+            "type": "boolean"
+          },
+          "bigDecimal": {
+            "type": "boolean"
+          },
+          "bigInteger": {
+            "type": "boolean"
+          },
+          "textual": {
+            "type": "boolean",
+            "deprecated": true
+          },
+          "boolean": {
+            "type": "boolean"
+          },
+          "binary": {
+            "type": "boolean"
+          },
+          "valueNode": {
+            "type": "boolean"
+          },
+          "container": {
+            "type": "boolean"
+          },
+          "missingNode": {
+            "type": "boolean"
+          },
+          "nodeType": {
+            "type": "string",
+            "enum": [
+              "ARRAY",
+              "BINARY",
+              "BOOLEAN",
+              "MISSING",
+              "NULL",
+              "NUMBER",
+              "OBJECT",
+              "POJO",
+              "STRING"
+            ]
+          },
+          "string": {
+            "type": "boolean"
+          },
+          "integralNumber": {
+            "type": "boolean"
+          },
+          "number": {
+            "type": "boolean"
+          },
+          "embeddedValue": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ThingsBoardDeviceActivityRequest": {
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "activityType": {
+            "type": "string",
+            "enum": [
+              "DEVICE_REGISTERED",
+              "DEVICE_UPDATED",
+              "DEVICE_ASSIGNED",
+              "DEVICE_UNASSIGNED",
+              "DEVICE_DELETED",
+              "DEVICE_ACTIVATED",
+              "DEVICE_INACTIVATED",
+              "COMMAND_SENT",
+              "COMMAND_SUCCEEDED",
+              "COMMAND_FAILED",
+              "ALARM_TRIGGERED",
+              "ALARM_ACKNOWLEDGED",
+              "ALARM_CLEARED",
+              "FIRMWARE_UPDATE_STARTED",
+              "FIRMWARE_UPDATED",
+              "FIRMWARE_UPDATE_FAILED"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 0
+          },
+          "actorType": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "DEVICE",
+              "RULE_ENGINE",
+              "SYSTEM"
+            ]
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actorName": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "sourceEventId": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "occurredAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "details": {
+            "$ref": "#/components/schemas/JsonNode"
+          }
+        },
+        "required": [
+          "activityType",
+          "actorType",
+          "description",
+          "deviceId",
+          "occurredAt",
+          "sourceEventId",
+          "tenantId"
+        ]
+      },
+      "DeviceActivityIngestionResponse": {
+        "type": "object",
+        "properties": {
+          "inserted": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PaapeliDeviceRPC": {
+        "type": "object",
+        "description": "Device RPC (Remote Procedure Call) command",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Action / method name that the device should execute",
+            "example": "setTemperature"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Target device ID",
+            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+          },
+          "deviceName": {
+            "type": "string",
+            "description": "Device name",
+            "example": "living-room-sensor"
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": {
+
+            },
+            "description": "Parameters for the action (can be null or empty)",
+            "example": {
+              "temperature": 23.5,
+              "unit": "C"
+            }
+          },
+          "isOneWay": {
+            "type": "boolean",
+            "default": false,
+            "description": "One-way RPC (fire and forget). Default: false",
+            "example": false
+          },
+          "queue": {
+            "type": "boolean",
+            "default": false,
+            "description": "Queue the RPC if device is offline. Default: false",
+            "example": false
+          }
+        },
+        "required": [
+          "action",
+          "deviceId",
+          "deviceName"
+        ]
+      },
+      "PaapeliMessage": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "PaapeliCreateDeviceRequest": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Display label of the device",
+            "example": "Temperature Sensor 01"
+          },
+          "type": {
+            "type": "string",
+            "description": "Device type",
+            "example": "default"
+          },
+          "name": {
+            "type": "string",
+            "description": "Unique device name",
+            "example": "temp-sensor-01"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional device description",
+            "example": "Living room temperature sensor"
+          },
+          "isGateway": {
+            "type": "boolean",
+            "description": "Whether this device acts as a gateway",
+            "example": false
+          },
+          "customerId": {
+            "type": "string",
+            "description": "Customer ID (optional)",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "profileId": {
+            "type": "string",
+            "description": "Device profile ID",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "credentialType": {
+            "type": "string",
+            "description": "Credential type",
+            "enum": [
+              "ACCESS_TOKEN",
+              "X509_CERTIFICATE",
+              "MQTT_BASIC",
+              "LWM2M_CREDENTIALS"
+            ],
+            "example": "ACCESS_TOKEN"
+          },
+          "credentialValue": {
+            "type": "string",
+            "description": "Credential value.\nRequired for: X509_CERTIFICATE, MQTT_BASIC, LWM2M_CREDENTIALS\nNOT required for: ACCESS_TOKEN (TB auto-generates it)\n",
+            "example": "my-device-access-token-12345"
+          },
+          "assetId": {
+            "type": "string",
+            "description": "Asset ID this device belongs to",
+            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+          }
+        },
+        "required": [
+          "assetId",
+          "credentialType",
+          "label",
+          "name"
+        ]
+      },
+      "PaapeliCreateDeviceResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "profileId": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "tenantId": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "customerId": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "credentialType": {
+            "type": "string",
+            "enum": [
+              "ACCESS_TOKEN",
+              "X509_CERTIFICATE",
+              "MQTT_BASIC",
+              "LWM2M_CREDENTIALS"
+            ]
+          }
+        }
+      },
+      "PaapeliAuthRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Username",
+            "example": "admin@paapeli.me"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password",
+            "example": "your-secure-password"
+          }
+        },
+        "required": [
+          "password",
+          "username"
+        ]
+      },
+      "PaapeliAuthResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "JWT Bearer token to use in subsequent requests",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "PaapeliAsset": {
+        "type": "object",
+        "properties": {
+          "parentId": {
+            "type": "string",
+            "description": "Parent asset ID. Null for root assets.",
+            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+          },
+          "id": {
+            "type": "string",
+            "description": "Asset ID (generated by server - do not send on create)",
+            "example": "b9c8d7e6-f5a4-3210-9876-543210fedcba",
+            "readOnly": true
+          },
+          "createdTime": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Created timestamp (server generated)",
+            "readOnly": true
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Version (server managed)",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Asset name",
+            "example": "Factory Floor"
+          },
+          "type": {
+            "type": "string",
+            "description": "Asset type",
+            "example": "default"
+          },
+          "label": {
+            "type": "string",
+            "description": "Asset label",
+            "example": "Main Production Area"
+          },
+          "description": {
+            "type": "string",
+            "description": "Asset description",
+            "example": "Main factory floor assets"
+          },
+          "customerId": {
+            "type": "string",
+            "description": "Customer ID (optional)",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          }
+        },
+        "required": [
+          "label",
+          "name",
+          "type"
+        ]
+      },
+      "EntityFieldItem": {
+        "type": "object",
+        "properties": {
+          "ts": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "DeviceAssetProjection": {
+        "type": "object",
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deviceName": {
+            "type": "string"
+          },
+          "deviceType": {
+            "type": "string"
+          },
+          "deviceLabel": {
+            "type": "string"
+          },
+          "deviceProtocol": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "assetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "assetName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DeviceActivityResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "DEVICE_REGISTERED",
+              "DEVICE_UPDATED",
+              "DEVICE_ASSIGNED",
+              "DEVICE_UNASSIGNED",
+              "DEVICE_DELETED",
+              "DEVICE_ACTIVATED",
+              "DEVICE_INACTIVATED",
+              "COMMAND_SENT",
+              "COMMAND_SUCCEEDED",
+              "COMMAND_FAILED",
+              "ALARM_TRIGGERED",
+              "ALARM_ACKNOWLEDGED",
+              "ALARM_CLEARED",
+              "FIRMWARE_UPDATE_STARTED",
+              "FIRMWARE_UPDATED",
+              "FIRMWARE_UPDATE_FAILED"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "actorType": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "DEVICE",
+              "RULE_ENGINE",
+              "SYSTEM"
+            ]
+          },
+          "actorName": {
+            "type": "string"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "details": {
+            "type": "string"
+          }
+        }
+      },
+      "PageResponseDeviceActivityResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeviceActivityResponse"
+            }
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "hasNext": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PageResponseDeviceAssetProjection": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeviceAssetProjection"
+            }
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "hasNext": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PaapeliTreeNode": {
+        "type": "object",
+        "description": "Represents a node in the asset hierarchy tree",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Asset ID",
+            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+          },
+          "name": {
+            "type": "string",
+            "description": "Asset name",
+            "example": "Factory Floor"
+          },
+          "type": {
+            "type": "string",
+            "description": "Asset type",
+            "example": "default"
+          },
+          "label": {
+            "type": "string",
+            "description": "Asset label",
+            "example": "Production Area"
+          },
+          "children": {
+            "$ref": "#/components/schemas/PaapeliTreeNode",
+            "description": "Child nodes (recursive)"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "description": "Enter JWT token (without 'Bearer ' prefix)",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

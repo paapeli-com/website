@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/store/authStore";
 import {
   PieChart,
   LayoutDashboard,
@@ -45,7 +45,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspace } from "@/store/workspaceStore";
 import { CURRENT_USER } from "@paapeli/brand/config";
 import { signOut as endSession, startIdleWatch } from "@paapeli/brand/session";
 import {

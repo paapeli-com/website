@@ -35,6 +35,9 @@
       font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
     button.google:hover{ background:#f9fafb; }
     .foot{ text-align:center; font-size:14px; color:#6b7280; margin-top:22px; }
+    .error{ display:none; background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; font-size:13px;
+      border-radius:6px; padding:10px 12px; margin-bottom:16px; }
+    button.primary:disabled{ opacity:.6; cursor:not-allowed; }
   </style>
 </head>
 <body>
@@ -58,6 +61,8 @@
       </div>
       <h1>Sign in to your account</h1>
 
+      <div class="error" id="error"></div>
+
       <label for="email">Email / Username</label>
       <input id="email" type="text" placeholder="name@host.com" value="sina@paapeli.com" autocomplete="username" />
 
@@ -66,7 +71,7 @@
 
       <div class="row-right"><a class="link" href="#">Forgot password?</a></div>
 
-      <button class="primary" type="submit">Sign in</button>
+      <button class="primary" type="submit" id="submit">Sign in</button>
 
       <div class="divider">Or</div>
 
@@ -82,20 +87,79 @@
   <script>
     (function () {
       var IDLE_MS = 60 * 60 * 1000; // 1 hour idle
+      var API_BASE_URL = "https://gateway.paapeli.me";
       var params = new URLSearchParams(location.search);
       var redirect = params.get("redirect") || "/AIoT/SmartFactory";
       // Never redirect back to the login page itself.
       if (redirect.indexOf("/login") === 0) redirect = "/AIoT/SmartFactory";
-      function signIn(email) {
-        var s = { email: email || "sina@paapeli.com", name: "هلدینگ هوشمند سینا", initial: "س", expiresAt: Date.now() + IDLE_MS };
-        try { localStorage.setItem("paapeli_session", JSON.stringify(s)); } catch (e) {}
-        location.href = redirect;
+
+      var form = document.getElementById("form");
+      var submitBtn = document.getElementById("submit");
+      var errorEl = document.getElementById("error");
+
+      function showError(message) {
+        errorEl.textContent = message;
+        errorEl.style.display = "block";
       }
-      document.getElementById("form").addEventListener("submit", function (e) {
+      function hideError() {
+        errorEl.style.display = "none";
+      }
+
+      // Persist the shared, product-agnostic session (mirrors packages/brand/session.ts's
+      // Session shape) so every product app on this origin sees the same signed-in user.
+      function persistSession(email, token) {
+        var s = {
+          email: email,
+          name: "هلدینگ هوشمند سینا",
+          initial: (email || "?").trim().charAt(0).toUpperCase(),
+          expiresAt: Date.now() + IDLE_MS,
+          token: token,
+        };
+        try { localStorage.setItem("paapeli_session", JSON.stringify(s)); } catch (e) {}
+      }
+
+      function signIn(username, password) {
+        hideError();
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Signing in…";
+        fetch(API_BASE_URL + "/api/v1/aiot/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: username, password: password }),
+        })
+          .then(function (res) {
+            if (!res.ok) {
+              throw new Error(res.status === 401 ? "Invalid email or password." : "Sign in failed. Please try again.");
+            }
+            return res.json();
+          })
+          .then(function (data) {
+            persistSession(username, data.token);
+            location.href = redirect;
+          })
+          .catch(function (err) {
+            showError(err.message || "Sign in failed. Please try again.");
+          })
+          .finally(function () {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Sign in";
+          });
+      }
+
+      form.addEventListener("submit", function (e) {
         e.preventDefault();
-        signIn(document.getElementById("email").value.trim());
+        var email = document.getElementById("email").value.trim();
+        var password = document.getElementById("password").value;
+        if (!email || !password) {
+          showError("Email and password are required.");
+          return;
+        }
+        signIn(email, password);
       });
-      document.getElementById("google").addEventListener("click", function () { signIn("sina@paapeli.com"); });
+
+      document.getElementById("google").addEventListener("click", function () {
+        showError("Google sign-in isn't available yet.");
+      });
     })();
   </script>
 </body>

@@ -6,14 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Navigation } from "@/components/Navigation";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/store/authStore";
 import { useToast } from "@/hooks/use-toast";
 import { getCognitoErrorMessage } from "@/utils/cognitoErrorMessages";
 import paapeliLogo from "@/assets/paapeli-logo.svg";
+import { authService } from "@paapeli/api";
 
 const Login = () => {
   const { language, isRTL } = useLanguage();
-  const { signIn, signUp, confirmSignUp, resendConfirmationCode, signInWithGoogle } = useAuth();
+  const { signInWithPaapeliToken, signUp, confirmSignUp, resendConfirmationCode, signInWithGoogle } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -92,7 +93,11 @@ const Login = () => {
           return;
         }
 
-        await signIn(formData.email, formData.password);
+        const { token } = await authService.login({
+          username: formData.email,
+          password: formData.password,
+        });
+        signInWithPaapeliToken(formData.email, token);
         toast({
           title: language === 'en' ? 'Welcome back!' : language === 'ar' ? 'مرحبا بعودتك!' : 'خوش آمدید!',
           description: language === 'en' ? 'Successfully signed in.' : language === 'ar' ? 'تم تسجيل الدخول بنجاح.' : 'با موفقیت وارد شدید.',
@@ -102,7 +107,12 @@ const Login = () => {
     } catch (error: any) {
       console.error('Authentication error:', error);
       console.error('Error details:', { code: error?.code, name: error?.name, message: error?.message });
-      const errorMessage = getCognitoErrorMessage(error, language as 'en' | 'ar' | 'fa');
+      // Gateway login errors are AxiosErrors, not Cognito exceptions - map the
+      // status code onto the closest existing Cognito error key for translation.
+      const mappedError = error?.response?.status === 401
+        ? { code: 'NotAuthorizedException' }
+        : error;
+      const errorMessage = getCognitoErrorMessage(mappedError, language as 'en' | 'ar' | 'fa');
       toast({
         title: language === 'en' ? 'Error' : language === 'ar' ? 'خطأ' : 'خطا',
         description: errorMessage,
@@ -400,3 +410,24 @@ const Login = () => {
 };
 
 export default Login;
+
+
+
+// createdTime
+// : 
+// 1784465027655
+// customerId
+// : 
+// "13814000-1dd2-11b2-8080-808080808080"
+// id
+// : 
+// "7c613570-836f-11f1-a92c-4f03335be81b"
+// name
+// : 
+// "niam"
+// type
+// : 
+// "default"
+// version
+// : 
+// 1
