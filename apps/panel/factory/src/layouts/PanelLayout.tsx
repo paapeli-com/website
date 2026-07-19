@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { CURRENT_USER } from "@paapeli/brand/config";
+import { signOut as endSession, startIdleWatch } from "@paapeli/brand/session";
 import {
   Tooltip,
   TooltipContent,
@@ -138,9 +139,11 @@ const PanelPageSkeleton = ({ isRTL, loadingText }: { isRTL: boolean; loadingText
 
 export const PanelLayout = ({ children }: PanelLayoutProps) => {
   const { t, isRTL, language, setLanguage } = useLanguage();
-  const { signOut, user } = useAuth();
+  const { signOut } = useAuth();
   const { workspaces, activeId: activeWs, setActive: setActiveWs } = useWorkspace();
-  const username = user?.getUsername?.() || "";
+  // Identity comes from the shared session user (not Cognito, which is no
+  // longer used for gating). Keeps the avatar/profile working.
+  const username = CURRENT_USER.email.split("@")[0];
   const isSina = username === "sina";
   const accountDisplayName = CURRENT_USER.name;
   const avatarInitial = CURRENT_USER.initial;
@@ -207,7 +210,7 @@ export const PanelLayout = ({ children }: PanelLayoutProps) => {
   const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
 
   const mainItems: MenuItem[] = [
-    { title: t("overview"), icon: PieChart, path: lp("/home") },
+    { title: t("overview"), icon: PieChart, path: lp("/") },
     { title: t("dashboards"), icon: LayoutDashboard, path: lp("/dashboard") },
     {
       title: t("assets"),
@@ -280,9 +283,13 @@ export const PanelLayout = ({ children }: PanelLayoutProps) => {
   };
 
   const handleLogout = async () => {
-    await signOut(false);
-    navigate("/login");
+    try { await signOut(false); } catch {}
+    endSession();
+    window.location.href = "/login";
   };
+
+  // Keep the shared session alive while active; bounce to /login when idle.
+  useEffect(() => startIdleWatch(), []);
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
@@ -439,7 +446,7 @@ export const PanelLayout = ({ children }: PanelLayoutProps) => {
         </Button>
 
         <button
-          onClick={() => navigate(lp("/home"))}
+          onClick={() => navigate(lp("/"))}
           className="flex items-center gap-2 shrink-0"
         >
           {language === "fa" || language === "ar" ? (

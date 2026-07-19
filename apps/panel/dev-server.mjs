@@ -1,5 +1,6 @@
 import http from "node:http";
 import path from "node:path";
+import { readFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createServer as createVite } from "vite";
@@ -62,13 +63,21 @@ const proxyToWeb = (req, res) => {
 const server = http.createServer((req, res) => {
   const url = req.url || "/";
 
-  if (url === "/login" || url === "/login/") return redirect(res, "/AIoT/SmartFactory/login");
+  // Product-agnostic login served by the host (one login for every product).
+  if (url === "/login" || url === "/login/" || url.startsWith("/login?")) {
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    res.end(readFileSync(path.resolve(__dirname, "login.html"), "utf8"));
+    return;
+  }
 
   if (url === "/AIoT/track") return redirect(res, "/AIoT/track/");
   if (url.startsWith("/AIoT/track")) return track.middlewares(req, res);
 
-  if (url === "/AIoT/SmartFactory" || url === "/AIoT/SmartFactory/") return redirect(res, "/AIoT/SmartFactory/home");
-  if (url.startsWith("/AIoT/SmartFactory")) return factory.middlewares(req, res);
+  if (url.startsWith("/AIoT/SmartFactory")) {
+    // Serve the SPA root at the clean base URL (no /home redirect).
+    if (url === "/AIoT/SmartFactory") req.url = "/AIoT/SmartFactory/";
+    return factory.middlewares(req, res);
+  }
 
   return proxyToWeb(req, res);
 });

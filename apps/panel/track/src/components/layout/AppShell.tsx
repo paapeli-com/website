@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
 import { X } from "lucide-react";
+import { startIdleWatch } from "@paapeli/brand/session";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Topbar } from "./Topbar";
 import { SidebarContent } from "./Sidebar";
@@ -13,6 +14,9 @@ import { cn } from "@/lib/utils";
 export function AppShell() {
   const { isRTL } = useLanguage();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Keep the shared session alive while active; bounce to /login when idle.
+  useEffect(() => startIdleWatch(), []);
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background" dir={isRTL ? "rtl" : "ltr"}>

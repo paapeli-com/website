@@ -141,12 +141,17 @@ const server = http.createServer((req, res) => {
     return res.end("ok");
   }
 
-  if (p === "/login" || p === "/login/") return redirect(res, "/AIoT/SmartFactory/login");
+  // Product-agnostic login served by the host (one login for every product).
+  if (p === "/login" || p === "/login/") {
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    return res.end(fs.readFileSync(path.resolve(__dirname, "login.html"), "utf8"));
+  }
 
   if (p === "/AIoT/track") return redirect(res, "/AIoT/track/");
   if (p.startsWith("/AIoT/track/")) return serveStatic(TRACK, "/AIoT/track/", req, res);
 
-  if (p === "/AIoT/SmartFactory" || p === "/AIoT/SmartFactory/") return redirect(res, "/AIoT/SmartFactory/home");
+  // Clean base URL (no /home); the SPA root renders the dashboard.
+  if (p === "/AIoT/SmartFactory") return redirect(res, "/AIoT/SmartFactory/");
   if (p.startsWith("/AIoT/SmartFactory/")) return serveStatic(FACTORY, "/AIoT/SmartFactory/", req, res);
 
   return proxyToWeb(req, res);

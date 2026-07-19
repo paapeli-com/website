@@ -1,34 +1,16 @@
-import { ReactNode, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { ReactNode } from "react";
+import { isAuthenticated, goToLogin } from "@paapeli/brand/session";
 
 interface ProtectedRouteProps {
   children: ReactNode;
 }
 
+/* Gate on the shared, product-agnostic session (set at /login). If there's
+   no valid session, bounce to the host login (outside any product base). */
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, isLoading } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  useEffect(() => {
-    if (!isLoading && !user) {
-      const redirectTo = location.pathname + location.search;
-      navigate(`/login?redirect=${encodeURIComponent(redirectTo)}`, { replace: true });
-    }
-  }, [user, isLoading, navigate, location]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
+  if (!isAuthenticated()) {
+    goToLogin();
     return null;
   }
-
   return <>{children}</>;
 };

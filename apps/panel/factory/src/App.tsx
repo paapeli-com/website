@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
@@ -74,6 +74,13 @@ import WorkOrderDetails from "./pages/panel/WorkOrderDetails";
 
 const queryClient = new QueryClient();
 
+/* The dashboard lives at the solution root ("/") so the URL is a clean
+   /AIoT/SmartFactory. Old "/home" links redirect here (keeping any lang). */
+const HomeRedirect = () => {
+  const { lang } = useParams();
+  return <Navigate to={lang ? `/${lang}` : "/"} replace />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
@@ -85,10 +92,13 @@ const App = () => (
             <Sonner />
             <DomainRouter />
             <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/:lang" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/:lang/login" element={<Login />} />
+              {/* Solution root shows the dashboard (clean /AIoT/SmartFactory URL). */}
+              <Route path="/" element={<ProtectedRoute><PanelHome /></ProtectedRoute>} />
+              <Route path="/:lang" element={<ProtectedRoute><PanelHome /></ProtectedRoute>} />
+              {/* Login is product-agnostic (host /login). These just bounce to
+                  the dashboard, which is gated and sends you to /login if needed. */}
+              <Route path="/login" element={<Navigate to="/" replace />} />
+              <Route path="/:lang/login" element={<HomeRedirect />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/:lang/forgot-password" element={<ForgotPassword />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
@@ -127,8 +137,9 @@ const App = () => (
               <Route path="/:lang/smart-buildings" element={<SmartBuildings />} />
               
               {/* Protected Panel Routes */}
-              <Route path="/home" element={<ProtectedRoute><PanelHome /></ProtectedRoute>} />
-              <Route path="/:lang/home" element={<ProtectedRoute><PanelHome /></ProtectedRoute>} />
+              {/* "/home" kept as an alias → redirects to the clean root URL. */}
+              <Route path="/home" element={<HomeRedirect />} />
+              <Route path="/:lang/home" element={<HomeRedirect />} />
               <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
               <Route path="/:lang/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Check, ChevronDown, Cpu, Factory, LayoutGrid, MapPin, Server, Settings2 } from "lucide-react";
 import { PRODUCTS, solutionPath } from "@paapeli/brand/config";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -31,18 +30,17 @@ export const ProductSwitcher = () => {
   const { language } = useLanguage();
   const tt = L[(language as "en" | "fa" | "ar")] ?? L.en;
 
-  const [activeSolution, setActiveSolution] = useState<string>(() => {
-    try {
-      return localStorage.getItem("paapeli_solution") || DEFAULT_SOLUTION;
-    } catch {
-      return DEFAULT_SOLUTION;
-    }
-  });
+  // This app IS the Smart Factory solution, so it is always the active one
+  // here. (localStorage is shared across solutions on one origin, so it can't
+  // tell us which solution we're in — the app itself does.)
+  const activeSolution = DEFAULT_SOLUTION;
 
   const activeProduct =
     PRODUCTS.find((p) => p.solutions?.some((s) => s.id === activeSolution)) ??
     PRODUCTS.find((p) => !p.disabled) ??
     PRODUCTS[0];
+  const activeSolutionName =
+    activeProduct.solutions?.find((s) => s.id === activeSolution)?.name ?? activeProduct.name;
 
   const select = (id: string, disabled?: boolean) => {
     if (disabled) return;
@@ -59,7 +57,7 @@ export const ProductSwitcher = () => {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="h-9 min-w-[150px] justify-start gap-2 px-4">
           <LayoutGrid className="h-4 w-4 text-primary" />
-          <span className="flex-1 whitespace-nowrap text-start">{activeProduct.name}</span>
+          <span className="flex-1 whitespace-nowrap text-start">{activeSolutionName}</span>
           <ChevronDown className="h-4 w-4 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>

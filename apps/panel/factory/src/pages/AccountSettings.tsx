@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { CURRENT_USER } from "@paapeli/brand/config";
+import { signOut as endSession } from "@paapeli/brand/session";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { PanelLayout } from "@/layouts/PanelLayout";
 import { PageHeader } from "@/components/PageHeader";
@@ -26,16 +28,18 @@ const AVATAR_STORAGE_KEY = "paapeli.profile.avatar.";
 
 const AccountSettings = () => {
   const { t, isRTL, language } = useLanguage();
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
   const { workspaces, activeId: activeWs, setActive: setActiveWs, addWorkspace, canAdd } = useWorkspace();
   const navigate = useNavigate();
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const username = user?.getUsername?.() || "";
+  // Identity from the shared session user (not Cognito — gating is now the
+  // shared session, so the Cognito user is null here).
+  const username = CURRENT_USER.email.split("@")[0];
   const isSina = username === "sina";
-  const displayName = isSina ? "هلدینگ هوشمند سینا" : username || "User";
-  const email = isSina ? "sina@paapeli.com" : username;
+  const displayName = CURRENT_USER.name;
+  const email = CURRENT_USER.email;
   const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
 
   // Avatar: per-user, persisted in localStorage. Default Sina to uploaded picture.
@@ -45,17 +49,13 @@ const AccountSettings = () => {
   const [newWs, setNewWs] = useState("");
 
   useEffect(() => {
-    if (!user) {
-      navigate(lp("/login") as any);
-      return;
-    }
     try {
       const stored = localStorage.getItem(storageKey);
       if (stored) setAvatar(stored);
       else if (isSina) setAvatar(sinaProfileImg);
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, storageKey, isSina]);
+  }, [storageKey, isSina]);
 
   const handlePick = () => fileRef.current?.click();
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,8 +86,9 @@ const AccountSettings = () => {
   };
 
   const handleLogout = async () => {
-    await signOut();
-    navigate(lp("/login") as any);
+    try { await signOut(); } catch {}
+    endSession();
+    window.location.href = "/login";
   };
 
   return (

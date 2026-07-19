@@ -265,9 +265,9 @@ const GatewayDetails = () => {
       <TooltipProvider>
         <Breadcrumb className="mb-4">
           <BreadcrumbList>
-            <BreadcrumbItem><BreadcrumbLink href={lp("/devices")}>{t("assets")}</BreadcrumbLink></BreadcrumbItem>
+            <BreadcrumbItem><BreadcrumbLink onClick={() => navigate(lp("/devices"))} className="cursor-pointer">{t("assets")}</BreadcrumbLink></BreadcrumbItem>
             <BreadcrumbSeparator />
-            <BreadcrumbItem><BreadcrumbLink href={lp("/devices/gateways")}>{t("gateways")}</BreadcrumbLink></BreadcrumbItem>
+            <BreadcrumbItem><BreadcrumbLink onClick={() => navigate(lp("/devices/gateways"))} className="cursor-pointer">{t("gateways")}</BreadcrumbLink></BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem><BreadcrumbPage className={fa(gateway.name)}>{gateway.name}</BreadcrumbPage></BreadcrumbItem>
           </BreadcrumbList>

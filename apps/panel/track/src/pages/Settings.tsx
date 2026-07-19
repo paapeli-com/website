@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Building2, ChevronRight, Info, KeyRound, LogOut, Map, Palette, Plus, ShieldCheck } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { CURRENT_USER } from "@paapeli/brand/config";
+import { signOut as endSession } from "@paapeli/brand/session";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useTheme } from "@/lib/useTheme";
@@ -31,7 +32,7 @@ function LinkRow({ icon: Icon, label, onClick }: any) {
 }
 
 export default function Settings() {
-  const { user, logout } = useAuth();
+  const user = { email: CURRENT_USER.email };
   const { t, language, setLanguage } = useLanguage();
   const { dark, toggle } = useTheme();
   const { brand, setTenant } = useBrand();
@@ -173,7 +174,7 @@ export default function Settings() {
       <Button
         variant="outline"
         className="w-full text-destructive"
-        onClick={() => { logout(); navigate("/login"); }}
+        onClick={() => { endSession(); window.location.href = "/login"; }}
       >
         <LogOut className="size-4" />
         {t("logout")}

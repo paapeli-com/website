@@ -17,16 +17,16 @@ const DEFAULT_SOLUTION = "track";
 export function ProductSwitcher() {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
-  const [activeSolution, setActiveSolution] = useState<string>(() => {
-    if (typeof window === "undefined") return DEFAULT_SOLUTION;
-    return window.localStorage.getItem("paapeli_solution") || DEFAULT_SOLUTION;
-  });
+  // This app IS the tracking solution — always active here. (localStorage is
+  // shared across solutions on one origin, so the app itself decides.)
+  const activeSolution = DEFAULT_SOLUTION;
 
-  // The product that owns the active solution (falls back to first enabled).
   const activeProduct =
     PRODUCTS.find((p) => p.solutions?.some((s) => s.id === activeSolution)) ??
     PRODUCTS.find((p) => !p.disabled) ??
     PRODUCTS[0];
+  const activeSolutionName =
+    activeProduct.solutions?.find((s) => s.id === activeSolution)?.name ?? activeProduct.name;
 
   const selectSolution = (id: string, disabled?: boolean) => {
     if (disabled) return;
@@ -44,7 +44,7 @@ export function ProductSwitcher() {
         className="flex h-9 min-w-[150px] items-center gap-2.5 rounded-lg border border-border bg-card px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted"
       >
         <LayoutGrid className="size-4 text-primary" />
-        <span className="flex-1 whitespace-nowrap text-start">{activeProduct.name}</span>
+        <span className="flex-1 whitespace-nowrap text-start">{activeSolutionName}</span>
         <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")} />
       </button>
 

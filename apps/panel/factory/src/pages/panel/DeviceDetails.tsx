@@ -295,11 +295,11 @@ const DeviceDetails = () => {
         <Breadcrumb className="mb-4">
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink href={lp("/devices")}>{t("assets")}</BreadcrumbLink>
+              <BreadcrumbLink onClick={() => navigate(lp("/devices"))} className="cursor-pointer">{t("assets")}</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink href={lp("/devices")}>{t("devices")}</BreadcrumbLink>
+              <BreadcrumbLink onClick={() => navigate(lp("/devices"))} className="cursor-pointer">{t("devices")}</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>

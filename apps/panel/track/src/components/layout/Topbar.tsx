@@ -5,7 +5,7 @@ import paapeliLogo from "@paapeli/brand/logo.svg";
 import paapeliLogoDark from "@paapeli/brand/logo-dark.svg";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { CURRENT_USER } from "@paapeli/brand/config";
-import { useAuth } from "@/contexts/AuthContext";
+import { signOut as endSession } from "@paapeli/brand/session";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useBrand } from "@/brand/BrandProvider";
 import { useTheme } from "@/lib/useTheme";
@@ -19,7 +19,6 @@ const iconBtn =
 
 export function Topbar({ onMenu }: { onMenu: () => void }) {
   const { t } = useLanguage();
-  const { user, logout } = useAuth();
   const { workspaces, activeId: activeWs, setActive: setActiveWs } = useWorkspace();
   const { brand } = useBrand();
   const { dark, toggle } = useTheme();
@@ -121,7 +120,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
               {t("settings")}
             </button>
             <button
-              onClick={() => { logout(); navigate("/login"); }}
+              onClick={() => { endSession(); window.location.href = "/login"; }}
               className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted"
             >
               <LogOut className="size-4" />
