@@ -2,7 +2,8 @@
 // and detail panel show localized names in FA/AR while preserving English.
 
 const NODE_NAME_KEYS: Record<string, string> = {
-  "org-root": "locPaapeliCorp",
+  // Root uses its own editable name (default "Root Directory"), so it is not
+  // mapped to a fixed translation — the user can rename it.
   "loc-qazvin": "locQazvin",
   "loc-factory-a": "locFactoryAName",
   "loc-factory-b": "locFactoryBName",

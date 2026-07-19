@@ -31,7 +31,7 @@ import { PageHeader } from "@/components/PageHeader";
 // ---------- Seed industrial hierarchy ----------
 const seedTree = (): TreeNode => ({
   id: "org-root",
-  name: "Paapeli Corp",
+  name: "Root Directory",
   type: "organization",
   children: [
     {
@@ -171,7 +171,12 @@ const loadTree = (): TreeNode => {
     const raw = localStorage.getItem(LOCATIONS_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === "object") return parsed as TreeNode;
+      if (parsed && typeof parsed === "object") {
+        const node = parsed as TreeNode;
+        // Migrate the old default root name to "Root Directory".
+        if (node.id === "org-root" && node.name === "Paapeli Corp") node.name = "Root Directory";
+        return node;
+      }
     }
   } catch {}
   return seedTree();
