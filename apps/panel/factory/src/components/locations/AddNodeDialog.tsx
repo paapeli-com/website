@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Dialog,
@@ -25,14 +25,26 @@ interface AddNodeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   parentType?: "organization" | "location" | "area" | "asset" | null;
+  parentName?: string;
+  defaultType?: NodeType | null;
   onAdd: (name: string, type: NodeType, tags: string[]) => void;
 }
 
-export const AddNodeDialog = ({ open, onOpenChange, parentType, onAdd }: AddNodeDialogProps) => {
+export const AddNodeDialog = ({ open, onOpenChange, parentType, parentName, defaultType, onAdd }: AddNodeDialogProps) => {
   const { t } = useLanguage();
   const [name, setName] = useState("");
   const [type, setType] = useState<NodeType | "">("");
   const [tags, setTags] = useState("");
+
+  // Reset each time it opens; preselect the type when one was chosen from a
+  // node's "..." menu (Add Location / Add Unit / Add Asset).
+  useEffect(() => {
+    if (open) {
+      setName("");
+      setTags("");
+      setType(defaultType || "");
+    }
+  }, [open, defaultType]);
 
   // Allowed child types by parent:
   //   root (organization) → Location, Unit, Asset
@@ -65,6 +77,11 @@ export const AddNodeDialog = ({ open, onOpenChange, parentType, onAdd }: AddNode
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("addNew")}</DialogTitle>
+          {parentName && (
+            <p className="text-sm text-muted-foreground">
+              {t("addingUnder")}: <span className="font-medium text-foreground">{parentName}</span>
+            </p>
+          )}
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">

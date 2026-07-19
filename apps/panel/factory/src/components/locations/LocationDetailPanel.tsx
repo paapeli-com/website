@@ -145,7 +145,7 @@ export const LocationDetailPanel = ({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <ContextCard label={t("locationType")} value={fmtType(t, node.type)} />
         <ContextCard label={t("parentLocation")} value={parentNode ? localizedNodeName(parentNode.id, parentNode.name, t) : t("rootOrganization")} />
-        <ContextCard label={t("totalAssets")} value={formatNumber(totalAssetCount)} />
+        {node.type !== "asset" && <ContextCard label={t("totalAssets")} value={formatNumber(totalAssetCount)} />}
         <ContextCard label={t("lastUpdated")} value={"—"} />
       </div>
 
@@ -166,7 +166,8 @@ export const LocationDetailPanel = ({
         </div>
       )}
 
-      {/* Tabs + preview list */}
+      {/* Assets list — containers only (an asset node has no child assets) */}
+      {node.type !== "asset" && (
       <div className="rounded-lg border bg-card">
         <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b">
           <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
@@ -272,6 +273,7 @@ export const LocationDetailPanel = ({
           </>
         )}
       </div>
+      )}
     </div>
   );
 };
