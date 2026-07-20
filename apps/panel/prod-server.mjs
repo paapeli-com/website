@@ -32,6 +32,16 @@ const FACTORY = path.resolve(__dirname, "apps/panel/factory/dist");
 const TRACK = path.resolve(__dirname, "apps/panel/track/dist");
 const WEB_SERVER = path.resolve(__dirname, "apps/web/server.js");
 
+// Load the login page once at startup. A missing file must NOT crash the host
+// on every /login request (which panels redirect to when unauthenticated).
+let LOGIN_HTML;
+try {
+  LOGIN_HTML = fs.readFileSync(path.resolve(__dirname, "login.html"), "utf8");
+} catch (e) {
+  console.error("[panel] login.html not found next to prod-server.mjs:", e.message);
+  LOGIN_HTML = "<!doctype html><meta charset=utf-8><title>Sign in</title><p>Login is temporarily unavailable.</p>";
+}
+
 // --- Web (Next.js) as an internal child process ---------------------
 // The standalone server honours PORT/HOSTNAME env. Bind it to loopback so it
 // is only reachable through this host on 8080.
@@ -132,6 +142,7 @@ const proxyToWeb = (req, res) => {
 };
 
 const server = http.createServer((req, res) => {
+ try {
   const url = req.url || "/";
   const p = url.split("?")[0];
 
@@ -144,7 +155,7 @@ const server = http.createServer((req, res) => {
   // Product-agnostic login served by the host (one login for every product).
   if (p === "/login" || p === "/login/") {
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    return res.end(fs.readFileSync(path.resolve(__dirname, "login.html"), "utf8"));
+    return res.end(LOGIN_HTML);
   }
 
   if (p === "/AIoT/track") return redirect(res, "/AIoT/track/");
@@ -155,7 +166,15 @@ const server = http.createServer((req, res) => {
   if (p.startsWith("/AIoT/SmartFactory/")) return serveStatic(FACTORY, "/AIoT/SmartFactory/", req, res);
 
   return proxyToWeb(req, res);
+ } catch (e) {
+   console.error("[panel] request error:", e && e.message);
+   try { if (!res.headersSent) res.writeHead(500, { "content-type": "text/plain" }); res.end("Internal error"); } catch {}
+ }
 });
+
+// Last-resort guards so a stray error never takes the whole host down.
+process.on("uncaughtException", (e) => console.error("[panel] uncaughtException:", e && e.message));
+process.on("unhandledRejection", (e) => console.error("[panel] unhandledRejection:", e));
 
 server.listen(PORT, () => {
   console.log(`\n  Paapeli (prod)  →  http://0.0.0.0:${PORT}`);

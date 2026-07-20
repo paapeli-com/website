@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Dialog,
@@ -17,42 +17,72 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MapPin, Factory, Cpu } from "lucide-react";
 import { useCreateAssetMutation } from "@paapeli/api";
 import { toast } from "sonner";
 
 type NodeType = "location" | "area" | "asset";
 
-const ASSET_TYPE_OPTIONS = [{ value: "default", label: "default" }] as const;
-
 interface AddNodeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  parentId?: string | null;
   parentType?: "organization" | "location" | "area" | "asset" | null;
-  onAdd: (name: string, type: NodeType) => void;
+  parentName?: string;
+  defaultType?: NodeType | null;
+  onAdd: (name: string, type: NodeType, tags: string[]) => void;
 }
 
-export const AddNodeDialog = ({ open, onOpenChange, onAdd }: AddNodeDialogProps) => {
+export const AddNodeDialog = ({ open, onOpenChange, parentId, parentType, parentName, defaultType, onAdd }: AddNodeDialogProps) => {
   const { t } = useLanguage();
   const [name, setName] = useState("");
-  const [assetType, setAssetType] = useState<string>("default");
+  const [type, setType] = useState<NodeType | "">("");
+  const [tags, setTags] = useState("");
   const createAsset = useCreateAssetMutation();
 
+  // Reset each time it opens; preselect the type when one was chosen from a
+  // node's "..." menu (Add Location / Add Unit / Add Asset).
+  useEffect(() => {
+    if (open) {
+      setName("");
+      setTags("");
+      setType(defaultType || "");
+    }
+  }, [open, defaultType]);
+
+  // Allowed child types by parent:
+  //   root (organization) → Location, Unit, Asset
+  //   location            → Unit, Asset
+  //   unit (area)         → Asset
+  const allowedTypes: { value: NodeType; label: string; icon: ReactNode }[] = [];
+  if (!parentType || parentType === "organization") {
+    allowedTypes.push({ value: "location", label: t("locationLabel"), icon: <MapPin className="h-4 w-4" /> });
+  }
+  if (!parentType || parentType === "organization" || parentType === "location") {
+    allowedTypes.push({ value: "area", label: t("areaUnit"), icon: <Factory className="h-4 w-4" /> });
+  }
+  if (!parentType || parentType === "organization" || parentType === "location" || parentType === "area") {
+    allowedTypes.push({ value: "asset", label: t("assets"), icon: <Cpu className="h-4 w-4" /> });
+  }
+
   const handleAdd = () => {
-    if (!name.trim() || !assetType || createAsset.isPending) return;
+    if (!name.trim() || !type || createAsset.isPending) return;
+    const tagList = tags.split(",").map((s) => s.trim()).filter(Boolean);
     createAsset.mutate(
       {
         name: name.trim(),
-        type: assetType,
+        type,
         label: null,
         description: null,
-        parentId: null,
+        parentId: parentId || null,
         customerId: null,
       },
       {
         onSuccess: () => {
-          onAdd(name.trim(), "asset");
+          onAdd(name.trim(), type as NodeType, tagList);
           setName("");
-          setAssetType("default");
+          setType("");
+          setTags("");
           onOpenChange(false);
         },
         onError: () => {
@@ -67,18 +97,26 @@ export const AddNodeDialog = ({ open, onOpenChange, onAdd }: AddNodeDialogProps)
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("addNew")}</DialogTitle>
+          {parentName && (
+            <p className="text-sm text-muted-foreground">
+              {t("addingUnder")}: <span className="font-medium text-foreground">{parentName}</span>
+            </p>
+          )}
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
             <Label>{t("selectNodeType")}</Label>
-            <Select value={assetType} onValueChange={setAssetType}>
+            <Select value={type} onValueChange={(v) => setType(v as NodeType)}>
               <SelectTrigger>
                 <SelectValue placeholder={t("selectNodeType")} />
               </SelectTrigger>
               <SelectContent>
-                {ASSET_TYPE_OPTIONS.map((opt) => (
+                {allowedTypes.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
+                    <div className="flex items-center gap-2">
+                      {opt.icon}
+                      {opt.label}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -93,12 +131,21 @@ export const AddNodeDialog = ({ open, onOpenChange, onAdd }: AddNodeDialogProps)
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
             />
           </div>
+          <div className="space-y-2">
+            <Label>{t("tags")}</Label>
+            <Input
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder={t("enterTags")}
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("cancel")}
           </Button>
-          <Button onClick={handleAdd} disabled={!name.trim() || !assetType || createAsset.isPending}>
+          <Button onClick={handleAdd} disabled={!name.trim() || !type || createAsset.isPending}>
             {t("create")}
           </Button>
         </DialogFooter>

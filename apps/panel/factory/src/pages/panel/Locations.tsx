@@ -23,7 +23,6 @@ import {
 import { LocationTreeNode, type TreeNode } from "@/components/locations/LocationTreeNode";
 import { LocationDetailPanel, type AssetPreview } from "@/components/locations/LocationDetailPanel";
 import { AddNodeDialog } from "@/components/locations/AddNodeDialog";
-import { AddChildNodeDialog } from "@/components/locations/AddChildNodeDialog";
 import { RenameNodeDialog } from "@/components/locations/RenameNodeDialog";
 import { DeleteNodeDialog } from "@/components/locations/DeleteNodeDialog";
 import { toast } from "sonner";
@@ -39,7 +38,7 @@ const mapApiTreeNode = (node: PaapeliTreeNode): TreeNode => ({
   children: node.children?.map(mapApiTreeNode) ?? [],
 });
 
-const EMPTY_TREE: TreeNode = { id: ROOT_ASSET_ID, name: "", type: "location", children: [] };
+const EMPTY_TREE: TreeNode = { id: ROOT_ASSET_ID, name: "", type: "organization", children: [] };
 
 // ---------- Mock assets per location ----------
 const MOCK_ASSETS_BY_LOCATION: Record<string, AssetPreview[]> = {
@@ -155,9 +154,7 @@ const Locations = () => {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [addParentType, setAddParentType] = useState<TreeNode["type"] | null>(null);
   const [addParentId, setAddParentId] = useState<string | null>(null);
-
-  const [addChildDialogOpen, setAddChildDialogOpen] = useState(false);
-  const [addChildParent, setAddChildParent] = useState<TreeNode | null>(null);
+  const [addDefaultType, setAddDefaultType] = useState<"location" | "area" | "asset" | null>(null);
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameTarget, setRenameTarget] = useState<TreeNode | null>(null);
@@ -202,22 +199,10 @@ const Locations = () => {
   const collapseAll = () => setExpandedNodes(new Set([ROOT_ASSET_ID]));
 
   // ----- Mutations -----
-  const handleAdd = (name: string, type: "location" | "area" | "asset") => {
-    const newNode: TreeNode = {
-      id: `node-${Date.now()}-${nextId++}`,
-      name,
-      type,
-      children: type === "asset" ? undefined : [],
-    };
-    setTree((prev) => {
-      const updated = JSON.parse(JSON.stringify(prev)) as TreeNode;
-      const parent = findNode(updated, addParentId || ROOT_ASSET_ID);
-      if (parent) {
-        if (!parent.children) parent.children = [];
-        parent.children.push(newNode);
-      }
-      return updated;
-    });
+  // The dialog itself performs the create call against the API; here we just
+  // refresh the tree from the server and reflect the new node in the UI.
+  const handleAdd = (_name: string, _type: "location" | "area" | "asset", _tags: string[] = []) => {
+    refetchTree();
     setExpandedNodes((p) => new Set([...p, addParentId || ROOT_ASSET_ID]));
     toast.success(t("success"));
   };
@@ -272,16 +257,19 @@ const Locations = () => {
 
   // ----- UI handlers -----
   const handleTopAddLocation = () => {
-    setAddParentId(selectedNode?.id || ROOT_ASSET_ID);
-    setAddParentType(selectedNode?.type || "location");
+    // Footer button: add under the selected container (or the root).
+    const target = selectedNode && selectedNode.type !== "asset" ? selectedNode : null;
+    setAddParentId(target?.id || ROOT_ASSET_ID);
+    setAddParentType(target?.type || "organization");
+    setAddDefaultType(null);
     setAddDialogOpen(true);
   };
 
-  const handleAddLocationOnNode = (node: TreeNode) => {
+  const handleAddChild = (node: TreeNode, type: "location" | "area" | "asset") => {
     setAddParentId(node.id);
-    setAddChildParent(node);
-    setExpandedNodes((p) => new Set([...p, node.id]));
-    setAddChildDialogOpen(true);
+    setAddParentType(node.type);
+    setAddDefaultType(type);
+    setAddDialogOpen(true);
   };
 
   const buildLocationPath = (id: string) =>
@@ -320,57 +308,7 @@ const Locations = () => {
   return (
     <PanelLayout pageTitle={t("locations")}>
       {/* Header */}
-      <PageHeader
-        title={t("locations")}
-        count={(() => {
-          let n = 0;
-          const walk = (node: TreeNode) => {
-            if (node.type === "location") n++;
-            node.children?.forEach(walk);
-          };
-          walk(tree);
-          return n;
-        })()}
-        countLabel={t("locations")}
-        actions={
-          <>
-            <Button onClick={handleTopAddLocation} className="h-10 gap-2">
-              <Plus className="h-4 w-4" />
-              {t("addLocation")}
-            </Button>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-10 w-10" onClick={expandAll}>
-                    <ChevronsUpDown className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{t("expandAll")}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-10 w-10" onClick={collapseAll}>
-                    <ChevronsDownUp className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{t("collapseAll")}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-10 w-10" onClick={handleRefresh} disabled={refreshing}>
-                    {refreshing ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{t("refresh")}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </>
-        }
-      />
+      <PageHeader title={t("locations")} />
 
       <div className="flex gap-4 h-[calc(100vh-220px)]">
         {/* Left: Tree */}
@@ -409,18 +347,19 @@ const Locations = () => {
                 onSelect={setSelectedNode}
                 onToggle={toggleExpand}
                 onRename={(n) => { setRenameTarget(n); setRenameDialogOpen(true); }}
-                onAddLocation={handleAddLocationOnNode}
-                onAddAsset={handleAddAssetOnNode}
+                onAddChild={handleAddChild}
                 onMove={handleMove}
                 onDuplicate={handleDuplicate}
                 onDelete={(n) => { setDeleteTarget(n); setDeleteDialogOpen(true); }}
               />
             )}
           </ScrollArea>
+          {/* Primary add action, contextual to the tree (adds under the
+              selected container, or the root). */}
           <div className="p-2 border-t">
-            <Button variant="outline" size="sm" className="w-full" onClick={handleTopAddLocation}>
+            <Button className="w-full gap-2" onClick={handleTopAddLocation}>
               <Plus className="h-4 w-4" />
-              {t("addLocation")}
+              {t("addNode")}
             </Button>
           </div>
         </Card>
@@ -434,7 +373,7 @@ const Locations = () => {
               assets={previewAssets}
               totalAssetCount={totalAssetCount}
               parentNode={parentNode}
-              onAddAsset={() => selectedNode && handleAddAssetOnNode(selectedNode)}
+              onAddAsset={() => selectedNode && handleAddChild(selectedNode, "asset")}
               onViewAllAssets={handleViewAllAssets}
               onNavigateAsset={handleNavigateAsset}
               onSelectAncestor={(n) => setSelectedNode(n)}
@@ -447,14 +386,10 @@ const Locations = () => {
       <AddNodeDialog
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
+        parentId={addParentId}
         parentType={addParentType}
-        onAdd={handleAdd}
-      />
-      <AddChildNodeDialog
-        open={addChildDialogOpen}
-        onOpenChange={setAddChildDialogOpen}
-        parentId={addChildParent?.id || ""}
-        parentName={addChildParent?.name || ""}
+        parentName={addParentId ? findNode(tree, addParentId)?.name : undefined}
+        defaultType={addDefaultType}
         onAdd={handleAdd}
       />
       <RenameNodeDialog

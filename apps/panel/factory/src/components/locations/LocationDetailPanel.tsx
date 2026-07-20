@@ -145,11 +145,29 @@ export const LocationDetailPanel = ({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <ContextCard label={t("locationType")} value={fmtType(t, node.type)} />
         <ContextCard label={t("parentLocation")} value={parentNode ? localizedNodeName(parentNode.id, parentNode.name, t) : t("rootOrganization")} />
-        <ContextCard label={t("totalAssets")} value={formatNumber(totalAssetCount)} />
+        {node.type !== "asset" && <ContextCard label={t("totalAssets")} value={formatNumber(totalAssetCount)} />}
         <ContextCard label={t("lastUpdated")} value={"—"} />
       </div>
 
-      {/* Tabs + preview list */}
+      {/* Tags */}
+      {node.tags && node.tags.length > 0 && (
+        <div className="space-y-2">
+          <div className="text-xs text-muted-foreground">{t("tags")}</div>
+          <div className="flex flex-wrap gap-2">
+            {node.tags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Assets list — containers only (an asset node has no child assets) */}
+      {node.type !== "asset" && (
       <div className="rounded-lg border bg-card">
         <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b">
           <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
@@ -255,6 +273,7 @@ export const LocationDetailPanel = ({
           </>
         )}
       </div>
+      )}
     </div>
   );
 };

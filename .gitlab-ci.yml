@@ -1,8 +1,11 @@
 workflow:
   rules:
+    # Release tags still build/deploy.
     - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG'
       when: always
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH'
+    # Only the `dev` branch runs CI/CD (build + deploy). Any other branch
+    # (eric, feature branches, …) is skipped — no pipeline, no deploy.
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"'
       when: always
     - when: never
 
