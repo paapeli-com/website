@@ -31,11 +31,29 @@ import { useGetAssetTreeQuery, type PaapeliTreeNode } from "@paapeli/api";
 
 const ROOT_ASSET_ID = "7c613570-836f-11f1-a92c-4f03335be81b";
 
-const mapApiTreeNode = (node: PaapeliTreeNode): TreeNode => ({
+// The API returns free-form `type` strings (ThingsBoard asset types) that don't
+// always match our canonical kinds. Downstream UI — node icons, the "..." add
+// menu, and the Add dialog's allowed child types — is keyed off a known set, so
+// we canonicalize here. Recognized types are kept as-is; anything else is
+// inferred from the node's depth, following the fixed hierarchy:
+//   root(0) → Location(1) → Unit/Area(2) → Asset(3+).
+const CANONICAL_TYPES = new Set(["organization", "location", "area", "asset"]);
+const canonicalType = (raw: string | undefined | null, depth: number): string => {
+  // The tree root is always the top container, whatever the server stored.
+  if (depth <= 0) return "organization";
+  const s = (raw || "").trim().toLowerCase();
+  if (CANONICAL_TYPES.has(s)) return s;
+  // Unknown/foreign type: infer from depth along root → Location → Unit → Asset.
+  if (depth === 1) return "location";
+  if (depth === 2) return "area";
+  return "asset";
+};
+
+const mapApiTreeNode = (node: PaapeliTreeNode, depth = 0): TreeNode => ({
   id: node.id,
   name: node.name,
-  type: node.type || "asset",
-  children: node.children?.map(mapApiTreeNode) ?? [],
+  type: canonicalType(node.type, depth),
+  children: node.children?.map((c) => mapApiTreeNode(c, depth + 1)) ?? [],
 });
 
 const EMPTY_TREE: TreeNode = { id: ROOT_ASSET_ID, name: "", type: "organization", children: [] };
