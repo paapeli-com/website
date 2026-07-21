@@ -128,6 +128,20 @@ const collectIds = (n: TreeNode, acc: Set<string>) => {
   n.children?.forEach((c) => collectIds(c, acc));
 };
 
+// Full name path from the root down to the given node (inclusive).
+const getNamePath = (root: TreeNode, id: string): string[] => {
+  const path: string[] = [];
+  const walk = (n: TreeNode): boolean => {
+    path.push(n.name);
+    if (n.id === id) return true;
+    if (n.children) for (const c of n.children) if (walk(c)) return true;
+    path.pop();
+    return false;
+  };
+  walk(root);
+  return path;
+};
+
 const mapTree = (root: TreeNode, fn: (n: TreeNode) => TreeNode | null): TreeNode | null => {
   const m = fn(root);
   if (!m) return null;
@@ -310,9 +324,10 @@ const Locations = () => {
   };
 
   const handleEditTags = (node: TreeNode) => {
+    const path = getNamePath(tree, node.id);
     navigate(
       getLocalizedPath(
-        `/locations/tags?node=${encodeURIComponent(node.id)}&name=${encodeURIComponent(node.name)}`,
+        `/locations/tags?node=${encodeURIComponent(node.id)}&path=${encodeURIComponent(JSON.stringify(path))}`,
       ),
     );
   };

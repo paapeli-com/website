@@ -1,12 +1,19 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PanelLayout } from "@/layouts/PanelLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PageHeader } from "@/components/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, ArrowRight, X as XIcon, Tag } from "lucide-react";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { X as XIcon, Tag } from "lucide-react";
 import { useNodeTags, addNodeTag, removeNodeTag } from "@/lib/locationTags";
 
 const ManageTags = () => {
@@ -14,12 +21,24 @@ const ManageTags = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const nodeId = params.get("node") || "";
-  const nodeName = params.get("name") || "";
+
+  // Full name path (root → node), passed from the Locations page.
+  let pathNames: string[] = [];
+  try {
+    pathNames = JSON.parse(params.get("path") || "[]");
+  } catch {
+    pathNames = [];
+  }
+  if (!pathNames.length) {
+    const nm = params.get("name");
+    if (nm) pathNames = [nm];
+  }
+
   const tags = useNodeTags(nodeId);
   const [input, setInput] = useState("");
 
   const locationsPath = language === "en" ? "/locations" : `/${language}/locations`;
-  const BackIcon = isRTL ? ArrowRight : ArrowLeft;
+  const goLocations = () => navigate(locationsPath);
 
   const commit = (raw: string) => {
     const v = raw.trim().replace(/,$/, "").trim();
@@ -30,15 +49,32 @@ const ManageTags = () => {
 
   return (
     <PanelLayout pageTitle={t("manageTags")}>
-      <PageHeader
-        title={t("manageTags")}
-        actions={
-          <Button variant="outline" onClick={() => navigate(locationsPath)} className="gap-2">
-            <BackIcon className="h-4 w-4" />
-            {t("back")}
-          </Button>
-        }
-      />
+      {/* Breadcrumb — full path down to the node */}
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink onClick={goLocations} className="cursor-pointer">
+              {t("locations")}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          {pathNames.map((part, i) => (
+            <Fragment key={`${part}-${i}`}>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                {i === pathNames.length - 1 ? (
+                  <BreadcrumbPage>{part}</BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink onClick={goLocations} className="cursor-pointer">
+                    {part}
+                  </BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+            </Fragment>
+          ))}
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      <PageHeader title={t("manageTags")} count={tags.length} countLabel={t("tagsUnit")} />
 
       {!nodeId ? (
         <Card>
@@ -48,14 +84,11 @@ const ManageTags = () => {
         </Card>
       ) : (
         <Card dir={isRTL ? "rtl" : "ltr"} className="max-w-2xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
+          <CardContent className="space-y-2 pt-6">
+            <Label className="flex items-center gap-2">
               <Tag className="h-4 w-4 text-primary" />
-              {nodeName || t("tags")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Label>{t("tagsLabel")}</Label>
+              {t("tagsLabel")}
+            </Label>
             <div className="min-h-11 rounded-md border border-input bg-background px-2 py-1.5 flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
               {tags.map((tag) => (
                 <span
