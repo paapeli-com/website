@@ -25,6 +25,7 @@ import { LocationDetailPanel, type AssetPreview } from "@/components/locations/L
 import { AddNodeDialog } from "@/components/locations/AddNodeDialog";
 import { RenameNodeDialog } from "@/components/locations/RenameNodeDialog";
 import { DeleteNodeDialog } from "@/components/locations/DeleteNodeDialog";
+import { EditTagsSheet } from "@/components/locations/EditTagsSheet";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { seedNodeTags } from "@/lib/locationTags";
@@ -210,6 +211,9 @@ const Locations = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<TreeNode | null>(null);
 
+  const [tagsSheetOpen, setTagsSheetOpen] = useState(false);
+  const [tagsSheetNode, setTagsSheetNode] = useState<{ id: string; path: string[] } | null>(null);
+
   // Select the root node once the tree has loaded
   useEffect(() => {
     if (!selectedNode && apiTree) {
@@ -324,12 +328,8 @@ const Locations = () => {
   };
 
   const handleEditTags = (node: TreeNode) => {
-    const path = getNamePath(tree, node.id);
-    navigate(
-      getLocalizedPath(
-        `/locations/tags?node=${encodeURIComponent(node.id)}&path=${encodeURIComponent(JSON.stringify(path))}`,
-      ),
-    );
+    setTagsSheetNode({ id: node.id, path: getNamePath(tree, node.id) });
+    setTagsSheetOpen(true);
   };
 
   const buildLocationPath = (id: string) =>
@@ -465,6 +465,12 @@ const Locations = () => {
         onOpenChange={setDeleteDialogOpen}
         nodeName={deleteTarget?.name || ""}
         onConfirm={handleDelete}
+      />
+      <EditTagsSheet
+        open={tagsSheetOpen}
+        onOpenChange={setTagsSheetOpen}
+        nodeId={tagsSheetNode?.id || ""}
+        path={tagsSheetNode?.path || []}
       />
     </PanelLayout>
   );

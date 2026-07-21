@@ -40,7 +40,6 @@ import ChannelForm from "./pages/panel/ChannelForm";
 
 
 import Locations from "./pages/panel/Locations";
-import ManageTags from "./pages/panel/ManageTags";
 import OTA from "./pages/panel/OTA";
 import FirmwareForm from "./pages/panel/FirmwareForm";
 import Members from "./pages/panel/Members";
@@ -183,8 +182,6 @@ const App = () => (
 
               <Route path="/locations" element={<ProtectedRoute><Locations /></ProtectedRoute>} />
               <Route path="/:lang/locations" element={<ProtectedRoute><Locations /></ProtectedRoute>} />
-              <Route path="/locations/tags" element={<ProtectedRoute><ManageTags /></ProtectedRoute>} />
-              <Route path="/:lang/locations/tags" element={<ProtectedRoute><ManageTags /></ProtectedRoute>} />
               <Route path="/firmware" element={<ProtectedRoute><OTA /></ProtectedRoute>} />
               <Route path="/:lang/firmware" element={<ProtectedRoute><OTA /></ProtectedRoute>} />
               <Route path="/firmware/new" element={<ProtectedRoute><FirmwareForm /></ProtectedRoute>} />
