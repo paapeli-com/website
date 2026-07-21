@@ -303,7 +303,7 @@ const TagsCard = ({
         <button
           type="button"
           dir={isRTL ? "rtl" : "ltr"}
-          className="rounded-lg border bg-card px-4 py-3 text-start hover:bg-accent/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+          className="flex flex-col rounded-lg border bg-card px-4 py-3 text-start hover:bg-accent/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
             <Tag className="h-3.5 w-3.5" />
