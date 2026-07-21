@@ -279,7 +279,7 @@ export const LocationDetailPanel = ({
 const ContextCard = ({ label, value }: { label: string; value: string }) => (
   <div className="rounded-lg border bg-card px-4 py-3">
     <div className="text-xs text-muted-foreground mb-1">{label}</div>
-    <div className="text-sm font-semibold truncate">{value}</div>
+    <div className="text-sm font-semibold truncate" title={value}>{value}</div>
   </div>
 );
 
