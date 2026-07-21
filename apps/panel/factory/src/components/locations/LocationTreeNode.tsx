@@ -19,6 +19,7 @@ import {
   Trash2,
   Move,
   Copy,
+  Tag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { localizedNodeName } from "@/lib/locationLabels";
@@ -45,6 +46,7 @@ interface LocationTreeNodeProps {
   onSelect: (node: TreeNode) => void;
   onToggle: (nodeId: string) => void;
   onRename: (node: TreeNode) => void;
+  onEditTags: (node: TreeNode) => void;
   onAddChild: (node: TreeNode, type: "location" | "area" | "asset") => void;
   onMove: (node: TreeNode) => void;
   onDuplicate: (node: TreeNode) => void;
@@ -85,6 +87,7 @@ export const LocationTreeNode = ({
   onSelect,
   onToggle,
   onRename,
+  onEditTags,
   onAddChild,
   onMove,
   onDuplicate,
@@ -202,6 +205,12 @@ export const LocationTreeNode = ({
               {t("rename")}
             </DropdownMenuItem>
 
+            {/* Tags apply to every node type. */}
+            <DropdownMenuItem onClick={() => onEditTags(node)}>
+              <Tag className="h-3.5 w-3.5" />
+              {t("editTags")}
+            </DropdownMenuItem>
+
             {/* Root can only be renamed; everything else can be moved/removed. */}
             {node.type !== "organization" && (
               <>
@@ -239,6 +248,7 @@ export const LocationTreeNode = ({
           onSelect={onSelect}
           onToggle={onToggle}
           onRename={onRename}
+          onEditTags={onEditTags}
           onAddChild={onAddChild}
           onMove={onMove}
           onDuplicate={onDuplicate}
