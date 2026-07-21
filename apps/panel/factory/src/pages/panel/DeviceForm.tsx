@@ -382,7 +382,7 @@ const DeviceForm = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
             <div>
               <FieldLabel hint>{t("tagsLabel")}</FieldLabel>
-              <div className="min-h-11 rounded-md border border-input bg-background px-2 py-1.5 flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+              <div className="min-h-11 rounded-md border border-input bg-background px-2 py-1.5 flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-ring focus-within:border-transparent">
                 {tags.map((tag) => (
                   <span
                     key={tag}

@@ -1414,7 +1414,7 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
           </div>
           <div>
             <Label>{t("tagsLabel")}</Label>
-            <div className="mt-1 flex flex-wrap gap-1 border rounded-md p-2 min-h-[42px]">
+            <div className="mt-1 flex flex-wrap gap-1 border border-input rounded-md p-2 min-h-[42px] focus-within:ring-2 focus-within:ring-ring focus-within:border-transparent">
               {tags.map(tg => (
                 <span key={tg} className="inline-flex items-center gap-1 rounded bg-primary/10 text-primary px-2 py-0.5 text-xs">
                   {tg}
