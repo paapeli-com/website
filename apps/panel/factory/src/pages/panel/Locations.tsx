@@ -28,6 +28,7 @@ import { DeleteNodeDialog } from "@/components/locations/DeleteNodeDialog";
 import { EditTagsSheet } from "@/components/locations/EditTagsSheet";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
+import { DataState } from "@/components/DataState";
 import { seedNodeTags } from "@/lib/locationTags";
 import { useGetAssetTreeQuery, type PaapeliTreeNode } from "@paapeli/api";
 
@@ -392,10 +393,8 @@ const Locations = () => {
             </div>
           </CardHeader>
           <ScrollArea className="flex-1 px-2 pb-2">
-            {treeLoading ? (
-              <div className="py-10 text-center text-sm text-muted-foreground">{t("loading") || "Loading..."}</div>
-            ) : treeError ? (
-              <div className="py-10 text-center text-sm text-destructive">{t("errorStatus") || "Failed to load locations"}</div>
+            {treeLoading || treeError ? (
+              <DataState loading={treeLoading} error={treeError} onRetry={() => refetchTree()} size="sm" />
             ) : (
               <LocationTreeNode
                 node={tree}
