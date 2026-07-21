@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MapPin, Factory, Cpu } from "lucide-react";
+import { MapPin, Factory, Cpu, X as XIcon } from "lucide-react";
 import { useCreateAssetMutation } from "@paapeli/api";
 import { toast } from "sonner";
 
@@ -37,7 +37,8 @@ export const AddNodeDialog = ({ open, onOpenChange, parentId, parentType, parent
   const { t } = useLanguage();
   const [name, setName] = useState("");
   const [type, setType] = useState<NodeType | "">("");
-  const [tags, setTags] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
   const createAsset = useCreateAssetMutation();
 
   // Reset each time it opens; preselect the type when one was chosen from a
@@ -45,10 +46,20 @@ export const AddNodeDialog = ({ open, onOpenChange, parentId, parentType, parent
   useEffect(() => {
     if (open) {
       setName("");
-      setTags("");
+      setTags([]);
+      setTagInput("");
       setType(defaultType || "");
     }
   }, [open, defaultType]);
+
+  // Tag chip-input — add on Enter or comma, remove with the chip's × or Backspace.
+  const addTag = (raw: string) => {
+    const v = raw.trim().replace(/,$/, "").trim();
+    if (!v) return;
+    setTags((prev) => (prev.includes(v) ? prev : [...prev, v]));
+    setTagInput("");
+  };
+  const removeTag = (tag: string) => setTags((prev) => prev.filter((t) => t !== tag));
 
   // Allowed child types by parent:
   //   root (organization) → Location, Unit, Asset
@@ -67,7 +78,9 @@ export const AddNodeDialog = ({ open, onOpenChange, parentId, parentType, parent
 
   const handleAdd = () => {
     if (!name.trim() || !type || createAsset.isPending) return;
-    const tagList = tags.split(",").map((s) => s.trim()).filter(Boolean);
+    // Include a tag still sitting in the input that wasn't committed yet.
+    const pending = tagInput.trim().replace(/,$/, "").trim();
+    const tagList = pending && !tags.includes(pending) ? [...tags, pending] : tags;
     createAsset.mutate(
       {
         name: name.trim(),
@@ -82,7 +95,8 @@ export const AddNodeDialog = ({ open, onOpenChange, parentId, parentType, parent
           onAdd(name.trim(), type as NodeType, tagList);
           setName("");
           setType("");
-          setTags("");
+          setTags([]);
+          setTagInput("");
           onOpenChange(false);
         },
         onError: () => {
@@ -133,12 +147,44 @@ export const AddNodeDialog = ({ open, onOpenChange, parentId, parentType, parent
           </div>
           <div className="space-y-2">
             <Label>{t("tags")}</Label>
-            <Input
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              placeholder={t("enterTags")}
-              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            />
+            <div className="min-h-11 rounded-md border border-input bg-background px-2 py-1.5 flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1 rounded bg-primary/10 text-primary text-xs px-2 py-1"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => removeTag(tag)}
+                    className="hover:bg-primary/20 rounded p-0.5"
+                    aria-label={`Remove ${tag}`}
+                  >
+                    <XIcon className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+              <input
+                value={tagInput}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v.endsWith(",")) addTag(v.slice(0, -1));
+                  else setTagInput(v);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === ",") {
+                    e.preventDefault();
+                    addTag(tagInput);
+                  } else if (e.key === "Backspace" && !tagInput && tags.length) {
+                    removeTag(tags[tags.length - 1]);
+                  }
+                }}
+                onBlur={() => tagInput && addTag(tagInput)}
+                placeholder={tags.length === 0 ? t("addTagsPlaceholder") : ""}
+                className="flex-1 min-w-[120px] bg-transparent outline-none text-sm py-1"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">{t("pressEnterTags")}</p>
           </div>
         </div>
         <DialogFooter>

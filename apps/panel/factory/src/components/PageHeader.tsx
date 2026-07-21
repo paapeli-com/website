@@ -24,17 +24,9 @@ export const PageHeader = ({ title, count, countLabel, actions }: PageHeaderProp
         <h1 className="text-lg font-bold text-foreground truncate">{title}</h1>
         {showCount && (
           <span dir={isRTL ? "rtl" : "ltr"} className="text-xs text-muted-foreground whitespace-nowrap inline-flex items-baseline gap-1">
-            {isRTL ? (
-              <>
-                <span className="tabular-nums">{displayCount}</span>
-                {countLabel && <span>{countLabel}</span>}
-              </>
-            ) : (
-              <>
-                {countLabel && <span>{countLabel}</span>}
-                <span className="tabular-nums">{displayCount}</span>
-              </>
-            )}
+            {/* Count then label in every language: "24 devices" / "۲۴ دستگاه". */}
+            <span className="tabular-nums">{displayCount}</span>
+            {countLabel && <span>{countLabel}</span>}
           </span>
 
         )}
