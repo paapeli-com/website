@@ -127,13 +127,21 @@ export const LocationTreeNode = ({
           isSelected ? "bg-primary/10" : "hover:bg-accent/60"
         }`}
       >
-        <button
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => {
             onSelect(node);
             if (hasChildren && !isExpanded) onToggle(node.id);
           }}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" && e.key !== " ") return;
+            e.preventDefault();
+            onSelect(node);
+            if (hasChildren && !isExpanded) onToggle(node.id);
+          }}
           dir={isRTL ? "rtl" : "ltr"}
-          className={`flex-1 flex items-center gap-2 py-1.5 px-2 min-w-0 ${isRTL ? "text-right text-[15px]" : "text-left text-sm"}`}
+          className={`flex-1 flex items-center gap-2 py-1.5 px-2 min-w-0 cursor-pointer ${isRTL ? "text-right text-[15px]" : "text-left text-sm"}`}
           style={{ [isRTL ? "paddingRight" : "paddingLeft"]: `${depth * 14 + 6}px` }}
         >
           {hasChildren ? (
@@ -165,7 +173,7 @@ export const LocationTreeNode = ({
             </span>
           )}
           <span className="flex-1" />
-        </button>
+        </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Dialog,
@@ -17,9 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MapPin, Factory, Cpu } from "lucide-react";
 import { TagInput } from "@/components/TagInput";
-import { useCreateAssetMutation } from "@paapeli/api";
+import { useCreateAssetMutation, useGetProductAssetTypesQuery } from "@paapeli/api";
 import { toast } from "sonner";
 
 type NodeType = "location" | "area" | "asset";
@@ -27,20 +26,21 @@ type NodeType = "location" | "area" | "asset";
 interface AddNodeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  productKey: string;
   parentId?: string | null;
-  parentType?: "organization" | "location" | "area" | "asset" | null;
   parentName?: string;
   defaultType?: NodeType | null;
-  onAdd: (name: string, type: NodeType, tags: string[]) => void;
+  onAdd: (name: string, type: string, tags: string[]) => void;
 }
 
-export const AddNodeDialog = ({ open, onOpenChange, parentId, parentType, parentName, defaultType, onAdd }: AddNodeDialogProps) => {
+export const AddNodeDialog = ({ open, onOpenChange, productKey, parentId, parentName, defaultType, onAdd }: AddNodeDialogProps) => {
   const { t } = useLanguage();
   const [name, setName] = useState("");
-  const [type, setType] = useState<NodeType | "">("");
+  const [type, setType] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const tagsRef = useRef<string[]>([]);
   const createAsset = useCreateAssetMutation();
+  const { data: assetTypes, isLoading: typesLoading } = useGetProductAssetTypesQuery(productKey, open);
 
   // Keep a synchronous mirror so a tag still sitting in the input (committed on
   // blur when Create is clicked) is included on submit.
@@ -59,20 +59,7 @@ export const AddNodeDialog = ({ open, onOpenChange, parentId, parentType, parent
     }
   }, [open, defaultType]);
 
-  // Allowed child types by parent:
-  //   root (organization) → Location, Unit, Asset
-  //   location            → Unit, Asset
-  //   unit (area)         → Asset
-  const allowedTypes: { value: NodeType; label: string; icon: ReactNode }[] = [];
-  if (!parentType || parentType === "organization") {
-    allowedTypes.push({ value: "location", label: t("locationLabel"), icon: <MapPin className="h-4 w-4" /> });
-  }
-  if (!parentType || parentType === "organization" || parentType === "location") {
-    allowedTypes.push({ value: "area", label: t("areaUnit"), icon: <Factory className="h-4 w-4" /> });
-  }
-  if (!parentType || parentType === "organization" || parentType === "location" || parentType === "area") {
-    allowedTypes.push({ value: "asset", label: t("assets"), icon: <Cpu className="h-4 w-4" /> });
-  }
+  const allowedTypes = assetTypes || [];
 
   const handleAdd = () => {
     if (!name.trim() || !type || createAsset.isPending) return;
@@ -88,7 +75,7 @@ export const AddNodeDialog = ({ open, onOpenChange, parentId, parentType, parent
       },
       {
         onSuccess: () => {
-          onAdd(name.trim(), type as NodeType, tagList);
+          onAdd(name.trim(), type, tagList);
           setName("");
           setType("");
           updateTags([]);
@@ -115,17 +102,14 @@ export const AddNodeDialog = ({ open, onOpenChange, parentId, parentType, parent
         <div className="space-y-4 py-2">
           <div className="space-y-2">
             <Label>{t("selectNodeType")}</Label>
-            <Select value={type} onValueChange={(v) => setType(v as NodeType)}>
+            <Select value={type} onValueChange={setType} disabled={typesLoading || allowedTypes.length === 0}>
               <SelectTrigger>
-                <SelectValue placeholder={t("selectNodeType")} />
+                <SelectValue placeholder={typesLoading ? t("loading") : t("selectNodeType")} />
               </SelectTrigger>
               <SelectContent>
                 {allowedTypes.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    <div className="flex items-center gap-2">
-                      {opt.icon}
-                      {opt.label}
-                    </div>
+                  <SelectItem key={opt.assetType} value={opt.assetType}>
+                    {opt.assetType}
                   </SelectItem>
                 ))}
               </SelectContent>

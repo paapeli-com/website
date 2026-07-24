@@ -150,7 +150,7 @@ export const translations = {
     
     // Add Forms
     addNew: "Add New",
-    addNode: "Add Node",
+    addNode: "Add Root Node",
     addUnit: "Add Unit",
     addingUnder: "Adding under",
     enterTags: "Comma-separated tags",
@@ -242,6 +242,7 @@ export const translations = {
     deviceNameRequired: "Device name is required",
     notAuthenticated: "Not authenticated",
     failedToAddDevice: "Failed to add device",
+    failedToProvisionRoot: "Failed to create root node",
     deviceAddedSuccessfully: "Device added successfully",
     deviceCreatedSuccessfully: "Device Created Successfully!",
     saveCredentialsWarning: "Please save these credentials securely. You won't be able to see the API key again.",
@@ -339,6 +340,7 @@ export const translations = {
     offline: "Offline",
     errorStatus: "Error",
     errorLoadingData: "Error to load data. Please try again",
+    noLocationTree: "No location tree yet",
     singleSensorDevice: "Single Sensor Device",
     multiSensorDevice: "Multi Sensor Device",
     temperature: "Temperature",
@@ -2239,7 +2241,7 @@ export const translations = {
     
     // Add Forms
     addNew: "إضافة جديد",
-    addNode: "إضافة عقدة",
+    addNode: "إضافة عقدة جذر",
     addUnit: "إضافة وحدة",
     addingUnder: "إضافة ضمن",
     enterTags: "علامات مفصولة بفاصلة",
@@ -2331,6 +2333,7 @@ export const translations = {
     deviceNameRequired: "اسم الجهاز مطلوب",
     notAuthenticated: "غير مصادق",
     failedToAddDevice: "فشل إضافة الجهاز",
+    failedToProvisionRoot: "فشل إنشاء العقدة الجذر",
     deviceAddedSuccessfully: "تمت إضافة الجهاز بنجاح",
     deviceCreatedSuccessfully: "تم إنشاء الجهاز بنجاح!",
     saveCredentialsWarning: "يرجى حفظ هذه البيانات بشكل آمن. لن تتمكن من رؤية مفتاح API مرة أخرى.",
@@ -2428,6 +2431,7 @@ export const translations = {
     offline: "غير متصل",
     errorStatus: "خطأ",
     errorLoadingData: "خطأ في تحميل البيانات. يرجى المحاولة مرة أخرى",
+    noLocationTree: "لا توجد شجرة مواقع بعد",
     singleSensorDevice: "جهاز حساس واحد",
     multiSensorDevice: "جهاز متعدد الحساسات",
     temperature: "حرارة",
@@ -4314,7 +4318,7 @@ export const translations = {
     
     // Add Forms
     addNew: "افزودن جدید",
-    addNode: "افزودن نود",
+    addNode: "افزودن نود ریشه",
     addUnit: "افزودن واحد",
     addingUnder: "افزودن زیرِ",
     enterTags: "برچسب‌ها را با کاما جدا کنید",
@@ -4406,6 +4410,7 @@ export const translations = {
     deviceNameRequired: "نام دستگاه الزامی است",
     notAuthenticated: "احراز هویت نشده",
     failedToAddDevice: "افزودن دستگاه ناموفق بود",
+    failedToProvisionRoot: "ایجاد نود ریشه ناموفق بود",
     deviceAddedSuccessfully: "دستگاه با موفقیت اضافه شد",
     deviceCreatedSuccessfully: "دستگاه با موفقیت ایجاد شد!",
     saveCredentialsWarning: "لطفاً این اعتبارنامه‌ها را به صورت امن ذخیره کنید. نمی‌توانید دوباره کلید API را ببینید.",
@@ -4503,6 +4508,7 @@ export const translations = {
     offline: "آفلاین",
     errorStatus: "خطا",
     errorLoadingData: "خطا در بارگذاری داده. لطفاً دوباره تلاش کنید",
+    noLocationTree: "هنوز درخت مکانی وجود ندارد",
     singleSensorDevice: "دستگاه تک سنسور",
     multiSensorDevice: "دستگاه چند سنسور",
     temperature: "دما",

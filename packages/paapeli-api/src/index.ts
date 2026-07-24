@@ -5,3 +5,6 @@ export * from './api/deviceRpc';
 export * from './api/devices';
 export * from './api/assets';
 export * from './api/timeseries';
+export * from './api/productAssetTypes';
+export * from './api/deviceCredentials';
+export * from './api/alarms';

@@ -30,6 +30,7 @@ export interface PaapeliTreeNode {
 }
 
 export const assetsService = {
+    /** @deprecated Use `addChildAsset` instead. */
     async create(req: CreateAssetRequest): Promise<PaapeliAsset> {
         const { data } = await napiHttpHandler.post<PaapeliAsset>(
             '/api/v1/aiot/assets',
@@ -37,9 +38,34 @@ export const assetsService = {
         );
         return data;
     },
+    /** @deprecated Use `getProductAssetTree` instead. */
     async getTree(rootAssetId: string): Promise<PaapeliTreeNode> {
         const { data } = await napiHttpHandler.get<PaapeliTreeNode>(
             `/api/v1/aiot/assets/tree/${rootAssetId}`,
+        );
+        return data;
+    },
+    /** Add a child asset under the product's root node (or under `parentId` when set). */
+    async addChildAsset(
+        productKey: string,
+        req: CreateAssetRequest,
+    ): Promise<PaapeliAsset> {
+        const { data } = await napiHttpHandler.post<PaapeliAsset>(
+            `/api/v1/aiot/assets/${productKey}`,
+            req,
+        );
+        return data;
+    },
+    /** Provision the single root asset for a product. Call once per product. */
+    async provisionRootNode(productKey: string): Promise<PaapeliAsset> {
+        const { data } = await napiHttpHandler.post<PaapeliAsset>(
+            `/api/v1/aiot/assets/${productKey}/provision-root`,
+        );
+        return data;
+    },
+    async getProductAssetTree(productKey: string): Promise<PaapeliTreeNode> {
+        const { data } = await napiHttpHandler.get<PaapeliTreeNode>(
+            `/api/v1/aiot/assets/${productKey}/tree`,
         );
         return data;
     },

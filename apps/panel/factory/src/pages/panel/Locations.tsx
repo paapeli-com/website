@@ -30,9 +30,9 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { DataState } from "@/components/DataState";
 import { seedNodeTags } from "@/lib/locationTags";
-import { useGetAssetTreeQuery, type PaapeliTreeNode } from "@paapeli/api";
+import { useGetProductAssetTreeQuery, useProvisionRootNodeMutation, useCreateProductAssetTypeMutation, type PaapeliTreeNode } from "@paapeli/api";
 
-const ROOT_ASSET_ID = "7c613570-836f-11f1-a92c-4f03335be81b";
+const PRODUCT_KEY = "smartFactory";
 
 // The API returns free-form `type` strings (ThingsBoard asset types) that don't
 // always match our canonical kinds. Downstream UI — node icons, the "..." add
@@ -59,7 +59,7 @@ const mapApiTreeNode = (node: PaapeliTreeNode, depth = 0): TreeNode => ({
   children: node.children?.map((c) => mapApiTreeNode(c, depth + 1)) ?? [],
 });
 
-const EMPTY_TREE: TreeNode = { id: ROOT_ASSET_ID, name: "", type: "organization", children: [] };
+const EMPTY_TREE: TreeNode = { id: "root", name: "", type: "organization", children: [] };
 
 // ---------- Mock assets per location ----------
 const MOCK_ASSETS_BY_LOCATION: Record<string, AssetPreview[]> = {
@@ -172,7 +172,27 @@ const Locations = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const { data: apiTree, isLoading: treeLoading, isError: treeError, refetch: refetchTree } = useGetAssetTreeQuery(ROOT_ASSET_ID);
+  const { data: apiTree, isLoading: treeLoading, isError: treeError, error: treeErrorObj, refetch: refetchTree } = useGetProductAssetTreeQuery(PRODUCT_KEY);
+
+  // The backend returns this code when the product simply has no asset tree
+  // yet — that's an empty state, not a failure, so don't show an error.
+  const treeNotFound = (treeErrorObj as any)?.response?.data?.code === "ASSET_TREE_NOT_FOUND";
+
+  const provisionRoot = useProvisionRootNodeMutation();
+
+  // Register the default asset type for this product once per mount. Safe to
+  // no-op/409 on repeat visits — we don't surface that to the user.
+  const createProductAssetType = useCreateProductAssetTypeMutation();
+  const didRegisterAssetType = useRef(false);
+  // useEffect(() => {
+  //   if (didRegisterAssetType.current) return;
+  //   didRegisterAssetType.current = true;
+  //   createProductAssetType.mutate({
+  //     productKey: PRODUCT_KEY,
+  //     assetType: "moosdss",
+  //     label: "Default",
+  //   });
+  // }, []); // eslint-disable-line
 
   const [tree, setTree] = useState<TreeNode>(EMPTY_TREE);
 
@@ -184,6 +204,7 @@ const Locations = () => {
     if (!apiTree) return;
     const mapped = mapApiTreeNode(apiTree);
     setTree(mapped);
+    setExpandedNodes((prev) => new Set([...prev, mapped.id]));
     const pending = pendingTags.current;
     if (pending) {
       const parent = findNode(mapped, pending.parentId);
@@ -195,14 +216,13 @@ const Locations = () => {
     }
   }, [apiTree]);
 
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set([ROOT_ASSET_ID]));
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
   // Dialogs
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [addParentType, setAddParentType] = useState<TreeNode["type"] | null>(null);
   const [addParentId, setAddParentId] = useState<string | null>(null);
   const [addDefaultType, setAddDefaultType] = useState<"location" | "area" | "asset" | null>(null);
 
@@ -249,17 +269,17 @@ const Locations = () => {
     collectIds(tree, all);
     setExpandedNodes(all);
   };
-  const collapseAll = () => setExpandedNodes(new Set([ROOT_ASSET_ID]));
+  const collapseAll = () => setExpandedNodes(new Set([tree.id]));
 
   // ----- Mutations -----
   // The dialog itself performs the create call against the API; here we just
   // refresh the tree from the server and reflect the new node in the UI.
-  const handleAdd = (name: string, _type: "location" | "area" | "asset", tags: string[] = []) => {
+  const handleAdd = (name: string, _type: string, tags: string[] = []) => {
     if (tags.length) {
-      pendingTags.current = { parentId: addParentId || ROOT_ASSET_ID, name, tags };
+      pendingTags.current = { parentId: addParentId || tree.id, name, tags };
     }
     refetchTree();
-    setExpandedNodes((p) => new Set([...p, addParentId || ROOT_ASSET_ID]));
+    setExpandedNodes((p) => new Set([...p, addParentId || tree.id]));
     toast.success(t("success"));
   };
 
@@ -312,18 +332,23 @@ const Locations = () => {
   };
 
   // ----- UI handlers -----
-  const handleTopAddLocation = () => {
-    // Footer button: add under the selected container (or the root).
-    const target = selectedNode && selectedNode.type !== "asset" ? selectedNode : null;
-    setAddParentId(target?.id || ROOT_ASSET_ID);
-    setAddParentType(target?.type || "organization");
-    setAddDefaultType(null);
-    setAddDialogOpen(true);
+  // Footer button: provisions the single root asset for the product. Only
+  // relevant while no tree exists yet — children are added via each node's
+  // "..." menu once the root is there.
+  const handleProvisionRoot = () => {
+    if (provisionRoot.isPending) return;
+    provisionRoot.mutate(PRODUCT_KEY, {
+      onSuccess: () => {
+        toast.success(t("success"));
+      },
+      onError: () => {
+        toast.error(t("failedToProvisionRoot"));
+      },
+    });
   };
 
   const handleAddChild = (node: TreeNode, type: "location" | "area" | "asset") => {
     setAddParentId(node.id);
-    setAddParentType(node.type);
     setAddDefaultType(type);
     setAddDialogOpen(true);
   };
@@ -393,8 +418,10 @@ const Locations = () => {
             </div>
           </CardHeader>
           <ScrollArea className="flex-1 px-2 pb-2">
-            {treeLoading || treeError ? (
-              <DataState loading={treeLoading} error={treeError} onRetry={() => refetchTree()} size="sm" />
+            {treeLoading || (treeError && !treeNotFound) ? (
+              <DataState loading={treeLoading} error={treeError && !treeNotFound} onRetry={() => refetchTree()} size="sm" />
+            ) : treeNotFound ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">{t("noLocationTree")}</div>
             ) : (
               <LocationTreeNode
                 node={tree}
@@ -414,14 +441,21 @@ const Locations = () => {
               />
             )}
           </ScrollArea>
-          {/* Primary add action, contextual to the tree (adds under the
-              selected container, or the root). */}
-          <div className="p-2 border-t">
-            <Button className="w-full gap-2" onClick={handleTopAddLocation}>
-              <Plus className="h-4 w-4" />
-              {t("addNode")}
-            </Button>
-          </div>
+          {/* Only relevant before the product has a root asset — provisions
+              the single root node. Children are added via each node's "..."
+              menu once the root exists. */}
+          {treeNotFound && (
+            <div className="p-2 border-t">
+              <Button className="w-full gap-2" onClick={handleProvisionRoot} disabled={provisionRoot.isPending}>
+                {provisionRoot.isPending ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                {t("addNode")}
+              </Button>
+            </div>
+          )}
         </Card>
 
         {/* Right: Details */}
@@ -447,8 +481,8 @@ const Locations = () => {
       <AddNodeDialog
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
+        productKey={PRODUCT_KEY}
         parentId={addParentId}
-        parentType={addParentType}
         parentName={addParentId ? findNode(tree, addParentId)?.name : undefined}
         defaultType={addDefaultType}
         onAdd={handleAdd}

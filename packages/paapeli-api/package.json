@@ -9,7 +9,10 @@
     "./device-rpc": "./src/api/deviceRpc/index.ts",
     "./devices": "./src/api/devices/index.ts",
     "./assets": "./src/api/assets/index.ts",
-    "./timeseries": "./src/api/timeseries/index.ts"
+    "./timeseries": "./src/api/timeseries/index.ts",
+    "./product-asset-types": "./src/api/productAssetTypes/index.ts",
+    "./device-credentials": "./src/api/deviceCredentials/index.ts",
+    "./alarms": "./src/api/alarms/index.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit"
