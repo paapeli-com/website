@@ -1,4 +1,5 @@
 import napiHttpHandler from '../napiHttpHandler';
+import { PaapeliMessage } from '../type';
 
 export interface PaapeliAsset {
     /** Server generated - omit on create. */
@@ -20,6 +21,14 @@ export type CreateAssetRequest = Pick<
     PaapeliAsset,
     'name' | 'type' | 'label' | 'description' | 'parentId' | 'customerId'
 >;
+
+export interface EditAssetRequest {
+    /** Asset ID to update. */
+    id: string;
+    name: string;
+    label: string;
+    description?: string;
+}
 
 export interface PaapeliTreeNode {
     id: string;
@@ -53,6 +62,30 @@ export const assetsService = {
         const { data } = await napiHttpHandler.post<PaapeliAsset>(
             `/api/v1/aiot/assets/${productKey}`,
             req,
+        );
+        return data;
+    },
+    /**
+     * Update name, label, and description of an existing child asset.
+     * Type and hierarchy are unchanged; the product root asset is immutable.
+     */
+    async editAsset(
+        productKey: string,
+        req: EditAssetRequest,
+    ): Promise<PaapeliAsset> {
+        const { data } = await napiHttpHandler.put<PaapeliAsset>(
+            `/api/v1/aiot/assets/${productKey}`,
+            req,
+        );
+        return data;
+    },
+    /** Delete a child asset. The product root asset cannot be deleted. */
+    async deleteAsset(
+        productKey: string,
+        assetId: string,
+    ): Promise<PaapeliMessage> {
+        const { data } = await napiHttpHandler.del<PaapeliMessage>(
+            `/api/v1/aiot/assets/${productKey}/${assetId}`,
         );
         return data;
     },

@@ -27,17 +27,10 @@ import {
   Router,
   Cpu,
   Tag,
-  X,
 } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import type { TreeNode } from "./LocationTreeNode";
 import { useState, useMemo } from "react";
 import { localizedNodeName, localizedKindLabel, localizedRelative } from "@/lib/locationLabels";
-import { useNodeTags, removeNodeTag } from "@/lib/locationTags";
 
 export interface AssetPreview {
   id: string;
@@ -58,7 +51,7 @@ interface LocationDetailPanelProps {
   onViewAllAssets: () => void;
   onNavigateAsset: (assetId: string) => void;
   onSelectAncestor: (node: TreeNode) => void;
-  onManageTags: () => void;
+  onEditLabel: () => void;
 }
 
 const fmtType = (t: (k: any) => string, type: string) => {
@@ -89,11 +82,10 @@ export const LocationDetailPanel = ({
   onViewAllAssets,
   onNavigateAsset,
   onSelectAncestor,
-  onManageTags,
+  onEditLabel,
 }: LocationDetailPanelProps) => {
   const { t, isRTL, formatNumber } = useLanguage();
   const [tab, setTab] = useState<"all" | "device" | "gateway" | "other">("all");
-  const tags = useNodeTags(node?.id || "");
 
   const counts = useMemo(() => {
     const c = { all: assets.length, device: 0, gateway: 0, other: 0 };
@@ -157,10 +149,10 @@ export const LocationDetailPanel = ({
         <ContextCard label={t("parentLocation")} value={parentNode ? localizedNodeName(parentNode.id, parentNode.name, t) : t("rootOrganization")} />
         {node.type !== "asset" && <ContextCard label={t("totalAssets")} value={formatNumber(totalAssetCount)} />}
         <ContextCard label={t("lastUpdated")} value={"—"} />
-        <TagsCard
-          tags={tags}
-          onRemove={(tag) => removeNodeTag(node.id, tag)}
-          onManage={onManageTags}
+        <LabelCard
+          label={node.label}
+          onEdit={onEditLabel}
+          editable={node.type !== "organization"}
         />
       </div>
 
@@ -283,86 +275,51 @@ const ContextCard = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
-const VISIBLE_TAGS = 3;
-
-const TagsCard = ({
-  tags,
-  onRemove,
-  onManage,
+const LabelCard = ({
+  label,
+  onEdit,
+  editable,
 }: {
-  tags: string[];
-  onRemove: (tag: string) => void;
-  onManage: () => void;
+  label?: string;
+  onEdit: () => void;
+  editable: boolean;
 }) => {
-  const { t, isRTL, formatNumber } = useLanguage();
-  const overflow = Math.max(0, tags.length - VISIBLE_TAGS);
+  const { t, isRTL } = useLanguage();
+  const value = label?.trim();
+
+  const content = (
+    <>
+      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+        <Tag className="h-3.5 w-3.5" />
+        {t("label")}
+      </div>
+      <div
+        className={`text-sm font-semibold truncate ${value ? "" : "text-muted-foreground"}`}
+        title={value || undefined}
+      >
+        {value || "\u2014"}
+      </div>
+    </>
+  );
+
+  // The product root asset is immutable server-side — show it read-only.
+  if (!editable) {
+    return (
+      <div className="flex flex-col rounded-lg border bg-card px-4 py-3" dir={isRTL ? "rtl" : "ltr"}>
+        {content}
+      </div>
+    );
+  }
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          dir={isRTL ? "rtl" : "ltr"}
-          className="flex flex-col rounded-lg border bg-card px-4 py-3 text-start hover:bg-accent/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-            <Tag className="h-3.5 w-3.5" />
-            {t("tags")}
-          </div>
-          {tags.length === 0 ? (
-            <div className="text-sm font-semibold text-muted-foreground">—</div>
-          ) : (
-            <div className="flex items-start gap-1.5">
-              <span className="text-[13px] font-medium leading-snug line-clamp-2 min-w-0">
-                {tags.slice(0, VISIBLE_TAGS).join("، ")}
-                {overflow > 0 ? " …" : ""}
-              </span>
-              {overflow > 0 && (
-                <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary tabular-nums">
-                  +{formatNumber(overflow)}
-                </span>
-              )}
-            </div>
-          )}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align={isRTL ? "start" : "end"} className="w-72 p-3" dir={isRTL ? "rtl" : "ltr"}>
-        <div className="text-sm font-medium mb-2.5">
-          {t("allTags")} ({formatNumber(tags.length)})
-        </div>
-        {tags.length === 0 ? (
-          <div className="text-sm text-muted-foreground py-2">{t("noTagsYet")}</div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium"
-              >
-                {tag}
-                <button
-                  type="button"
-                  onClick={() => onRemove(tag)}
-                  className="rounded-full p-0.5 text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
-                  aria-label={`Remove ${tag}`}
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
-        <div className="mt-3 border-t pt-2 -mx-1">
-          <button
-            type="button"
-            onClick={onManage}
-            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-primary hover:bg-accent transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            {t("manageTags")}
-          </button>
-        </div>
-      </PopoverContent>
-    </Popover>
+    <button
+      type="button"
+      onClick={onEdit}
+      dir={isRTL ? "rtl" : "ltr"}
+      aria-label={t("editLabel")}
+      className="flex flex-col rounded-lg border bg-card px-4 py-3 text-start hover:bg-accent/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+    >
+      {content}
+    </button>
   );
 };

@@ -434,6 +434,200 @@
         }
       }
     },
+    "/api/v1/aiot/assets/{productKey}": {
+      "put": {
+        "tags": ["Assets"],
+        "summary": "Update a product asset",
+        "description": "Update name, label, and description of an existing child asset under a product.\nAsset type and hierarchy are not changed by this endpoint.\nThe product root asset cannot be updated.\n",
+        "operationId": "editAsset",
+        "parameters": [
+          {
+            "name": "productKey",
+            "in": "path",
+            "description": "Product key the asset belongs to",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "aiot"
+          }
+        ],
+        "requestBody": {
+          "description": "Asset update payload",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaapeliAssetEditRequest"
+              },
+              "examples": {
+                "Update asset fields": {
+                  "summary": "Change name, label, and description",
+                  "description": "Update asset fields",
+                  "value": {
+                    "id": "b9c8d7e6-f5a4-3210-9876-543210fedcba",
+                    "name": "Production Line A",
+                    "label": "Line A",
+                    "description": "Primary assembly line"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Asset updated successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PaapeliAsset" },
+                "examples": {
+                  "Updated asset": {
+                    "description": "Updated asset",
+                    "value": {
+                      "id": "b9c8d7e6-f5a4-3210-9876-543210fedcba",
+                      "name": "Production Line A",
+                      "type": "production",
+                      "label": "Line A",
+                      "description": "Primary assembly line"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliAsset" }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliAsset" }
+              }
+            }
+          },
+          "403": {
+            "description": "Attempted to update the immutable product root asset",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliErrorResponse"
+                },
+                "examples": {
+                  "Root immutable": {
+                    "description": "Root immutable",
+                    "value": {
+                      "detail": "Root asset node for product aiot can not be deleted or updated",
+                      "instance": "/api/v1/aiot/assets/aiot",
+                      "status": 403,
+                      "title": "Asset root is immutable",
+                      "code": "ASSET_ROOT_NODE_IMMUTABLE"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Asset or product tree not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Assets"],
+        "summary": "Add child asset to product",
+        "description": "Add a child asset under the product's root node.\nIf parentId is not provided (or null), it becomes a direct child of the product's root asset.\n",
+        "operationId": "addChildAsset",
+        "parameters": [
+          {
+            "name": "productKey",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "description": "Child asset payload",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PaapeliAsset" },
+              "examples": {
+                "Direct child of root": {
+                  "summary": "Add asset directly under product root",
+                  "description": "Direct child of root",
+                  "value": {
+                    "name": "Production Line A",
+                    "type": "production",
+                    "label": "Line A",
+                    "description": "Primary assembly line",
+                    "parentId": null
+                  }
+                },
+                "Nested child asset": {
+                  "summary": "Add asset under an existing parent",
+                  "description": "Nested child asset",
+                  "value": {
+                    "name": "Machine 01",
+                    "type": "machine",
+                    "label": "CNC Machine",
+                    "description": "High precision milling machine",
+                    "parentId": "b9c8d7e6-f5a4-3210-9876-543210fedcba"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Child asset created successfully",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliAsset" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliAsset" }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliAsset" }
+              }
+            }
+          },
+          "404": {
+            "description": "Product root asset not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/aiot/rpc": {
       "post": {
         "tags": ["Device RPC"],
@@ -570,91 +764,6 @@
           }
         },
         "deprecated": true
-      }
-    },
-    "/api/v1/aiot/assets/{productKey}": {
-      "post": {
-        "tags": ["Assets"],
-        "summary": "Add child asset to product",
-        "description": "Add a child asset under the product's root node.\nIf parentId is not provided (or null), it becomes a direct child of the product's root asset.\n",
-        "operationId": "addChildAsset",
-        "parameters": [
-          {
-            "name": "productKey",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "string" }
-          }
-        ],
-        "requestBody": {
-          "description": "Child asset payload",
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/PaapeliAsset" },
-              "examples": {
-                "Direct child of root": {
-                  "summary": "Add asset directly under product root",
-                  "description": "Direct child of root",
-                  "value": {
-                    "name": "Production Line A",
-                    "type": "production",
-                    "label": "Line A",
-                    "description": "Primary assembly line",
-                    "parentId": null
-                  }
-                },
-                "Nested child asset": {
-                  "summary": "Add asset under an existing parent",
-                  "description": "Nested child asset",
-                  "value": {
-                    "name": "Machine 01",
-                    "type": "machine",
-                    "label": "CNC Machine",
-                    "description": "High precision milling machine",
-                    "parentId": "b9c8d7e6-f5a4-3210-9876-543210fedcba"
-                  }
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Child asset created successfully",
-            "content": {
-              "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliAsset" }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliAsset" }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliAsset" }
-              }
-            }
-          },
-          "404": {
-            "description": "Product root asset not found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaapeliErrorResponse"
-                }
-              }
-            }
-          }
-        }
       }
     },
     "/api/v1/aiot/assets/{productKey}/provision-root": {
@@ -1304,6 +1413,88 @@
           }
         }
       }
+    },
+    "/api/v1/aiot/assets/{productKey}/{assetId}": {
+      "delete": {
+        "tags": ["Assets"],
+        "summary": "Delete a product asset",
+        "description": "Delete a child asset under a product.\nThe product root asset cannot be deleted.\n",
+        "operationId": "deleteAsset",
+        "parameters": [
+          {
+            "name": "productKey",
+            "in": "path",
+            "description": "Product key the asset belongs to",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "aiot"
+          },
+          {
+            "name": "assetId",
+            "in": "path",
+            "description": "Asset ID to delete (must not be the product root)",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "b9c8d7e6-f5a4-3210-9876-543210fedcba"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Asset deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" },
+                "examples": {
+                  "Deleted": {
+                    "description": "Deleted",
+                    "value": { "message": "Asset deleted" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "403": {
+            "description": "Attempted to delete the immutable product root asset",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliErrorResponse"
+                },
+                "examples": {
+                  "Root immutable": {
+                    "description": "Root immutable",
+                    "value": {
+                      "detail": "Root asset node for product aiot can not be deleted or updated",
+                      "instance": "/api/v1/aiot/assets/aiot/b9c8d7e6-f5a4-3210-9876-543210fedcba",
+                      "status": 403,
+                      "title": "Asset root is immutable",
+                      "code": "ASSET_ROOT_NODE_IMMUTABLE"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Asset or product tree not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1449,6 +1640,87 @@
           }
         },
         "required": ["credentialType", "deviceId", "id"]
+      },
+      "PaapeliAssetEditRequest": {
+        "type": "object",
+        "description": "Payload for updating an existing product asset",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Asset ID to update",
+            "example": "b9c8d7e6-f5a4-3210-9876-543210fedcba"
+          },
+          "name": {
+            "type": "string",
+            "description": "Updated asset name",
+            "example": "Production Line A"
+          },
+          "label": {
+            "type": "string",
+            "description": "Updated asset label",
+            "example": "Line A"
+          },
+          "description": {
+            "type": "string",
+            "description": "Updated asset description",
+            "example": "Primary assembly line"
+          }
+        },
+        "required": ["id", "label", "name"]
+      },
+      "PaapeliAsset": {
+        "type": "object",
+        "properties": {
+          "parentId": {
+            "type": "string",
+            "description": "Parent asset ID. Null for direct children of the product root asset.",
+            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+          },
+          "id": {
+            "type": "string",
+            "description": "Asset ID (generated by server - do not send on create)",
+            "example": "b9c8d7e6-f5a4-3210-9876-543210fedcba",
+            "readOnly": true
+          },
+          "createdTime": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Created timestamp (server generated)",
+            "readOnly": true
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Version (server managed)",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Asset name",
+            "example": "Factory Floor"
+          },
+          "type": {
+            "type": "string",
+            "description": "Asset type",
+            "example": "default"
+          },
+          "label": {
+            "type": "string",
+            "description": "Asset label",
+            "example": "Main Production Area"
+          },
+          "description": {
+            "type": "string",
+            "description": "Asset description",
+            "example": "Main factory floor assets"
+          },
+          "customerId": {
+            "type": "string",
+            "description": "Customer ID (optional)",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          }
+        },
+        "required": ["label", "name", "type"]
       },
       "PaapeliDeviceRPC": {
         "type": "object",
@@ -1611,60 +1883,6 @@
           }
         },
         "required": ["token"]
-      },
-      "PaapeliAsset": {
-        "type": "object",
-        "properties": {
-          "parentId": {
-            "type": "string",
-            "description": "Parent asset ID. Null for direct children of the product root asset.",
-            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-          },
-          "id": {
-            "type": "string",
-            "description": "Asset ID (generated by server - do not send on create)",
-            "example": "b9c8d7e6-f5a4-3210-9876-543210fedcba",
-            "readOnly": true
-          },
-          "createdTime": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Created timestamp (server generated)",
-            "readOnly": true
-          },
-          "version": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Version (server managed)",
-            "readOnly": true
-          },
-          "name": {
-            "type": "string",
-            "description": "Asset name",
-            "example": "Factory Floor"
-          },
-          "type": {
-            "type": "string",
-            "description": "Asset type",
-            "example": "default"
-          },
-          "label": {
-            "type": "string",
-            "description": "Asset label",
-            "example": "Main Production Area"
-          },
-          "description": {
-            "type": "string",
-            "description": "Asset description",
-            "example": "Main factory floor assets"
-          },
-          "customerId": {
-            "type": "string",
-            "description": "Customer ID (optional)",
-            "example": "123e4567-e89b-12d3-a456-426614174000"
-          }
-        },
-        "required": ["label", "name", "type"]
       },
       "EntityFieldItem": {
         "type": "object",

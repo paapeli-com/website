@@ -25,14 +25,13 @@ import { LocationDetailPanel, type AssetPreview } from "@/components/locations/L
 import { AddNodeDialog } from "@/components/locations/AddNodeDialog";
 import { RenameNodeDialog } from "@/components/locations/RenameNodeDialog";
 import { DeleteNodeDialog } from "@/components/locations/DeleteNodeDialog";
-import { EditTagsSheet } from "@/components/locations/EditTagsSheet";
+import { EditLabelDialog } from "@/components/locations/EditLabelDialog";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { DataState } from "@/components/DataState";
-import { seedNodeTags } from "@/lib/locationTags";
+import { PRODUCT_KEY } from "@/lib/product";
 import { useGetProductAssetTreeQuery, useProvisionRootNodeMutation, useCreateProductAssetTypeMutation, type PaapeliTreeNode } from "@paapeli/api";
 
-const PRODUCT_KEY = "smartFactory";
 
 // The API returns free-form `type` strings (ThingsBoard asset types) that don't
 // always match our canonical kinds. Downstream UI — node icons, the "..." add
@@ -56,6 +55,7 @@ const mapApiTreeNode = (node: PaapeliTreeNode, depth = 0): TreeNode => ({
   id: node.id,
   name: node.name,
   type: canonicalType(node.type, depth),
+  label: node.label ?? undefined,
   children: node.children?.map((c) => mapApiTreeNode(c, depth + 1)) ?? [],
 });
 
@@ -130,20 +130,6 @@ const collectIds = (n: TreeNode, acc: Set<string>) => {
   n.children?.forEach((c) => collectIds(c, acc));
 };
 
-// Full name path from the root down to the given node (inclusive).
-const getNamePath = (root: TreeNode, id: string): string[] => {
-  const path: string[] = [];
-  const walk = (n: TreeNode): boolean => {
-    path.push(n.name);
-    if (n.id === id) return true;
-    if (n.children) for (const c of n.children) if (walk(c)) return true;
-    path.pop();
-    return false;
-  };
-  walk(root);
-  return path;
-};
-
 const mapTree = (root: TreeNode, fn: (n: TreeNode) => TreeNode | null): TreeNode | null => {
   const m = fn(root);
   if (!m) return null;
@@ -196,24 +182,11 @@ const Locations = () => {
 
   const [tree, setTree] = useState<TreeNode>(EMPTY_TREE);
 
-  // Tags entered while creating a node are applied once the refreshed tree
-  // reveals the server-assigned id of the new node.
-  const pendingTags = useRef<{ parentId: string; name: string; tags: string[] } | null>(null);
-
   useEffect(() => {
     if (!apiTree) return;
     const mapped = mapApiTreeNode(apiTree);
     setTree(mapped);
     setExpandedNodes((prev) => new Set([...prev, mapped.id]));
-    const pending = pendingTags.current;
-    if (pending) {
-      const parent = findNode(mapped, pending.parentId);
-      const created = parent?.children?.find((c) => c.name === pending.name);
-      if (created) {
-        seedNodeTags(created.id, pending.tags);
-        pendingTags.current = null;
-      }
-    }
   }, [apiTree]);
 
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
@@ -232,8 +205,8 @@ const Locations = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<TreeNode | null>(null);
 
-  const [tagsSheetOpen, setTagsSheetOpen] = useState(false);
-  const [tagsSheetNode, setTagsSheetNode] = useState<{ id: string; path: string[] } | null>(null);
+  const [labelDialogOpen, setLabelDialogOpen] = useState(false);
+  const [labelTarget, setLabelTarget] = useState<TreeNode | null>(null);
 
   // Select the root node once the tree has loaded
   useEffect(() => {
@@ -274,35 +247,56 @@ const Locations = () => {
   // ----- Mutations -----
   // The dialog itself performs the create call against the API; here we just
   // refresh the tree from the server and reflect the new node in the UI.
-  const handleAdd = (name: string, _type: string, tags: string[] = []) => {
-    if (tags.length) {
-      pendingTags.current = { parentId: addParentId || tree.id, name, tags };
-    }
+  const handleAdd = () => {
     refetchTree();
     setExpandedNodes((p) => new Set([...p, addParentId || tree.id]));
     toast.success(t("success"));
   };
 
-  const handleRename = (newName: string) => {
-    if (!renameTarget) return;
+  // Apply an in-place edit to one node of the local tree, keeping the detail
+  // panel's copy in sync when that node is the selected one.
+  const patchNode = (nodeId: string, apply: (n: TreeNode) => void) => {
     setTree((prev) => {
       const updated = JSON.parse(JSON.stringify(prev)) as TreeNode;
-      const n = findNode(updated, renameTarget.id);
-      if (n) n.name = newName;
+      const n = findNode(updated, nodeId);
+      if (n) apply(n);
       return updated;
     });
-    if (selectedNode?.id === renameTarget.id) setSelectedNode({ ...renameTarget, name: newName });
+    setSelectedNode((prev) => {
+      if (!prev || prev.id !== nodeId) return prev;
+      const next = { ...prev };
+      apply(next);
+      return next;
+    });
+  };
+
+  // Both of these run after the dialog's edit call succeeded — they patch the
+  // local tree for an immediate update while the invalidated query refetches.
+  const handleRename = (newName: string) => {
+    if (!renameTarget) return;
+    patchNode(renameTarget.id, (n) => { n.name = newName; });
     toast.success(t("success"));
   };
 
+  const handleEditLabel = (newLabel: string) => {
+    if (!labelTarget) return;
+    patchNode(labelTarget.id, (n) => { n.label = newLabel; });
+    toast.success(t("success"));
+  };
+
+  // The dialog performs the delete call; here we drop the node from the local
+  // tree so the UI updates immediately (the invalidated query refreshes it from
+  // the server right after) and move the selection off the removed subtree.
   const handleDelete = () => {
     if (!deleteTarget) return;
+    const removedIds = new Set<string>();
+    collectIds(deleteTarget, removedIds);
+    const parent = findParent(tree, deleteTarget.id);
     setTree((prev) => {
       const updated = mapTree(JSON.parse(JSON.stringify(prev)), (n) => (n.id === deleteTarget.id ? null : n));
       return updated || EMPTY_TREE;
     });
-    if (selectedNode?.id === deleteTarget.id) setSelectedNode(null);
-    setDeleteDialogOpen(false);
+    if (selectedNode && removedIds.has(selectedNode.id)) setSelectedNode(parent);
     toast.success(t("deleted"));
   };
 
@@ -353,9 +347,9 @@ const Locations = () => {
     setAddDialogOpen(true);
   };
 
-  const handleEditTags = (node: TreeNode) => {
-    setTagsSheetNode({ id: node.id, path: getNamePath(tree, node.id) });
-    setTagsSheetOpen(true);
+  const openLabelDialog = (node: TreeNode) => {
+    setLabelTarget(node);
+    setLabelDialogOpen(true);
   };
 
   const buildLocationPath = (id: string) =>
@@ -433,7 +427,7 @@ const Locations = () => {
                 onSelect={setSelectedNode}
                 onToggle={toggleExpand}
                 onRename={(n) => { setRenameTarget(n); setRenameDialogOpen(true); }}
-                onEditTags={handleEditTags}
+                onEditLabel={openLabelDialog}
                 onAddChild={handleAddChild}
                 onMove={handleMove}
                 onDuplicate={handleDuplicate}
@@ -471,7 +465,7 @@ const Locations = () => {
               onViewAllAssets={handleViewAllAssets}
               onNavigateAsset={handleNavigateAsset}
               onSelectAncestor={(n) => setSelectedNode(n)}
-              onManageTags={() => selectedNode && handleEditTags(selectedNode)}
+              onEditLabel={() => selectedNode && openLabelDialog(selectedNode)}
             />
           </ScrollArea>
         </Card>
@@ -490,20 +484,28 @@ const Locations = () => {
       <RenameNodeDialog
         open={renameDialogOpen}
         onOpenChange={setRenameDialogOpen}
+        productKey={PRODUCT_KEY}
+        nodeId={renameTarget?.id}
         currentName={renameTarget?.name || ""}
+        currentLabel={renameTarget?.label}
         onRename={handleRename}
       />
       <DeleteNodeDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
+        productKey={PRODUCT_KEY}
+        nodeId={deleteTarget?.id}
         nodeName={deleteTarget?.name || ""}
         onConfirm={handleDelete}
       />
-      <EditTagsSheet
-        open={tagsSheetOpen}
-        onOpenChange={setTagsSheetOpen}
-        nodeId={tagsSheetNode?.id || ""}
-        path={tagsSheetNode?.path || []}
+      <EditLabelDialog
+        open={labelDialogOpen}
+        onOpenChange={setLabelDialogOpen}
+        productKey={PRODUCT_KEY}
+        nodeId={labelTarget?.id}
+        nodeName={labelTarget?.name || ""}
+        currentLabel={labelTarget?.label}
+        onSave={handleEditLabel}
       />
     </PanelLayout>
   );

@@ -28,11 +28,11 @@ export interface TreeNode {
   id: string;
   name: string;
   type: string;
+  /** Server-side asset label, edited via the asset edit endpoint. */
+  label?: string;
   children?: TreeNode[];
   /** Direct (non-recursive) asset/device count attached to this node */
   directAssetCount?: number;
-  /** Free-form tags shown in the detail panel */
-  tags?: string[];
 }
 
 interface LocationTreeNodeProps {
@@ -46,7 +46,7 @@ interface LocationTreeNodeProps {
   onSelect: (node: TreeNode) => void;
   onToggle: (nodeId: string) => void;
   onRename: (node: TreeNode) => void;
-  onEditTags: (node: TreeNode) => void;
+  onEditLabel: (node: TreeNode) => void;
   onAddChild: (node: TreeNode, type: "location" | "area" | "asset") => void;
   onMove: (node: TreeNode) => void;
   onDuplicate: (node: TreeNode) => void;
@@ -87,7 +87,7 @@ export const LocationTreeNode = ({
   onSelect,
   onToggle,
   onRename,
-  onEditTags,
+  onEditLabel,
   onAddChild,
   onMove,
   onDuplicate,
@@ -208,20 +208,18 @@ export const LocationTreeNode = ({
             )}
             {node.type !== "asset" && <DropdownMenuSeparator />}
 
-            <DropdownMenuItem onClick={() => onRename(node)}>
-              <Pencil className="h-3.5 w-3.5" />
-              {t("rename")}
-            </DropdownMenuItem>
-
-            {/* Tags apply to every node type. */}
-            <DropdownMenuItem onClick={() => onEditTags(node)}>
-              <Tag className="h-3.5 w-3.5" />
-              {t("editTags")}
-            </DropdownMenuItem>
-
-            {/* Root can only be renamed; everything else can be moved/removed. */}
+            {/* The product root asset is immutable server-side, so it only
+                offers the add actions above. */}
             {node.type !== "organization" && (
               <>
+                <DropdownMenuItem onClick={() => onRename(node)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  {t("rename")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onEditLabel(node)}>
+                  <Tag className="h-3.5 w-3.5" />
+                  {t("editLabel")}
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onMove(node)}>
                   <Move className="h-3.5 w-3.5" />
                   {t("move")}
@@ -256,7 +254,7 @@ export const LocationTreeNode = ({
           onSelect={onSelect}
           onToggle={onToggle}
           onRename={onRename}
-          onEditTags={onEditTags}
+          onEditLabel={onEditLabel}
           onAddChild={onAddChild}
           onMove={onMove}
           onDuplicate={onDuplicate}

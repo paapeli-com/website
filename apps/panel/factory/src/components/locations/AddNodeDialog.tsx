@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Dialog,
@@ -17,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TagInput } from "@/components/TagInput";
 import { useCreateAssetMutation, useGetProductAssetTypesQuery } from "@paapeli/api";
 import { toast } from "sonner";
 
@@ -30,31 +29,23 @@ interface AddNodeDialogProps {
   parentId?: string | null;
   parentName?: string;
   defaultType?: NodeType | null;
-  onAdd: (name: string, type: string, tags: string[]) => void;
+  onAdd: (name: string, type: string) => void;
 }
 
 export const AddNodeDialog = ({ open, onOpenChange, productKey, parentId, parentName, defaultType, onAdd }: AddNodeDialogProps) => {
   const { t } = useLanguage();
   const [name, setName] = useState("");
   const [type, setType] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
-  const tagsRef = useRef<string[]>([]);
+  const [label, setLabel] = useState("");
   const createAsset = useCreateAssetMutation();
   const { data: assetTypes, isLoading: typesLoading } = useGetProductAssetTypesQuery(productKey, open);
-
-  // Keep a synchronous mirror so a tag still sitting in the input (committed on
-  // blur when Create is clicked) is included on submit.
-  const updateTags = (next: string[]) => {
-    tagsRef.current = next;
-    setTags(next);
-  };
 
   // Reset each time it opens; preselect the type when one was chosen from a
   // node's "..." menu (Add Location / Add Unit / Add Asset).
   useEffect(() => {
     if (open) {
       setName("");
-      updateTags([]);
+      setLabel("");
       setType(defaultType || "");
     }
   }, [open, defaultType]);
@@ -63,22 +54,22 @@ export const AddNodeDialog = ({ open, onOpenChange, productKey, parentId, parent
 
   const handleAdd = () => {
     if (!name.trim() || !type || createAsset.isPending) return;
-    const tagList = tagsRef.current;
     createAsset.mutate(
       {
         name: name.trim(),
         type,
-        label: null,
+        // The API requires a label; default it to the name when left blank.
+        label: label.trim() || name.trim(),
         description: null,
         parentId: parentId || null,
         customerId: null,
       },
       {
         onSuccess: () => {
-          onAdd(name.trim(), type, tagList);
+          onAdd(name.trim(), type);
           setName("");
           setType("");
-          updateTags([]);
+          setLabel("");
           onOpenChange(false);
         },
         onError: () => {
@@ -125,9 +116,13 @@ export const AddNodeDialog = ({ open, onOpenChange, productKey, parentId, parent
             />
           </div>
           <div className="space-y-2">
-            <Label>{t("tags")}</Label>
-            <TagInput value={tags} onChange={updateTags} placeholder={t("addTagsPlaceholder")} />
-            <p className="text-xs text-muted-foreground">{t("pressEnterTags")}</p>
+            <Label>{t("label")}</Label>
+            <Input
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder={t("enterLabel")}
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            />
           </div>
         </div>
         <DialogFooter>

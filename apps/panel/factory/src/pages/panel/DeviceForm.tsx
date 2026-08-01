@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { PanelLayout } from "@/layouts/PanelLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -49,7 +49,8 @@ import { SecurityConfig, emptySecurity, type SecurityValue } from "@/components/
 import { SensorPicker } from "@/components/panel/SensorPicker";
 import { TemplatePicker } from "@/components/panel/TemplatePicker";
 import { DEVICE_TEMPLATES, POPULAR_SENSORS } from "@/lib/formOptions";
-import { getLocationOptions, getDefaultLocationPath } from "@/lib/locations";
+import { useAssetLocations } from "@/hooks/useAssetLocations";
+import { useCreateDeviceMutation, deviceCredentialsService, type DeviceCredentialType } from "@paapeli/api";
 
 const PROTOCOLS = [
   { value: "MQTT", icon: Radio },
@@ -58,6 +59,31 @@ const PROTOCOLS = [
   { value: "HTTP", icon: Globe },
   { value: "CoAP", icon: MessageSquare },
 ];
+
+// Blank devices have no profile of their own — the API's catch-all type.
+const BLANK_DEVICE_TYPE = "default";
+
+// The form's auth methods map onto the API credential types. ACCESS_TOKEN is
+// generated server-side, so it carries no value.
+const credentialsFor = (
+  s: SecurityValue,
+): { credentialType: DeviceCredentialType; credentialValue?: string } => {
+  switch (s.method) {
+    case "basic":
+      return {
+        credentialType: "MQTT_BASIC",
+        credentialValue: JSON.stringify({
+          clientId: s.clientId,
+          userName: s.username,
+          password: s.password,
+        }),
+      };
+    case "ssl":
+      return { credentialType: "X509_CERTIFICATE", credentialValue: s.sslCert };
+    default:
+      return { credentialType: "ACCESS_TOKEN" };
+  }
+};
 
 const hasPersianText = (value: string) => /[\u0600-\u06FF]/.test(value);
 const persianTextClass = (value: string) => hasPersianText(value) ? "font-vazirmatn" : "";
@@ -149,16 +175,17 @@ const DeviceForm = () => {
 
   const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
 
-  // Location options come from the Location feature (side menu → Location).
-  const locationOptions = useMemo(() => getLocationOptions(), []);
-  const defaultLocation = useMemo(() => getDefaultLocationPath(), []);
+  // Location options come from the product asset tree (side menu → Location);
+  // the chosen node's id is the device's assetId.
+  const { options: locationOptions, isLoading: locationsLoading } = useAssetLocations();
+  const createDevice = useCreateDeviceMutation();
 
   const [deviceType, setDeviceType] = useState("blank");
   const [selectedSensors, setSelectedSensors] = useState<string[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [deviceName, setDeviceName] = useState("");
-  // Location defaults to the root location, so the user never has to pick one.
-  const [location, setLocation] = useState(() => getDefaultLocationPath());
+  // Location defaults to the tree root, so the user never has to pick one.
+  const [assetId, setAssetId] = useState("");
   const [protocol, setProtocol] = useState("MQTT");
   const [sharedUsers, setSharedUsers] = useState<string[]>([]);
   const [security, setSecurity] = useState<SecurityValue>(() => emptySecurity());
@@ -191,28 +218,61 @@ const DeviceForm = () => {
   const removeTag = (tag: string) => setTags((prev) => prev.filter((t) => t !== tag));
   const [description, setDescription] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!assetId && locationOptions.length) setAssetId(locationOptions[0].id);
+  }, [locationOptions, assetId]);
+
+  const locationPath = locationOptions.find((l) => l.id === assetId)?.path || "";
 
   const handleSubmit = async () => {
     if (!deviceName.trim()) {
       toast({ title: t("error"), description: t("deviceNameRequired"), variant: "destructive" });
       return;
     }
-    setIsLoading(true);
+    if (!assetId) {
+      toast({ title: t("error"), description: t("locationRequired"), variant: "destructive" });
+      return;
+    }
     try {
       const trimmedName = deviceName.trim();
       const pendingTag = tagInput.trim().replace(/,$/, "").trim();
       const finalTags = pendingTag && !tags.includes(pendingTag) ? [...tags, pendingTag] : tags;
+      const created = await createDevice.mutateAsync({
+        name: trimmedName,
+        // The API requires a label; the form has no separate field for it.
+        label: trimmedName,
+        type: BLANK_DEVICE_TYPE,
+        description: description || undefined,
+        isGateway: false,
+        assetId,
+        ...credentialsFor(security),
+      });
+      const newDeviceId = created.id?.id;
+      // For ACCESS_TOKEN the backend mints the token, so the one shown in the
+      // form is only a placeholder — read the real credentials back.
+      let accessToken = security.method === "accessToken" ? security.accessToken : undefined;
+      if (newDeviceId && security.method === "accessToken") {
+        try {
+          const creds = await deviceCredentialsService.getDeviceCredentials(newDeviceId);
+          accessToken = creds.credentialsId || accessToken;
+        } catch (error) {
+          console.warn("Unable to read the new device credentials", error);
+        }
+      }
+      // Mirror the created device into the local store the devices list and
+      // credentials screen still read from, keyed by the server-assigned id.
       const item = create({
         name: trimmedName,
+        deviceId: newDeviceId,
         protocol,
-        location: location || defaultLocation,
+        location: locationPath,
         useSsl: security.method === "ssl",
         authMethod: security.method,
         authUsername: security.method === "basic" ? security.username : undefined,
         authClientId: security.method === "basic" ? security.clientId : undefined,
         sslCert: security.method === "ssl" ? security.sslCert : undefined,
-        apiKey: security.method === "accessToken" ? security.accessToken : undefined,
+        apiKey: accessToken,
         sharedUsers,
         tags: finalTags.join(", "),
         description,
@@ -246,8 +306,6 @@ const DeviceForm = () => {
         description: error instanceof Error ? error.message : t("failedToAddDevice"),
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -293,10 +351,11 @@ const DeviceForm = () => {
                   <SelectItem value="blank">
                     <div className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> {t("blankDevice")}</div>
                   </SelectItem>
-                  <SelectItem value="popular">
+                  {/* Not wired to the API yet — selectable again once they are. */}
+                  <SelectItem value="popular" disabled>
                     <div className="flex items-center gap-2"><Sparkles className="h-4 w-4" /> {t("popularSensors")}</div>
                   </SelectItem>
-                  <SelectItem value="templates">
+                  <SelectItem value="templates" disabled>
                     <div className="flex items-center gap-2"><LayoutGrid className="h-4 w-4" /> {t("deviceTemplates")}</div>
                   </SelectItem>
                 </SelectContent>
@@ -346,16 +405,19 @@ const DeviceForm = () => {
               />
             </div>
             <div>
-              <FieldLabel hint>{t("location")}</FieldLabel>
-              <Select value={location} onValueChange={setLocation}>
+              <FieldLabel required hint>{t("location")}</FieldLabel>
+              <Select value={assetId} onValueChange={setAssetId} disabled={locationsLoading || locationOptions.length === 0}>
                 <SelectTrigger className="h-11">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder={t("selectLocation")} />
+                  <SelectValue placeholder={locationsLoading ? t("loading") : t("selectLocation")} />
                 </SelectTrigger>
                 <SelectContent>
-                  {locationOptions.map((l) => <SelectItem key={l.id} value={l.path}>{l.path}</SelectItem>)}
+                  {locationOptions.map((l) => <SelectItem key={l.id} value={l.id}>{l.path}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {!locationsLoading && locationOptions.length === 0 && (
+                <p className="text-xs text-destructive mt-1.5">{t("noLocationTree")}</p>
+              )}
             </div>
           </div>
         </SectionCard>
@@ -446,15 +508,15 @@ const DeviceForm = () => {
 
       <div className="sticky bottom-0 -mx-4 lg:-mx-6 mt-6 bg-background/95 backdrop-blur border-t border-border z-20 px-4 lg:px-6 py-3">
         <div className={`flex items-center justify-end gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-          <Button variant="outline" onClick={() => navigate(lp("/devices"))} disabled={isLoading}>
+          <Button variant="outline" onClick={() => navigate(lp("/devices"))} disabled={createDevice.isPending}>
             {t("cancel")}
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isLoading}
+            disabled={createDevice.isPending || !assetId}
             className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
-            {isLoading ? t("adding") : t("createDeviceCta")}
+            {createDevice.isPending ? t("adding") : t("createDeviceCta")}
           </Button>
         </div>
       </div>

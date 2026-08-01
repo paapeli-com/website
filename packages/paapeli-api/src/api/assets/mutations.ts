@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { assetsService, CreateAssetRequest } from './assets';
+import { assetsService, CreateAssetRequest, EditAssetRequest } from './assets';
 
 /** @deprecated Use `useAddChildAssetMutation` instead. */
 export function useCreateAssetMutation() {
@@ -18,6 +18,38 @@ export function useAddChildAssetMutation() {
             ...req
         }: CreateAssetRequest & { productKey: string }) =>
             assetsService.addChildAsset(productKey, req),
+        onSuccess: (_data, { productKey }) => {
+            queryClient.invalidateQueries({ queryKey: ['productAssetTree', productKey] });
+        },
+    });
+}
+
+export function useEditAssetMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationKey: ['editAsset'],
+        mutationFn: ({
+            productKey,
+            ...req
+        }: EditAssetRequest & { productKey: string }) =>
+            assetsService.editAsset(productKey, req),
+        onSuccess: (_data, { productKey }) => {
+            queryClient.invalidateQueries({ queryKey: ['productAssetTree', productKey] });
+        },
+    });
+}
+
+export function useDeleteAssetMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationKey: ['deleteAsset'],
+        mutationFn: ({
+            productKey,
+            assetId,
+        }: {
+            productKey: string;
+            assetId: string;
+        }) => assetsService.deleteAsset(productKey, assetId),
         onSuccess: (_data, { productKey }) => {
             queryClient.invalidateQueries({ queryKey: ['productAssetTree', productKey] });
         },

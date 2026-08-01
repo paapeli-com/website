@@ -9,16 +9,37 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useDeleteAssetMutation } from "@paapeli/api";
+import { toast } from "sonner";
 
 interface DeleteNodeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  productKey: string;
+  nodeId?: string | null;
   nodeName: string;
   onConfirm: () => void;
 }
 
-export const DeleteNodeDialog = ({ open, onOpenChange, nodeName, onConfirm }: DeleteNodeDialogProps) => {
+export const DeleteNodeDialog = ({ open, onOpenChange, productKey, nodeId, nodeName, onConfirm }: DeleteNodeDialogProps) => {
   const { t } = useLanguage();
+  const deleteAsset = useDeleteAssetMutation();
+
+  const handleConfirm = () => {
+    if (!nodeId || deleteAsset.isPending) return;
+    deleteAsset.mutate(
+      { productKey, assetId: nodeId },
+      {
+        onSuccess: () => {
+          onConfirm();
+          onOpenChange(false);
+        },
+        onError: () => {
+          toast.error(t("failedToDeleteNode"));
+        },
+      }
+    );
+  };
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -32,11 +53,19 @@ export const DeleteNodeDialog = ({ open, onOpenChange, nodeName, onConfirm }: De
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+          <AlertDialogCancel disabled={deleteAsset.isPending}>{t("cancel")}</AlertDialogCancel>
+          {/* preventDefault keeps the dialog open until the request settles */}
           <AlertDialogAction
-            onClick={onConfirm}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={(e) => {
+              e.preventDefault();
+              handleConfirm();
+            }}
+            disabled={!nodeId || deleteAsset.isPending}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-2"
           >
+            {deleteAsset.isPending && (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            )}
             {t("delete")}
           </AlertDialogAction>
         </AlertDialogFooter>
