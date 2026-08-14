@@ -4,6 +4,11 @@ import { deviceRpcService, DeviceRpcRequest } from './deviceRpc';
 export function useSendDeviceRpcMutation() {
     return useMutation({
         mutationKey: ['sendDeviceRpc'],
-        mutationFn: (req: DeviceRpcRequest) => deviceRpcService.send(req),
+        mutationFn: ({
+            workspaceId,
+            productKey,
+            ...req
+        }: DeviceRpcRequest & { workspaceId: string; productKey: string }) =>
+            deviceRpcService.send(workspaceId, productKey, req),
     });
 }

@@ -1,18 +1,22 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-    PaapeliProductAssetType,
+    CreateProductAssetTypeRequest,
     productAssetTypesService,
+    UpdateProductAssetTypeRequest,
 } from './productAssetTypes';
 
 export function useCreateProductAssetTypeMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationKey: ['createProductAssetType'],
-        mutationFn: (req: PaapeliProductAssetType) =>
-            productAssetTypesService.createProductAssetType(req),
-        onSuccess: (_data, req) => {
+        mutationFn: ({
+            productKey,
+            ...req
+        }: CreateProductAssetTypeRequest & { productKey: string }) =>
+            productAssetTypesService.createProductAssetType(productKey, req),
+        onSuccess: (_data, { productKey }) => {
             queryClient.invalidateQueries({
-                queryKey: ['productAssetTypes', req.productKey],
+                queryKey: ['productAssetTypes', productKey],
             });
         },
     });
@@ -22,11 +26,17 @@ export function useEditProductAssetTypeMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationKey: ['editProductAssetType'],
-        mutationFn: (req: PaapeliProductAssetType) =>
-            productAssetTypesService.editProductAssetType(req),
-        onSuccess: (_data, req) => {
+        mutationFn: ({
+            productKey,
+            assetType,
+            ...req
+        }: UpdateProductAssetTypeRequest & {
+            productKey: string;
+            assetType: string;
+        }) => productAssetTypesService.editProductAssetType(productKey, assetType, req),
+        onSuccess: (_data, { productKey }) => {
             queryClient.invalidateQueries({
-                queryKey: ['productAssetTypes', req.productKey],
+                queryKey: ['productAssetTypes', productKey],
             });
         },
     });
@@ -50,6 +60,49 @@ export function useDeleteProductAssetTypeMutation() {
         onSuccess: (_data, { productKey }) => {
             queryClient.invalidateQueries({
                 queryKey: ['productAssetTypes', productKey],
+            });
+        },
+    });
+}
+
+export function useAllowChildAssetTypeMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationKey: ['allowChildAssetType'],
+        mutationFn: ({
+            productKey,
+            parentAssetType,
+            childAssetType,
+        }: {
+            productKey: string;
+            parentAssetType: string;
+            childAssetType: string;
+        }) => productAssetTypesService.allowChild(productKey, parentAssetType, childAssetType),
+        onSuccess: (_data, { productKey, parentAssetType }) => {
+            queryClient.invalidateQueries({
+                queryKey: ['productAssetTypeAllowedChildren', productKey, parentAssetType],
+            });
+        },
+    });
+}
+
+export function useDisallowChildAssetTypeMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationKey: ['disallowChildAssetType'],
+        mutationFn: ({
+            productKey,
+            parentAssetType,
+            childAssetType,
+        }: {
+            productKey: string;
+            parentAssetType: string;
+            childAssetType: string;
+        }) =>
+            productAssetTypesService.disallowChild(productKey, parentAssetType, childAssetType),
+        onSuccess: (_data, { productKey, parentAssetType }) => {
+            queryClient.invalidateQueries({
+                queryKey: ['productAssetTypeAllowedChildren', productKey, parentAssetType],
             });
         },
     });

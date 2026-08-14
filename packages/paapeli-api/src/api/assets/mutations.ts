@@ -1,40 +1,70 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { assetsService, CreateAssetRequest, EditAssetRequest } from './assets';
+import { assetsService, CreateAssetRequest, UpdateAssetRequest } from './assets';
 
-/** @deprecated Use `useAddChildAssetMutation` instead. */
-export function useCreateAssetMutation() {
-    return useMutation({
-        mutationKey: ['createAsset'],
-        mutationFn: (req: CreateAssetRequest) => assetsService.create(req),
-    });
-}
-
-export function useAddChildAssetMutation() {
+export function useProvisionAssetRootMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationKey: ['addChildAsset'],
+        mutationKey: ['provisionAssetRoot'],
         mutationFn: ({
+            workspaceId,
             productKey,
-            ...req
-        }: CreateAssetRequest & { productKey: string }) =>
-            assetsService.addChildAsset(productKey, req),
-        onSuccess: (_data, { productKey }) => {
-            queryClient.invalidateQueries({ queryKey: ['productAssetTree', productKey] });
+        }: {
+            workspaceId: string;
+            productKey: string;
+        }) => assetsService.provisionRoot(workspaceId, productKey),
+        onSuccess: (_data, { workspaceId, productKey }) => {
+            queryClient.invalidateQueries({ queryKey: ['assetRoot', workspaceId, productKey] });
         },
     });
 }
 
-export function useEditAssetMutation() {
+export function useCreateAssetChildMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationKey: ['editAsset'],
+        mutationKey: ['createAssetChild'],
         mutationFn: ({
+            workspaceId,
             productKey,
+            parentAssetId,
             ...req
-        }: EditAssetRequest & { productKey: string }) =>
-            assetsService.editAsset(productKey, req),
-        onSuccess: (_data, { productKey }) => {
-            queryClient.invalidateQueries({ queryKey: ['productAssetTree', productKey] });
+        }: CreateAssetRequest & {
+            workspaceId: string;
+            productKey: string;
+            parentAssetId: string;
+        }) => assetsService.createChild(workspaceId, productKey, parentAssetId, req),
+        onSuccess: (_data, { workspaceId, productKey, parentAssetId }) => {
+            queryClient.invalidateQueries({
+                queryKey: ['assetChildren', workspaceId, productKey, parentAssetId],
+            });
+            queryClient.invalidateQueries({ queryKey: ['assetRoot', workspaceId, productKey] });
+        },
+    });
+}
+
+export function useUpdateAssetMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationKey: ['updateAsset'],
+        mutationFn: ({
+            workspaceId,
+            productKey,
+            parentAssetId: _parentAssetId,
+            ...req
+        }: UpdateAssetRequest & {
+            workspaceId: string;
+            productKey: string;
+            /** Only used to target cache invalidation on success, if known. */
+            parentAssetId?: string;
+        }) => assetsService.updateAsset(workspaceId, productKey, req),
+        onSuccess: (_data, { workspaceId, productKey, parentAssetId }) => {
+            queryClient.invalidateQueries({
+                // Omitting parentAssetId invalidates every parent's children
+                // list for this workspace product — a broader but still-safe
+                // refresh when the caller doesn't have it handy.
+                queryKey: parentAssetId
+                    ? ['assetChildren', workspaceId, productKey, parentAssetId]
+                    : ['assetChildren', workspaceId, productKey],
+            });
         },
     });
 }
@@ -44,26 +74,23 @@ export function useDeleteAssetMutation() {
     return useMutation({
         mutationKey: ['deleteAsset'],
         mutationFn: ({
+            workspaceId,
             productKey,
             assetId,
         }: {
+            workspaceId: string;
             productKey: string;
             assetId: string;
-        }) => assetsService.deleteAsset(productKey, assetId),
-        onSuccess: (_data, { productKey }) => {
-            queryClient.invalidateQueries({ queryKey: ['productAssetTree', productKey] });
-        },
-    });
-}
-
-export function useProvisionRootNodeMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationKey: ['provisionRootNode'],
-        mutationFn: (productKey: string) =>
-            assetsService.provisionRootNode(productKey),
-        onSuccess: (_data, productKey) => {
-            queryClient.invalidateQueries({ queryKey: ['productAssetTree', productKey] });
+            /** Only used to target cache invalidation on success, if known. */
+            parentAssetId?: string;
+        }) => assetsService.deleteAsset(workspaceId, productKey, assetId),
+        onSuccess: (_data, { workspaceId, productKey, parentAssetId }) => {
+            queryClient.invalidateQueries({
+                queryKey: parentAssetId
+                    ? ['assetChildren', workspaceId, productKey, parentAssetId]
+                    : ['assetChildren', workspaceId, productKey],
+            });
+            queryClient.invalidateQueries({ queryKey: ['assetRoot', workspaceId, productKey] });
         },
     });
 }

@@ -1,43 +1,61 @@
 import { useQuery } from '@tanstack/react-query';
 import { deviceService } from './devices';
 
-export function useGetDeviceByIdQuery(deviceId: string, enabled = true) {
+export function useGetDeviceByIdQuery(
+    workspaceId: string,
+    productKey: string,
+    deviceId: string,
+    enabled = true,
+) {
     return useQuery({
-        queryKey: ['device', deviceId],
-        queryFn: () => deviceService.getDeviceById(deviceId),
-        enabled: enabled && !!deviceId,
+        queryKey: ['device', workspaceId, productKey, deviceId],
+        queryFn: () => deviceService.getDeviceById(workspaceId, productKey, deviceId),
+        enabled: enabled && !!workspaceId && !!productKey && !!deviceId,
     });
 }
 
 export function useGetDeviceActivitiesQuery(
+    workspaceId: string,
+    productKey: string,
     deviceId: string,
     page: number,
     size: number,
     enabled = true,
 ) {
     return useQuery({
-        queryKey: ['deviceActivities', deviceId, page, size],
-        queryFn: () => deviceService.getDeviceActivities(deviceId, page, size),
-        enabled: enabled && !!deviceId,
+        queryKey: ['deviceActivities', workspaceId, productKey, deviceId, page, size],
+        queryFn: () =>
+            deviceService.getDeviceActivities(workspaceId, productKey, deviceId, page, size),
+        enabled: enabled && !!workspaceId && !!productKey && !!deviceId,
     });
 }
 
-export function useGetTenantDevicesQuery(page: number, size: number) {
+export function useGetTenantDevicesQuery(
+    workspaceId: string,
+    productKey: string,
+    page: number,
+    size: number,
+    enabled = true,
+) {
     return useQuery({
-        queryKey: ['tenantDevices', page, size],
-        queryFn: () => deviceService.getTenantDevices(page, size),
+        queryKey: ['tenantDevices', workspaceId, productKey, page, size],
+        queryFn: () => deviceService.getTenantDevices(workspaceId, productKey, page, size),
+        enabled: enabled && !!workspaceId && !!productKey,
     });
 }
 
 export function useGetAssetDevicesQuery(
+    workspaceId: string,
+    productKey: string,
     assetId: string,
     page: number,
     size: number,
     enabled = true,
 ) {
     return useQuery({
-        queryKey: ['assetDevices', assetId, page, size],
-        queryFn: () => deviceService.getAssetDevices(assetId, page, size),
-        enabled: enabled && !!assetId,
+        queryKey: ['assetDevices', workspaceId, productKey, assetId, page, size],
+        queryFn: () =>
+            deviceService.getAssetDevices(workspaceId, productKey, assetId, page, size),
+        enabled: enabled && !!workspaceId && !!productKey && !!assetId,
     });
 }

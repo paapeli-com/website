@@ -5,11 +5,6 @@ export interface PageResponse<T> {
     hasNext: boolean;
 }
 
-export interface EntityId {
-    entityType: string;
-    id: string;
-}
-
 export interface PaapeliMessage {
     message: string;
 }

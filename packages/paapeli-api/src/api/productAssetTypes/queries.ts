@@ -11,3 +11,16 @@ export function useGetProductAssetTypesQuery(
         enabled: enabled && !!productKey,
     });
 }
+
+export function useGetAllowedChildrenQuery(
+    productKey: string,
+    parentAssetType: string,
+    enabled = true,
+) {
+    return useQuery({
+        queryKey: ['productAssetTypeAllowedChildren', productKey, parentAssetType],
+        queryFn: () =>
+            productAssetTypesService.getAllowedChildren(productKey, parentAssetType),
+        enabled: enabled && !!productKey && !!parentAssetType,
+    });
+}

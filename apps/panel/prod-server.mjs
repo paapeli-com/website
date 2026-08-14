@@ -1,54 +1,46 @@
 import http from "node:http";
 import path from "node:path";
 import fs from "node:fs";
-import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 /* ------------------------------------------------------------------ */
-/* Paapeli host — PRODUCTION.  Everything on ONE port: 8080            */
-/*   /                      → Web (Next.js standalone, internal child)  */
-/*   /login                 → redirect to Smart Factory login          */
-/*   /AIoT/track/           → GPS Tracking      (static Vite build)     */
-/*   /AIoT/SmartFactory     → Smart Factory     (static Vite build)     */
+/* Panel host — PRODUCTION.  Everything on ONE port: 8080               */
+/*   /                      → redirects to /login                      */
+/*   /login                 → login                (static Vite build) */
+/*   /AIoT/*                → the host shell (header/sidebar), which    */
+/*                            mounts Smart Factory / GPS Tracking as     */
+/*                            Module Federation remotes client-side      */
 /*                                                                      */
-/* This is the production counterpart of dev-server.mjs. Instead of     */
-/* Vite middleware + `next dev`, it serves the two Vite `dist` folders  */
-/* as static files (SPA fallback) and reverse-proxies everything else   */
-/* to an internal `next start` (the standalone server.js). Only 8080 is */
-/* ever exposed.                                                        */
+/* This is panel.paapeli.com — a separate origin from apps/web (the     */
+/* marketing landing site, paapeli.com); no proxying between the two.   */
+/*                                                                      */
+/* login, host, factory and track are independent projects, each with   */
+/* its own build, served together here as static `dist` folders so they */
+/* share one origin (required for the shared login session in           */
+/* localStorage — see packages/brand/session.ts).                       */
+/*                                                                      */
+/* factory/track's dist folders are served PURELY as static asset       */
+/* folders now (remoteEntry.js + JS/CSS chunks, fetched at runtime by    */
+/* the host via Module Federation) — the host owns page-level routing,   */
+/* so an unmatched path under their base falls back to the HOST's        */
+/* index.html, not their own (their own index.html/main.tsx is only      */
+/* used when running them standalone via `pnpm --filter factory preview`)*/
 /*                                                                      */
 /* Layout inside the container (see ci/docker/panel/Dockerfile):        */
-/*   /app/prod-server.mjs           ← this file                         */
-/*   /app/apps/web/server.js        ← Next standalone entrypoint        */
-/*   /app/apps/panel/factory/dist   ← Smart Factory static build        */
-/*   /app/apps/panel/track/dist     ← GPS Tracking static build         */
+/*   /app/prod-server.mjs                     ← this file               */
+/*   /app/apps/panel/host/dist                ← Host shell build        */
+/*   /app/apps/product/aiot/factory/dist      ← Smart Factory build     */
+/*   /app/apps/product/aiot/track/dist        ← GPS Tracking build      */
+/*   /app/apps/panel/login/dist               ← Login build             */
 /* ------------------------------------------------------------------ */
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
-const WEB_PORT = Number(process.env.WEB_PORT || 3100);
 
-const FACTORY = path.resolve(__dirname, "apps/panel/factory/dist");
-const TRACK = path.resolve(__dirname, "apps/panel/track/dist");
-const WEB_SERVER = path.resolve(__dirname, "apps/web/server.js");
-
-// Load the login page once at startup. A missing file must NOT crash the host
-// on every /login request (which panels redirect to when unauthenticated).
-let LOGIN_HTML;
-try {
-  LOGIN_HTML = fs.readFileSync(path.resolve(__dirname, "login.html"), "utf8");
-} catch (e) {
-  console.error("[panel] login.html not found next to prod-server.mjs:", e.message);
-  LOGIN_HTML = "<!doctype html><meta charset=utf-8><title>Sign in</title><p>Login is temporarily unavailable.</p>";
-}
-
-// --- Web (Next.js) as an internal child process ---------------------
-// The standalone server honours PORT/HOSTNAME env. Bind it to loopback so it
-// is only reachable through this host on 8080.
-const webProc = spawn(process.execPath, [WEB_SERVER], {
-  stdio: "inherit",
-  env: { ...process.env, PORT: String(WEB_PORT), HOSTNAME: "127.0.0.1" },
-});
+const HOST = path.resolve(__dirname, "apps/panel/host/dist");
+const FACTORY = path.resolve(__dirname, "apps/product/aiot/factory/dist");
+const TRACK = path.resolve(__dirname, "apps/product/aiot/track/dist");
+const LOGIN = path.resolve(__dirname, "apps/panel/login/dist");
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -86,11 +78,13 @@ const sendIndex = (root, res) =>
     res.end(idx);
   });
 
-// Serve a Vite `dist` folder mounted at `base`, with SPA fallback to index.html.
-const serveStatic = (root, base, req, res) => {
+// Serve a Vite `dist` folder mounted at `base`, with SPA fallback to
+// `fallbackRoot`'s index.html (defaults to `root` itself — pass a different
+// root for remotes whose page-level routing is now owned by the host).
+const serveStatic = (root, base, req, res, fallbackRoot = root) => {
   const pathname = decodeURIComponent((req.url || "/").split("?")[0]);
   const rel = pathname.slice(base.length);
-  if (rel === "" || rel === "/") return sendIndex(root, res);
+  if (rel === "" || rel === "/") return sendIndex(fallbackRoot, res);
 
   const filePath = path.join(root, rel);
   if (!filePath.startsWith(root + path.sep)) {
@@ -99,7 +93,7 @@ const serveStatic = (root, base, req, res) => {
   }
 
   fs.readFile(filePath, (err, buf) => {
-    if (err) return sendIndex(root, res); // unknown path → SPA route
+    if (err) return sendIndex(fallbackRoot, res); // unknown path → SPA route
     const ext = path.extname(filePath).toLowerCase();
     const headers = { "content-type": MIME[ext] || "application/octet-stream" };
     // Vite emits content-hashed files under /assets — safe to cache forever.
@@ -109,36 +103,6 @@ const serveStatic = (root, base, req, res) => {
     res.writeHead(200, headers);
     res.end(buf);
   });
-};
-
-// Reverse-proxy a request to the internal web (Next) server.
-const proxyToWeb = (req, res) => {
-  // The external hop (browser → Caddy) is HTTPS, but the internal hop
-  // (this host → Next child on 127.0.0.1:WEB_PORT) is plain HTTP. If we pass
-  // Caddy's `X-Forwarded-Proto: https` down to the child, Next's i18n
-  // middleware builds an absolute rewrite URL with an `https://` scheme
-  // (e.g. https://localhost:3100/en). Because that scheme doesn't match the
-  // http origin the child is actually served over, Next treats the rewrite as
-  // cross-origin and re-fetches it over TLS against its own HTTP port →
-  // `EPROTO: wrong version number`. Strip the scheme/host-forwarding headers
-  // so the child sees its real internal http origin and resolves the rewrite
-  // in-process. (The browser still sees HTTPS via Caddy; the web app never
-  // reads these headers server-side, so nothing downstream is affected.)
-  const headers = { ...req.headers };
-  delete headers["x-forwarded-proto"];
-  delete headers["x-forwarded-host"];
-  const p = http.request(
-    { hostname: "127.0.0.1", port: WEB_PORT, path: req.url, method: req.method, headers },
-    (pr) => {
-      res.writeHead(pr.statusCode || 502, pr.headers);
-      pr.pipe(res);
-    },
-  );
-  p.on("error", () => {
-    res.writeHead(502, { "content-type": "text/plain" });
-    res.end("Web app is still starting… refresh in a moment.");
-  });
-  req.pipe(p);
 };
 
 const server = http.createServer((req, res) => {
@@ -152,47 +116,32 @@ const server = http.createServer((req, res) => {
     return res.end("ok");
   }
 
-  // Product-agnostic login served by the host (one login for every product).
-  if (p === "/login" || p === "/login/") {
-    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    return res.end(LOGIN_HTML);
-  }
+  if (p === "/") return redirect(res, "/login");
 
-  if (p === "/AIoT/track") return redirect(res, "/AIoT/track/");
-  if (p.startsWith("/AIoT/track/")) return serveStatic(TRACK, "/AIoT/track/", req, res);
+  // Login (base "/") — strip the /login prefix before serving.
+  if (p === "/login" || p.startsWith("/login/")) return serveStatic(LOGIN, "/login/", req, res);
 
-  // Clean base URL (no /home); the SPA root renders the dashboard.
-  if (p === "/AIoT/SmartFactory") return redirect(res, "/AIoT/SmartFactory/");
-  if (p.startsWith("/AIoT/SmartFactory/")) return serveStatic(FACTORY, "/AIoT/SmartFactory/", req, res);
+  // Remote static assets (remoteEntry.js, JS/CSS chunks) — SPA-route misses
+  // fall back to the HOST shell, which owns routing for these paths.
+  if (p.startsWith("/AIoT/SmartFactory/")) return serveStatic(FACTORY, "/AIoT/SmartFactory/", req, res, HOST);
+  if (p.startsWith("/AIoT/GPSTracking/")) return serveStatic(TRACK, "/AIoT/GPSTracking/", req, res, HOST);
 
-  return proxyToWeb(req, res);
+  // Everything else (/AIoT, /AIoT/SmartFactory with no trailing slash, and
+  // any future host routes) is the host SPA.
+  return serveStatic(HOST, "/", req, res);
  } catch (e) {
    console.error("[panel] request error:", e && e.message);
    try { if (!res.headersSent) res.writeHead(500, { "content-type": "text/plain" }); res.end("Internal error"); } catch {}
  }
 });
 
-// Last-resort guards so a stray error never takes the whole host down.
+// Last-resort guard so a stray error never takes the whole host down.
 process.on("uncaughtException", (e) => console.error("[panel] uncaughtException:", e && e.message));
 process.on("unhandledRejection", (e) => console.error("[panel] unhandledRejection:", e));
 
 server.listen(PORT, () => {
-  console.log(`\n  Paapeli (prod)  →  http://0.0.0.0:${PORT}`);
-  console.log(`     Web           →  /`);
-  console.log(`     Login         →  /login`);
-  console.log(`     GPS Tracking  →  /AIoT/track/`);
-  console.log(`     Smart Factory →  /AIoT/SmartFactory\n`);
-});
-
-const stop = () => {
-  try {
-    webProc.kill();
-  } catch {}
-  process.exit(0);
-};
-process.on("SIGINT", stop);
-process.on("SIGTERM", stop);
-webProc.on("exit", (code) => {
-  console.error(`[panel] internal web server exited (code ${code}); shutting down host`);
-  process.exit(code || 1);
+  console.log(`\n  Panel (prod)  →  http://0.0.0.0:${PORT}`);
+  console.log(`     Login          →  /login`);
+  console.log(`     Smart Factory  →  /AIoT/SmartFactory`);
+  console.log(`     GPS Tracking   →  /AIoT/GPSTracking\n`);
 });

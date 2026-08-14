@@ -12,7 +12,9 @@
     "./timeseries": "./src/api/timeseries/index.ts",
     "./product-asset-types": "./src/api/productAssetTypes/index.ts",
     "./device-credentials": "./src/api/deviceCredentials/index.ts",
-    "./alarms": "./src/api/alarms/index.ts"
+    "./alarms": "./src/api/alarms/index.ts",
+    "./products": "./src/api/products/index.ts",
+    "./workspaces": "./src/api/workspaces/index.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit"

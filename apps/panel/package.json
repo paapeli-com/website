@@ -3,13 +3,10 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "Panel host — serves every AIoT solution (Smart Factory, GPS Tracking) on one origin/port (8080) with /{product}/{solution} routing.",
+  "description": "Panel entry point (panel.paapeli.com) — serves login (apps/panel/login) and the micro-frontend host (apps/panel/host, header/sidebar shell that mounts Smart Factory and GPS Tracking as Module Federation remotes) on one origin/port (8080) with /login and /AIoT/{solution} routing. Separate from apps/web, the marketing landing site.",
   "scripts": {
     "dev": "node dev-server.mjs",
     "start": "node prod-server.mjs"
-  },
-  "dependencies": {
-    "next": "^15.1.0"
   },
   "devDependencies": {
     "vite": "^5.4.19"

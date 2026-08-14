@@ -7,6 +7,24 @@ export interface LoginRequest {
 
 export interface LoginResponse {
     token: string;
+    tokenType?: string;
+}
+
+export interface SignupRequest {
+    email: string;
+    displayName?: string;
+    password: string;
+    confirmedPassword: string;
+}
+
+export interface SignupResponse {
+    id: string;
+    displayName: string;
+    email: string;
+    isActive: boolean;
+    emailVerified: boolean;
+    createdAt: number;
+    authentication?: LoginResponse;
 }
 
 export const authService = {
@@ -16,5 +34,12 @@ export const authService = {
             req,
         );
         return data;
+    },
+    async signup(req: SignupRequest): Promise<SignupResponse> {
+        const { data } = await napiHttpHandler.post<{ data: SignupResponse }>(
+            '/api/v1/aiot/user/signup',
+            req,
+        );
+        return data.data;
     },
 };

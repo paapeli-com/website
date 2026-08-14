@@ -17,7 +17,7 @@ export const PRODUCTS: Product[] = [
     id: "aiot",
     name: "AIoT",
     solutions: [
-      { id: "track", name: "GPS Tracking" },
+      { id: "GPSTracking", name: "GPS Tracking" },
       { id: "SmartFactory", name: "Smart Factory" },
     ],
   },

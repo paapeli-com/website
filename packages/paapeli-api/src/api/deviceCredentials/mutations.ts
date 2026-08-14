@@ -8,11 +8,25 @@ export function useUpdateDeviceCredentialsMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationKey: ['updateDeviceCredentials'],
-        mutationFn: (req: UpdateDeviceCredentialsRequest) =>
-            deviceCredentialsService.updateDeviceCredentials(req),
-        onSuccess: (_data, req) => {
+        mutationFn: ({
+            workspaceId,
+            productKey,
+            deviceId,
+            ...req
+        }: UpdateDeviceCredentialsRequest & {
+            workspaceId: string;
+            productKey: string;
+            deviceId: string;
+        }) =>
+            deviceCredentialsService.updateDeviceCredentials(
+                workspaceId,
+                productKey,
+                deviceId,
+                req,
+            ),
+        onSuccess: (_data, { workspaceId, productKey, deviceId }) => {
             queryClient.invalidateQueries({
-                queryKey: ['deviceCredentials', req.deviceId],
+                queryKey: ['deviceCredentials', workspaceId, productKey, deviceId],
             });
         },
     });

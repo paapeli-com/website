@@ -1,5 +1,5 @@
 import napiHttpHandler from '../napiHttpHandler';
-import { EntityId, PageResponse, PaapeliMessage } from '../type';
+import { PageResponse, PaapeliMessage } from '../type';
 
 export type DeviceCredentialType =
     | 'ACCESS_TOKEN'
@@ -29,16 +29,13 @@ export type DeviceActivityActorType = 'USER' | 'DEVICE' | 'RULE_ENGINE' | 'SYSTE
 
 export interface EditDeviceRequest {
     id: string;
-    name?: string;
+    name: string;
     label?: string;
     description?: string;
 }
 
 export interface EditDeviceResponse {
-    id: EntityId;
-    profileId: EntityId;
-    tenantId: EntityId;
-    customerId: EntityId;
+    id: string;
     name: string;
     label: string;
     type: string;
@@ -46,12 +43,15 @@ export interface EditDeviceResponse {
 }
 
 export interface CreateDeviceRequest {
-    label: string;
+    /** Display label of the device. */
+    label?: string;
+    /** Device type, e.g. "default". */
     type: string;
+    /** Unique device name. */
     name: string;
     description?: string;
+    /** Whether this device acts as a gateway. */
     isGateway?: boolean;
-    customerId?: string;
     profileId?: string;
     credentialType: DeviceCredentialType;
     /**
@@ -59,31 +59,26 @@ export interface CreateDeviceRequest {
      * Not required for ACCESS_TOKEN (backend auto-generates it).
      */
     credentialValue?: string;
+    /** Paapeli workspace-product asset ID the device is assigned to. */
     assetId: string;
 }
 
 export interface CreateDeviceResponse {
-    id: EntityId;
-    profileId: EntityId;
-    tenantId: EntityId;
-    customerId: EntityId;
+    id: string;
     name: string;
     label: string;
     type: string;
     credentialType: DeviceCredentialType;
 }
 
-export interface DeviceAssetProjection {
-    deviceId: string;
-    tenantId: string;
-    customerId: string;
-    deviceName: string;
-    deviceType: string;
-    deviceLabel: string;
-    deviceProtocol: string;
-    isActive: boolean;
+export interface DeviceResponse {
+    id: string;
+    name: string;
+    type: string;
+    label: string;
+    protocol: string;
+    active: boolean;
     assetId: string;
-    assetName: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -99,59 +94,86 @@ export interface DeviceActivityResponse {
 }
 
 export const deviceService = {
-    async editDevice(req: EditDeviceRequest): Promise<EditDeviceResponse> {
+    async editDevice(
+        workspaceId: string,
+        productKey: string,
+        req: EditDeviceRequest,
+    ): Promise<EditDeviceResponse> {
         const { data } = await napiHttpHandler.put<EditDeviceResponse>(
-            '/api/v1/aiot/devices',
+            `/api/v1/aiot/devices/${workspaceId}/${productKey}`,
             req,
         );
         return data;
     },
-    async createDevice(req: CreateDeviceRequest): Promise<CreateDeviceResponse> {
+    async createDevice(
+        workspaceId: string,
+        productKey: string,
+        req: CreateDeviceRequest,
+    ): Promise<CreateDeviceResponse> {
         const { data } = await napiHttpHandler.post<CreateDeviceResponse>(
-            '/api/v1/aiot/devices',
+            `/api/v1/aiot/devices/${workspaceId}/${productKey}`,
             req,
         );
         return data;
     },
-    async getDeviceById(deviceId: string): Promise<DeviceAssetProjection> {
-        const { data } = await napiHttpHandler.get<DeviceAssetProjection>(
-            `/api/v1/aiot/devices/${deviceId}`,
+    async getDeviceById(
+        workspaceId: string,
+        productKey: string,
+        deviceId: string,
+    ): Promise<DeviceResponse> {
+        const { data } = await napiHttpHandler.get<DeviceResponse>(
+            `/api/v1/aiot/devices/${workspaceId}/${productKey}/device/${deviceId}`,
         );
         return data;
     },
-    async deleteDevice(deviceId: string): Promise<PaapeliMessage> {
+    async deleteDevice(
+        workspaceId: string,
+        productKey: string,
+        deviceId: string,
+    ): Promise<PaapeliMessage> {
         const { data } = await napiHttpHandler.del<PaapeliMessage>(
-            `/api/v1/aiot/devices/${deviceId}`,
+            `/api/v1/aiot/devices/${workspaceId}/${productKey}/device/${deviceId}`,
         );
         return data;
     },
     async getDeviceActivities(
+        workspaceId: string,
+        productKey: string,
         deviceId: string,
         page: number,
         size: number,
     ): Promise<PageResponse<DeviceActivityResponse>> {
         const { data } = await napiHttpHandler.get<
             PageResponse<DeviceActivityResponse>
-        >(`/api/v1/aiot/devices/${deviceId}/activities`, { page, size });
+        >(`/api/v1/aiot/devices/${workspaceId}/${productKey}/activities/${deviceId}`, {
+            page,
+            size,
+        });
         return data;
     },
     async getTenantDevices(
+        workspaceId: string,
+        productKey: string,
         page: number,
         size: number,
-    ): Promise<PageResponse<DeviceAssetProjection>> {
-        const { data } = await napiHttpHandler.get<
-            PageResponse<DeviceAssetProjection>
-        >('/api/v1/aiot/devices/tenant', { page, size });
+    ): Promise<PageResponse<DeviceResponse>> {
+        const { data } = await napiHttpHandler.get<PageResponse<DeviceResponse>>(
+            `/api/v1/aiot/devices/${workspaceId}/${productKey}/tenant`,
+            { page, size },
+        );
         return data;
     },
     async getAssetDevices(
+        workspaceId: string,
+        productKey: string,
         assetId: string,
         page: number,
         size: number,
-    ): Promise<PageResponse<DeviceAssetProjection>> {
-        const { data } = await napiHttpHandler.get<
-            PageResponse<DeviceAssetProjection>
-        >(`/api/v1/aiot/devices/asset/${assetId}`, { page, size });
+    ): Promise<PageResponse<DeviceResponse>> {
+        const { data } = await napiHttpHandler.get<PageResponse<DeviceResponse>>(
+            `/api/v1/aiot/devices/${workspaceId}/${productKey}/asset/${assetId}`,
+            { page, size },
+        );
         return data;
     },
 };

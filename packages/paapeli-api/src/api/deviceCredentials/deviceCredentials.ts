@@ -24,21 +24,32 @@ export interface PaapeliCredentials {
     credentialsValue?: string;
 }
 
-export type UpdateDeviceCredentialsRequest = PaapeliCredentials;
+export interface UpdateDeviceCredentialsRequest {
+    credentialType: DeviceCredentialType;
+    credentialsId?: string;
+    credentialsValue?: string;
+}
 
 export const deviceCredentialsService = {
-    async getDeviceCredentials(deviceId: string): Promise<PaapeliCredentials> {
+    async getDeviceCredentials(
+        workspaceId: string,
+        productKey: string,
+        deviceId: string,
+    ): Promise<PaapeliCredentials> {
         const { data } = await napiHttpHandler.get<PaapeliCredentials>(
-            `/api/v1/aiot/credentials/${deviceId}`,
+            `/api/v1/aiot/credentials/${workspaceId}/${productKey}/${deviceId}`,
         );
         return data;
     },
     /** After a successful update, the gateway also refreshes the local device protocol projection. */
     async updateDeviceCredentials(
+        workspaceId: string,
+        productKey: string,
+        deviceId: string,
         req: UpdateDeviceCredentialsRequest,
     ): Promise<PaapeliCredentials> {
         const { data } = await napiHttpHandler.put<PaapeliCredentials>(
-            '/api/v1/aiot/credentials',
+            `/api/v1/aiot/credentials/${workspaceId}/${productKey}/${deviceId}`,
             req,
         );
         return data;

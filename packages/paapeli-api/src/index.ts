@@ -8,3 +8,5 @@ export * from './api/timeseries';
 export * from './api/productAssetTypes';
 export * from './api/deviceCredentials';
 export * from './api/alarms';
+export * from './api/products';
+export * from './api/workspaces';

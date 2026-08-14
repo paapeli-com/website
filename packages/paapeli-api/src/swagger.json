@@ -14,45 +14,200 @@
   "security": [{ "bearerAuth": [] }],
   "tags": [
     {
-      "name": "Device credentials",
-      "description": "Get and update authentication credentials for devices"
+      "name": "Devices",
+      "description": "Workspace-product devices, asset assignment, and activity history"
     },
-    { "name": "Time series", "description": "Time series endpoints" },
-    { "name": "Device RPC", "description": "Device RPC endpoints" },
-    { "name": "Devices", "description": "Device management endpoints" },
-    { "name": "Authentication", "description": "Auth endpoints" },
+    {
+      "name": "Workspaces",
+      "description": "Workspace membership, invitations, and product subscriptions"
+    },
+    { "name": "Products", "description": "Global Paapeli product definitions" },
+    {
+      "name": "Alarms",
+      "description": "Device alarm queries and alarm-rule management"
+    },
+    {
+      "name": "Device credentials",
+      "description": "Read and replace device authentication credentials"
+    },
+    { "name": "Time series", "description": "Device telemetry history" },
+    {
+      "name": "Assets",
+      "description": "Lazy-loaded workspace product asset trees"
+    },
+    {
+      "name": "Device RPC",
+      "description": "Send commands to devices and record their command lifecycle"
+    },
     {
       "name": "Product asset types",
-      "description": "Manage the catalog of allowed asset types per product"
+      "description": "Product-wide asset type catalogs and allowed parent-child rules"
     },
-    { "name": "Alarm", "description": "Alarm management endpoints" },
-    { "name": "Assets", "description": "Asset management endpoints" }
+    {
+      "name": "Authentication",
+      "description": "Create a Paapeli account and obtain a bearer token"
+    }
   ],
   "paths": {
-    "/api/v1/aiot/product-asset-type": {
+    "/api/v1/aiot/products/{productKey}/asset-types/{parentAssetType}/allowed-children/{childAssetType}": {
       "put": {
         "tags": ["Product asset types"],
-        "summary": "Update a product asset type",
-        "description": "Update the label and description of an existing product asset type.\nproductKey and assetType identify the row and are not changed.\n",
-        "operationId": "editProductAssetType",
+        "summary": "Allow a direct child type",
+        "description": "Adds an idempotent immediate parent-child rule. The same child\ntype may be allowed beneath multiple parent types, and\nself-relations are valid. The rule is enforced when new\nassets are reserved. Platform-administrator access is\nrequired.\n",
+        "operationId": "allowChild",
+        "parameters": [
+          {
+            "name": "productKey",
+            "in": "path",
+            "description": "Product key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "aiot"
+          },
+          {
+            "name": "parentAssetType",
+            "in": "path",
+            "description": "Allowed parent type",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "ROOT"
+          },
+          {
+            "name": "childAssetType",
+            "in": "path",
+            "description": "Allowed direct child type",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "factory"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Allowed-child rule saved",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication or platform-administrator access required",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "404": {
+            "description": "Parent or child type not found",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "409": {
+            "description": "ROOT cannot be used as a child type",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Product asset types"],
+        "summary": "Remove a direct child rule",
+        "description": "Removes the rule for future asset creation. Existing assets\nare not moved or invalidated. Platform-administrator access\nis required.\n",
+        "operationId": "disallowChild",
+        "parameters": [
+          {
+            "name": "productKey",
+            "in": "path",
+            "description": "Product key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "aiot"
+          },
+          {
+            "name": "parentAssetType",
+            "in": "path",
+            "description": "Parent type",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "ROOT"
+          },
+          {
+            "name": "childAssetType",
+            "in": "path",
+            "description": "Direct child type",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "factory"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Allowed-child rule deleted",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication or platform-administrator access required",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "404": {
+            "description": "Allowed-child rule not found",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/products/{productKey}/asset-types/{assetType}": {
+      "put": {
+        "tags": ["Product asset types"],
+        "summary": "Update an asset type",
+        "description": "Updates the human-readable label and description. The\nassetType path key is immutable. ROOT cannot be changed.\nPlatform-administrator access is required.\n",
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "productKey",
+            "in": "path",
+            "description": "Product key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "aiot"
+          },
+          {
+            "name": "assetType",
+            "in": "path",
+            "description": "Immutable asset-type key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "factory"
+          }
+        ],
         "requestBody": {
-          "description": "Updated product asset type payload",
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PaapeliProductAssetType"
+                "$ref": "#/components/schemas/UpdateProductAssetTypeRequest"
               },
-              "examples": {
-                "Update label and description": {
-                  "summary": "Change display fields for an existing type",
-                  "description": "Update label and description",
-                  "value": {
-                    "productKey": "aiot",
-                    "assetType": "production",
-                    "label": "Production area",
-                    "description": "Updated description for production assets"
-                  }
-                }
+              "example": {
+                "label": "Manufacturing factory",
+                "description": "A physical manufacturing site"
               }
             }
           },
@@ -60,28 +215,17 @@
         },
         "responses": {
           "200": {
-            "description": "Product asset type updated successfully",
+            "description": "Asset type updated",
             "content": {
-              "application/json": {
+              "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/PaapeliProductAssetType"
-                },
-                "examples": {
-                  "Updated": {
-                    "description": "Updated",
-                    "value": {
-                      "productKey": "aiot",
-                      "assetType": "production",
-                      "label": "Production area",
-                      "description": "Updated description for production assets"
-                    }
-                  }
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid request",
+            "description": "Invalid label or description",
             "content": {
               "*/*": {
                 "schema": {
@@ -91,7 +235,7 @@
             }
           },
           "401": {
-            "description": "Invalid credentials",
+            "description": "Authentication or platform-administrator access required",
             "content": {
               "*/*": {
                 "schema": {
@@ -101,88 +245,7 @@
             }
           },
           "404": {
-            "description": "Product asset type not found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaapeliErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": ["Product asset types"],
-        "summary": "Create a product asset type",
-        "description": "Register a new asset type for a product.\nThe pair (productKey, assetType) must be unique.\n",
-        "operationId": "createProductAsset",
-        "requestBody": {
-          "description": "Product asset type payload",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PaapeliProductAssetType"
-              },
-              "examples": {
-                "Production type": {
-                  "summary": "Register a production-line asset type",
-                  "description": "Production type",
-                  "value": {
-                    "productKey": "aiot",
-                    "assetType": "production",
-                    "label": "Production line",
-                    "description": "Top-level production line under the product root"
-                  }
-                },
-                "Machine type": {
-                  "summary": "Register a machine asset type without description",
-                  "description": "Machine type",
-                  "value": {
-                    "productKey": "aiot",
-                    "assetType": "machine",
-                    "label": "Machine"
-                  }
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Product asset type created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaapeliProductAssetType"
-                },
-                "examples": {
-                  "Created": {
-                    "description": "Created",
-                    "value": {
-                      "productKey": "aiot",
-                      "assetType": "production",
-                      "label": "Production line",
-                      "description": "Top-level production line under the product root"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaapeliProductAssetType"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
+            "description": "Asset type not found",
             "content": {
               "*/*": {
                 "schema": {
@@ -192,29 +255,93 @@
             }
           },
           "409": {
-            "description": "Asset type already exists for this product",
+            "description": "ROOT cannot be changed",
             "content": {
-              "application/problem+json": {
+              "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaapeliErrorResponse"
+                  "$ref": "#/components/schemas/PaapeliProductAssetType"
                 }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Product asset types"],
+        "summary": "Delete an asset type",
+        "description": "Deletes an unused catalog entry. Deletion is rejected while\nthe type is used by a workspace asset or any allowed-child\nrule. ROOT cannot be deleted. Platform-administrator access\nis required.\n",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "productKey",
+            "in": "path",
+            "description": "Product key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "aiot"
+          },
+          {
+            "name": "assetType",
+            "in": "path",
+            "description": "Asset-type key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "factory"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Asset type deleted",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication or platform-administrator access required",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "404": {
+            "description": "Asset type not found",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "409": {
+            "description": "Type is in use or ROOT was requested",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
               }
             }
           }
         }
       }
     },
-    "/api/v1/aiot/devices": {
+    "/api/v1/aiot/devices/{workspaceId}/{productKey}": {
       "put": {
         "tags": ["Devices"],
-        "summary": "Update device",
-        "description": "Edit device name,label and description",
+        "summary": "Update a device",
+        "description": "Updates the device name, label, and description. The request's\nid selects the device. Device type, profile, asset assignment,\ngateway flag, and credentials are preserved.\n",
         "operationId": "editDevice",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PaapeliEditDeviceRequest"
+              },
+              "example": {
+                "id": "2ce7b35c-e5dc-47f7-8f17-626501507503",
+                "description": "Calibrated temperature sensor for boiler 1",
+                "label": "Boiler 1 temperature",
+                "name": "boiler-temp-01"
               }
             }
           },
@@ -222,7 +349,7 @@
         },
         "responses": {
           "200": {
-            "description": "Successful operation",
+            "description": "Device updated",
             "content": {
               "*/*": {
                 "schema": {
@@ -231,8 +358,38 @@
               }
             }
           },
-          "401": {
-            "description": "Invalid credentials",
+          "400": {
+            "description": "Invalid device ID or fields",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliEditDeviceResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ADMINISTER product access required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliEditDeviceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found in this workspace product",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliEditDeviceResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The new device name conflicts",
             "content": {
               "*/*": {
                 "schema": {
@@ -246,136 +403,32 @@
       "post": {
         "tags": ["Devices"],
         "summary": "Create a device",
-        "description": "Create a new device under an asset. Note: 'credentialValue' is **not required** when credentialType = ACCESS_TOKEN (Backend will auto-generate the token).",
+        "description": "Creates a device and assigns it to an active Paapeli asset in\nthe authorized workspace product. If profileId is omitted,\nthe product's default device profile is used. For ACCESS_TOKEN\ncredentials, credentialValue may be omitted and an identifier\nis generated. The response intentionally contains Paapeli's\ndevice representation, not an upstream entity payload.\n",
         "operationId": "createDevice",
         "requestBody": {
-          "description": "Device creation payload",
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PaapeliCreateDeviceRequest"
               },
               "examples": {
-                "ACCESS_TOKEN (Recommended)": {
-                  "summary": "Simple access token credential (most common)",
-                  "description": "ThingsBoard will generate the access token automatically.",
+                "Access token device": {
+                  "description": "Access token device",
                   "value": {
-                    "label": "Living Room Sensor",
-                    "type": "default",
-                    "name": "temp-sensor-living",
-                    "description": "Monitors room temperature",
+                    "label": "Boiler temperature sensor",
+                    "type": "temperature_sensor",
+                    "name": "boiler-temp-01",
+                    "description": "Temperature sensor for boiler 1",
                     "isGateway": false,
+                    "profileId": null,
                     "credentialType": "ACCESS_TOKEN",
-                    "assetId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                    "credentialValue": null,
+                    "assetId": "e75b06a5-a437-467a-b40b-2d31f0746056"
                   }
                 },
-                "X509_CERTIFICATE": {
-                  "summary": "X.509 Certificate credential",
-                  "description": "Requires credentialValue containing the certificate data.",
-                  "value": {
-                    "label": "Secure Gateway",
-                    "type": "gateway",
-                    "name": "secure-gw-01",
-                    "description": "X509 secured gateway",
-                    "isGateway": true,
-                    "credentialType": "X509_CERTIFICATE",
-                    "credentialValue": "-----BEGIN CERTIFICATE-----\nMIIC...\n-----END CERTIFICATE-----",
-                    "assetId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-                  }
-                },
-                "MQTT_BASIC": {
-                  "summary": "MQTT Basic credentials",
-                  "description": "Requires escaped json style credential.",
-                  "value": {
-                    "label": "MQTT Device",
-                    "type": "sensor",
-                    "name": "mqtt-sensor-01",
-                    "credentialType": "MQTT_BASIC",
-                    "credentialValue": "{\"clientId\":\"5euh5nzm34bjjh1efmlt\",\"userName\":\"onasd1lgwasmjl7v2v7h\",\"password\":\"b9xtm4ny8kt9zewaga5o\"}",
-                    "assetId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-                  }
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Device created successfully",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaapeliCreateDeviceResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaapeliCreateDeviceResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaapeliCreateDeviceResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/aiot/credentials": {
-      "put": {
-        "tags": ["Device credentials"],
-        "summary": "Update device credentials",
-        "description": "Update credentials for an existing device.\nSend the credentials record `id` and `deviceId` from a previous GET.\nSupported credential types: ACCESS_TOKEN, X509_CERTIFICATE, MQTT_BASIC, LWM2M_CREDENTIALS.\nAfter a successful update, the gateway also refreshes the local device protocol projection.\n",
-        "operationId": "updateDeviceCredentials",
-        "requestBody": {
-          "description": "Updated device credentials payload",
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/PaapeliCredentials" },
-              "examples": {
-                "ACCESS_TOKEN": {
-                  "summary": "Replace access token credentials",
-                  "description": "Most common credential type. Token is usually carried in credentialsId.",
-                  "value": {
-                    "id": "c1d2e3f4-a5b6-7890-abcd-ef1234567890",
-                    "deviceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                    "credentialType": "ACCESS_TOKEN",
-                    "credentialsId": "new-device-access-token-abc123"
-                  }
-                },
-                "MQTT_BASIC": {
-                  "summary": "MQTT basic username/password credentials",
-                  "description": "credentialsValue must be a JSON string with clientId, userName, and password.",
-                  "value": {
-                    "id": "c1d2e3f4-a5b6-7890-abcd-ef1234567890",
-                    "deviceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                    "credentialType": "MQTT_BASIC",
-                    "credentialsValue": "{\"clientId\":\"5euh5nzm34bjjh1efmlt\",\"userName\":\"onasd1lgwasmjl7v2v7h\",\"password\":\"b9xtm4ny8kt9zewaga5o\"}"
-                  }
-                },
-                "X509_CERTIFICATE": {
-                  "summary": "X.509 certificate credentials",
-                  "description": "credentialsValue contains the certificate material.",
-                  "value": {
-                    "id": "c1d2e3f4-a5b6-7890-abcd-ef1234567890",
-                    "deviceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                    "credentialType": "X509_CERTIFICATE",
-                    "credentialsId": "cert-credentials-id",
-                    "credentialsValue": "-----BEGIN CERTIFICATE-----\nMIIC...\n-----END CERTIFICATE-----"
-                  }
+                "MQTT basic device": {
+                  "description": "MQTT basic device",
+                  "value": "{\n  \"label\": \"Packaging gateway\",\n  \"type\": \"gateway\",\n  \"name\": \"packaging-gateway-01\",\n  \"description\": \"Gateway for the packaging line\",\n  \"isGateway\": true,\n  \"credentialType\": \"MQTT_BASIC\",\n  \"credentialValue\": \"{\"clientId\":\"packaging-gateway-01\",\"userName\":\"gateway\",\"password\":\"replace-me\"}\",\n  \"assetId\": \"e75b06a5-a437-467a-b40b-2d31f0746056\"\n}\n"
                 }
               }
             }
@@ -384,160 +437,352 @@
         },
         "responses": {
           "200": {
-            "description": "Device credentials updated successfully",
+            "description": "Device created and assigned",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PaapeliCredentials" },
-                "examples": {
-                  "Updated ACCESS_TOKEN": {
-                    "description": "Updated ACCESS_TOKEN",
-                    "value": {
-                      "id": "c1d2e3f4-a5b6-7890-abcd-ef1234567890",
-                      "deviceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                      "createdTime": 1712534400000,
-                      "version": 2,
-                      "credentialType": "ACCESS_TOKEN",
-                      "credentialsId": "new-device-access-token-abc123",
-                      "credentialsValue": null
-                    }
-                  }
+                "example": {
+                  "id": "2ce7b35c-e5dc-47f7-8f17-626501507503",
+                  "name": "boiler-temp-01",
+                  "label": "Boiler temperature sensor",
+                  "type": "temperature_sensor",
+                  "credentialType": "ACCESS_TOKEN"
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid request",
+            "description": "Invalid fields, profile, credentials, or conflicting device name",
             "content": {
               "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliCredentials" }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliCredentials" }
-              }
-            }
-          },
-          "404": {
-            "description": "Device or credentials not found",
-            "content": {
-              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaapeliErrorResponse"
+                  "$ref": "#/components/schemas/PaapeliCreateDeviceResponse"
                 }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/aiot/assets/{productKey}": {
-      "put": {
-        "tags": ["Assets"],
-        "summary": "Update a product asset",
-        "description": "Update name, label, and description of an existing child asset under a product.\nAsset type and hierarchy are not changed by this endpoint.\nThe product root asset cannot be updated.\n",
-        "operationId": "editAsset",
-        "parameters": [
-          {
-            "name": "productKey",
-            "in": "path",
-            "description": "Product key the asset belongs to",
-            "required": true,
-            "schema": { "type": "string" },
-            "example": "aiot"
-          }
-        ],
-        "requestBody": {
-          "description": "Asset update payload",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PaapeliAssetEditRequest"
-              },
-              "examples": {
-                "Update asset fields": {
-                  "summary": "Change name, label, and description",
-                  "description": "Update asset fields",
-                  "value": {
-                    "id": "b9c8d7e6-f5a4-3210-9876-543210fedcba",
-                    "name": "Production Line A",
-                    "label": "Line A",
-                    "description": "Primary assembly line"
-                  }
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Asset updated successfully",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/PaapeliAsset" },
-                "examples": {
-                  "Updated asset": {
-                    "description": "Updated asset",
-                    "value": {
-                      "id": "b9c8d7e6-f5a4-3210-9876-543210fedcba",
-                      "name": "Production Line A",
-                      "type": "production",
-                      "label": "Line A",
-                      "description": "Primary assembly line"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliAsset" }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliAsset" }
               }
             }
           },
           "403": {
-            "description": "Attempted to update the immutable product root asset",
+            "description": "ADMINISTER access required or the asset is outside this workspace product",
             "content": {
-              "application/problem+json": {
+              "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaapeliErrorResponse"
-                },
-                "examples": {
-                  "Root immutable": {
-                    "description": "Root immutable",
-                    "value": {
-                      "detail": "Root asset node for product aiot can not be deleted or updated",
-                      "instance": "/api/v1/aiot/assets/aiot",
-                      "status": 403,
-                      "title": "Asset root is immutable",
-                      "code": "ASSET_ROOT_NODE_IMMUTABLE"
-                    }
+                  "$ref": "#/components/schemas/PaapeliCreateDeviceResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The target asset is not active",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliCreateDeviceResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Device creation or assignment failed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliCreateDeviceResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/credentials/{workspaceId}/{productKey}/{deviceId}": {
+      "get": {
+        "tags": ["Device credentials"],
+        "summary": "Get device credentials",
+        "description": "Returns the device's current authentication material.\nADMINISTER access is required because the response may expose\nan access token, certificate, or password-bearing payload.\n",
+        "operationId": "getDeviceCredentials",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "description": "Paapeli device ID",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "2ce7b35c-e5dc-47f7-8f17-626501507503"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Credentials returned",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "00b3cb85-d044-41cd-b243-882cbb18cd57",
+                  "deviceId": "2ce7b35c-e5dc-47f7-8f17-626501507503",
+                  "createdTime": 1786147200000,
+                  "version": 1,
+                  "credentialType": "ACCESS_TOKEN",
+                  "credentialsId": "plant-sensor-token-2026",
+                  "credentialsValue": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ADMINISTER product access required",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliCredentials" }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found in this workspace product",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliCredentials" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Device credentials"],
+        "summary": "Replace device credentials",
+        "description": "Replaces the authentication material for a device that belongs\nto the authorized workspace product. ADMINISTER access is\nrequired. Credential values are secrets: do not log or persist\nthe response in an insecure client store.\n",
+        "operationId": "updateDeviceCredentials",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "description": "Paapeli device ID",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "2ce7b35c-e5dc-47f7-8f17-626501507503"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaapeliCredentialUpdateRequest"
+              },
+              "examples": {
+                "Access token": {
+                  "description": "Access token",
+                  "value": {
+                    "credentialType": "ACCESS_TOKEN",
+                    "credentialsId": "plant-sensor-token-2026",
+                    "credentialsValue": null
                   }
+                },
+                "MQTT basic": {
+                  "description": "MQTT basic",
+                  "value": "{\n  \"credentialType\": \"MQTT_BASIC\",\n  \"credentialsId\": null,\n  \"credentialsValue\": \"{\"clientId\":\"sensor-17\",\"userName\":\"sensor-17\",\"password\":\"replace-me\"}\"\n}\n"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Credentials replaced",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliCredentials" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid credential type or value",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliCredentials" }
+              }
+            }
+          },
+          "403": {
+            "description": "ADMINISTER product access required",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliCredentials" }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found in this workspace product",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliCredentials" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/assets/{workspaceId}/{productKey}/{assetId}": {
+      "put": {
+        "tags": ["Assets"],
+        "summary": "Update an asset",
+        "description": "Updates an asset's name, label, and description. Its type and\nparent cannot be changed. The system ROOT node is immutable.\n",
+        "operationId": "updateAsset",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "description": "Paapeli asset ID",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "e75b06a5-a437-467a-b40b-2d31f0746056"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkspaceProductAssetRequest"
+              },
+              "example": {
+                "name": "factory-tehran",
+                "label": "Tehran Main Factory",
+                "description": "Primary manufacturing and warehousing site"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Asset updated",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductAssetResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid asset fields",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductAssetResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ADMINISTER access required or ROOT was requested",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductAssetResponse"
                 }
               }
             }
           },
           "404": {
-            "description": "Asset or product tree not found",
+            "description": "Asset not found",
             "content": {
-              "application/problem+json": {
+              "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaapeliErrorResponse"
+                  "$ref": "#/components/schemas/WorkspaceProductAssetResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Asset is not active or the new name conflicts",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductAssetResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Assets"],
+        "summary": "Delete an asset",
+        "description": "Deletes an active non-ROOT asset. The asset must have no child\nassets and no assigned devices; callers should remove those\nrelationships first.\n",
+        "operationId": "deleteAsset",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "description": "Paapeli asset ID",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "e75b06a5-a437-467a-b40b-2d31f0746056"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Asset deleted",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "403": {
+            "description": "ADMINISTER access required or ROOT was requested",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "404": {
+            "description": "Asset not found",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "409": {
+            "description": "Asset is not active or is not empty",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/workspaces": {
+      "get": {
+        "tags": ["Workspaces"],
+        "summary": "List active workspaces",
+        "description": "Lists workspaces in which the authenticated user has an ACTIVE membership.",
+        "operationId": "listActiveWorkspaces",
+        "responses": {
+          "200": {
+            "description": "Active memberships returned",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "workspaceId": "7c2a6f5f-711f-41b8-9407-4f2f67af5ff4",
+                    "workspaceName": "Tehran Manufacturing",
+                    "membershipStatus": "ACTIVE",
+                    "role": "OWNER"
+                  }
+                ]
+              }
+            }
+          },
+          "403": {
+            "description": "An active user account is required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/UserWorkspaceDTO" }
                 }
               }
             }
@@ -545,82 +790,176 @@
         }
       },
       "post": {
-        "tags": ["Assets"],
-        "summary": "Add child asset to product",
-        "description": "Add a child asset under the product's root node.\nIf parentId is not provided (or null), it becomes a direct child of the product's root asset.\n",
-        "operationId": "addChildAsset",
-        "parameters": [
-          {
-            "name": "productKey",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "string" }
-          }
-        ],
+        "tags": ["Workspaces"],
+        "summary": "Create a workspace",
+        "description": "Creates an active workspace. The authenticated user becomes\nits active OWNER. Product infrastructure is not provisioned\nuntil the workspace subscribes to a product.\n",
+        "operationId": "create",
         "requestBody": {
-          "description": "Child asset payload",
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/PaapeliAsset" },
-              "examples": {
-                "Direct child of root": {
-                  "summary": "Add asset directly under product root",
-                  "description": "Direct child of root",
-                  "value": {
-                    "name": "Production Line A",
-                    "type": "production",
-                    "label": "Line A",
-                    "description": "Primary assembly line",
-                    "parentId": null
-                  }
-                },
-                "Nested child asset": {
-                  "summary": "Add asset under an existing parent",
-                  "description": "Nested child asset",
-                  "value": {
-                    "name": "Machine 01",
-                    "type": "machine",
-                    "label": "CNC Machine",
-                    "description": "High precision milling machine",
-                    "parentId": "b9c8d7e6-f5a4-3210-9876-543210fedcba"
-                  }
-                }
-              }
+              "schema": { "$ref": "#/components/schemas/WorkspaceRequest" },
+              "example": { "name": "Tehran Manufacturing" }
             }
           },
           "required": true
         },
         "responses": {
           "201": {
-            "description": "Child asset created successfully",
+            "description": "Workspace created",
             "content": {
               "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliAsset" }
+                "schema": { "$ref": "#/components/schemas/WorkspaceResponse" }
               }
             }
           },
           "400": {
-            "description": "Invalid request",
+            "description": "Invalid workspace name",
             "content": {
               "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliAsset" }
+                "schema": { "$ref": "#/components/schemas/WorkspaceResponse" }
               }
             }
           },
           "401": {
-            "description": "Invalid credentials",
+            "description": "Authentication required",
             "content": {
               "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliAsset" }
+                "schema": { "$ref": "#/components/schemas/WorkspaceResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "An active user account is required",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/WorkspaceResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/workspaces/{workspaceId}/products": {
+      "get": {
+        "tags": ["Workspaces"],
+        "summary": "List workspace products",
+        "description": "Lists the workspace's product subscriptions and their current states.",
+        "operationId": "listProducts",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "in": "path",
+            "description": "Workspace ID",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "7c2a6f5f-711f-41b8-9407-4f2f67af5ff4"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscriptions returned",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "workspaceProductId": "edc1aa20-d246-46ac-a903-d4fd75fe8a56",
+                    "workspaceId": "7c2a6f5f-711f-41b8-9407-4f2f67af5ff4",
+                    "productKey": "aiot",
+                    "status": "ACTIVE",
+                    "createdAt": 1786147200
+                  }
+                ]
+              }
+            }
+          },
+          "403": {
+            "description": "The caller cannot read this workspace",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkspaceProductResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Workspaces"],
+        "summary": "Subscribe a workspace to a product",
+        "description": "Provisions the product's backing resources for the workspace\nand activates the subscription. Only a role with\nSUBSCRIBE_PRODUCT permission may call this endpoint. A failed\nsubscription can be retried; active, provisioning, and\nsuspended subscriptions conflict with a new request.\n",
+        "operationId": "subscribeProduct",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "in": "path",
+            "description": "Workspace ID",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "7c2a6f5f-711f-41b8-9407-4f2f67af5ff4"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceProductRequest"
+              },
+              "example": { "productKey": "aiot" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Subscription activated",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller cannot subscribe products for this workspace",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductResponse"
+                }
               }
             }
           },
           "404": {
-            "description": "Product root asset not found",
+            "description": "Workspace or product not found",
             "content": {
-              "application/problem+json": {
+              "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaapeliErrorResponse"
+                  "$ref": "#/components/schemas/WorkspaceProductResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Subscription or backing-resource provisioning conflicts with the current state",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Provisioning failed; the response includes a reference ID",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductResponse"
                 }
               }
             }
@@ -628,27 +967,276 @@
         }
       }
     },
-    "/api/v1/aiot/rpc": {
+    "/api/v1/aiot/workspaces/{workspaceId}/invitations": {
+      "post": {
+        "tags": ["Workspaces"],
+        "summary": "Invite a workspace member",
+        "description": "Invites an existing active Paapeli user by email. OWNER cannot\nbe granted through an invitation. Workspace authorization\ndetermines whether the caller may invite an ADMIN or a\nMEMBER/VIEWER. A previously rejected or expired invitation\nmay be issued again.\n",
+        "operationId": "invite",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "in": "path",
+            "description": "Workspace ID",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "7c2a6f5f-711f-41b8-9407-4f2f67af5ff4"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceInvitationRequest"
+              },
+              "example": { "email": "technician@example.com", "role": "MEMBER" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Invitation created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceMembershipResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid role, self-invitation, or invitation state",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceMembershipResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller cannot invite this role",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceMembershipResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No active user exists with the supplied email",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceMembershipResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/workspaces/{workspaceId}/invitations/reject": {
+      "post": {
+        "tags": ["Workspaces"],
+        "summary": "Reject an invitation",
+        "description": "Rejects the authenticated user's pending invitation to the workspace.",
+        "operationId": "rejectInvitation",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "in": "path",
+            "description": "Workspace ID",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "7c2a6f5f-711f-41b8-9407-4f2f67af5ff4"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitation rejected",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "success",
+                  "message": "Invitation rejected",
+                  "data": "Invitation to workspace 7c2a6f5f-711f-41b8-9407-4f2f67af5ff4 rejected"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An active user account is required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponseString"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No pending invitation exists for this user and workspace",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponseString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/workspaces/{workspaceId}/invitations/accept": {
+      "post": {
+        "tags": ["Workspaces"],
+        "summary": "Accept an invitation",
+        "description": "Accepts the authenticated user's pending invitation to the workspace.",
+        "operationId": "acceptInvitation",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "in": "path",
+            "description": "Workspace ID",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "7c2a6f5f-711f-41b8-9407-4f2f67af5ff4"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitation accepted and membership activated",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceMembershipResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An active user account is required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceMembershipResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No pending invitation exists for this user and workspace",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceMembershipResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/user/signup": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Create an account",
+        "description": "Creates an active Paapeli user and returns an authentication\ntoken. The email is normalized before uniqueness is checked.\nPassword and confirmedPassword must match, and each password\nvalue may contain at most 72 UTF-8 bytes.\n",
+        "operationId": "signup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SignupRequest" },
+              "example": {
+                "email": "operator@example.com",
+                "displayName": "Plant Operator",
+                "password": "correct horse battery staple",
+                "confirmedPassword": "correct horse battery staple"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Account created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "success",
+                  "message": "User registered successfully",
+                  "data": {
+                    "id": "f4a59331-6a99-4acf-8c62-b88991815a6f",
+                    "displayName": "Plant Operator",
+                    "email": "operator@example.com",
+                    "isActive": true,
+                    "emailVerified": false,
+                    "createdAt": 1786147200,
+                    "authentication": {
+                      "token": "eyJhbGciOiJIUzI1NiJ9...",
+                      "tokenType": "Bearer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed or passwords do not match",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponseSignupResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "An account with the normalized email already exists",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponseSignupResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/rpc/{workspaceId}/{productKey}": {
       "post": {
         "tags": ["Device RPC"],
-        "summary": "Send RPC command",
-        "description": "Send a Remote Procedure Call (RPC) to a device.\n- action: Name of the function/method the device should execute\n- params: Parameters for that function (can be null)\n",
+        "summary": "Send a device command",
+        "description": "Sends an RPC command to a device in the authorized workspace\nproduct and records COMMAND_SENT followed by COMMAND_SUCCEEDED\nor COMMAND_FAILED. OPERATE access is required. isOneWay\ndefaults to true when omitted; queue defaults to false.\ndeviceName is informational—the server resolves the canonical\ndevice name from its projection.\n",
         "operationId": "sendRPC",
         "requestBody": {
-          "description": "RPC command",
           "content": {
             "application/json": {
               "schema": { "$ref": "#/components/schemas/PaapeliDeviceRPC" },
               "examples": {
-                "Set Temperature Example": {
-                  "description": "Set Temperature Example",
+                "Immediate two-way command": {
+                  "description": "Immediate two-way command",
                   "value": {
                     "action": "setTemperature",
-                    "deviceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                    "deviceName": "living-room-sensor",
-                    "params": { "temperature": 23.5, "unit": "C" },
+                    "deviceId": "2ce7b35c-e5dc-47f7-8f17-626501507503",
+                    "deviceName": "boiler-temp-01",
+                    "params": { "temperature": 72.5, "unit": "C" },
                     "isOneWay": false,
                     "queue": false
+                  }
+                },
+                "Queued one-way command": {
+                  "description": "Queued one-way command",
+                  "value": {
+                    "action": "restart",
+                    "deviceId": "2ce7b35c-e5dc-47f7-8f17-626501507503",
+                    "params": {},
+                    "isOneWay": true,
+                    "queue": true
                   }
                 }
               }
@@ -657,27 +1245,231 @@
           "required": true
         },
         "responses": {
-          "201": {
-            "description": "RPC sent successfully",
+          "200": {
+            "description": "Command dispatched successfully",
             "content": {
-              "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              "application/json": {
+                "example": { "message": "RPC sent successfully" }
               }
             }
           },
           "400": {
-            "description": "Invalid request",
+            "description": "Invalid action, device ID, or parameters",
             "content": {
               "*/*": {
                 "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
               }
             }
           },
-          "401": {
-            "description": "Invalid credentials",
+          "403": {
+            "description": "OPERATE access required or the device is outside this workspace product",
             "content": {
               "*/*": {
                 "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "500": {
+            "description": "The command failed or timed out",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/products": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "List products",
+        "description": "Lists all product definitions available for workspace subscription.",
+        "operationId": "getProducts",
+        "responses": {
+          "200": {
+            "description": "Products returned",
+            "content": {
+              "application/json": {
+                "example": [{ "productKey": "aiot", "name": "Industrial IoT" }]
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/ProductDTO" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create a product",
+        "description": "Creates a global product definition and its system-managed\nROOT asset type. This is a Paapeli\nplatform-administrator operation; it does not subscribe a\nworkspace to the product.\n",
+        "operationId": "createProduct",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ProductDTO" },
+              "example": { "productKey": "aiot", "name": "Industrial IoT" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Product created",
+            "content": {
+              "*/*": { "schema": { "$ref": "#/components/schemas/ProductDTO" } }
+            }
+          },
+          "400": {
+            "description": "Invalid product key or name",
+            "content": {
+              "*/*": { "schema": { "$ref": "#/components/schemas/ProductDTO" } }
+            }
+          },
+          "401": {
+            "description": "Authentication or platform-administrator access required",
+            "content": {
+              "*/*": { "schema": { "$ref": "#/components/schemas/ProductDTO" } }
+            }
+          },
+          "409": {
+            "description": "The product key already exists",
+            "content": {
+              "*/*": { "schema": { "$ref": "#/components/schemas/ProductDTO" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/products/{productKey}/asset-types": {
+      "get": {
+        "tags": ["Product asset types"],
+        "summary": "List asset types",
+        "description": "Lists the product's complete asset-type catalog, including\nthe system ROOT type. This endpoint lists definitions; use\nthe allowed-children endpoint to discover topology rules.\n",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "productKey",
+            "in": "path",
+            "description": "Product key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "aiot"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Asset types returned",
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": [
+                    {
+                      "productKey": "aiot",
+                      "assetType": "ROOT",
+                      "label": "Root",
+                      "description": "System root asset type"
+                    },
+                    {
+                      "productKey": "aiot",
+                      "assetType": "factory",
+                      "label": "Factory",
+                      "description": "A manufacturing site"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliListResponsePaapeliProductAssetType"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Product asset types"],
+        "summary": "Create an asset type",
+        "description": "Adds an immutable asset-type key to the product catalog.\nThe label and description may be changed later. ROOT is\nsystem-managed and cannot be created through this endpoint.\nPlatform-administrator access is required.\n",
+        "operationId": "create_1",
+        "parameters": [
+          {
+            "name": "productKey",
+            "in": "path",
+            "description": "Product key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "aiot"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductAssetTypeRequest"
+              },
+              "example": {
+                "assetType": "factory",
+                "label": "Factory",
+                "description": "A manufacturing site"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Asset type created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductAssetType"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid type definition",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductAssetType"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication or platform-administrator access required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductAssetType"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Asset type already exists or ROOT was requested",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductAssetType"
+                }
               }
             }
           }
@@ -687,22 +1479,16 @@
     "/api/v1/aiot/auth/login": {
       "post": {
         "tags": ["Authentication"],
-        "summary": "Login user",
-        "description": "Authenticate with username and password.\nThe returned token must be used in subsequent requests as:\nAuthorization: Bearer <token>\n",
+        "summary": "Sign in",
+        "description": "Authenticates an active Paapeli user by email and password.\nEmail matching is case-insensitive. Use the returned token as\n`Authorization: Bearer <token>` on protected endpoints.\n",
         "operationId": "login",
         "requestBody": {
-          "description": "Login credentials",
           "content": {
             "application/json": {
               "schema": { "$ref": "#/components/schemas/PaapeliAuthRequest" },
-              "examples": {
-                "Login Example": {
-                  "description": "Login Example",
-                  "value": {
-                    "username": "admin@paapeli.me",
-                    "password": "your-secure-password"
-                  }
-                }
+              "example": {
+                "username": "operator@example.com",
+                "password": "correct horse battery staple"
               }
             }
           },
@@ -710,28 +1496,33 @@
         },
         "responses": {
           "200": {
-            "description": "Successfully authenticated",
+            "description": "Authentication succeeded",
             "content": {
               "application/json": {
+                "example": {
+                  "token": "eyJhbGciOiJIUzI1NiJ9...",
+                  "tokenType": "Bearer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed email or missing credentials",
+            "content": {
+              "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaapeliAuthResponse"
-                },
-                "examples": {
-                  "Successful Login": {
-                    "description": "Successful Login",
-                    "value": {
-                      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                    }
-                  }
+                  "$ref": "#/components/schemas/PaapeliAuthenticationResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "Invalid credentials",
+            "description": "Email or password is incorrect",
             "content": {
               "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliAuthResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAuthenticationResponse"
+                }
               }
             }
           }
@@ -739,82 +1530,169 @@
         "security": []
       }
     },
-    "/api/v1/aiot/assets": {
+    "/api/v1/aiot/assets/{workspaceId}/{productKey}/{parentAssetId}/children": {
+      "get": {
+        "tags": ["Assets"],
+        "summary": "List direct child assets",
+        "description": "Returns one page of immediate children. It does not recursively\ntraverse descendants. Use hasChildren on each result to decide\nwhether the UI should request another level.\n",
+        "operationId": "getChildren",
+        "parameters": [
+          {
+            "name": "parentAssetId",
+            "in": "path",
+            "description": "Paapeli ID of the parent asset",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "927c1672-d548-41be-b75b-20e37a688a31"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Zero-based page index",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" },
+            "example": 0
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Number of children per page",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" },
+            "example": 25
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Direct children returned",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseWorkspaceProductAssetResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination values",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseWorkspaceProductAssetResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "READ product access required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseWorkspaceProductAssetResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Parent asset not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseWorkspaceProductAssetResponse"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "tags": ["Assets"],
-        "summary": "Create an asset (deprecated)",
-        "description": "Deprecated: Use POST /{productKey} instead",
-        "operationId": "createAsset",
+        "summary": "Create a child asset",
+        "description": "Creates a direct child beneath an active parent. The requested\ntype must be allowed beneath the parent's type by the product\ncatalog. That rule is enforced atomically while the local\nasset is reserved, before external provisioning begins.\n",
+        "operationId": "createChild",
+        "parameters": [
+          {
+            "name": "parentAssetId",
+            "in": "path",
+            "description": "Paapeli ID of the direct parent asset",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "927c1672-d548-41be-b75b-20e37a688a31"
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/PaapeliAsset" }
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkspaceProductAssetRequest"
+              },
+              "example": {
+                "name": "factory-tehran",
+                "type": "factory",
+                "label": "Tehran Factory",
+                "description": "Primary manufacturing site"
+              }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliAsset" }
-              }
-            }
-          }
-        },
-        "deprecated": true
-      }
-    },
-    "/api/v1/aiot/assets/{productKey}/provision-root": {
-      "post": {
-        "tags": ["Assets"],
-        "summary": "Provision root asset for a product",
-        "description": "Provision the single root asset for a product.\nEach product can have only one root asset per tenant.\nThis should be called once per product before adding child assets.\n",
-        "operationId": "provisionRootNode",
-        "parameters": [
-          {
-            "name": "productKey",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "string" }
-          }
-        ],
-        "responses": {
           "201": {
-            "description": "Root asset provisioned successfully",
+            "description": "Child asset created",
             "content": {
               "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliAsset" }
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductAssetResponse"
+                }
               }
             }
           },
-          "401": {
-            "description": "Invalid credentials",
+          "400": {
+            "description": "Invalid asset fields",
             "content": {
               "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliAsset" }
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductAssetResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ADMINISTER product access required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductAssetResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Parent asset not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductAssetResponse"
+                }
               }
             }
           },
           "409": {
-            "description": "Asset tree already exists for this product",
+            "description": "Parent is not active, name conflicts, or the type is not allowed",
             "content": {
-              "application/problem+json": {
+              "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaapeliErrorResponse"
-                },
-                "examples": {
-                  "Error response": {
-                    "description": "Error response",
-                    "value": {
-                      "detail": "An asset tree is already registered for product 'aiot'",
-                      "instance": "/api/v1/aiot/assets/aiot/provision-root",
-                      "status": 409,
-                      "title": "Asset tree already exists",
-                      "code": "ASSET_TREE_ALREADY_EXISTS"
-                    }
-                  }
+                  "$ref": "#/components/schemas/WorkspaceProductAssetResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Asset provisioning failed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductAssetResponse"
                 }
               }
             }
@@ -822,29 +1700,553 @@
         }
       }
     },
-    "/api/v1/aiot/timeseries/history/{deviceId}": {
+    "/api/v1/aiot/assets/{workspaceId}/{productKey}/root": {
+      "get": {
+        "tags": ["Assets"],
+        "summary": "Get the asset-tree root",
+        "description": "Returns the active ROOT node used to start lazy loading the tree.",
+        "operationId": "getRoot",
+        "responses": {
+          "200": {
+            "description": "Root returned",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductAssetResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "READ product access required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductAssetResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The asset-tree root has not been provisioned",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductAssetResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The root exists but is not active",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductAssetResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Assets"],
+        "summary": "Provision the asset-tree root",
+        "description": "Creates the workspace product's single system ROOT asset.\nThe product subscription must be active and the caller must\nhave ADMINISTER access. The ROOT node cannot later be edited\nor deleted.\n",
+        "operationId": "provisionRoot",
+        "responses": {
+          "201": {
+            "description": "Root provisioned",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "927c1672-d548-41be-b75b-20e37a688a31",
+                  "parentId": null,
+                  "name": "ROOT",
+                  "type": "ROOT",
+                  "label": "Root",
+                  "description": "Workspace product asset root",
+                  "provisioningState": "ACTIVE",
+                  "createdAt": "2026-08-07T18:30:00Z",
+                  "updatedAt": "2026-08-07T18:30:01Z",
+                  "hasChildren": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ADMINISTER product access required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductAssetResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Root already exists or the workspace product is not ready",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductAssetResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Root provisioning failed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceProductAssetResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/alarms/{workspaceId}/{productKey}/rule/device/{deviceId}": {
+      "get": {
+        "tags": ["Alarms"],
+        "summary": "List device alarm rules",
+        "description": "Returns alarm rules configured for a device in the authorized workspace\nproduct, ordered by creation time descending. Page numbers are one-based.\nThe requested page size is clamped to the range 1-100. Clear conditions\nare intentionally not included in this list representation.\n",
+        "operationId": "getRules",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "description": "Paapeli device ID",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "2ce7b35c-e5dc-47f7-8f17-626501507503"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "One-based page number. Values below 1 are treated as 1.",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" },
+            "example": 1
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Requested page size. Values are clamped to the range 1-100.",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" },
+            "example": 25
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Alarm rules returned",
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": [
+                    {
+                      "id": "44c630f8-62be-4b42-8a8f-579e2f67bfe8",
+                      "name": "Sustained high temperature",
+                      "description": "Creates a major alarm after five minutes above the threshold",
+                      "arguments": ["temperature"],
+                      "alarmRules": {
+                        "MAJOR": {
+                          "triggerType": "DURATION",
+                          "triggerExpression": "return (temperature > 70)",
+                          "unit": "MINUTES",
+                          "value": 5
+                        }
+                      },
+                      "createdAt": "2026-08-12T17:30:00Z"
+                    }
+                  ],
+                  "totalPages": 1,
+                  "totalElements": 1,
+                  "hasNext": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ADMINISTER product access required or device access denied",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseAlarmRuleItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Alarms"],
+        "summary": "Create a device alarm rule",
+        "description": "Creates an alarm rule for a device in the authorized workspace product.\nEach create rule is keyed by alarm severity. SIMPLE rules fire as soon as\ntheir expression is true; DURATION rules require a positive duration and\ntime unit; REPEATING rules require a positive consecutive-event count.\nExpressions may combine leaf rules with AND or OR. Literal values must use\nthe JSON type declared by valueType. An optional clearRule automatically\nclears an active alarm when its expression becomes true.\n",
+        "operationId": "create_2",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "description": "Paapeli device ID",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "2ce7b35c-e5dc-47f7-8f17-626501507503"
+          }
+        ],
+        "requestBody": {
+          "description": "Alarm-rule definition",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaapeliAlarmCreateRequest"
+              },
+              "examples": {
+                "simple": {
+                  "summary": "Simple range rule with a clear condition",
+                  "description": "simple",
+                  "value": {
+                    "name": "High temperature",
+                    "description": "Creates a critical alarm while temperature is between 50 and 200",
+                    "createRules": {
+                      "CRITICAL": {
+                        "type": "SIMPLE",
+                        "expression": {
+                          "combinator": "AND",
+                          "rules": [
+                            {
+                              "field": "temperature",
+                              "operator": "GTE",
+                              "value": 50,
+                              "valueType": "NUMBER_LITERAL"
+                            },
+                            {
+                              "field": "temperature",
+                              "operator": "LTE",
+                              "value": 200,
+                              "valueType": "NUMBER_LITERAL"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "clearRule": {
+                      "field": "temperature",
+                      "operator": "LT",
+                      "value": 45,
+                      "valueType": "NUMBER_LITERAL"
+                    }
+                  }
+                },
+                "duration": {
+                  "summary": "Duration rule",
+                  "description": "duration",
+                  "value": {
+                    "name": "Sustained high temperature",
+                    "description": "Creates a major alarm after five minutes above the threshold",
+                    "createRules": {
+                      "MAJOR": {
+                        "type": "DURATION",
+                        "duration": 5,
+                        "unit": "MINUTES",
+                        "expression": {
+                          "field": "temperature",
+                          "operator": "GT",
+                          "value": 70,
+                          "valueType": "NUMBER_LITERAL"
+                        }
+                      }
+                    }
+                  }
+                },
+                "repeating": {
+                  "summary": "Repeating rule",
+                  "description": "repeating",
+                  "value": {
+                    "name": "Repeated overheating",
+                    "description": "Creates a warning after three consecutive threshold violations",
+                    "createRules": {
+                      "WARNING": {
+                        "type": "REPEATING",
+                        "count": 3,
+                        "expression": {
+                          "field": "temperature",
+                          "operator": "GTE",
+                          "value": 60,
+                          "valueType": "NUMBER_LITERAL"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Alarm rule created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAlarmCreateResponse"
+                },
+                "example": {
+                  "id": "44c630f8-62be-4b42-8a8f-579e2f67bfe8",
+                  "createdAt": "2026-08-12T17:30:00Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or invalid alarm-rule definition",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAlarmCreateResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ADMINISTER product access required or device access denied",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAlarmCreateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/alarms/{workspaceId}/{productKey}/clear/{alarmId}/device/{deviceId}": {
+      "post": {
+        "tags": ["Alarms"],
+        "summary": "Clear an alarm",
+        "description": "Clears an alarm associated with the specified device and records an\nALARM_CLEARED entry in the device activity timeline. The response\ncontains the alarm's updated state.\n",
+        "operationId": "clearAlarm",
+        "parameters": [
+          {
+            "name": "alarmId",
+            "in": "path",
+            "description": "Alarm ID returned by the alarm list endpoint",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "f7da8e2b-bca7-41d4-afb7-6519933a98ee"
+          },
+          {
+            "name": "deviceId",
+            "in": "path",
+            "description": "Paapeli device ID associated with the alarm",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "2ce7b35c-e5dc-47f7-8f17-626501507503"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Alarm cleared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAlarmListItem"
+                },
+                "example": {
+                  "id": "f7da8e2b-bca7-41d4-afb7-6519933a98ee",
+                  "name": "High temperature",
+                  "severity": "CRITICAL",
+                  "status": "CLEARED_UNACK",
+                  "creationTime": 1786147510000
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Alarm is already cleared or cannot be cleared",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAlarmListItem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "OPERATE product access required, device access denied, or alarm does not belong to the device",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAlarmListItem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device or alarm not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAlarmListItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/alarms/{workspaceId}/{productKey}/ack/{alarmId}/device/{deviceId}": {
+      "post": {
+        "tags": ["Alarms"],
+        "summary": "Acknowledge an alarm",
+        "description": "Acknowledges an alarm associated with the specified device and records an\nALARM_ACKNOWLEDGED entry in the device activity timeline. Acknowledgement\nindicates that an operator has seen the alarm.\n",
+        "operationId": "ackAlarm",
+        "parameters": [
+          {
+            "name": "alarmId",
+            "in": "path",
+            "description": "Alarm ID returned by the alarm list endpoint",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "f7da8e2b-bca7-41d4-afb7-6519933a98ee"
+          },
+          {
+            "name": "deviceId",
+            "in": "path",
+            "description": "Paapeli device ID associated with the alarm",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "2ce7b35c-e5dc-47f7-8f17-626501507503"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Alarm acknowledged",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAlarmListItem"
+                },
+                "example": {
+                  "id": "f7da8e2b-bca7-41d4-afb7-6519933a98ee",
+                  "name": "High temperature",
+                  "severity": "CRITICAL",
+                  "status": "ACTIVE_ACK",
+                  "creationTime": 1786147510000
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Alarm is already acknowledged or cannot be acknowledged",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAlarmListItem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "OPERATE product access required, device access denied, or alarm does not belong to the device",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAlarmListItem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device or alarm not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAlarmListItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/workspaces/invitations": {
+      "get": {
+        "tags": ["Workspaces"],
+        "summary": "List pending invitations",
+        "description": "Lists INVITED workspace memberships for the authenticated user.",
+        "operationId": "listInvitations",
+        "responses": {
+          "200": {
+            "description": "Invitations returned",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/UserWorkspaceDTO" }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An active user account is required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/UserWorkspaceDTO" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/timeseries/{workspaceId}/{productKey}/history/{deviceId}": {
       "get": {
         "tags": ["Time series"],
-        "summary": "Get device time series",
-        "description": "Get device time series. This includes all sensor keys",
+        "summary": "Get recent device telemetry",
+        "description": "Returns every available telemetry key for the device over a\nrecent lookback window. Despite its historical name, the\n`from` parameter is a number of hours, not a timestamp. Values\nare clamped to the supported range of 1 through 24 hours. Each\nseries contains at most 100 points in ascending timestamp order.\n",
         "operationId": "getDeviceTimeSeriesData",
         "parameters": [
           {
             "name": "deviceId",
             "in": "path",
+            "description": "Paapeli device ID",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "2ce7b35c-e5dc-47f7-8f17-626501507503"
           },
           {
             "name": "from",
             "in": "query",
+            "description": "Lookback window in hours; clamped to 1-24",
             "required": true,
-            "schema": { "type": "integer", "format": "int64" }
+            "schema": { "type": "integer", "format": "int64" },
+            "example": 6
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful operation",
+            "description": "Telemetry returned",
+            "content": {
+              "application/json": {
+                "example": {
+                  "temperature": [
+                    { "ts": 1786147200000, "value": "71.8" },
+                    { "ts": 1786147260000, "value": "72.1" }
+                  ],
+                  "pressure": [{ "ts": 1786147260000, "value": "3.2" }]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "READ product access required",
             "content": {
               "*/*": {
                 "schema": {
@@ -857,8 +2259,8 @@
               }
             }
           },
-          "401": {
-            "description": "Invalid credentials",
+          "404": {
+            "description": "Device not found in this workspace product",
             "content": {
               "*/*": {
                 "schema": {
@@ -874,56 +2276,43 @@
         }
       }
     },
-    "/api/v1/aiot/product-asset-type/{productKey}": {
+    "/api/v1/aiot/products/{productKey}/asset-types/{parentAssetType}/allowed-children": {
       "get": {
         "tags": ["Product asset types"],
-        "summary": "List asset types for a product",
-        "description": "Return all registered asset types for the given product key.\nThe list is typically small, so results are not paginated.\n",
-        "operationId": "getProductAssetTypes",
+        "summary": "List allowed direct child types",
+        "description": "Lists the catalog types that may be created directly beneath the supplied parent type.",
+        "operationId": "listAllowedChildren",
         "parameters": [
           {
             "name": "productKey",
             "in": "path",
-            "description": "Product key whose asset types should be listed",
+            "description": "Product key",
             "required": true,
             "schema": { "type": "string" },
             "example": "aiot"
+          },
+          {
+            "name": "parentAssetType",
+            "in": "path",
+            "description": "Parent type",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "ROOT"
           }
         ],
         "responses": {
           "200": {
-            "description": "Product asset types returned successfully",
+            "description": "Allowed child types returned",
             "content": {
-              "application/json": {
+              "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaapeliListResponse"
-                },
-                "examples": {
-                  "Product asset types": {
-                    "description": "Product asset types",
-                    "value": {
-                      "data": [
-                        {
-                          "productKey": "aiot",
-                          "assetType": "machine",
-                          "label": "Machine",
-                          "description": null
-                        },
-                        {
-                          "productKey": "aiot",
-                          "assetType": "production",
-                          "label": "Production line",
-                          "description": "Top-level production line under the product root"
-                        }
-                      ]
-                    }
-                  }
+                  "$ref": "#/components/schemas/PaapeliListResponsePaapeliProductAssetType"
                 }
               }
             }
           },
           "401": {
-            "description": "Invalid credentials",
+            "description": "Authentication required",
             "content": {
               "*/*": {
                 "schema": {
@@ -935,37 +2324,115 @@
         }
       }
     },
-    "/api/v1/aiot/devices/{deviceId}": {
+    "/api/v1/aiot/devices/{workspaceId}/{productKey}/tenant": {
       "get": {
         "tags": ["Devices"],
-        "summary": "Device details",
-        "description": "Get device details by device UUID",
+        "summary": "List product devices",
+        "description": "Lists all devices in the authorized workspace product, one page at a time.",
+        "operationId": "getTenantDevices",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Zero-based page index",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" },
+            "example": 0
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Number of devices per page",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" },
+            "example": 25
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Devices returned",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponsePaapeliDeviceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination values",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponsePaapeliDeviceResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "READ product access required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponsePaapeliDeviceResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/devices/{workspaceId}/{productKey}/device/{deviceId}": {
+      "get": {
+        "tags": ["Devices"],
+        "summary": "Get a device",
+        "description": "Returns the Paapeli projection of a device in the authorized workspace product.",
         "operationId": "getDeviceById",
         "parameters": [
           {
             "name": "deviceId",
             "in": "path",
+            "description": "Paapeli device ID",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "2ce7b35c-e5dc-47f7-8f17-626501507503"
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful operation",
+            "description": "Device returned",
             "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeviceAssetProjection"
+              "application/json": {
+                "example": {
+                  "id": "2ce7b35c-e5dc-47f7-8f17-626501507503",
+                  "name": "boiler-temp-01",
+                  "type": "temperature_sensor",
+                  "label": "Boiler 1 temperature",
+                  "protocol": "ACCESS_TOKEN",
+                  "active": true,
+                  "assetId": "e75b06a5-a437-467a-b40b-2d31f0746056",
+                  "createdAt": "2026-08-07T18:35:00Z",
+                  "updatedAt": "2026-08-07T18:40:00Z"
                 }
               }
             }
           },
-          "401": {
-            "description": "Invalid credentials",
+          "403": {
+            "description": "READ product access required",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/DeviceAssetProjection"
+                  "$ref": "#/components/schemas/PaapeliDeviceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found in this workspace product",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliDeviceResponse"
                 }
               }
             }
@@ -975,486 +2442,21 @@
       "delete": {
         "tags": ["Devices"],
         "summary": "Delete a device",
-        "description": "Delete a device and all its related data",
+        "description": "Deletes a device that belongs to the authorized workspace\nproduct, removes its local projection, and records a\nDEVICE_DELETED activity.\n",
         "operationId": "deleteDevice",
         "parameters": [
           {
             "name": "deviceId",
             "in": "path",
-            "required": true,
-            "schema": { "type": "string" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "content": {
-              "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/aiot/devices/{deviceId}/activities": {
-      "get": {
-        "tags": ["Devices"],
-        "summary": "Device activities",
-        "description": "Get device activities by device UUID",
-        "operationId": "getDeviceActivities",
-        "parameters": [
-          {
-            "name": "deviceId",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "string", "format": "uuid" }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "required": true,
-            "schema": { "type": "integer", "format": "int32" }
-          },
-          {
-            "name": "size",
-            "in": "query",
-            "required": true,
-            "schema": { "type": "integer", "format": "int32" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/PageResponseDeviceActivityResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/PageResponseDeviceActivityResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/aiot/devices/tenant": {
-      "get": {
-        "tags": ["Devices"],
-        "summary": "Tenant device list",
-        "description": "List tenant devices",
-        "operationId": "getTenantDevices",
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "required": true,
-            "schema": { "type": "integer", "format": "int32" }
-          },
-          {
-            "name": "size",
-            "in": "query",
-            "required": true,
-            "schema": { "type": "integer", "format": "int32" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/PageResponseDeviceAssetProjection"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/PageResponseDeviceAssetProjection"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/aiot/devices/asset/{assetId}": {
-      "get": {
-        "tags": ["Devices"],
-        "summary": "Asset device list",
-        "description": "List devices belonging to an asset",
-        "operationId": "getAssetDevices",
-        "parameters": [
-          {
-            "name": "assetId",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "string", "format": "uuid" }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "required": true,
-            "schema": { "type": "integer", "format": "int32" }
-          },
-          {
-            "name": "size",
-            "in": "query",
-            "required": true,
-            "schema": { "type": "integer", "format": "int32" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/PageResponseDeviceAssetProjection"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/PageResponseDeviceAssetProjection"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/aiot/credentials/{deviceId}": {
-      "get": {
-        "tags": ["Device credentials"],
-        "summary": "Get device credentials",
-        "description": "Fetch the current credentials for a device by device ID.\nUse the returned `id` and fields when calling the update endpoint.\n",
-        "operationId": "getDeviceCredentials",
-        "parameters": [
-          {
-            "name": "deviceId",
-            "in": "path",
-            "description": "Device ID whose credentials should be returned",
+            "description": "Paapeli device ID",
             "required": true,
             "schema": { "type": "string", "format": "uuid" },
-            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            "example": "2ce7b35c-e5dc-47f7-8f17-626501507503"
           }
         ],
         "responses": {
           "200": {
-            "description": "Device credentials returned successfully",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/PaapeliCredentials" },
-                "examples": {
-                  "ACCESS_TOKEN credentials": {
-                    "description": "ACCESS_TOKEN credentials",
-                    "value": {
-                      "id": "c1d2e3f4-a5b6-7890-abcd-ef1234567890",
-                      "deviceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                      "createdTime": 1712534400000,
-                      "version": 1,
-                      "credentialType": "ACCESS_TOKEN",
-                      "credentialsId": "device-access-token-abc123",
-                      "credentialsValue": null
-                    }
-                  },
-                  "MQTT_BASIC credentials": {
-                    "description": "MQTT_BASIC credentials",
-                    "value": {
-                      "id": "c1d2e3f4-a5b6-7890-abcd-ef1234567890",
-                      "deviceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                      "createdTime": 1712534400000,
-                      "version": 1,
-                      "credentialType": "MQTT_BASIC",
-                      "credentialsId": null,
-                      "credentialsValue": "{\"clientId\":\"5euh5nzm34bjjh1efmlt\",\"userName\":\"onasd1lgwasmjl7v2v7h\",\"password\":\"b9xtm4ny8kt9zewaga5o\"}"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliCredentials" }
-              }
-            }
-          },
-          "404": {
-            "description": "Device or credentials not found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaapeliErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/aiot/assets/{productKey}/tree": {
-      "get": {
-        "tags": ["Assets"],
-        "summary": "Get product asset tree",
-        "description": "Get the full asset hierarchy tree for a specific product.\nUses the authenticated tenant's context.\n",
-        "operationId": "getProductAssetTree",
-        "parameters": [
-          {
-            "name": "productKey",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "string" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliTreeNode" }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliTreeNode" }
-              }
-            }
-          },
-          "404": {
-            "description": "Asset tree not found or not ready",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaapeliErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/aiot/assets/tree/{rootAssetId}": {
-      "get": {
-        "tags": ["Assets"],
-        "summary": "Get assets hierarchy by root ID (deprecated)",
-        "description": "Deprecated: Use GET /{productKey}/tree instead",
-        "operationId": "getTree",
-        "parameters": [
-          {
-            "name": "rootAssetId",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "string" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliTreeNode" }
-              }
-            }
-          }
-        },
-        "deprecated": true
-      }
-    },
-    "/api/v1/aiot/alarms/{deviceId}": {
-      "get": {
-        "tags": ["Alarm"],
-        "summary": "Device alarms",
-        "description": "Get a device alarms",
-        "operationId": "getDeviceAlarms",
-        "parameters": [
-          {
-            "name": "deviceId",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "string" }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "required": true,
-            "schema": { "type": "integer", "format": "int32" }
-          },
-          {
-            "name": "size",
-            "in": "query",
-            "required": true,
-            "schema": { "type": "integer", "format": "int32" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/PageResponsePaapeliAlarmListItem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/PageResponsePaapeliAlarmListItem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/aiot/product-asset-type/{productKey}/{assetType}": {
-      "delete": {
-        "tags": ["Product asset types"],
-        "summary": "Delete a product asset type",
-        "description": "Delete a single asset type identified by product key and asset type key.",
-        "operationId": "deleteProductAssetType",
-        "parameters": [
-          {
-            "name": "productKey",
-            "in": "path",
-            "description": "Product key",
-            "required": true,
-            "schema": { "type": "string" },
-            "example": "aiot"
-          },
-          {
-            "name": "assetType",
-            "in": "path",
-            "description": "Asset type key to delete",
-            "required": true,
-            "schema": { "type": "string" },
-            "example": "production"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Product asset type deleted successfully",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/PaapeliMessage" },
-                "examples": {
-                  "Deleted": {
-                    "description": "Deleted",
-                    "value": { "message": "Product asset type deleted" }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "*/*": {
-                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
-              }
-            }
-          },
-          "404": {
-            "description": "Product asset type not found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaapeliErrorResponse"
-                },
-                "examples": {
-                  "Not found": {
-                    "description": "Not found",
-                    "value": {
-                      "detail": "Product entity not found",
-                      "instance": "/api/v1/aiot/product-asset-type/aiot/production",
-                      "status": 404,
-                      "title": "Entity not found",
-                      "code": "ENTITY_NOT_FOUND"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/aiot/assets/{productKey}/{assetId}": {
-      "delete": {
-        "tags": ["Assets"],
-        "summary": "Delete a product asset",
-        "description": "Delete a child asset under a product.\nThe product root asset cannot be deleted.\n",
-        "operationId": "deleteAsset",
-        "parameters": [
-          {
-            "name": "productKey",
-            "in": "path",
-            "description": "Product key the asset belongs to",
-            "required": true,
-            "schema": { "type": "string" },
-            "example": "aiot"
-          },
-          {
-            "name": "assetId",
-            "in": "path",
-            "description": "Asset ID to delete (must not be the product root)",
-            "required": true,
-            "schema": { "type": "string", "format": "uuid" },
-            "example": "b9c8d7e6-f5a4-3210-9876-543210fedcba"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Asset deleted successfully",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/PaapeliMessage" },
-                "examples": {
-                  "Deleted": {
-                    "description": "Deleted",
-                    "value": { "message": "Asset deleted" }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
+            "description": "Device deleted",
             "content": {
               "*/*": {
                 "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
@@ -1462,34 +2464,373 @@
             }
           },
           "403": {
-            "description": "Attempted to delete the immutable product root asset",
+            "description": "ADMINISTER product access required",
             "content": {
-              "application/problem+json": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found in this workspace product",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/devices/{workspaceId}/{productKey}/asset/{assetId}": {
+      "get": {
+        "tags": ["Devices"],
+        "summary": "List devices assigned to an asset",
+        "description": "Lists devices assigned directly to the supplied Paapeli asset; child assets are not traversed.",
+        "operationId": "getAssetDevices",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "description": "Paapeli asset ID",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "e75b06a5-a437-467a-b40b-2d31f0746056"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Zero-based page index",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" },
+            "example": 0
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Number of devices per page",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" },
+            "example": 25
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Devices returned",
+            "content": {
+              "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaapeliErrorResponse"
-                },
-                "examples": {
-                  "Root immutable": {
-                    "description": "Root immutable",
-                    "value": {
-                      "detail": "Root asset node for product aiot can not be deleted or updated",
-                      "instance": "/api/v1/aiot/assets/aiot/b9c8d7e6-f5a4-3210-9876-543210fedcba",
-                      "status": 403,
-                      "title": "Asset root is immutable",
-                      "code": "ASSET_ROOT_NODE_IMMUTABLE"
+                  "$ref": "#/components/schemas/PageResponsePaapeliDeviceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination values",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponsePaapeliDeviceResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "READ product access required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponsePaapeliDeviceResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/devices/{workspaceId}/{productKey}/activities/{deviceId}": {
+      "get": {
+        "tags": ["Devices"],
+        "summary": "List device activities",
+        "description": "Returns the device's Paapeli activity timeline. It includes\ngateway lifecycle and command events, plus projected device\nconnectivity and alarm events such as DEVICE_ACTIVATED,\nDEVICE_INACTIVATED, and ALARM_TRIGGERED. Newest activities\nare returned first.\n",
+        "operationId": "getDeviceActivities",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "description": "Paapeli device ID",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "2ce7b35c-e5dc-47f7-8f17-626501507503"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Zero-based page index",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" },
+            "example": 0
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Number of activities per page",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" },
+            "example": 25
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activities returned",
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": [
+                    {
+                      "id": "95be8c6d-6418-452c-87af-53579134cc5c",
+                      "type": "ALARM_TRIGGERED",
+                      "description": "High temperature alarm triggered",
+                      "actorType": "RULE_ENGINE",
+                      "actorName": "ThingsBoard Rule Engine",
+                      "occurredAt": "2026-08-07T18:45:10Z",
+                      "details": {
+                        "severity": "CRITICAL",
+                        "status": "ACTIVE_UNACK"
+                      }
                     }
-                  }
+                  ],
+                  "totalPages": 1,
+                  "totalElements": 1,
+                  "hasNext": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination values",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseDeviceActivityResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "READ product access required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseDeviceActivityResponse"
                 }
               }
             }
           },
           "404": {
-            "description": "Asset or product tree not found",
+            "description": "Device not found in this workspace product",
             "content": {
-              "application/problem+json": {
+              "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaapeliErrorResponse"
+                  "$ref": "#/components/schemas/PageResponseDeviceActivityResponse"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/assets/{workspaceId}/{productKey}/{parentAssetId}/allowed-child-types": {
+      "get": {
+        "tags": ["Assets"],
+        "summary": "List types allowed beneath an asset",
+        "description": "Resolves the actual parent asset and returns the product types\npermitted directly beneath it. This is the preferred endpoint\nfor populating the type selector in an asset-creation UI.\n",
+        "operationId": "getAllowedChildTypes",
+        "parameters": [
+          {
+            "name": "parentAssetId",
+            "in": "path",
+            "description": "Paapeli ID of the parent asset",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "927c1672-d548-41be-b75b-20e37a688a31"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Allowed child types returned",
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": [
+                    {
+                      "productKey": "aiot",
+                      "assetType": "factory",
+                      "label": "Factory",
+                      "description": "A manufacturing site"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "READ product access required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliListResponsePaapeliProductAssetType"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Parent asset not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliListResponsePaapeliProductAssetType"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/alarms/{workspaceId}/{productKey}/device/{deviceId}": {
+      "get": {
+        "tags": ["Alarms"],
+        "summary": "List device alarms",
+        "description": "Returns alarms for a device that belongs to the authorized\nworkspace product. Alarm creation is also projected into the\ndevice activity timeline as ALARM_TRIGGERED when the alarm\noriginated from a device.\n",
+        "operationId": "getDeviceAlarms",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "description": "Paapeli device ID",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "2ce7b35c-e5dc-47f7-8f17-626501507503"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "One-based page number. Values below 1 are treated as 1.",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" },
+            "example": 1
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Requested page size. Values are clamped to the range 1-100.",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" },
+            "example": 25
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Alarms returned",
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": [
+                    {
+                      "id": "f7da8e2b-bca7-41d4-afb7-6519933a98ee",
+                      "name": "High temperature",
+                      "severity": "CRITICAL",
+                      "status": "ACTIVE_UNACK",
+                      "creationTime": 1786147510000
+                    }
+                  ],
+                  "totalPages": 1,
+                  "totalElements": 1,
+                  "hasNext": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination values",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponsePaapeliAlarmListItem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "READ product access required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponsePaapeliAlarmListItem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found in this workspace product",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponsePaapeliAlarmListItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/alarms/{workspaceId}/{productKey}/rule/{alarmRuleId}/device/{deviceId}": {
+      "delete": {
+        "tags": ["Alarms"],
+        "summary": "Delete a device alarm rule",
+        "description": "Deletes an alarm rule only when both the rule and device belong together\nwithin the authorized workspace product.\n",
+        "operationId": "deleteDeviceAlarmRule",
+        "parameters": [
+          {
+            "name": "alarmRuleId",
+            "in": "path",
+            "description": "Alarm rule ID returned by the create or list rule endpoint",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "44c630f8-62be-4b42-8a8f-579e2f67bfe8"
+          },
+          {
+            "name": "deviceId",
+            "in": "path",
+            "description": "Paapeli device ID that owns the alarm rule",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "2ce7b35c-e5dc-47f7-8f17-626501507503"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Alarm rule deleted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" },
+                "example": { "message": "Alarm rule deleted" }
+              }
+            }
+          },
+          "403": {
+            "description": "ADMINISTER product access required, device access denied, or rule does not belong to the device",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "404": {
+            "description": "Alarm rule not found",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
               }
             }
           }
@@ -1499,6 +2840,25 @@
   },
   "components": {
     "schemas": {
+      "PaapeliMessage": {
+        "type": "object",
+        "description": "Simple success message response",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Human-readable status message",
+            "example": "Product asset type deleted"
+          }
+        }
+      },
+      "UpdateProductAssetTypeRequest": {
+        "type": "object",
+        "properties": {
+          "label": { "type": "string", "maxLength": 255, "minLength": 0 },
+          "description": { "type": "string", "maxLength": 500, "minLength": 0 }
+        },
+        "required": ["label"]
+      },
       "PaapeliProductAssetType": {
         "type": "object",
         "description": "Asset type definition for a product",
@@ -1526,66 +2886,50 @@
         },
         "required": ["assetType", "label", "productKey"]
       },
-      "PaapeliErrorResponse": {
-        "type": "object",
-        "description": "Standard error response (RFC 7807 + custom code)",
-        "properties": {
-          "status": {
-            "type": "integer",
-            "format": "int32",
-            "description": "HTTP status code",
-            "example": 409
-          },
-          "title": {
-            "type": "string",
-            "description": "Error title",
-            "example": "Asset tree already exists"
-          },
-          "detail": {
-            "type": "string",
-            "description": "Detailed message",
-            "example": "An asset tree is already registered for product 'aiot'"
-          },
-          "code": {
-            "type": "string",
-            "description": "Application error code",
-            "example": "ASSET_TREE_ALREADY_EXISTS"
-          },
-          "instance": {
-            "type": "string",
-            "description": "Request path",
-            "example": "/api/v1/aiot/assets/aiot/provision-root"
-          }
-        }
-      },
       "PaapeliEditDeviceRequest": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "description": { "type": "string" },
-          "label": { "type": "string" },
-          "name": { "type": "string" }
-        }
-      },
-      "EntityId": {
-        "type": "object",
-        "properties": {
-          "entityType": { "type": "string" },
-          "id": { "type": "string" }
-        }
+          "id": { "type": "string", "maxLength": 36, "minLength": 0 },
+          "description": { "type": "string", "maxLength": 500, "minLength": 0 },
+          "label": { "type": "string", "maxLength": 255, "minLength": 0 },
+          "name": { "type": "string", "maxLength": 255, "minLength": 0 }
+        },
+        "required": ["id", "name"]
       },
       "PaapeliEditDeviceResponse": {
         "type": "object",
         "properties": {
-          "id": { "$ref": "#/components/schemas/EntityId" },
-          "profileId": { "$ref": "#/components/schemas/EntityId" },
-          "tenantId": { "$ref": "#/components/schemas/EntityId" },
-          "customerId": { "$ref": "#/components/schemas/EntityId" },
+          "id": { "type": "string", "format": "uuid" },
           "name": { "type": "string" },
           "label": { "type": "string" },
           "type": { "type": "string" },
           "description": { "type": "string" }
         }
+      },
+      "PaapeliCredentialUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "credentialType": {
+            "type": "string",
+            "enum": [
+              "ACCESS_TOKEN",
+              "X509_CERTIFICATE",
+              "MQTT_BASIC",
+              "LWM2M_CREDENTIALS"
+            ]
+          },
+          "credentialsId": {
+            "type": "string",
+            "maxLength": 1024,
+            "minLength": 0
+          },
+          "credentialsValue": {
+            "type": "string",
+            "maxLength": 65535,
+            "minLength": 0
+          }
+        },
+        "required": ["credentialType"]
       },
       "PaapeliCredentials": {
         "type": "object",
@@ -1641,86 +2985,152 @@
         },
         "required": ["credentialType", "deviceId", "id"]
       },
-      "PaapeliAssetEditRequest": {
+      "UpdateWorkspaceProductAssetRequest": {
         "type": "object",
-        "description": "Payload for updating an existing product asset",
         "properties": {
-          "id": {
-            "type": "string",
-            "description": "Asset ID to update",
-            "example": "b9c8d7e6-f5a4-3210-9876-543210fedcba"
-          },
-          "name": {
-            "type": "string",
-            "description": "Updated asset name",
-            "example": "Production Line A"
-          },
-          "label": {
-            "type": "string",
-            "description": "Updated asset label",
-            "example": "Line A"
-          },
-          "description": {
-            "type": "string",
-            "description": "Updated asset description",
-            "example": "Primary assembly line"
-          }
+          "name": { "type": "string", "maxLength": 255, "minLength": 0 },
+          "label": { "type": "string", "maxLength": 255, "minLength": 0 },
+          "description": { "type": "string", "maxLength": 500, "minLength": 0 }
         },
-        "required": ["id", "label", "name"]
+        "required": ["name"]
       },
-      "PaapeliAsset": {
+      "WorkspaceProductAssetResponse": {
         "type": "object",
         "properties": {
-          "parentId": {
+          "id": { "type": "string", "format": "uuid" },
+          "parentId": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "label": { "type": "string" },
+          "description": { "type": "string" },
+          "provisioningState": {
             "type": "string",
-            "description": "Parent asset ID. Null for direct children of the product root asset.",
-            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            "enum": ["PROVISIONING", "ACTIVE", "FAILED"]
           },
-          "id": {
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "hasChildren": { "type": "boolean" }
+        }
+      },
+      "WorkspaceRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "maxLength": 254, "minLength": 0 }
+        },
+        "required": ["name"]
+      },
+      "WorkspaceResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "status": { "type": "string", "enum": ["ACTIVE", "SUSPENDED"] },
+          "createdAt": { "type": "integer", "format": "int64" }
+        }
+      },
+      "WorkspaceProductRequest": {
+        "type": "object",
+        "properties": {
+          "productKey": { "type": "string", "maxLength": 64, "minLength": 0 }
+        },
+        "required": ["productKey"]
+      },
+      "WorkspaceProductResponse": {
+        "type": "object",
+        "properties": {
+          "workspaceProductId": { "type": "string", "format": "uuid" },
+          "workspaceId": { "type": "string", "format": "uuid" },
+          "productKey": { "type": "string" },
+          "status": {
             "type": "string",
-            "description": "Asset ID (generated by server - do not send on create)",
-            "example": "b9c8d7e6-f5a4-3210-9876-543210fedcba",
-            "readOnly": true
+            "enum": ["PROVISIONING", "ACTIVE", "FAILED", "SUSPENDED"]
           },
-          "createdTime": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Created timestamp (server generated)",
-            "readOnly": true
-          },
-          "version": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Version (server managed)",
-            "readOnly": true
-          },
-          "name": {
+          "createdAt": { "type": "integer", "format": "int64" }
+        }
+      },
+      "WorkspaceInvitationRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
             "type": "string",
-            "description": "Asset name",
-            "example": "Factory Floor"
+            "format": "email",
+            "maxLength": 320,
+            "minLength": 0
           },
-          "type": {
+          "role": {
             "type": "string",
-            "description": "Asset type",
-            "example": "default"
-          },
-          "label": {
-            "type": "string",
-            "description": "Asset label",
-            "example": "Main Production Area"
-          },
-          "description": {
-            "type": "string",
-            "description": "Asset description",
-            "example": "Main factory floor assets"
-          },
-          "customerId": {
-            "type": "string",
-            "description": "Customer ID (optional)",
-            "example": "123e4567-e89b-12d3-a456-426614174000"
+            "enum": ["OWNER", "ADMIN", "MEMBER", "VIEWER"]
           }
         },
-        "required": ["label", "name", "type"]
+        "required": ["email", "role"]
+      },
+      "WorkspaceMembershipResponse": {
+        "type": "object",
+        "properties": {
+          "workspaceId": { "type": "string", "format": "uuid" },
+          "userId": { "type": "string", "format": "uuid" },
+          "role": {
+            "type": "string",
+            "enum": ["OWNER", "ADMIN", "MEMBER", "VIEWER"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["INVITED", "ACTIVE", "SUSPENDED", "REJECTED", "EXPIRED"]
+          },
+          "createdAt": { "type": "integer", "format": "int64" }
+        }
+      },
+      "GenericResponseString": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string" },
+          "message": { "type": "string" },
+          "data": { "type": "string" }
+        }
+      },
+      "SignupRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "minLength": 0
+          },
+          "displayName": { "type": "string", "maxLength": 100, "minLength": 0 },
+          "password": { "type": "string", "minLength": 1 },
+          "confirmedPassword": { "type": "string" }
+        },
+        "required": ["confirmedPassword", "email", "password"]
+      },
+      "GenericResponseSignupResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string" },
+          "message": { "type": "string" },
+          "data": { "$ref": "#/components/schemas/SignupResponse" }
+        }
+      },
+      "PaapeliAuthenticationResponse": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "tokenType": { "type": "string" }
+        }
+      },
+      "SignupResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "displayName": { "type": "string" },
+          "email": { "type": "string" },
+          "isActive": { "type": "boolean" },
+          "emailVerified": { "type": "boolean" },
+          "createdAt": { "type": "integer", "format": "int64" },
+          "authentication": {
+            "$ref": "#/components/schemas/PaapeliAuthenticationResponse"
+          }
+        }
       },
       "PaapeliDeviceRPC": {
         "type": "object",
@@ -1729,7 +3139,9 @@
           "action": {
             "type": "string",
             "description": "Action / method name that the device should execute",
-            "example": "setTemperature"
+            "example": "setTemperature",
+            "maxLength": 255,
+            "minLength": 0
           },
           "deviceId": {
             "type": "string",
@@ -1740,7 +3152,9 @@
           "deviceName": {
             "type": "string",
             "description": "Device name",
-            "example": "living-room-sensor"
+            "example": "living-room-sensor",
+            "maxLength": 255,
+            "minLength": 0
           },
           "params": {
             "type": "object",
@@ -1761,18 +3175,24 @@
             "example": false
           }
         },
-        "required": ["action", "deviceId", "deviceName"]
+        "required": ["action", "deviceId"]
       },
-      "PaapeliMessage": {
+      "ProductDTO": {
         "type": "object",
-        "description": "Simple success message response",
         "properties": {
-          "message": {
-            "type": "string",
-            "description": "Human-readable status message",
-            "example": "Product asset type deleted"
-          }
-        }
+          "productKey": { "type": "string", "maxLength": 64, "minLength": 0 },
+          "name": { "type": "string", "maxLength": 255, "minLength": 0 }
+        },
+        "required": ["name", "productKey"]
+      },
+      "CreateProductAssetTypeRequest": {
+        "type": "object",
+        "properties": {
+          "assetType": { "type": "string", "maxLength": 255, "minLength": 0 },
+          "label": { "type": "string", "maxLength": 255, "minLength": 0 },
+          "description": { "type": "string", "maxLength": 500, "minLength": 0 }
+        },
+        "required": ["assetType", "label"]
       },
       "PaapeliCreateDeviceRequest": {
         "type": "object",
@@ -1780,37 +3200,37 @@
           "label": {
             "type": "string",
             "description": "Display label of the device",
-            "example": "Temperature Sensor 01"
+            "maxLength": 255,
+            "minLength": 0
           },
           "type": {
             "type": "string",
             "description": "Device type",
-            "example": "default"
+            "example": "default",
+            "maxLength": 255,
+            "minLength": 0
           },
           "name": {
             "type": "string",
             "description": "Unique device name",
-            "example": "temp-sensor-01"
+            "maxLength": 255,
+            "minLength": 0
           },
           "description": {
             "type": "string",
             "description": "Optional device description",
-            "example": "Living room temperature sensor"
+            "maxLength": 500,
+            "minLength": 0
           },
           "isGateway": {
             "type": "boolean",
-            "description": "Whether this device acts as a gateway",
-            "example": false
-          },
-          "customerId": {
-            "type": "string",
-            "description": "Customer ID (optional)",
-            "example": "123e4567-e89b-12d3-a456-426614174000"
+            "description": "Whether this device acts as a gateway"
           },
           "profileId": {
             "type": "string",
             "description": "Device profile ID",
-            "example": "123e4567-e89b-12d3-a456-426614174000"
+            "maxLength": 36,
+            "minLength": 0
           },
           "credentialType": {
             "type": "string",
@@ -1820,29 +3240,27 @@
               "X509_CERTIFICATE",
               "MQTT_BASIC",
               "LWM2M_CREDENTIALS"
-            ],
-            "example": "ACCESS_TOKEN"
+            ]
           },
           "credentialValue": {
             "type": "string",
-            "description": "Credential value.\nRequired for: X509_CERTIFICATE, MQTT_BASIC, LWM2M_CREDENTIALS\nNOT required for: ACCESS_TOKEN (TB auto-generates it)\n",
-            "example": "my-device-access-token-12345"
+            "description": "Credential value",
+            "maxLength": 65535,
+            "minLength": 0
           },
           "assetId": {
             "type": "string",
-            "description": "Asset ID this device belongs to",
-            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            "description": "Paapeli workspace-product asset ID",
+            "maxLength": 36,
+            "minLength": 0
           }
         },
-        "required": ["assetId", "credentialType", "label", "name"]
+        "required": ["assetId", "credentialType", "name"]
       },
       "PaapeliCreateDeviceResponse": {
         "type": "object",
         "properties": {
-          "id": { "$ref": "#/components/schemas/EntityId" },
-          "profileId": { "$ref": "#/components/schemas/EntityId" },
-          "tenantId": { "$ref": "#/components/schemas/EntityId" },
-          "customerId": { "$ref": "#/components/schemas/EntityId" },
+          "id": { "type": "string", "format": "uuid" },
           "name": { "type": "string" },
           "label": { "type": "string" },
           "type": { "type": "string" },
@@ -1862,27 +3280,158 @@
         "properties": {
           "username": {
             "type": "string",
+            "format": "email",
             "description": "Username",
-            "example": "admin@paapeli.me"
+            "example": "admin@paapeli.me",
+            "minLength": 1
           },
           "password": {
             "type": "string",
             "description": "Password",
-            "example": "your-secure-password"
+            "example": "your-secure-password",
+            "minLength": 1
           }
         },
         "required": ["password", "username"]
       },
-      "PaapeliAuthResponse": {
+      "CreateWorkspaceProductAssetRequest": {
         "type": "object",
         "properties": {
-          "token": {
+          "name": { "type": "string", "maxLength": 255, "minLength": 0 },
+          "type": { "type": "string", "maxLength": 255, "minLength": 0 },
+          "label": { "type": "string", "maxLength": 255, "minLength": 0 },
+          "description": { "type": "string", "maxLength": 500, "minLength": 0 }
+        },
+        "required": ["name", "type"]
+      },
+      "PaapeliAlarmCreateResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CreateRule": {
+        "type": "object",
+        "properties": {
+          "expression": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/LeafRule" },
+              { "$ref": "#/components/schemas/RuleGroup" }
+            ]
+          },
+          "type": {
             "type": "string",
-            "description": "JWT Bearer token to use in subsequent requests",
-            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            "enum": ["SIMPLE", "DURATION", "REPEATING"]
+          },
+          "duration": { "type": "integer", "format": "int64" },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "NANOSECONDS",
+              "MICROSECONDS",
+              "MILLISECONDS",
+              "SECONDS",
+              "MINUTES",
+              "HOURS",
+              "DAYS"
+            ]
+          },
+          "count": { "type": "integer", "format": "int32" }
+        },
+        "required": ["expression", "type"]
+      },
+      "ExpressionNode": {},
+      "LeafRule": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ExpressionNode" },
+          {
+            "type": "object",
+            "properties": {
+              "field": { "type": "string" },
+              "operator": {
+                "type": "string",
+                "enum": ["GT", "LT", "EQ", "NEQ", "GTE", "LTE"]
+              },
+              "value": {},
+              "valueType": {
+                "type": "string",
+                "enum": [
+                  "STRING_LITERAL",
+                  "NUMBER_LITERAL",
+                  "BOOLEAN_LITERAL",
+                  "NULL"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "PaapeliAlarmCreateRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "maxLength": 100, "minLength": 0 },
+          "description": { "type": "string", "maxLength": 500, "minLength": 0 },
+          "createRules": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CreateRule"
+            },
+            "minProperties": 1
+          },
+          "clearRule": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/LeafRule" },
+              { "$ref": "#/components/schemas/RuleGroup" }
+            ]
           }
         },
-        "required": ["token"]
+        "required": ["createRules", "description", "name"]
+      },
+      "RuleGroup": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ExpressionNode" },
+          {
+            "type": "object",
+            "properties": {
+              "combinator": { "type": "string", "enum": ["AND", "OR"] },
+              "rules": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/LeafRule" },
+                    { "$ref": "#/components/schemas/RuleGroup" }
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      },
+      "PaapeliAlarmListItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "severity": { "type": "string" },
+          "status": { "type": "string" },
+          "creationTime": { "type": "integer", "format": "int64" }
+        }
+      },
+      "UserWorkspaceDTO": {
+        "type": "object",
+        "properties": {
+          "workspaceId": { "type": "string", "format": "uuid" },
+          "workspaceName": { "type": "string" },
+          "membershipStatus": {
+            "type": "string",
+            "enum": ["INVITED", "ACTIVE", "SUSPENDED", "REJECTED", "EXPIRED"]
+          },
+          "role": {
+            "type": "string",
+            "enum": ["OWNER", "ADMIN", "MEMBER", "VIEWER"]
+          }
+        }
       },
       "EntityFieldItem": {
         "type": "object",
@@ -1890,10 +3439,6 @@
           "ts": { "type": "integer", "format": "int64" },
           "value": { "type": "string" }
         }
-      },
-      "PaapeliListResponse": {
-        "type": "object",
-        "properties": { "data": { "type": "array", "items": {} } }
       },
       "PaapeliListResponsePaapeliProductAssetType": {
         "type": "object",
@@ -1904,21 +3449,30 @@
           }
         }
       },
-      "DeviceAssetProjection": {
+      "PaapeliDeviceResponse": {
         "type": "object",
         "properties": {
-          "deviceId": { "type": "string", "format": "uuid" },
-          "tenantId": { "type": "string", "format": "uuid" },
-          "customerId": { "type": "string", "format": "uuid" },
-          "deviceName": { "type": "string" },
-          "deviceType": { "type": "string" },
-          "deviceLabel": { "type": "string" },
-          "deviceProtocol": { "type": "string" },
-          "isActive": { "type": "boolean" },
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "label": { "type": "string" },
+          "protocol": { "type": "string" },
+          "active": { "type": "boolean" },
           "assetId": { "type": "string", "format": "uuid" },
-          "assetName": { "type": "string" },
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "PageResponsePaapeliDeviceResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PaapeliDeviceResponse" }
+          },
+          "totalPages": { "type": "integer", "format": "int32" },
+          "totalElements": { "type": "integer", "format": "int64" },
+          "hasNext": { "type": "boolean" }
         }
       },
       "DeviceActivityResponse": {
@@ -1968,56 +3522,71 @@
           "hasNext": { "type": "boolean" }
         }
       },
-      "PageResponseDeviceAssetProjection": {
+      "PageResponseWorkspaceProductAssetResponse": {
         "type": "object",
         "properties": {
           "data": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/DeviceAssetProjection" }
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceProductAssetResponse"
+            }
           },
           "totalPages": { "type": "integer", "format": "int32" },
           "totalElements": { "type": "integer", "format": "int64" },
           "hasNext": { "type": "boolean" }
         }
       },
-      "PaapeliTreeNode": {
+      "AlarmRuleItem": {
         "type": "object",
-        "description": "Represents a node in the asset hierarchy tree",
         "properties": {
-          "id": {
-            "type": "string",
-            "description": "Asset ID",
-            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "arguments": { "type": "array", "items": { "type": "string" } },
+          "alarmRules": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SeverityRule"
+            }
           },
-          "name": {
-            "type": "string",
-            "description": "Asset name",
-            "example": "Factory Floor"
-          },
-          "type": {
-            "type": "string",
-            "description": "Asset type",
-            "example": "default"
-          },
-          "label": {
-            "type": "string",
-            "description": "Asset label",
-            "example": "Production Area"
-          },
-          "children": {
-            "$ref": "#/components/schemas/PaapeliTreeNode",
-            "description": "Child nodes (recursive)"
-          }
+          "createdAt": { "type": "string", "format": "date-time" }
         }
       },
-      "PaapeliAlarmListItem": {
+      "PageResponseAlarmRuleItem": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "name": { "type": "string" },
-          "severity": { "type": "string" },
-          "status": { "type": "string" },
-          "creationTime": { "type": "integer", "format": "int64" }
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AlarmRuleItem" }
+          },
+          "totalPages": { "type": "integer", "format": "int32" },
+          "totalElements": { "type": "integer", "format": "int64" },
+          "hasNext": { "type": "boolean" }
+        }
+      },
+      "SeverityRule": {
+        "type": "object",
+        "properties": {
+          "dashboardId": { "type": "string", "format": "uuid" },
+          "triggerType": {
+            "type": "string",
+            "enum": ["SIMPLE", "DURATION", "REPEATING"]
+          },
+          "triggerExpression": { "type": "string" },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "NANOSECONDS",
+              "MICROSECONDS",
+              "MILLISECONDS",
+              "SECONDS",
+              "MINUTES",
+              "HOURS",
+              "DAYS"
+            ]
+          },
+          "value": { "type": "integer", "format": "int64" },
+          "count": { "type": "integer", "format": "int32" }
         }
       },
       "PageResponsePaapeliAlarmListItem": {
