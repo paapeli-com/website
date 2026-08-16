@@ -71,7 +71,7 @@ export function CreateNewMenu() {
       {open && (
         <div
           className={cn(
-            "absolute z-50 mt-2 w-[340px] rounded-2xl border border-border bg-popover p-4 shadow-lg",
+            "absolute z-50 mt-2 w-[340px] max-w-[calc(100vw-1.5rem)] rounded-2xl border border-border bg-popover p-4 shadow-lg",
             "ltr:right-0 rtl:left-0",
           )}
         >

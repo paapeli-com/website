@@ -6,7 +6,7 @@ import { CURRENT_USER } from "@paapeli/brand/config";
 import { signOut as endSession } from "@paapeli/brand/session";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { useTheme } from "@/lib/useTheme";
+import { useTheme } from "@paapeli/brand/theme";
 import { useBrand } from "@/brand/BrandProvider";
 import { SAMPLE_TENANTS } from "@paapeli/brand/config";
 import { Language } from "@/i18n/translations";

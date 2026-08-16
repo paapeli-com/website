@@ -10,27 +10,32 @@ import { fileURLToPath } from "node:url";
 /*   /AIoT/*                → the host shell (header/sidebar), which    */
 /*                            mounts Smart Factory / GPS Tracking as     */
 /*                            Module Federation remotes client-side      */
+/*   /CloudManagement/*      → the host shell again, mounting Cloud      */
+/*                            Management (workspace/account admin,       */
+/*                            independent of any AIoT product)           */
 /*                                                                      */
 /* This is panel.paapeli.com — a separate origin from apps/web (the     */
 /* marketing landing site, paapeli.com); no proxying between the two.   */
 /*                                                                      */
-/* login, host, factory and track are independent projects, each with   */
-/* its own build, served together here as static `dist` folders so they */
-/* share one origin (required for the shared login session in           */
-/* localStorage — see packages/brand/session.ts).                       */
+/* login, host, factory, track and cloud-management are independent     */
+/* projects, each with its own build, served together here as static    */
+/* `dist` folders so they share one origin (required for the shared      */
+/* login session in localStorage — see packages/brand/session.ts).       */
 /*                                                                      */
-/* factory/track's dist folders are served PURELY as static asset       */
-/* folders now (remoteEntry.js + JS/CSS chunks, fetched at runtime by    */
-/* the host via Module Federation) — the host owns page-level routing,   */
-/* so an unmatched path under their base falls back to the HOST's        */
-/* index.html, not their own (their own index.html/main.tsx is only      */
-/* used when running them standalone via `pnpm --filter factory preview`)*/
+/* factory/track/cloud-management's dist folders are served PURELY as   */
+/* static asset folders now (remoteEntry.js + JS/CSS chunks, fetched at  */
+/* runtime by the host via Module Federation) — the host owns page-level */
+/* routing, so an unmatched path under their base falls back to the      */
+/* HOST's index.html, not their own (their own index.html/main.tsx is    */
+/* only used when running them standalone via `pnpm --filter factory     */
+/* preview`).                                                            */
 /*                                                                      */
 /* Layout inside the container (see ci/docker/panel/Dockerfile):        */
 /*   /app/prod-server.mjs                     ← this file               */
 /*   /app/apps/panel/host/dist                ← Host shell build        */
 /*   /app/apps/product/aiot/factory/dist      ← Smart Factory build     */
 /*   /app/apps/product/aiot/track/dist        ← GPS Tracking build      */
+/*   /app/apps/product/cloud-management/dist  ← Cloud Management build  */
 /*   /app/apps/panel/login/dist               ← Login build             */
 /* ------------------------------------------------------------------ */
 
@@ -40,6 +45,7 @@ const PORT = Number(process.env.PORT || 8080);
 const HOST = path.resolve(__dirname, "apps/panel/host/dist");
 const FACTORY = path.resolve(__dirname, "apps/product/aiot/factory/dist");
 const TRACK = path.resolve(__dirname, "apps/product/aiot/track/dist");
+const CLOUD_MANAGEMENT = path.resolve(__dirname, "apps/product/cloud-management/dist");
 const LOGIN = path.resolve(__dirname, "apps/panel/login/dist");
 
 const MIME = {
@@ -74,7 +80,8 @@ const sendIndex = (root, res) =>
       res.writeHead(404, { "content-type": "text/plain" });
       return res.end("Not found");
     }
-    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    // Never cache the SPA shell — it names the current hashed entry chunk.
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-cache" });
     res.end(idx);
   });
 
@@ -97,7 +104,15 @@ const serveStatic = (root, base, req, res, fallbackRoot = root) => {
     const ext = path.extname(filePath).toLowerCase();
     const headers = { "content-type": MIME[ext] || "application/octet-stream" };
     // Vite emits content-hashed files under /assets — safe to cache forever.
-    if (ext !== ".html" && filePath.includes(`${path.sep}assets${path.sep}`)) {
+    // remoteEntry.js is the one exception: the federation plugin emits it
+    // UNHASHED (a stable, well-known URL the host imports at runtime) and it
+    // points at the hashed chunk names of the build it came from. Caching it
+    // immutably means a browser keeps yesterday's manifest after a deploy and
+    // asks for chunk files that no longer exist — the remote then fails to
+    // load until a hard refresh. It must always be revalidated.
+    if (path.basename(filePath) === "remoteEntry.js") {
+      headers["cache-control"] = "no-cache";
+    } else if (ext !== ".html" && filePath.includes(`${path.sep}assets${path.sep}`)) {
       headers["cache-control"] = "public, max-age=31536000, immutable";
     }
     res.writeHead(200, headers);
@@ -125,6 +140,7 @@ const server = http.createServer((req, res) => {
   // fall back to the HOST shell, which owns routing for these paths.
   if (p.startsWith("/AIoT/SmartFactory/")) return serveStatic(FACTORY, "/AIoT/SmartFactory/", req, res, HOST);
   if (p.startsWith("/AIoT/GPSTracking/")) return serveStatic(TRACK, "/AIoT/GPSTracking/", req, res, HOST);
+  if (p.startsWith("/CloudManagement/")) return serveStatic(CLOUD_MANAGEMENT, "/CloudManagement/", req, res, HOST);
 
   // Everything else (/AIoT, /AIoT/SmartFactory with no trailing slash, and
   // any future host routes) is the host SPA.
@@ -143,5 +159,6 @@ server.listen(PORT, () => {
   console.log(`\n  Panel (prod)  →  http://0.0.0.0:${PORT}`);
   console.log(`     Login          →  /login`);
   console.log(`     Smart Factory  →  /AIoT/SmartFactory`);
-  console.log(`     GPS Tracking   →  /AIoT/GPSTracking\n`);
+  console.log(`     GPS Tracking   →  /AIoT/GPSTracking`);
+  console.log(`     Cloud Mgmt     →  /CloudManagement\n`);
 });

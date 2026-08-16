@@ -201,6 +201,21 @@
           });
       }
 
+      // Best-effort — a failure here shouldn't block the new user from
+      // getting into the app, so any error is swallowed (logged only).
+      function createDefaultWorkspace(token) {
+        return fetch(API_BASE_URL + "/api/v1/aiot/workspaces", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token,
+          },
+          body: JSON.stringify({ name: "My Workspace" }),
+        }).catch(function (err) {
+          console.warn("Failed to create default workspace", err);
+        });
+      }
+
       function signUp(displayName, email, password, confirmedPassword) {
         hideError(signupErrorEl);
         signupSubmitBtn.disabled = true;
@@ -227,9 +242,12 @@
             var data = body && body.data ? body.data : body;
             var auth = data && data.authentication;
             if (auth && auth.token) {
-              // Account is active immediately — sign the user straight in.
+              // Account is active immediately — sign the user straight in,
+              // after giving them a default workspace to land in.
               persistSession(email, auth.token, data.displayName);
-              location.href = redirect;
+              createDefaultWorkspace(auth.token).then(function () {
+                location.href = redirect;
+              });
               return;
             }
             // No token back (e.g. email verification required) — send them

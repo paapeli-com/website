@@ -36,7 +36,7 @@ export function WalletMenu() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="hidden h-10 shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3.5 text-sm transition-colors hover:bg-muted/40 md:flex"
+        className="hidden h-10 shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3.5 text-sm transition-colors hover:bg-muted/40 lg:flex"
       >
         <CreditCard className="size-5 text-primary" />
         <span className="text-base font-bold text-foreground">{WALLET_BALANCE}</span>
@@ -44,7 +44,7 @@ export function WalletMenu() {
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-2 w-[340px] overflow-hidden rounded-2xl border border-border bg-popover p-5 shadow-lg ltr:right-0 rtl:left-0">
+        <div className="absolute z-50 mt-2 w-[340px] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-border bg-popover p-5 shadow-lg ltr:right-0 rtl:left-0">
           <p className="text-sm text-muted-foreground">Workspace balance</p>
           <p className="mt-1 flex items-baseline gap-1.5">
             <span className="text-3xl font-bold text-foreground">{WALLET_BALANCE}</span>

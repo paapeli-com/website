@@ -8,7 +8,7 @@ import { CURRENT_USER } from "@paapeli/brand/config";
 import { signOut as endSession } from "@paapeli/brand/session";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useBrand } from "@/brand/BrandProvider";
-import { useTheme } from "@/lib/useTheme";
+import { useTheme } from "@paapeli/brand/theme";
 import { Button } from "@/components/ui/button";
 import { LanguageMenu } from "./LanguageMenu";
 import { ProductSwitcher } from "./ProductSwitcher";

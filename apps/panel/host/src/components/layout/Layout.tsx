@@ -8,6 +8,7 @@ import { Header } from "./Header";
 import { SidebarContent } from "./Sidebar";
 import { factoryNav } from "@/nav/factoryNav";
 import { trackNav } from "@/nav/trackNav";
+import { cloudManagementNav } from "@/nav/cloudManagementNav";
 
 /* Persistent shell: header on top, [sidebar | content] below. The sidebar's
    item set follows whichever solution's URL prefix is currently active —
@@ -19,7 +20,11 @@ export function Layout() {
 
   useEffect(() => startIdleWatch(), []);
 
-  const navItems = location.pathname.startsWith(solutionPath("GPSTracking")) ? trackNav : factoryNav;
+  const navSection = location.pathname.startsWith("/CloudManagement")
+    ? cloudManagementNav
+    : location.pathname.startsWith(solutionPath("GPSTracking"))
+      ? trackNav
+      : factoryNav;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
@@ -27,7 +32,7 @@ export function Layout() {
 
       <div className="flex min-h-0 flex-1">
         <aside className="hidden shrink-0 border-border lg:block lg:w-60 ltr:border-r rtl:border-l">
-          <SidebarContent items={navItems} />
+          <SidebarContent section={navSection} />
         </aside>
 
         <div className={cn("fixed inset-0 z-50 lg:hidden", mobileOpen ? "" : "pointer-events-none")}>
@@ -47,7 +52,7 @@ export function Layout() {
               </button>
             </div>
             <div className="h-[calc(100%-3rem)]">
-              <SidebarContent items={navItems} onNavigate={() => setMobileOpen(false)} />
+              <SidebarContent section={navSection} onNavigate={() => setMobileOpen(false)} />
             </div>
           </div>
         </div>

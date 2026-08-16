@@ -20,12 +20,17 @@ import { createServer as createVite } from "vite";
 /* origin (required for the shared login session in localStorage — see   */
 /* packages/brand/session.ts).                                          */
 /*                                                                       */
-/* Smart Factory and GPS Tracking (apps/product/aiot/{factory,track}) are*/
-/* NOT mounted here — they run their own `dev:remote` script (a one-time  */
-/* build, then `vite build --watch` + `vite preview` together) on ports   */
-/* 8081/8082, and the host fetches their remoteEntry.js from there at     */
-/* runtime. `pnpm --filter factory dev` (plain `vite dev`) does NOT work  */
-/* for this — a live dev server has no real remoteEntry.js to serve.      */
+/* Smart Factory, GPS Tracking, and Cloud Management (apps/product/aiot/  */
+/* {factory,track}, apps/product/cloud-management) are NOT mounted here — */
+/* they run their own `dev` script (a one-time build, then                */
+/* `vite build --watch` + `vite preview` together — see their             */
+/* package.json) on ports 8081/8082/8085, and the host fetches their      */
+/* remoteEntry.js from there at runtime. This is why `pnpm dev` at the    */
+/* repo root (turbo) is enough — it runs each package's own "dev" script, */
+/* and these three packages' "dev" IS the build+preview combo. Their      */
+/* `dev:standalone` script (plain `vite dev`, fast HMR) only works for     */
+/* running that one remote by itself — the host can't consume it, since   */
+/* a live dev server has no real remoteEntry.js to serve.                 */
 /* ------------------------------------------------------------------ */
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -75,7 +80,11 @@ server.listen(PORT, () => {
   console.log(`     Login          →  http://localhost:${PORT}/login`);
   console.log(`     Smart Factory  →  http://localhost:${PORT}/AIoT/SmartFactory`);
   console.log(`     GPS Tracking   →  http://localhost:${PORT}/AIoT/GPSTracking`);
-  console.log(`\n  Make sure the remotes are also running (one command each, in their own terminal):`);
-  console.log(`     pnpm --filter factory dev:remote`);
-  console.log(`     pnpm --filter track dev:remote\n`);
+  console.log(`     Cloud Mgmt     →  http://localhost:${PORT}/CloudManagement`);
+  console.log(`\n  Make sure the remotes are also running — from the repo root, "pnpm dev" starts`);
+  console.log(`  everything (this server plus factory/track/cloud-management as build+preview).`);
+  console.log(`  Running this file by itself? Start those three separately in their own terminals:`);
+  console.log(`     pnpm --filter factory dev`);
+  console.log(`     pnpm --filter track dev`);
+  console.log(`     pnpm --filter cloud-management dev\n`);
 });

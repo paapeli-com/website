@@ -43,7 +43,7 @@ export function HeaderSearch() {
       />
 
       {open && (
-        <div className="absolute z-50 mt-2 w-[420px] overflow-hidden rounded-2xl border border-border bg-popover py-2 shadow-lg ltr:left-0 rtl:right-0">
+        <div className="absolute z-50 mt-2 w-[420px] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-border bg-popover py-2 shadow-lg ltr:left-0 rtl:right-0">
           {RESULT_GROUPS.map((g) => (
             <div key={g.group}>
               <div className="px-4 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground first:pt-2">

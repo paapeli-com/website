@@ -60,7 +60,7 @@ export function ProductSwitcher() {
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-72 overflow-hidden rounded-xl border border-border bg-popover py-1.5 shadow-lg ltr:left-0 rtl:right-0">
+        <div className="absolute z-50 mt-1 w-72 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-border bg-popover py-1.5 shadow-lg ltr:left-0 rtl:right-0">
           <div className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Switch Product</div>
 
           {PRODUCTS.map((p) => {

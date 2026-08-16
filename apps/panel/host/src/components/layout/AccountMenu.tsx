@@ -1,25 +1,26 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Check, ChevronDown, LayoutGrid, LogOut, Plus, Settings, SlidersHorizontal } from "lucide-react";
+import { useListActiveWorkspacesQuery } from "@paapeli/api";
 import { CURRENT_USER } from "@paapeli/brand/config";
 import { signOut as endSession } from "@paapeli/brand/session";
 import { cn } from "@/lib/utils";
 
-// No real workspace backend wired up in the host yet — mock list to match the design.
-const WORKSPACES = [
-  { id: "my-workspace", name: "My Workspace" },
-  { id: "smart-factory-ops", name: "Smart Factory Ops" },
-  { id: "paapeli-demo", name: "Paapeli Demo" },
-];
-
 export function AccountMenu() {
   const [open, setOpen] = useState(false);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState(WORKSPACES[0].id);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const displayName = CURRENT_USER.name;
   const initial = CURRENT_USER.initial;
+
+  const { data, isLoading } = useListActiveWorkspacesQuery();
+  const workspaces = useMemo(() => data ?? [], [data]);
+  // First workspace in the list is selected by default.
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!activeWorkspaceId && workspaces.length > 0) setActiveWorkspaceId(workspaces[0].workspaceId);
+  }, [workspaces, activeWorkspaceId]);
 
   useEffect(() => {
     if (!open) return;
@@ -47,7 +48,7 @@ export function AccountMenu() {
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-2 w-72 overflow-hidden rounded-2xl border border-border bg-popover py-3 shadow-lg ltr:right-0 rtl:left-0">
+        <div className="absolute z-50 mt-2 w-72 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-border bg-popover py-3 shadow-lg ltr:right-0 rtl:left-0">
           <div className="px-4 pb-3">
             <p className="truncate text-base font-bold text-foreground">{displayName}</p>
             <p className="truncate text-sm text-muted-foreground">{CURRENT_USER.email}</p>
@@ -57,35 +58,41 @@ export function AccountMenu() {
             Workspaces
           </div>
           <div className="px-2 py-1">
-            {WORKSPACES.map((ws) => {
-              const isActive = ws.id === activeWorkspaceId;
-              return (
-                <button
-                  key={ws.id}
-                  onClick={() => {
-                    setActiveWorkspaceId(ws.id);
-                    close();
-                  }}
-                  className={cn(
-                    "flex w-full items-center gap-3 rounded-xl px-2 py-2 text-sm transition-colors",
-                    isActive ? "bg-primary/10" : "hover:bg-muted",
-                  )}
-                >
-                  <span
+            {isLoading ? (
+              <p className="px-2 py-2 text-sm text-muted-foreground">Loading…</p>
+            ) : workspaces.length === 0 ? (
+              <p className="px-2 py-2 text-sm text-muted-foreground">No workspaces yet.</p>
+            ) : (
+              workspaces.map((ws) => {
+                const isActive = ws.workspaceId === activeWorkspaceId;
+                return (
+                  <button
+                    key={ws.workspaceId}
+                    onClick={() => {
+                      setActiveWorkspaceId(ws.workspaceId);
+                      close();
+                    }}
                     className={cn(
-                      "flex size-8 shrink-0 items-center justify-center rounded-lg",
-                      isActive ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+                      "flex w-full items-center gap-3 rounded-xl px-2 py-2 text-sm transition-colors",
+                      isActive ? "bg-primary/10" : "hover:bg-muted",
                     )}
                   >
-                    <LayoutGrid className="size-4" />
-                  </span>
-                  <span className={cn("flex-1 text-start", isActive ? "font-bold text-primary" : "text-foreground")}>
-                    {ws.name}
-                  </span>
-                  {isActive && <Check className="size-4 text-primary" />}
-                </button>
-              );
-            })}
+                    <span
+                      className={cn(
+                        "flex size-8 shrink-0 items-center justify-center rounded-lg",
+                        isActive ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      <LayoutGrid className="size-4" />
+                    </span>
+                    <span className={cn("flex-1 truncate text-start", isActive ? "font-bold text-primary" : "text-foreground")}>
+                      {ws.workspaceName}
+                    </span>
+                    {isActive && <Check className="size-4 shrink-0 text-primary" />}
+                  </button>
+                );
+              })
+            )}
           </div>
 
           <div className="px-2 py-1">

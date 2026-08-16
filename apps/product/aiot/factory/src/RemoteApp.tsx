@@ -2,9 +2,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Routes, Route, Navigate, useParams } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { setApiAuthToken, setApiBaseUrl } from "@paapeli/api";
+import { getToken } from "@paapeli/brand/session";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { PAAPELI_API_BASE_URL } from "../config";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -71,12 +74,27 @@ import WorkOrderDetails from "./pages/panel/WorkOrderDetails";
 
 const queryClient = new QueryClient();
 
+// main.tsx (where this used to live) never runs when the app is loaded as a
+// federation remote — the host imports this file directly. @paapeli/api
+// isn't a federation-shared dependency, so each remote bundles its own copy
+// and must configure it itself, regardless of how it's mounted. Login is a
+// real page navigation (not client-side routing), so by the time this
+// module evaluates, the shared session — if any — is already in
+// localStorage; a one-shot read here is enough to carry the bearer token on
+// every request this remote makes. (store/authStore.ts also sets this on
+// import as a side effect of its own module-load logic — harmless overlap,
+// but this call is the one that's guaranteed to run.)
+setApiBaseUrl(PAAPELI_API_BASE_URL);
+setApiAuthToken(getToken());
+
 /* The dashboard lives at the solution root ("/") so the URL is a clean
-   /AIoT/SmartFactory. Old "/home" links redirect here (keeping any lang). */
-const HomeRedirect = () => {
-  const { lang } = useParams();
-  return <Navigate to={lang ? `/${lang}` : "/"} replace />;
-};
+   /AIoT/SmartFactory. Old "/home" links redirect here (keeping any lang).
+
+   `relative="path"` + ".." drops exactly one URL segment, so "/home" →
+   the solution root and "/fa/home" → "/fa". An absolute "/" would instead
+   resolve against the whole app root — under the host that's the shell's
+   root, not this remote's mount — and would drop the language too. */
+const HomeRedirect = () => <Navigate to=".." relative="path" replace />;
 
 /* Federation-exposed remote entry (see vite.config.ts `exposes`). No
    BrowserRouter here — the host provides the single router; this renders
@@ -94,7 +112,7 @@ const RemoteApp = () => (
               <Route path="/:lang" element={<ProtectedRoute><PanelHome /></ProtectedRoute>} />
               {/* Login is product-agnostic (host /login). These just bounce to
                   the dashboard, which is gated and sends you to /login if needed. */}
-              <Route path="/login" element={<Navigate to="/" replace />} />
+              <Route path="/login" element={<Navigate to=".." replace />} />
               <Route path="/:lang/login" element={<HomeRedirect />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/:lang/forgot-password" element={<ForgotPassword />} />

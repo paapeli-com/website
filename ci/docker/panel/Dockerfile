@@ -8,14 +8,17 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/panel apps/panel
 COPY apps/product/aiot/factory apps/product/aiot/factory
 COPY apps/product/aiot/track apps/product/aiot/track
+COPY apps/product/cloud-management apps/product/cloud-management
 COPY packages packages
 RUN pnpm install --frozen-lockfile
-# Four independent Vite builds. `base` is baked in at build time
-# (/AIoT/SmartFactory/, /AIoT/GPSTracking/, and "/" for host and login), so
-# the static output is host-ready. factory/track expose remoteEntry.js for
-# the host to consume via Module Federation at runtime.
+# Five independent Vite builds. `base` is baked in at build time
+# (/AIoT/SmartFactory/, /AIoT/GPSTracking/, /CloudManagement/, and "/" for
+# host and login), so the static output is host-ready. factory/track/
+# cloud-management expose remoteEntry.js for the host to consume via
+# Module Federation at runtime.
 RUN pnpm --filter factory build
 RUN pnpm --filter track build
+RUN pnpm --filter cloud-management build
 RUN pnpm --filter host build
 RUN pnpm --filter login build
 
@@ -25,6 +28,7 @@ WORKDIR /app
 # Vite builds — served as static files by the entry server.
 COPY --from=builder /app/apps/product/aiot/factory/dist ./apps/product/aiot/factory/dist
 COPY --from=builder /app/apps/product/aiot/track/dist ./apps/product/aiot/track/dist
+COPY --from=builder /app/apps/product/cloud-management/dist ./apps/product/cloud-management/dist
 COPY --from=builder /app/apps/panel/host/dist ./apps/panel/host/dist
 COPY --from=builder /app/apps/panel/login/dist ./apps/panel/login/dist
 # The single-origin entry server (panel.paapeli.com).

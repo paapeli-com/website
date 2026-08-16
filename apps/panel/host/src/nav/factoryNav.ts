@@ -17,9 +17,11 @@ import {
   Activity,
   Bot,
   Wrench,
+  Cloud,
+  Factory,
 } from "lucide-react";
 import { solutionPath } from "@paapeli/brand/config";
-import type { NavItem } from "./types";
+import type { NavSection } from "./types";
 
 const base = solutionPath("SmartFactory");
 const p = (path: string) => `${base}${path}`;
@@ -27,7 +29,7 @@ const p = (path: string) => `${base}${path}`;
 /* Ported from apps/product/aiot/factory/src/layouts/PanelLayout.tsx —
    that file's own header/sidebar chrome was removed once the host took
    over navigation (factory is now a pure content remote). */
-export const factoryNav: NavItem[] = [
+const items = [
   { title: "Overview", icon: PieChart, path: p("/") },
   { title: "Dashboards", icon: LayoutDashboard, path: p("/dashboard") },
   {
@@ -58,5 +60,8 @@ export const factoryNav: NavItem[] = [
   },
   { title: "Members", icon: Users, path: p("/members") },
   { title: "Dev Center & Help", icon: Code2, href: "https://docs.paapeli.com/" },
+  { title: "Cloud Management", icon: Cloud, path: "/CloudManagement" },
   { title: "Settings", icon: Settings, path: p("/account-settings") },
 ];
+
+export const factoryNav: NavSection = { title: "Smart Factory", icon: Factory, items };

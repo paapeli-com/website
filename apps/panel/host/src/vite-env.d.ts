@@ -9,3 +9,8 @@ declare module "track/TrackApp" {
   const TrackApp: React.ComponentType;
   export default TrackApp;
 }
+
+declare module "cloudManagement/CloudManagementApp" {
+  const CloudManagementApp: React.ComponentType;
+  export default CloudManagementApp;
+}

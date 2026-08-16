@@ -44,12 +44,14 @@ export default defineConfig(({ mode }) => ({
               // even the federation plugin's unhashed remoteEntry.js chunk.
               factory: "http://localhost:8081/AIoT/SmartFactory/assets/remoteEntry.js",
               track: "http://localhost:8082/AIoT/GPSTracking/assets/remoteEntry.js",
+              cloudManagement: "http://localhost:8085/CloudManagement/assets/remoteEntry.js",
             }
           : {
               // Prod: same paths the panel host's static server exposes the
               // remotes' built dist folders under (see prod-server.mjs).
               factory: "/AIoT/SmartFactory/assets/remoteEntry.js",
               track: "/AIoT/GPSTracking/assets/remoteEntry.js",
+              cloudManagement: "/CloudManagement/assets/remoteEntry.js",
             },
       shared: ["react", "react-dom", "react-router-dom"],
     }),

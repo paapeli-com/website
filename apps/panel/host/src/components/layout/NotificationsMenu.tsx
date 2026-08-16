@@ -69,7 +69,7 @@ export function NotificationsMenu() {
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-2 w-[380px] overflow-hidden rounded-2xl border border-border bg-popover shadow-lg ltr:right-0 rtl:left-0">
+        <div className="absolute z-50 mt-2 w-[380px] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-border bg-popover shadow-lg ltr:right-0 rtl:left-0">
           <div className="flex items-center justify-between px-4 pb-3 pt-4">
             <h3 className="text-base font-bold text-foreground">Notifications</h3>
             <button onClick={handleMarkAllRead} className="text-sm font-semibold text-primary hover:underline">

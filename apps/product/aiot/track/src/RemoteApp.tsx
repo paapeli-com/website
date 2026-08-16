@@ -39,8 +39,13 @@ export default function RemoteApp() {
             <DeviceProvider>
               <Toaster richColors position="top-center" />
               <Routes>
-                {/* Login is product-agnostic (host /login). */}
-                <Route path="/login" element={<Navigate to="/" replace />} />
+                {/* Login is product-agnostic (host /login). Targets here are
+                    ROUTE-RELATIVE on purpose: an absolute "/" would resolve
+                    against the whole app root, which under the host is the
+                    shell's own root (→ redirects to Smart Factory), not this
+                    remote's mount. ".." / "." resolve to /AIoT/GPSTracking
+                    when mounted and to the basename when run standalone. */}
+                <Route path="/login" element={<Navigate to=".." replace />} />
                 <Route
                   path="/"
                   element={
@@ -57,7 +62,7 @@ export default function RemoteApp() {
                   <Route path="alerts" element={<Alerts />} />
                   <Route path="settings" element={<Settings />} />
                 </Route>
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<Navigate to="." replace />} />
               </Routes>
             </DeviceProvider>
             </WorkspaceProvider>

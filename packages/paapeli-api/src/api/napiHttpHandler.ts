@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { goToLogin, signOut } from '@paapeli/brand/session';
 
 declare module 'axios' {
     export interface AxiosRequestConfig {
@@ -20,6 +21,25 @@ export function setApiAuthToken(token: string | null) {
         delete apiClient.defaults.headers.common.Authorization;
     }
 }
+
+// A 401 from any product/remote means the shared session's token is dead —
+// clear it and bounce to the shared login once, regardless of which app made
+// the request (every remote bundles its own copy of this client, so this is
+// the one place that can catch all of them). Guarded so a burst of parallel
+// 401s only signs out/navigates once.
+let loggedOutFor401 = false;
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error?.response?.status === 401 && !loggedOutFor401) {
+            loggedOutFor401 = true;
+            setApiAuthToken(null);
+            signOut();
+            goToLogin();
+        }
+        return Promise.reject(error);
+    },
+);
 
 export interface HttpOptions {
     quiet?: boolean;

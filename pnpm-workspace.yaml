@@ -1,5 +1,6 @@
 packages:
   - "apps/*"
   - "apps/panel/*"
+  - "apps/product/*"
   - "apps/product/aiot/*"
   - "packages/*"

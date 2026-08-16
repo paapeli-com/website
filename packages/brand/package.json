@@ -9,14 +9,20 @@
     "./preset": "./preset.ts",
     "./config": "./config.ts",
     "./session": "./session.ts",
+    "./theme": "./theme.ts",
     "./logo.svg": "./assets/paapeli-logo.svg",
     "./logo-dark.svg": "./assets/paapeli-logo-dark.svg"
   },
-  "files": ["tokens.css", "preset.ts", "config.ts", "session.ts", "assets"],
+  "files": ["tokens.css", "preset.ts", "config.ts", "session.ts", "theme.ts", "assets"],
   "dependencies": {
     "tailwindcss-animate": "^1.0.7"
   },
+  "peerDependencies": {
+    "react": "^18.3.1 || ^19.0.0"
+  },
   "devDependencies": {
+    "react": "^18.3.1",
+    "@types/react": "^18.3.23",
     "tailwindcss": "^3.4.17"
   }
 }

@@ -3,7 +3,7 @@ import { Globe, Menu, Moon, Sun } from "lucide-react";
 import paapeliLogo from "@paapeli/brand/logo.svg";
 import paapeliLogoDark from "@paapeli/brand/logo-dark.svg";
 import { useBrand } from "@/brand/BrandProvider";
-import { useTheme } from "@/lib/useTheme";
+import { useTheme } from "@paapeli/brand/theme";
 import { ProductSwitcher } from "./ProductSwitcher";
 import { HeaderSearch } from "./HeaderSearch";
 import { CreateNewMenu } from "./CreateNewMenu";
