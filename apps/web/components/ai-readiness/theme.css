@@ -1,0 +1,598 @@
+/* Palette for the AI-Readiness landing page.
+   Everything is scoped under `.ai-readiness` so this dark/emerald campaign
+   look cannot leak into the light + orange design system the rest of
+   paapeli.com runs on. Tune the page's colours here and nowhere else. */
+
+.ai-readiness {
+  --ai-bg: #070c0a;
+  --ai-bg-soft: #0a110f;
+  --ai-surface: #0d1714;
+  --ai-surface-2: #101c18;
+  --ai-surface-3: #16241f;
+  --ai-border: #1b2b25;
+  --ai-border-soft: #152220;
+
+  --ai-text: #e9f3ef;
+  --ai-muted: #93a8a1;
+  --ai-dim: #6a7e77;
+
+  --ai-green: #34d399;
+  --ai-green-soft: #6ee7b7;
+  --ai-green-btn: #23a06d;
+  --ai-green-btn-hover: #1d8a5d;
+
+  /* Paapeli orange (#ff7900) enters only as a warm counter-signal: it marks
+     what is holding the organisation back — bottlenecks, warnings, the
+     "still forming" state — plus the step numerals and a low glow behind the
+     hero. Never as a fill, never on a CTA; the page stays green. */
+  --ai-orange: #ff7900;
+  --ai-orange-hover: #e56b00;
+  --ai-orange-soft: #f2913f;
+  --ai-orange-tint: rgba(255, 121, 0, 0.09);
+  --ai-orange-line: rgba(255, 121, 0, 0.22);
+  --ai-orange-num: rgba(255, 121, 0, 0.55);
+
+  /* Translucent variants are spelled out rather than written as `/25` opacity
+     modifiers: Tailwind v3 cannot compute an alpha channel for a value it only
+     sees as `var(--…)`, so those classes compile to no rule at all. */
+  --ai-green-tint: rgba(52, 211, 153, 0.1);
+  --ai-green-line: rgba(52, 211, 153, 0.25);
+  --ai-green-hover: rgba(52, 211, 153, 0.38);
+  --ai-dim-soft: rgba(106, 126, 119, 0.7);
+  --ai-bg-blur: rgba(7, 12, 10, 0.85);
+
+  background-color: var(--ai-bg);
+  color: var(--ai-text);
+  text-align: right;
+
+  /* Tells the browser to paint its own widgets dark — the native <select>
+     popup, checkbox, scrollbars and focus rings. Without this the dropdown
+     opens as a white list with a blue highlight regardless of our CSS,
+     because that popup is drawn by the OS and not by the page. */
+  color-scheme: dark;
+}
+
+/* Chromium and Firefox do honour these on the option rows themselves; Safari
+   and iOS draw a system sheet, where `color-scheme` above is what carries
+   the dark treatment. */
+.ai-readiness select option,
+.ai-readiness select optgroup {
+  background-color: var(--ai-surface-2);
+  color: var(--ai-text);
+}
+
+.ai-readiness select option:checked {
+  background-color: var(--ai-green-tint);
+  color: var(--ai-green);
+}
+
+/* Placeholders sit on the right like every other line of type on the page,
+   including in fields whose value will be Latin (email, phone). */
+.ai-readiness input::placeholder,
+.ai-readiness textarea::placeholder {
+  text-align: right;
+  opacity: 1;
+}
+
+/* The page declares `lang="fa-IR"`, which `:lang(fa)` in globals.css matches —
+   that rule pins `font-family: 'Vazirmatn' !important` by a bare family name
+   next/font never registers. Re-assert the hashed family here at a specificity
+   (0,3,0) that beats it. `--ai-font` is set inline from `vazirmatn.style`. */
+.ai-readiness[dir='rtl'][lang] {
+  font-family: var(--ai-font), 'Vazirmatn', system-ui, sans-serif !important;
+}
+
+.ai-readiness ::selection {
+  background-color: var(--ai-green);
+  color: #05100c;
+}
+
+/* Anchor links (the navbar's "روش‌شناسی") glide instead of jumping. Scoped
+   via :has() so the rest of paapeli.com keeps its default scrolling — the
+   scroll container is <html>, which a nested page cannot style directly. */
+html:has(.ai-readiness) {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.ai-readiness) {
+    scroll-behavior: auto;
+  }
+}
+
+/* Stop the 68px sticky header from covering the heading it scrolled to. */
+.ai-readiness section[id] {
+  scroll-margin-top: 88px;
+}
+
+/* Soft emerald glow behind the hero, with a much fainter orange bloom off to
+   one side so the brand colour registers without ever being named. */
+.ai-readiness-glow::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: -18rem;
+  height: 46rem;
+  pointer-events: none;
+  background:
+    radial-gradient(46rem 28rem at 30% 40%, rgba(52, 211, 153, 0.13), transparent 70%),
+    radial-gradient(30rem 20rem at 84% 20%, rgba(255, 121, 0, 0.07), transparent 72%),
+    radial-gradient(34rem 22rem at 78% 12%, rgba(52, 211, 153, 0.05), transparent 70%);
+}
+
+/* ------------------------------------------------------------------ */
+/* Scroll reveal                                                       */
+/* ------------------------------------------------------------------ */
+
+/* Resting state. Reveal.tsx decides between `hidden` → `shown` (animate) and
+   `static` (show at once, for reduced-motion or no IntersectionObserver), so
+   no media query gates whether the effect exists — see the note there. */
+.ai-reveal {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.65s cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 0.65s cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.ai-reveal[data-reveal='hidden'] {
+  opacity: 0;
+  transform: translateY(28px);
+}
+
+/* Nothing left to animate once it has landed — drop the compositor hint. */
+.ai-reveal[data-reveal='shown'],
+.ai-reveal[data-reveal='static'] {
+  will-change: auto;
+}
+
+.ai-reveal[data-reveal='static'] {
+  transition: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Methodology hero illustration                                       */
+/* ------------------------------------------------------------------ */
+
+/* Ambient grid behind the isometric stack. */
+.mv-grid {
+  background-image:
+    linear-gradient(var(--ai-border-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ai-border-soft) 1px, transparent 1px);
+  background-size: 28px 28px;
+  -webkit-mask-image: radial-gradient(70% 60% at 50% 45%, #000 0%, transparent 100%);
+  mask-image: radial-gradient(70% 60% at 50% 45%, #000 0%, transparent 100%);
+  opacity: 0.55;
+}
+
+@keyframes mv-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes mv-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.015);
+  }
+}
+
+/* Radar vertex dots. Shared by the landing scorecard and the methodology
+   hero, so the name is not tied to either.
+   Scales rather than animating the `r` attribute: `r` as a CSS property is
+   not supported in Firefox, so the dots would sit there inert. */
+@keyframes ai-dot-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.45);
+  }
+}
+
+/* `fill-box` makes each dot scale about its own centre instead of the
+   SVG origin, which would fling it across the chart. */
+.ai-dot,
+.ai-dot-soft {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Scored vertices: the value the organisation actually reached. */
+.ai-dot {
+  animation: ai-dot-pulse 3.2s ease-in-out infinite;
+}
+
+/* Outer-ring markers: the ceiling each axis is scored against. */
+.ai-dot-soft {
+  animation: ai-dot-pulse 4.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-dot,
+  .ai-dot-soft {
+    animation: none;
+  }
+}
+
+@keyframes mv-march {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+
+@keyframes mv-sweep {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: var(--ai-green-tint);
+  }
+}
+
+.mv-plate {
+  animation: mv-float 6s ease-in-out infinite;
+  transform-origin: center;
+}
+.mv-plate-1 {
+  animation-delay: 0s;
+}
+.mv-plate-2 {
+  animation-delay: 0.35s;
+}
+.mv-plate-3 {
+  animation-delay: 0.7s;
+}
+.mv-plate-4 {
+  animation-delay: 1.05s;
+}
+
+.mv-chart {
+  animation: mv-breathe 6s ease-in-out infinite;
+  transform-origin: 100px 100px;
+}
+
+.mv-beam {
+  animation: mv-march 1.1s linear infinite;
+}
+
+/* Each axis row lights up in turn, tying the list to the chart. */
+.mv-row {
+  animation: mv-sweep 7s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mv-plate,
+  .mv-chart,
+  .mv-beam,
+  .mv-row {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* About hero diagram                                                  */
+/* ------------------------------------------------------------------ */
+
+.av-grid {
+  background-image:
+    linear-gradient(var(--ai-border-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ai-border-soft) 1px, transparent 1px);
+  background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(75% 65% at 50% 50%, #000 0%, transparent 100%);
+  mask-image: radial-gradient(75% 65% at 50% 50%, #000 0%, transparent 100%);
+  opacity: 0.5;
+}
+
+/* Dashes travel along each connector, so the diagram reads as a flow. */
+@keyframes av-flow {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+@keyframes av-lift {
+  0%,
+  100% {
+    transform: translateY(0);
+    border-color: var(--ai-green-line);
+  }
+  50% {
+    transform: translateY(-3px);
+    border-color: var(--ai-green-hover);
+  }
+}
+
+@keyframes av-core {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.045);
+  }
+}
+
+/* The orange outline breathes outward from the core like a ring of impact. */
+@keyframes av-halo {
+  0% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.22);
+  }
+}
+
+@keyframes av-chip {
+  0%,
+  100% {
+    border-color: var(--ai-orange-line);
+    background-color: var(--ai-surface);
+  }
+  50% {
+    border-color: var(--ai-orange-soft);
+    background-color: var(--ai-orange-tint);
+  }
+}
+
+.av-flow {
+  animation: av-flow 1.4s linear infinite;
+}
+
+.av-card {
+  animation: av-lift 5.4s ease-in-out infinite;
+}
+
+.av-core {
+  animation: av-core 5.4s ease-in-out infinite;
+}
+
+.av-halo {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: av-halo 3.6s ease-out infinite;
+}
+
+.av-chip {
+  animation: av-chip 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .av-flow,
+  .av-card,
+  .av-core,
+  .av-halo,
+  .av-chip {
+    animation: none;
+  }
+  .av-halo {
+    opacity: 0.35;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Report cover                                                        */
+/* ------------------------------------------------------------------ */
+
+.rc-glow {
+  background: radial-gradient(60% 50% at 50% 60%, rgba(52, 211, 153, 0.22), transparent 70%);
+  filter: blur(28px);
+}
+
+@keyframes rc-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-0.6deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(0.4deg);
+  }
+}
+
+/* A slow specular pass, as if the board catches the light. */
+@keyframes rc-sheen {
+  0% {
+    transform: translateX(-130%) skewX(-14deg);
+  }
+  55%,
+  100% {
+    transform: translateX(130%) skewX(-14deg);
+  }
+}
+
+@keyframes rc-bar {
+  0%,
+  100% {
+    transform: scaleY(0.55);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes rc-hot {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.6);
+  }
+}
+
+.rc-book {
+  animation: rc-float 9s ease-in-out infinite;
+}
+
+.rc-sheen {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.055) 45%,
+    rgba(255, 121, 0, 0.05) 55%,
+    transparent 100%
+  );
+  animation: rc-sheen 8s ease-in-out infinite;
+}
+
+/* Bars grow from their own baseline, so the skyline stays planted. */
+.rc-bar {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: rc-bar 4.2s ease-in-out infinite;
+}
+
+.rc-hot {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: rc-hot 3.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-book,
+  .rc-sheen,
+  .rc-bar,
+  .rc-hot {
+    animation: none;
+  }
+  .rc-sheen {
+    opacity: 0;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Assessment app                                                      */
+/* ------------------------------------------------------------------ */
+
+/* Screen and question entrances. Shorter travel than the marketing-page
+   reveal (14px vs 28px): inside an app, motion should read as responsive,
+   not decorative. */
+@keyframes app-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Questions slide in from the right — the direction the flow reads. */
+@keyframes app-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.app-enter {
+  animation: app-enter 0.42s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.app-slide {
+  animation: app-slide-in 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.app-progress {
+  transition: width 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* Mode cards lift very slightly on hover; selection adds a soft ring rather
+   than a heavy glow. */
+.app-mode {
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.25s ease;
+}
+
+.app-mode:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.12);
+}
+
+.app-mode-selected {
+  box-shadow:
+    0 0 0 1px var(--ai-green),
+    0 0 26px -12px rgba(52, 211, 153, 0.65);
+}
+
+.app-mode-selected-orange {
+  box-shadow:
+    0 0 0 1px var(--ai-orange),
+    0 0 26px -12px rgba(255, 121, 0, 0.6);
+}
+
+.app-option:hover {
+  transform: translateY(-1px);
+}
+
+@keyframes app-check {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.app-check {
+  animation: app-check 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Disabled → enabled fades in rather than snapping. */
+.app-cta {
+  transition:
+    opacity 0.3s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.app-cta:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-enter,
+  .app-slide,
+  .app-check {
+    animation: none;
+  }
+  .app-progress,
+  .app-mode,
+  .app-cta {
+    transition: none;
+  }
+  .app-mode:hover,
+  .app-option:hover,
+  .app-cta:not(:disabled):hover {
+    transform: none;
+  }
+}

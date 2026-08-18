@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, ChevronRight, ArrowRight, Menu, X, AppWindow } from "lucide-react";
+import { ChevronDown, ChevronRight, ArrowRight, Menu, X, AppWindow, Sparkles } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
 import paapeliLogo from "@/src/assets/paapeli-logo.svg";
@@ -13,7 +13,15 @@ import { cn } from "@/lib/utils";
 /* Mega-menu data (English copy from Figma; links are placeholders).  */
 /* ------------------------------------------------------------------ */
 
-type MenuItem = { title: string; description: string; href: string };
+type MenuItem = {
+  title: string;
+  description: string;
+  href: string;
+  /** Small pill after the title, e.g. "New". */
+  badge?: string;
+  /** Swaps the chevron for a highlight icon in Paapeli orange. */
+  featured?: boolean;
+};
 type MegaMenu = { columns: MenuItem[][] };
 
 const MENUS: Record<string, MegaMenu> = {
@@ -93,6 +101,14 @@ const MENUS: Record<string, MegaMenu> = {
           description:
             "Operational intelligence for modern infrastructure and mission-critical environments.",
           href: "/infrastructure-hub",
+        },
+        {
+          title: "AI Readiness Assessment",
+          description:
+            "Measure how ready your organisation is to create real value with AI across seven dimensions — free, in about 10 minutes.",
+          href: "/AI-Readiness-Assessment",
+          badge: "New",
+          featured: true,
         },
       ],
     ],
@@ -191,9 +207,20 @@ function MegaMenuItem({ item }: { item: MenuItem }) {
       href={item.href}
       className="flex w-full items-start gap-1.5 rounded-lg p-2 transition-colors hover:bg-[#f9fafb]"
     >
-      <ChevronRight className="mt-0.5 size-[18px] shrink-0 text-muted-foreground" />
+      {item.featured ? (
+        <Sparkles className="mt-0.5 size-[18px] shrink-0 text-primary" />
+      ) : (
+        <ChevronRight className="mt-0.5 size-[18px] shrink-0 text-muted-foreground" />
+      )}
       <div className="flex flex-col gap-1">
-        <p className="text-base font-semibold leading-none text-foreground">{item.title}</p>
+        <p className="flex flex-wrap items-center gap-2 text-base font-semibold leading-none text-foreground">
+          {item.title}
+          {item.badge ? (
+            <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-xs font-medium leading-none text-primary">
+              {item.badge}
+            </span>
+          ) : null}
+        </p>
         <p className="text-sm leading-snug text-muted-foreground">{item.description}</p>
       </div>
     </Link>
