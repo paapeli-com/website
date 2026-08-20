@@ -17,8 +17,10 @@ const fieldClass =
  */
 export function OrgRequest() {
   return (
-    <Container className="py-10 md:py-14">
-      <div className="grid gap-10 lg:grid-cols-[1fr_230px] lg:gap-14">
+    <Container className="py-8 md:py-10">
+      {/* See ModeSelection: `items-start` is what gives the sticky rail room
+          to travel. */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_248px] lg:items-start lg:gap-12">
         <div className="order-2 lg:order-1">
           <Reveal className="app-enter">
             <Link
@@ -118,20 +120,18 @@ export function OrgRequest() {
           </div>
         </div>
 
-        <aside className="order-1 lg:order-2">
-          <div className="lg:sticky lg:top-24">
-            <div className="rounded-2xl border border-[var(--ai-border)] bg-[var(--ai-surface)] p-5">
-              <p className="mb-5 text-[12px] font-semibold text-[var(--ai-orange-soft)]">
-                مسیر سازمانی
-              </p>
-              <AssessmentStepper current={2} />
-              <div className="mt-6 border-t border-[var(--ai-border-soft)] pt-4">
-                <ConfidentialityNote />
-              </div>
+        <aside className="order-1 lg:order-2 lg:sticky lg:top-24">
+          <div className="rounded-2xl border border-[var(--ai-border)] bg-[var(--ai-surface)] px-4 py-3 lg:p-5">
+            <p className="mb-5 hidden text-[12px] font-semibold text-[var(--ai-orange-soft)] lg:block">
+              مسیر سازمانی
+            </p>
+            <AssessmentStepper current={2} />
+            <div className="mt-6 hidden border-t border-[var(--ai-border-soft)] pt-4 lg:block">
+              <ConfidentialityNote />
             </div>
-
-            <CancelAssessment className="mt-4 w-full" />
           </div>
+
+          <CancelAssessment className="mt-4 w-full" />
         </aside>
       </div>
     </Container>

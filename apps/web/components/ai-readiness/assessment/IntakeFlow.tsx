@@ -107,8 +107,10 @@ export function IntakeFlow() {
   const progress = done ? 100 : ((step + (answered ? 1 : 0)) / TOTAL) * 100;
 
   return (
-    <Container className="py-10 md:py-14">
-      <div className="grid gap-10 lg:grid-cols-[1fr_230px] lg:gap-14">
+    <Container className="py-8 md:py-10">
+      {/* See ModeSelection: `items-start` is what gives the sticky rail room
+          to travel. */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_248px] lg:items-start lg:gap-12">
         <div className="order-2 lg:order-1">
           {done ? (
             /* ---------------- Summary ---------------- */
@@ -285,14 +287,18 @@ export function IntakeFlow() {
               </div>
 
               <div className="mt-6 flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => go(-1)}
-                  className="inline-flex h-11 min-h-[44px] items-center gap-2 rounded-xl border border-[var(--ai-border)] bg-[var(--ai-surface)] px-5 text-[13px] text-[var(--ai-muted)] transition-colors hover:border-[var(--ai-green-hover)] hover:text-[var(--ai-text)]"
-                >
-                  <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
-                  بازگشت
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => go(-1)}
+                    className="inline-flex h-11 min-h-[44px] items-center gap-2 rounded-xl border border-[var(--ai-border)] bg-[var(--ai-surface)] px-5 text-[13px] text-[var(--ai-muted)] transition-colors hover:border-[var(--ai-green-hover)] hover:text-[var(--ai-text)]"
+                  >
+                    <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+                    بازگشت
+                  </button>
+                  {/* The rail is desktop-only, so mobile gets its own exit. */}
+                  <CancelAssessment className="lg:hidden" />
+                </div>
 
                 <button
                   type="button"
@@ -314,34 +320,32 @@ export function IntakeFlow() {
           )}
         </div>
 
-        <aside className="order-1 lg:order-2">
-          <div className="lg:sticky lg:top-24">
-            <div className="rounded-2xl border border-[var(--ai-border)] bg-[var(--ai-surface)] p-5">
-              <p className="mb-5 text-[12px] font-semibold text-[var(--ai-green)]">
-                {done ? 'آماده شروع' : 'اطلاعات سازمان'}
-              </p>
-              <AssessmentStepper current={done ? 3 : 2} />
-              <div className="mt-6 border-t border-[var(--ai-border-soft)] pt-4">
-                <ConfidentialityNote />
-              </div>
-              {isIntakeComplete(state) && !done ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDone(true);
-                    setMotionKey((k) => k + 1);
-                  }}
-                  className="mt-4 w-full rounded-lg border border-[var(--ai-border)] px-3 py-2 text-[11.5px] text-[var(--ai-muted)] transition-colors hover:border-[var(--ai-green-hover)] hover:text-[var(--ai-text)]"
-                >
-                  رفتن به خلاصه
-                </button>
-              ) : null}
+        <aside className="order-1 lg:order-2 lg:sticky lg:top-24">
+          <div className="rounded-2xl border border-[var(--ai-border)] bg-[var(--ai-surface)] px-4 py-3 lg:p-5">
+            <p className="mb-5 hidden text-[12px] font-semibold text-[var(--ai-green)] lg:block">
+              {done ? 'آماده شروع' : 'اطلاعات سازمان'}
+            </p>
+            <AssessmentStepper current={done ? 3 : 2} />
+            <div className="mt-6 hidden border-t border-[var(--ai-border-soft)] pt-4 lg:block">
+              <ConfidentialityNote />
             </div>
-
-            {/* Leaving the flow stays available at every step, outside the
-                rail card, matching the mode-selection screen. */}
-            <CancelAssessment className="mt-4 w-full" />
+            {isIntakeComplete(state) && !done ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setDone(true);
+                  setMotionKey((k) => k + 1);
+                }}
+                className="mt-4 hidden w-full rounded-lg border border-[var(--ai-border)] px-3 py-2 text-[11.5px] text-[var(--ai-muted)] transition-colors hover:border-[var(--ai-green-hover)] hover:text-[var(--ai-text)] lg:block"
+              >
+                رفتن به خلاصه
+              </button>
+            ) : null}
           </div>
+
+          {/* Leaving the flow stays available at every step, outside the
+              rail card, matching the mode-selection screen. */}
+          <CancelAssessment className="mt-4 hidden w-full lg:inline-flex" />
         </aside>
       </div>
     </Container>

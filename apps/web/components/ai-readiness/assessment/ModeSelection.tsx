@@ -44,7 +44,11 @@ export function ModeSelection() {
   return (
     /* Bottom padding on mobile clears the fixed action bar. */
     <Container className="py-8 pb-32 md:py-10 lg:pb-10">
-      <div className="grid gap-8 lg:grid-cols-[1fr_248px] lg:gap-12">
+      {/* `items-start` is what makes the rail stick. A stretched grid item
+          fills its row, leaving a sticky child no slack to travel in; letting
+          the aside size to its content and sticking the aside itself gives it
+          the whole grid to move within. */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_248px] lg:items-start lg:gap-12">
         {/* ---- Main column ---- */}
         <div className="order-2 lg:order-1">
           <Reveal className="app-enter">
@@ -185,33 +189,35 @@ export function ModeSelection() {
           </Reveal>
         </div>
 
-        {/* ---- Rail (right in RTL) ---- */}
-        <aside className="order-1 lg:order-2">
-          <div className="lg:sticky lg:top-24">
-            <div className="rounded-2xl border border-[var(--ai-border)] bg-[var(--ai-surface)] p-5">
-              <p className="mb-5 text-[12px] font-semibold text-[var(--ai-green)]">شروع ارزیابی</p>
-              <AssessmentStepper current={1} />
-              <div className="mt-6 border-t border-[var(--ai-border-soft)] pt-4">
-                <ConfidentialityNote />
-              </div>
+        {/* ---- Rail ---- */}
+        <aside className="order-1 lg:order-2 lg:sticky lg:top-24">
+          {/* On mobile this collapses to a slim stepper strip so the cards
+              start almost immediately; the label and the note are desktop-only. */}
+          <div className="rounded-2xl border border-[var(--ai-border)] bg-[var(--ai-surface)] px-4 py-3 lg:p-5">
+            <p className="mb-5 hidden text-[12px] font-semibold text-[var(--ai-green)] lg:block">
+              شروع ارزیابی
+            </p>
+            <AssessmentStepper current={1} />
+            <div className="mt-6 hidden border-t border-[var(--ai-border-soft)] pt-4 lg:block">
+              <ConfidentialityNote />
             </div>
+          </div>
 
-            {/* Actions sit under the rail card, outside it — always in view on
-                desktop because the whole column is sticky. */}
-            <div className="mt-4 hidden lg:block">
-              <button type="button" onClick={advance} disabled={!selected} className={ctaClass}>
-                {ctaLabel}
-                <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-              </button>
+          {/* Actions sit under the rail card, outside it — and travel with it
+              because the whole aside is sticky. */}
+          <div className="mt-4 hidden lg:block">
+            <button type="button" onClick={advance} disabled={!selected} className={ctaClass}>
+              {ctaLabel}
+              <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
+            </button>
 
-              <CancelAssessment className="mt-2.5 w-full" />
+            <CancelAssessment className="mt-2.5 w-full" />
 
-              <p className="mt-3 text-center text-[11px] leading-[1.8] text-[var(--ai-dim)]">
-                {isOrg
-                  ? 'در مرحله بعد یک فرم کوتاه برای هماهنگی تکمیل می‌کنید.'
-                  : 'در مرحله بعد فقط چند اطلاعات کوتاه درباره سازمان شما می‌پرسیم.'}
-              </p>
-            </div>
+            <p className="mt-3 text-center text-[11px] leading-[1.8] text-[var(--ai-dim)]">
+              {isOrg
+                ? 'در مرحله بعد یک فرم کوتاه برای هماهنگی تکمیل می‌کنید.'
+                : 'در مرحله بعد فقط چند اطلاعات کوتاه درباره سازمان شما می‌پرسیم.'}
+            </p>
           </div>
         </aside>
       </div>
