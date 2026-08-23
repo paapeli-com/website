@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ChevronRight } from "lucide-react";
@@ -57,6 +58,34 @@ const COPY: Record<
 export const HeroSection = () => {
   const { isRTL, language } = useLanguage();
   const copy = COPY[language] ?? COPY.en;
+  const headlineRef = useRef<HTMLHeadingElement>(null);
+  const pillRef = useRef<HTMLAnchorElement>(null);
+  const [pillOffset, setPillOffset] = useState(0);
+
+  const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+  useIsomorphicLayoutEffect(() => {
+    const headline = headlineRef.current;
+    if (!headline) return;
+
+    const measure = () => {
+      const range = document.createRange();
+      range.selectNodeContents(headline);
+      const lines = range.getClientRects();
+      if (!lines.length) return;
+      const block = headline.getBoundingClientRect();
+      const first = lines[0];
+      /* how far the first line sits inside the block, on the reading side */
+      const inset = isRTL ? block.right - first.right : first.left - block.left;
+      const room = block.width - (pillRef.current?.offsetWidth ?? 0);
+      setPillOffset(Math.max(0, Math.min(Math.round(inset), Math.round(room))));
+    };
+
+    measure();
+    window.addEventListener("resize", measure);
+    /* the web font lands after first paint and changes the line breaks */
+    document.fonts?.ready.then(measure).catch(() => {});
+    return () => window.removeEventListener("resize", measure);
+  }, [isRTL, copy.title, copy.description]);
 
   return (
     <section
@@ -94,6 +123,8 @@ export const HeroSection = () => {
         <div className="flex w-fit max-w-full flex-col items-start gap-5">
           {/* Announcement pill */}
           <Link
+            ref={pillRef}
+            style={{ marginInlineStart: pillOffset }}
             href={`/${language}${INOTEX_PATH}`}
             className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 py-1 pl-1 pr-2 backdrop-blur-sm transition-colors hover:bg-white/20 rtl:pl-2 rtl:pr-1"
           >
@@ -106,12 +137,12 @@ export const HeroSection = () => {
             </span>
           </Link>
 
-          <h1 className="text-balance text-start text-3xl font-bold leading-[1.15] text-white sm:text-4xl lg:text-5xl">
+          <h1 ref={headlineRef} className="text-balance text-center text-3xl font-bold leading-[1.15] text-white sm:text-4xl lg:text-5xl">
             {copy.title}
           </h1>
         </div>
 
-        <p className="max-w-[680px] text-base leading-relaxed text-white/80 sm:text-lg">
+        <p className="max-w-[680px] text-base leading-relaxed text-white/80 sm:text-lg rtl:sm:text-[17px]">
           {copy.description}
         </p>
 
