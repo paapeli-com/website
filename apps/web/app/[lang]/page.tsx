@@ -11,6 +11,7 @@ import { CustomerLogosSection } from "@/components/CustomerLogosSection";
 import { BlogSection } from "@/components/BlogSection";
 import { CtaSection } from "@/components/CtaSection";
 import { LandingFooter } from "@/components/LandingFooter";
+import { RevealOnScroll } from "@/components/RevealOnScroll";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const Index = () => {
@@ -18,18 +19,34 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background" dir={isRTL ? 'rtl' : 'ltr'}>
-      <LandingNavbar />
+      <LandingNavbar overlay />
 
       <main>
         <HeroSection />
-        <FeaturesSection />
-        <IndustriesSection />
-        <CapabilitiesSection />
-        <TrustedSection />
-        <HowItWorksSection />
-        <CustomerLogosSection />
-        <BlogSection />
-        <CtaSection />
+        <RevealOnScroll>
+          <FeaturesSection />
+        </RevealOnScroll>
+        <RevealOnScroll>
+          <IndustriesSection />
+        </RevealOnScroll>
+        <RevealOnScroll>
+          <CapabilitiesSection />
+        </RevealOnScroll>
+        <RevealOnScroll>
+          <TrustedSection />
+        </RevealOnScroll>
+        <RevealOnScroll>
+          <HowItWorksSection />
+        </RevealOnScroll>
+        <RevealOnScroll>
+          <CustomerLogosSection />
+        </RevealOnScroll>
+        <RevealOnScroll>
+          <BlogSection />
+        </RevealOnScroll>
+        <RevealOnScroll>
+          <CtaSection />
+        </RevealOnScroll>
       </main>
 
       <LandingFooter />

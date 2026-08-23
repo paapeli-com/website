@@ -12,48 +12,55 @@ import paapeliLogo from "@/src/assets/paapeli-logo.svg";
 /* "ntelligence Hub" / "Platform Statu" corrected here).               */
 /* ------------------------------------------------------------------ */
 
-type FooterColumn = { title: string; links: { label: string; href: string }[] };
-
-const COLUMNS: FooterColumn[] = [
-  {
-    title: "Platform",
-    links: [
-      { label: "Operations Hub", href: "/operations-hub" },
-      { label: "Edge Hub", href: "/edge-hub" },
-      { label: "Intelligence Hub", href: "/intelligence-hub" },
-      { label: "Tracking Hub", href: "/gps-tracking" },
-      { label: "OTA Updates", href: "#" },
-    ],
-  },
-  {
-    title: "Developers",
-    links: [
-      { label: "Documentation", href: "#" },
-      { label: "SDK & APIs", href: "#" },
-      { label: "GitHub", href: "#" },
-      { label: "Platform Status", href: "#" },
-    ],
-  },
-  {
-    title: "Resources",
-    links: [
-      { label: "Blog", href: "#" },
-      { label: "Case Studies", href: "#" },
-      { label: "Use Cases", href: "#" },
-      { label: "Contact", href: "#" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { label: "About", href: "#" },
-      { label: "Partners", href: "#" },
-      { label: "Careers", href: "#" },
-      { label: "Pricing", href: "/pricing" },
-    ],
-  },
+/* One href list per column, in the same order as the labels below. */
+const COLUMN_HREFS: string[][] = [
+  ["/operations-hub", "/edge-hub", "/intelligence-hub", "/gps-tracking", "#"],
+  ["#", "#", "#", "#"],
+  ["#", "#", "#", "#"],
+  ["#", "#", "#", "/pricing"],
 ];
 
+type Copy = {
+  about: string;
+  rights: (year: number) => string;
+  columns: { title: string; labels: string[] }[];
+};
+
+const COPY: Record<string, Copy> = {
+  en: {
+    about:
+      "Paapeli is an AI-powered industrial IoT platform that helps organizations monitor assets, optimize operations, and unlock real-time insights from their data.",
+    rights: (year) => `© ${year} Paapeli, Inc. All rights reserved.`,
+    columns: [
+      { title: "Platform", labels: ["Operations Hub", "Edge Hub", "Intelligence Hub", "Tracking Hub", "OTA Updates"] },
+      { title: "Developers", labels: ["Documentation", "SDK & APIs", "GitHub", "Platform Status"] },
+      { title: "Resources", labels: ["Blog", "Case Studies", "Use Cases", "Contact"] },
+      { title: "Company", labels: ["About", "Partners", "Careers", "Pricing"] },
+    ],
+  },
+  fa: {
+    about:
+      "پاپلی یک پلتفرم صنعتی اینترنت اشیا مبتنی بر هوش مصنوعی است که به سازمان‌ها کمک می‌کند دارایی‌ها را پایش کنند، عملیات را بهینه کنند و از داده‌های خود بینش لحظه‌ای بگیرند",
+    rights: (year) => `© ${year} پاپلی. تمامی حقوق محفوظ است.`,
+    columns: [
+      { title: "پلتفرم", labels: ["هاب عملیات", "هاب لبه", "هاب هوشمندی", "هاب ردیابی", "به‌روزرسانی OTA"] },
+      { title: "توسعه‌دهندگان", labels: ["مستندات", "SDK و APIها", "گیت‌هاب", "وضعیت پلتفرم"] },
+      { title: "منابع", labels: ["بلاگ", "مطالعات موردی", "کاربردها", "تماس با ما"] },
+      { title: "شرکت", labels: ["دربارهٔ ما", "شرکا", "فرصت‌های شغلی", "تعرفه‌ها"] },
+    ],
+  },
+  ar: {
+    about:
+      "بابيلي منصة إنترنت أشياء صناعية مدعومة بالذكاء الاصطناعي تساعد المؤسسات على مراقبة أصولها وتحسين عملياتها واستخلاص رؤى لحظية من بياناتها",
+    rights: (year) => `© ${year} بابيلي. جميع الحقوق محفوظة.`,
+    columns: [
+      { title: "المنصة", labels: ["مركز العمليات", "مركز الحافة", "مركز الذكاء", "مركز التتبع", "تحديثات OTA"] },
+      { title: "المطورون", labels: ["التوثيق", "SDK وواجهات API", "GitHub", "حالة المنصة"] },
+      { title: "المصادر", labels: ["المدونة", "دراسات الحالة", "حالات الاستخدام", "اتصل بنا"] },
+      { title: "الشركة", labels: ["من نحن", "الشركاء", "الوظائف", "الأسعار"] },
+    ],
+  },
+};
 const SOCIALS = [
   { label: "GitHub", href: "#", icon: Github },
   { label: "Twitter", href: "#", icon: Twitter },
@@ -62,6 +69,7 @@ const SOCIALS = [
 
 export const LandingFooter = () => {
   const { isRTL, language } = useLanguage();
+  const copy = COPY[language] ?? COPY.en;
   const year = new Date().getFullYear();
 
   /* Prefix internal routes with the active locale; leave "#" links as-is. */
@@ -77,12 +85,9 @@ export const LandingFooter = () => {
           <div className="flex w-full max-w-[384px] flex-col items-start gap-6 lg:shrink-0">
             <Link href={localize("/")} className="flex items-center gap-1.5">
               <Image src={paapeliLogo} alt="Paapeli" width={30} height={30} />
-              <span className="text-xl font-semibold text-foreground">Paapeli</span>
+              <span className="font-poppins text-xl font-semibold text-foreground">Paapeli</span>
             </Link>
-            <p className="text-base text-muted-foreground">
-              Paapeli is an AI-powered industrial IoT platform that helps organizations monitor assets,
-              optimize operations, and unlock real-time insights from their data.
-            </p>
+            <p className="text-base text-muted-foreground rtl:text-sm">{copy.about}</p>
             <div className="flex items-center gap-4">
               {SOCIALS.map(({ label, href, icon: Icon }) => (
                 <Link
@@ -99,17 +104,17 @@ export const LandingFooter = () => {
 
           {/* Nav columns */}
           <div className="grid w-full grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-4 lg:flex-1 lg:justify-between">
-            {COLUMNS.map((col) => (
+            {copy.columns.map((col, ci) => (
               <div key={col.title} className="flex w-full max-w-[176px] flex-col items-start gap-5">
-                <h3 className="w-full text-base font-medium text-foreground">{col.title}</h3>
+                <h3 className="w-full text-base font-medium text-foreground rtl:text-sm">{col.title}</h3>
                 <ul className="flex w-full flex-col items-start gap-4">
-                  {col.links.map((link) => (
-                    <li key={link.label}>
+                  {col.labels.map((label, li) => (
+                    <li key={label}>
                       <Link
-                        href={localize(link.href)}
-                        className="text-base text-muted-foreground transition-colors hover:text-foreground"
+                        href={localize(COLUMN_HREFS[ci][li])}
+                        className="text-base text-muted-foreground transition-colors hover:text-foreground rtl:text-sm"
                       >
-                        {link.label}
+                        {label}
                       </Link>
                     </li>
                   ))}
@@ -121,8 +126,8 @@ export const LandingFooter = () => {
 
         {/* Copyright */}
         <div className="flex w-full flex-col items-start border-t border-[#f3f4f6] pt-8">
-          <p className="w-full text-center text-base text-muted-foreground">
-            © {year} Paapeli, Inc. All rights reserved.
+          <p className="w-full text-center text-base text-muted-foreground rtl:text-sm">
+            {copy.rights(year)}
           </p>
         </div>
       </div>

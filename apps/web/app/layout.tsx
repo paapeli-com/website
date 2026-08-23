@@ -5,7 +5,7 @@ import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import Providers from './providers';
 
-import { inter, tajawal, vazirmatn } from './fonts';
+import { poppins, tajawal, vazirmatn } from './fonts';
 
 const RTL_LANGS = ['fa', 'ar'];
 
@@ -58,12 +58,12 @@ export default function RootLayout({
       ? tajawal.className
       : lang === 'fa'
       ? vazirmatn.className
-      : inter.className;
+      : poppins.className;
 
   const dir = RTL_LANGS.includes(lang) ? 'rtl' : 'ltr';
 
   return (
-    <html lang={lang} dir={dir} suppressHydrationWarning>
+    <html lang={lang} dir={dir} className={poppins.variable} suppressHydrationWarning>
       <body className={fontClass}>
         <Providers>
           <TooltipProvider>

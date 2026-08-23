@@ -21,6 +21,12 @@ export const RevealOnScroll = ({
     const element = ref.current;
     if (!element) return;
 
+    /* Anyone asking for less motion gets the content straight away. */
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setIsVisible(true);
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -43,7 +49,7 @@ export const RevealOnScroll = ({
       ref={ref}
       className={cn(
         "opacity-0 translate-y-4 transition-all duration-700",
-        isVisible && "opacity-100 translate-y-0 animate-fade-in",
+        isVisible && "opacity-100 translate-y-0",
         className
       )}
       style={{ transitionDelay: `${delay}ms` }}
