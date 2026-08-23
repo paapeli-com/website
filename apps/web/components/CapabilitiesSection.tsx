@@ -3,25 +3,29 @@
 import Image, { type StaticImageData } from "next/image";
 
 import { useLanguage } from "@/contexts/LanguageContext";
-import capCompass from "@/src/assets/cap-compass.png";
-import capGears from "@/src/assets/cap-gears.png";
-import capRocket from "@/src/assets/cap-rocket.png";
-import capClipboard from "@/src/assets/cap-clipboard.png";
+import capDeployment from "@/src/assets/card-4-deployment.png";
+import capDevices from "@/src/assets/card-3-devices-gateway.png";
+import capRealtime from "@/src/assets/card-2-realtime.png";
+import capAlerts from "@/src/assets/card-1-alerts.png";
+import capOta from "@/src/assets/card-8-ota.png";
+import capAnomaly from "@/src/assets/card-7-anomaly.png";
+import capForecast from "@/src/assets/card-6-forecast.png";
+import capTemplates from "@/src/assets/card-5-templates.png";
 
 /* ------------------------------------------------------------------ */
-/* Core platform capabilities. The four 3D icons are reused across the */
-/* eight cards, each centred and clipped inside a 116px box.          */
+/* Core platform capabilities. One 3D icon per card, in the same order */
+/* as the copy below.                                                 */
 /* ------------------------------------------------------------------ */
 
-const ICONS: { icon: StaticImageData; iconSize: number }[] = [
-  { icon: capCompass, iconSize: 132 },
-  { icon: capGears, iconSize: 132 },
-  { icon: capRocket, iconSize: 132 },
-  { icon: capClipboard, iconSize: 124 },
-  { icon: capCompass, iconSize: 132 },
-  { icon: capGears, iconSize: 132 },
-  { icon: capRocket, iconSize: 132 },
-  { icon: capClipboard, iconSize: 124 },
+const ICONS: StaticImageData[] = [
+  capDeployment,
+  capDevices,
+  capRealtime,
+  capAlerts,
+  capOta,
+  capAnomaly,
+  capForecast,
+  capTemplates,
 ];
 
 type Copy = {
@@ -102,16 +106,14 @@ export const CapabilitiesSection = () => {
             key={card.title}
             className="flex flex-col items-center gap-4 overflow-hidden rounded-xl border border-[#e5e7eb] bg-white p-7 text-center shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)] sm:items-start sm:text-start"
           >
-            <div className="relative size-[116px] shrink-0 overflow-hidden">
-              <Image
-                src={ICONS[i].icon}
-                alt=""
-                aria-hidden
-                width={ICONS[i].iconSize}
-                height={ICONS[i].iconSize}
-                className="absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2 object-cover"
-              />
-            </div>
+            <Image
+              src={ICONS[i]}
+              alt=""
+              aria-hidden
+              width={116}
+              height={116}
+              className="size-[116px] shrink-0 object-contain"
+            />
             <div className="flex flex-col gap-2">
               <h3 className="text-lg font-semibold text-foreground rtl:text-base">{card.title}</h3>
               <p className="text-base text-muted-foreground rtl:text-sm">{card.description}</p>
