@@ -138,7 +138,7 @@ export const FeaturesSection = () => {
 
             <div className="flex flex-col gap-1.5 p-5">
               <h3 className="text-lg font-semibold text-foreground rtl:text-base">{card.title}</h3>
-              <p className="text-sm leading-snug text-muted-foreground rtl:text-[13px]">{card.description}</p>
+              <p className="text-base leading-snug text-muted-foreground rtl:text-sm">{card.description}</p>
             </div>
           </article>
         ))}

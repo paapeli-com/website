@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import industryManufacturing from "@/src/assets/industry-manufacturing.jpg";
 import industryOilGas from "@/src/assets/industry-oil-gas.jpg";
 import industrySmartInfrastructure from "@/src/assets/industry-smart-infrastructure.jpg";
+import industryFleetTracking from "@/src/assets/industry-fleet-tracking.jpg";
 import industrySmartAgriculture from "@/src/assets/industry-smart-agriculture.jpg";
 
 /* ------------------------------------------------------------------ */
@@ -18,13 +19,12 @@ import industrySmartAgriculture from "@/src/assets/industry-smart-agriculture.jp
 /* tabs work end-to-end. Swap in real copy/images per industry later.  */
 /* ------------------------------------------------------------------ */
 
-/* One image per tab, in the same order as the copy below. Fleet tracking
-   borrows the manufacturing shot until industry-fleet-tracking.jpg lands. */
+/* One image per tab, in the same order as the copy below. */
 const TAB_IMAGES: StaticImageData[] = [
   industryManufacturing,
   industryOilGas,
   industrySmartInfrastructure,
-  industryManufacturing,
+  industryFleetTracking,
   industrySmartAgriculture,
 ];
 
@@ -79,7 +79,7 @@ const COPY: Record<string, Copy> = {
         heading: "Know where every asset is, and how it is doing",
         description: "Follow vehicles, equipment, and mobile assets across sites with live location, geofences, and alerts that reach the right people.",
         features: [
-          { title: "Live location", description: "Follow vehicles and equipment across every site on a single map." },
+          { title: "Live location", description: "Follow elderly family members, vehicles, and even pets across every site on a single map." },
           { title: "Geofence alerts", description: "Know the moment an asset leaves or enters an area you care about." },
           { title: "Utilisation insight", description: "See what is working, what is idle, and what is due for servicing." },
         ],
@@ -137,7 +137,7 @@ const COPY: Record<string, Copy> = {
         heading: "بدانید هر دارایی کجاست و در چه وضعیتی است",
         description: "خودروها، تجهیزات و دارایی‌های متحرک را در همهٔ سایت‌ها با موقعیت زنده، ژئوفنس و هشدارهایی که به دست فرد درست می‌رسد دنبال کنید",
         features: [
-          { title: "موقعیت زنده", description: "خودروها و تجهیزات را در همهٔ سایت‌ها روی یک نقشه دنبال کنید" },
+          { title: "موقعیت زنده", description: "سالمندان، خودروها و حتی حیوانات خانگی را در همهٔ سایت‌ها روی یک نقشه دنبال کنید" },
           { title: "هشدار ژئوفنس", description: "همان لحظه که دارایی از محدودهٔ موردنظر خارج یا وارد شد باخبر شوید" },
           { title: "بینش بهره‌برداری", description: "ببینید چه چیزی کار می‌کند، چه چیزی بیکار است و چه چیزی نوبت سرویسش رسیده" },
         ],
@@ -195,7 +195,7 @@ const COPY: Record<string, Copy> = {
         heading: "اعرف أين كل أصل وما حالته",
         description: "تابع المركبات والمعدات والأصول المتنقلة عبر المواقع بموقع لحظي وسياج جغرافي وتنبيهات تصل إلى الشخص المناسب",
         features: [
-          { title: "موقع لحظي", description: "تابع المركبات والمعدات عبر كل المواقع على خريطة واحدة" },
+          { title: "موقع لحظي", description: "تابع كبار السن والمركبات وحتى الحيوانات الأليفة عبر كل المواقع على خريطة واحدة" },
           { title: "تنبيهات السياج الجغرافي", description: "اعرف لحظة خروج أصل من منطقة تهمك أو دخوله إليها" },
           { title: "رؤية الاستخدام", description: "اعرف ما يعمل وما هو متوقف وما حان موعد صيانته" },
         ],
@@ -274,6 +274,7 @@ export const IndustriesSection = () => {
 
           <div className="relative aspect-[600/332] w-full flex-1 overflow-hidden rounded-xl border border-[#e5e7eb] shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)] lg:aspect-auto lg:h-[332px]">
             <Image
+              key={activeTab}
               src={TAB_IMAGES[activeTab]}
               alt={active.tab}
               fill
@@ -292,7 +293,7 @@ export const IndustriesSection = () => {
               <CircleCheck className="size-7 shrink-0 text-primary" />
               <div className="flex flex-col gap-2.5">
                 <p className="text-xl font-semibold text-foreground rtl:text-lg">{feature.title}</p>
-                <p className="text-sm text-muted-foreground rtl:text-[13px]">{feature.description}</p>
+                <p className="text-base text-muted-foreground rtl:text-sm">{feature.description}</p>
               </div>
             </div>
           ))}

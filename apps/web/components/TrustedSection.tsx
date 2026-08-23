@@ -224,7 +224,7 @@ export const TrustedSection = () => {
                   </span>
                   <div className="flex flex-col gap-2">
                     <p className="text-lg font-semibold text-foreground rtl:text-base">{item.title}</p>
-                    <p className="text-sm text-muted-foreground rtl:text-[13px]">{item.description}</p>
+                    <p className="text-base text-muted-foreground rtl:text-sm">{item.description}</p>
                   </div>
                 </li>
               ))}

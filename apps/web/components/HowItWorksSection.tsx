@@ -144,7 +144,7 @@ export const HowItWorksSection = () => {
               </span>
               <div className="flex flex-col items-center gap-1.5">
                 <p className="text-xl font-semibold text-foreground rtl:text-lg">{title}</p>
-                <p className="max-w-[328px] whitespace-pre-line text-sm text-muted-foreground rtl:text-[13px]">
+                <p className="max-w-[328px] whitespace-pre-line text-base text-muted-foreground rtl:text-sm">
                   {description}
                 </p>
               </div>

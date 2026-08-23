@@ -114,7 +114,7 @@ export const CapabilitiesSection = () => {
             </div>
             <div className="flex flex-col gap-2">
               <h3 className="text-lg font-semibold text-foreground rtl:text-base">{card.title}</h3>
-              <p className="text-sm text-muted-foreground rtl:text-[13px]">{card.description}</p>
+              <p className="text-base text-muted-foreground rtl:text-sm">{card.description}</p>
             </div>
           </div>
         ))}
