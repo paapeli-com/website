@@ -95,10 +95,7 @@ export const HeroSection = () => {
           {/* Announcement pill */}
           <Link
             href={`/${language}${INOTEX_PATH}`}
-            /* On wide LTR screens the headline is two centred lines, so its first
-               line starts ~150px inside the block. Nudge the pill over to sit above
-               it. RTL headlines are a single line and already line up. */
-            className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 py-1 pl-1 pr-2 backdrop-blur-sm transition-colors hover:bg-white/20 rtl:pl-2 rtl:pr-1 lg:ltr:ms-[150px]"
+            className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 py-1 pl-1 pr-2 backdrop-blur-sm transition-colors hover:bg-white/20 rtl:pl-2 rtl:pr-1"
           >
             <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
               {copy.badge}
@@ -109,7 +106,7 @@ export const HeroSection = () => {
             </span>
           </Link>
 
-          <h1 className="text-balance text-center text-3xl font-bold leading-[1.15] text-white sm:text-4xl lg:text-5xl">
+          <h1 className="text-balance text-start text-3xl font-bold leading-[1.15] text-white sm:text-4xl lg:text-5xl">
             {copy.title}
           </h1>
         </div>
