@@ -31,9 +31,9 @@ type Copy = {
 
 const COPY: Record<string, Copy> = {
   en: {
-    heading: "Trusted by leading industrial teams",
+    heading: "Trusted by leading companies and organisations",
     subheading:
-      "Enabling organizations to improve reliability, reduce downtime, and unlock operational intelligence.",
+      "Helping organizations raise reliability and reach operational intelligence, simply and securely.",
     showSlide: (name) => `Show ${name}`,
     slides: [
       {
@@ -49,8 +49,8 @@ const COPY: Record<string, Copy> = {
         heading: "Scalable",
         description: "Grow from a single site to thousands of connected assets without re-architecting your platform.",
         items: [
-          { title: "Elastic Infrastructure", description: "Scale compute and storage as your fleet grows." },
-          { title: "Multi-Site Management", description: "Operate distributed sites from a single control plane." },
+          { title: "Multi-datacentre management", description: "Spread load across datacentres and scale as the fleet grows." },
+          { title: "Single unified console", description: "Operate distributed sites from a single control plane." },
           { title: "High Throughput", description: "Ingest millions of data points with consistent performance." },
         ],
       },
@@ -66,9 +66,9 @@ const COPY: Record<string, Copy> = {
     ],
   },
   fa: {
-    heading: "مورد اعتماد تیم‌های پیشروی صنعتی",
+    heading: "مورد اعتماد شرکت‌ها و سازمان‌های پیشرو",
     subheading:
-      "به سازمان‌ها کمک می‌کنیم قابلیت اطمینان را بالا ببرند، توقف تولید را کم کنند و به هوشمندی عملیاتی برسند",
+      "به سازمان‌ها کمک می‌کنیم به سادگی و به شکل امن، قابلیت اطمینان را بالا ببرند و به هوشمندی عملیاتی برسند",
     showSlide: (name) => `نمایش ${name}`,
     slides: [
       {
@@ -84,8 +84,8 @@ const COPY: Record<string, Copy> = {
         heading: "مقیاس‌پذیر",
         description: "از یک سایت تا هزاران دارایی متصل رشد کنید، بدون اینکه پلتفرم را از نو بسازید",
         items: [
-          { title: "زیرساخت کشسان", description: "با رشد ناوگان، توان پردازش و ذخیره‌سازی را مقیاس دهید" },
-          { title: "مدیریت چندسایتی", description: "سایت‌های پراکنده را از یک کنسول واحد اداره کنید" },
+          { title: "مدیریت چند دیتاسنتری (Multi-site)", description: "بار را میان چند دیتاسنتر پخش کنید و با رشد ناوگان مقیاس بگیرید" },
+          { title: "مدیریت واحد و یکپارچه", description: "سایت‌های پراکنده را از یک کنسول واحد اداره کنید" },
           { title: "توان عبور بالا", description: "میلیون‌ها نقطهٔ داده را با کارایی پایدار دریافت کنید" },
         ],
       },
@@ -101,8 +101,8 @@ const COPY: Record<string, Copy> = {
     ],
   },
   ar: {
-    heading: "موثوق به من فرق صناعية رائدة",
-    subheading: "نساعد المؤسسات على رفع الموثوقية وتقليل التوقفات وتحقيق الذكاء التشغيلي",
+    heading: "موثوق به من شركات ومؤسسات رائدة",
+    subheading: "نساعد المؤسسات على رفع الموثوقية وتحقيق الذكاء التشغيلي ببساطة وأمان",
     showSlide: (name) => `عرض ${name}`,
     slides: [
       {
@@ -118,8 +118,8 @@ const COPY: Record<string, Copy> = {
         heading: "قابل للتوسع",
         description: "انمُ من موقع واحد إلى آلاف الأصول المتصلة دون إعادة بناء منصتك",
         items: [
-          { title: "بنية مرنة", description: "وسّع الحوسبة والتخزين مع نمو أسطولك" },
-          { title: "إدارة متعددة المواقع", description: "أدِر المواقع الموزعة من لوحة تحكم واحدة" },
+          { title: "إدارة متعددة مراكز البيانات", description: "وزّع الحمل بين مراكز البيانات وتوسّع مع نمو الأسطول" },
+          { title: "إدارة موحدة", description: "أدِر المواقع الموزعة من لوحة تحكم واحدة" },
           { title: "إنتاجية عالية", description: "استقبل ملايين نقاط البيانات بأداء ثابت" },
         ],
       },
@@ -212,7 +212,15 @@ export const TrustedSection = () => {
           {/* Left content */}
           <div className="flex min-w-0 flex-1 flex-col items-start gap-8">
             <div className="flex flex-col gap-4">
-              <h3 className="text-3xl font-semibold text-foreground rtl:text-2xl">{slide.heading}</h3>
+              <div className="flex items-center gap-3">
+                <span
+                  aria-hidden
+                  className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-semibold text-primary"
+                >
+                  {(active + 1).toLocaleString(language === "fa" ? "fa-IR" : "en-US")}
+                </span>
+                <h3 className="text-3xl font-semibold text-foreground rtl:text-2xl">{slide.heading}</h3>
+              </div>
               <p className="text-base text-muted-foreground rtl:text-sm">{slide.description}</p>
             </div>
 
