@@ -187,7 +187,7 @@ export const IndustriesSection = () => {
   return (
     <section
       dir={isRTL ? "rtl" : "ltr"}
-      className="flex w-full flex-col items-center gap-10 bg-white px-6 py-14 sm:gap-12 sm:py-20"
+      className="flex w-full flex-col items-center gap-8 bg-white px-6 py-10 sm:gap-10 sm:py-14"
     >
       {/* Block heading */}
       <div className="flex w-full max-w-[768px] flex-col items-center gap-4 text-center">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image, { type StaticImageData } from "next/image";
 import { Check } from "lucide-react";
 
@@ -140,26 +140,41 @@ export const TrustedSection = () => {
   const { isRTL, language } = useLanguage();
   const copy = COPY[language] ?? COPY.en;
   const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
   const slide = copy.slides[active];
+  const slideCount = copy.slides.length;
+
+  /* Advance on its own, but restart the clock whenever someone picks a
+     slide, and hold while the pointer rests on the card. */
+  useEffect(() => {
+    if (paused) return;
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setInterval(() => setActive((i) => (i + 1) % slideCount), 5000);
+    return () => window.clearInterval(id);
+  }, [active, paused, slideCount]);
 
   return (
     <section
       dir={isRTL ? "rtl" : "ltr"}
-      className="flex w-full flex-col items-center bg-white px-6 pb-16 pt-14 sm:pb-28 sm:pt-20"
+      className="flex w-full flex-col items-center bg-white px-6 pb-10 pt-10 sm:pb-16 sm:pt-14"
     >
       <div className="flex w-full max-w-[1280px] flex-col items-center gap-12">
         {/* Block heading */}
-        <div className="flex w-full max-w-[768px] flex-col items-center gap-4 text-center">
+        <div className="flex w-full max-w-[960px] flex-col items-center gap-4 text-center">
           <h2 className="text-3xl font-semibold text-foreground sm:text-4xl rtl:text-2xl rtl:sm:text-3xl">
             {copy.heading}
           </h2>
-          <p className="max-w-[672px] text-lg text-muted-foreground rtl:text-base">{copy.subheading}</p>
+          <p className="max-w-[960px] text-lg text-muted-foreground rtl:text-base">{copy.subheading}</p>
         </div>
 
         {/* Image + content */}
         <div className="flex w-full max-w-[1152px] flex-col items-center justify-center gap-10 lg:flex-row lg:gap-16">
           {/* Image card with carousel dots */}
-          <div className="relative flex h-[448px] w-full max-w-[384px] shrink-0 flex-col items-center justify-end overflow-hidden rounded-xl border border-[#e5e7eb] py-8 shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)]">
+          <div
+            onMouseEnter={() => setPaused(true)}
+            onMouseLeave={() => setPaused(false)}
+            className="relative flex h-[448px] w-full max-w-[384px] shrink-0 flex-col items-center justify-end overflow-hidden rounded-xl border border-[#e5e7eb] py-8 shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)]"
+          >
             <Image
               src={SLIDE_IMAGES[active]}
               alt={slide.heading}
@@ -170,7 +185,8 @@ export const TrustedSection = () => {
             {/* Subtle radial vignette to match the design */}
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.30)_100%)]" />
 
-            <div className="relative flex items-center gap-1.5">
+            {/* A visible control bar reads as clickable on any photo. */}
+            <div className="relative flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-2 backdrop-blur-sm">
               {copy.slides.map((s, i) => (
                 <button
                   key={s.heading}
@@ -178,11 +194,17 @@ export const TrustedSection = () => {
                   aria-label={copy.showSlide(s.heading)}
                   aria-current={i === active}
                   onClick={() => setActive(i)}
-                  className={cn(
-                    "rounded-full transition-all",
-                    i === active ? "h-2 w-3 bg-white" : "size-2 bg-[#d1d5dc] hover:bg-white/70"
-                  )}
-                />
+                  className="group flex h-6 cursor-pointer items-center px-1 focus-visible:outline-none"
+                >
+                  <span
+                    className={cn(
+                      "block h-2.5 rounded-full transition-all duration-300",
+                      i === active
+                        ? "w-8 bg-white"
+                        : "w-2.5 bg-white/55 group-hover:w-4 group-hover:bg-white/90"
+                    )}
+                  />
+                </button>
               ))}
             </div>
           </div>

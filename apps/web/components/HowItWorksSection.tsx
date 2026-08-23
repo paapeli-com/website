@@ -81,7 +81,7 @@ export const HowItWorksSection = () => {
         className="pointer-events-none absolute left-1/2 top-0 h-[608px] w-[1440px] max-w-none -translate-x-1/2 select-none"
       />
 
-      <div className="relative flex w-full max-w-[1152px] flex-col items-center gap-10 px-6 py-14 sm:gap-12 sm:py-20">
+      <div className="relative flex w-full max-w-[1152px] flex-col items-center gap-8 px-6 py-10 sm:gap-10 sm:py-14">
         {/* Heading */}
         <div className="flex max-w-[672px] flex-col items-start gap-4 text-center">
           <h2 className="w-full text-3xl font-semibold text-foreground sm:text-4xl rtl:text-2xl rtl:sm:text-3xl">
@@ -134,7 +134,7 @@ export const HowItWorksSection = () => {
         </div>
 
         {/* Three action items */}
-        <div className="flex w-full flex-col items-center justify-center gap-10 pt-16 mt-10 lg:flex-row lg:gap-16 lg:pt-4">
+        <div className="flex w-full flex-col items-center justify-center gap-10 pt-8 mt-2 lg:flex-row lg:gap-16 lg:pt-2">
           {copy.actions.map(({ title, description }, i) => {
             const Icon = ACTION_ICONS[i];
             return (

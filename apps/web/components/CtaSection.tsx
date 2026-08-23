@@ -45,7 +45,7 @@ export const CtaSection = () => {
   return (
     <section
       dir={isRTL ? "rtl" : "ltr"}
-      className="flex w-full flex-col items-center bg-white px-6 py-14 sm:py-20"
+      className="flex w-full flex-col items-center bg-white px-6 py-10 sm:py-14"
     >
       <div className="flex w-full max-w-[1280px] items-center justify-center">
         <div

@@ -66,15 +66,15 @@ export const CustomerLogosSection = () => {
   return (
     <section
       dir={isRTL ? "rtl" : "ltr"}
-      className="flex w-full flex-col items-center bg-white px-6 pb-16 pt-14 sm:pb-28 sm:pt-20"
+      className="flex w-full flex-col items-center bg-white px-6 pb-10 pt-10 sm:pb-16 sm:pt-14"
     >
       <div className="flex w-full max-w-[1280px] flex-col items-center gap-12">
         {/* Block heading */}
-        <div className="flex w-full max-w-[768px] flex-col items-center gap-4">
+        <div className="flex w-full max-w-[960px] flex-col items-center gap-4">
           <h2 className="w-full text-center text-3xl font-semibold text-foreground sm:text-4xl rtl:text-2xl rtl:sm:text-3xl">
             {copy.heading}
           </h2>
-          <p className="w-full max-w-[672px] text-center text-lg text-muted-foreground rtl:text-base">
+          <p className="w-full max-w-[960px] text-center text-lg text-muted-foreground rtl:text-base">
             {copy.body}
           </p>
           <Link

@@ -131,7 +131,7 @@ export const BlogSection = () => {
   return (
     <section
       dir={isRTL ? "rtl" : "ltr"}
-      className="flex w-full flex-col items-center bg-white px-6 pb-10 pt-14 sm:pt-20"
+      className="flex w-full flex-col items-center bg-white px-6 pb-8 pt-10 sm:pt-14"
     >
       <div className="flex w-full max-w-[1280px] flex-col items-start gap-12">
         {/* Heading + View more */}

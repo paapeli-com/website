@@ -112,7 +112,7 @@ export const FeaturesSection = () => {
   return (
     <section
       dir={isRTL ? "rtl" : "ltr"}
-      className="flex w-full flex-col items-center gap-8 bg-white px-6 py-12 sm:gap-10 sm:py-16"
+      className="flex w-full flex-col items-center gap-7 bg-white px-6 py-10 sm:gap-8 sm:py-12"
     >
       <div className="flex w-full max-w-[760px] flex-col items-center gap-3 text-center">
         <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{copy.heading}</h2>
