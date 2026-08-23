@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 /* ------------------------------------------------------------------ */
 /* Panel — production static server.  One port: 8080                    */
-/*   /            → redirects to /login                                 */
+/*   /            → the panel SPA, which routes on the session          */
 /*   /login       → the sign-in page      (dist/login/index.html)       */
 /*   /AIoT/*      → the panel SPA         (dist/index.html)             */
 /*   /CloudManagement/*  → the panel SPA  (dist/index.html)             */
@@ -51,11 +51,6 @@ const MIME = {
   ".xml": "application/xml",
 };
 
-const redirect = (res, to) => {
-  res.writeHead(302, { Location: to });
-  res.end();
-};
-
 /** Send an HTML shell. Never cached — it names the current hashed entry chunk. */
 const sendHtml = (file, res) =>
   fs.readFile(file, (err, buf) => {
@@ -78,7 +73,11 @@ const server = http.createServer((req, res) => {
       return res.end("ok");
     }
 
-    if (pathname === "/") return redirect(res, "/login");
+    // "/" serves the SPA, which decides where to go: a valid session lands on
+    // the default solution, otherwise RequireAuth bounces to /login. This used
+    // to be an unconditional server-side 302 to /login, which sent *signed-in*
+    // visitors to the sign-in page and made prod disagree with the dev server.
+    // Let the client decide — it's the only side that can see the session.
 
     // The sign-in page is its own HTML entry, not an SPA route.
     if (pathname === "/login" || pathname === "/login/") {

@@ -1,6 +1,36 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Connect, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+
+/* Serve the login entry at "/login", the way server.mjs does in production.
+ *
+ * Vite resolves a multi-page entry only at its directory URL ("/login/"); the
+ * bare "/login" misses and falls through to the SPA fallback, which hands back
+ * the panel shell instead. That shell gates on the session, and a signed-out
+ * visitor bounces to goToLogin() → "/login" → the shell again → an infinite
+ * redirect loop. Rewriting before the fallback runs keeps dev and prod
+ * identical, and keeps the URL bare (no redirect to "/login/").
+ *
+ * Registered inside configureServer/configurePreviewServer's body rather than
+ * in a returned function, so it lands ahead of Vite's own SPA-fallback
+ * middleware instead of behind it.
+ */
+const loginEntry = (): Plugin => {
+  const rewrite: Connect.NextHandleFunction = (req, _res, next) => {
+    const [pathname, query] = (req.url ?? "").split("?");
+    if (pathname === "/login") req.url = "/login/index.html" + (query ? `?${query}` : "");
+    next();
+  };
+  return {
+    name: "paapeli-login-entry",
+    configureServer(server) {
+      server.middlewares.use(rewrite);
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(rewrite);
+    },
+  };
+};
 
 /* The panel (panel.paapeli.com) — ONE Vite app.
  *
@@ -31,7 +61,7 @@ export default defineConfig({
   preview: {
     port: 8080,
   },
-  plugins: [react()],
+  plugins: [react(), loginEntry()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
