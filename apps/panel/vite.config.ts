@@ -66,7 +66,18 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // The workspace has both React 18 (this app) and React 19 (shared packages
+    // like @paapeli/api, which pulls @tanstack/react-query). Without deduping,
+    // the bundle ships two React copies and hooks crash with "Cannot read
+    // properties of null (reading 'useContext')". Force a single instance of
+    // each so react-query shares one React and one QueryClient.
     dedupe: ["react", "react-dom", "react-router-dom", "@tanstack/react-query"],
+  },
+  define: {
+    // amazon-cognito-identity-js (auth, in the factory feature) depends on
+    // buffer@4, which references Node's `global`. Without this the factory
+    // chunk throws "global is not defined" the moment it evaluates.
+    global: "globalThis",
   },
   build: {
     target: "esnext",
