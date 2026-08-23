@@ -7,7 +7,6 @@ import { IndustriesSection } from "@/components/IndustriesSection";
 import { CapabilitiesSection } from "@/components/CapabilitiesSection";
 import { TrustedSection } from "@/components/TrustedSection";
 import { HowItWorksSection } from "@/components/HowItWorksSection";
-import { CustomerLogosSection } from "@/components/CustomerLogosSection";
 import { BlogSection } from "@/components/BlogSection";
 import { CtaSection } from "@/components/CtaSection";
 import { LandingFooter } from "@/components/LandingFooter";
@@ -37,9 +36,6 @@ const Index = () => {
         </RevealOnScroll>
         <RevealOnScroll>
           <HowItWorksSection />
-        </RevealOnScroll>
-        <RevealOnScroll>
-          <CustomerLogosSection />
         </RevealOnScroll>
         <RevealOnScroll>
           <BlogSection />

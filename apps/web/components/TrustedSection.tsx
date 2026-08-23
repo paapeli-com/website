@@ -6,7 +6,9 @@ import { Check } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
-import trustedGreenhouse from "@/src/assets/trusted-greenhouse.jpg";
+import trustSimple from "@/src/assets/trust-simple.jpg";
+import trustScalable from "@/src/assets/trust-scalable.jpg";
+import trustSecure from "@/src/assets/trust-secure.jpg";
 
 /* ------------------------------------------------------------------ */
 /* "Trusted by" carousel. Figma only specifies the "Easy" slide; the   */
@@ -14,7 +16,7 @@ import trustedGreenhouse from "@/src/assets/trusted-greenhouse.jpg";
 /* dots work end-to-end. Swap in real copy/images per slide later.     */
 /* ------------------------------------------------------------------ */
 
-const SLIDE_IMAGES: StaticImageData[] = [trustedGreenhouse, trustedGreenhouse, trustedGreenhouse];
+const SLIDE_IMAGES: StaticImageData[] = [trustSimple, trustScalable, trustSecure];
 
 type Slide = {
   heading: string;
@@ -176,6 +178,7 @@ export const TrustedSection = () => {
             className="relative flex h-[448px] w-full max-w-[384px] shrink-0 flex-col items-center justify-end overflow-hidden rounded-xl border border-[#e5e7eb] py-8 shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)]"
           >
             <Image
+              key={active}
               src={SLIDE_IMAGES[active]}
               alt={slide.heading}
               fill
