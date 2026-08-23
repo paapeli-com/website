@@ -15,7 +15,7 @@ function ComingSoonLeaf({ item }: { item: NavItem }) {
     <button
       type="button"
       onClick={() => toast.info(title, { description: "Coming soon." })}
-      className="flex w-full items-center gap-3 rounded-md px-3 py-1.5 text-[13px] text-foreground/50 transition-colors hover:bg-muted hover:text-foreground/70"
+      className="flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-[13px] text-foreground/50 transition-colors hover:bg-muted hover:text-foreground/70"
     >
       <Icon className="h-4 w-4 shrink-0" />
       <span className="flex-1 truncate text-start">{title}</span>
@@ -24,7 +24,7 @@ function ComingSoonLeaf({ item }: { item: NavItem }) {
 }
 
 function Leaf({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
-  const { title, icon: Icon, path, href, comingSoon } = item;
+  const { title, icon: Icon, path, href, comingSoon, chevron } = item;
 
   if (comingSoon) return <ComingSoonLeaf item={item} />;
 
@@ -34,7 +34,7 @@ function Leaf({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) 
         href={href}
         target="_blank"
         rel="noreferrer"
-        className="group relative flex w-full items-center gap-3 rounded-md px-3 py-1.5 text-[13px] text-foreground/80 transition-colors hover:bg-muted hover:text-foreground"
+        className="group relative flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-[13px] text-foreground/80 transition-colors hover:bg-muted hover:text-foreground"
       >
         <Icon className="h-4 w-4 shrink-0" />
         <span className="flex-1 truncate text-start">{title}</span>
@@ -49,16 +49,18 @@ function Leaf({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) 
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          "group relative flex w-full items-center gap-3 rounded-md px-3 py-1.5 text-[13px] transition-colors",
-          isActive ? "bg-primary/5 font-semibold text-primary" : "text-foreground/80 hover:bg-muted hover:text-foreground",
+          "group relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-colors",
+          isActive
+            ? "bg-primary/10 font-semibold text-primary ltr:shadow-[inset_2px_0_0_0_hsl(var(--primary))] rtl:shadow-[inset_-2px_0_0_0_hsl(var(--primary))]"
+            : "text-foreground/80 hover:bg-muted hover:text-foreground",
         )
       }
     >
       {({ isActive }) => (
         <>
-          {isActive && <span className="absolute bottom-1 top-1 w-[3px] rounded-full bg-primary ltr:left-0 rtl:right-0" aria-hidden />}
           <Icon className={cn("h-4 w-4 shrink-0", isActive && "text-primary")} />
           <span className="flex-1 truncate text-start">{title}</span>
+          {chevron && <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />}
         </>
       )}
     </NavLink>
@@ -73,7 +75,7 @@ function Group({ item, onNavigate }: { item: NavItem; onNavigate?: () => void })
 
   if (item.comingSoon) {
     return (
-      <div className="flex w-full items-center gap-3 rounded-md px-3 py-1.5 text-[13px] text-foreground/40">
+      <div className="flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-[13px] text-foreground/40">
         <Icon className="h-4 w-4 shrink-0" />
         <span className="flex-1 truncate text-start">{item.title}</span>
         <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
@@ -87,7 +89,7 @@ function Group({ item, onNavigate }: { item: NavItem; onNavigate?: () => void })
     <div>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-3 rounded-md px-3 py-1.5 text-[13px] text-foreground transition-colors hover:bg-muted"
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-[13px] text-foreground transition-colors hover:bg-muted"
       >
         <Icon className="h-4 w-4 shrink-0" />
         <span className={cn("flex-1 truncate text-start", open && "font-bold")}>{item.title}</span>

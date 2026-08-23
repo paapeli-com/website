@@ -11,7 +11,7 @@ interface WorkspaceContextValue {
 
 const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefined);
 
-/** The workspace currently being administered in Cloud Management — picked on the General page, used by Members/Invitations. */
+/** The workspace currently being administered in Cloud Management — picked on the General page, used everywhere else. */
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const { data, isLoading } = useListActiveWorkspacesQuery();
   const workspaces = useMemo(() => data ?? [], [data]);

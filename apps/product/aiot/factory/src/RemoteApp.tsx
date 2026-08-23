@@ -1,12 +1,14 @@
+import { useEffect, useRef } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { setApiAuthToken, setApiBaseUrl } from "@paapeli/api";
+import { setApiAuthToken, setApiBaseUrl, useCreateProductMutation } from "@paapeli/api";
 import { getToken } from "@paapeli/brand/session";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { PRODUCT_KEY } from "@/lib/product";
 import { PAAPELI_API_BASE_URL } from "../config";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -100,7 +102,19 @@ const HomeRedirect = () => <Navigate to=".." relative="path" replace />;
    BrowserRouter here — the host provides the single router; this renders
    under the host's "/AIoT/SmartFactory/*" splat route, so React Router
    resolves the paths below relative to that mount automatically. */
-const RemoteApp = () => (
+const RemoteApp = () => {
+  // Register this solution's product once per mount. Safe to no-op/409 on
+  // repeat visits — the backend treats re-creation as idempotent — so we
+  // don't surface errors from this to the user.
+  const createProduct = useCreateProductMutation();
+  const didCreateProduct = useRef(false);
+  useEffect(() => {
+    if (didCreateProduct.current) return;
+    didCreateProduct.current = true;
+    createProduct.mutate({ productKey: PRODUCT_KEY, name: "Smart Factory" });
+  }, []); // eslint-disable-line
+
+  return (
   <QueryClientProvider client={queryClient}>
       <LanguageProvider>
           <TooltipProvider>
@@ -255,6 +269,7 @@ const RemoteApp = () => (
           </TooltipProvider>
       </LanguageProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default RemoteApp;

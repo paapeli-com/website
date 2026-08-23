@@ -14,6 +14,8 @@ export interface NavItem {
    * a "Coming Soon" badge instead of a chevron and don't expand.
    */
   comingSoon?: boolean;
+  /** Trailing chevron on a leaf — signals it navigates into another area's own nav (e.g. a product). */
+  chevron?: boolean;
 }
 
 /** One sidebar's full contents — the banner at the top plus its nav items. */

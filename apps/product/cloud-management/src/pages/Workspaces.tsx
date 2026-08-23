@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Check, LayoutGrid, Loader2, Plus } from "lucide-react";
+import { Building2, Check, Loader2, Plus } from "lucide-react";
 import {
   useCreateWorkspaceMutation,
   useGetProductsQuery,
@@ -11,7 +11,12 @@ import { useWorkspaceSelection } from "@/contexts/WorkspaceContext";
 import { Badge, Button, Card, EmptyState, Input, Label, PageHeader } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
-export default function WorkspaceGeneral() {
+/* Which workspace is active, and what's subscribed to it — the one page in
+   this remote backed entirely by @paapeli/api's workspaces endpoints (no
+   placeholder data). Organisation (pages/Organisation.tsx) manages the
+   active workspace's members/roles once you're in one; this page is where
+   you pick or create the workspace itself. */
+export default function Workspaces() {
   const { workspaces, isLoading, selectedId, selected, setSelectedId } = useWorkspaceSelection();
 
   const [newName, setNewName] = useState("");
@@ -48,7 +53,7 @@ export default function WorkspaceGeneral() {
     subscribeProduct.mutate(
       { workspaceId: selectedId, productKey },
       {
-        onSuccess: () => toast.success(`Product subscribed`),
+        onSuccess: () => toast.success("Product subscribed"),
         onError: () => toast.error("Failed to subscribe product"),
       },
     );
@@ -56,7 +61,7 @@ export default function WorkspaceGeneral() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <PageHeader title="Workspace" description="Workspaces you belong to, and the products subscribed to the active one." />
+      <PageHeader title="Workspaces" description="Workspaces you belong to, and the products subscribed to the active one." />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
         <div className="flex flex-col gap-4">
@@ -86,7 +91,7 @@ export default function WorkspaceGeneral() {
                         isActive ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
                       )}
                     >
-                      <LayoutGrid className="size-4" />
+                      <Building2 className="size-4" />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className={cn("block text-sm font-semibold", isActive ? "text-primary" : "text-foreground")}>

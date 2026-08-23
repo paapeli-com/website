@@ -1,82 +1,54 @@
-import {
-  Clock,
-  Cloud,
-  Code2,
-  Gauge,
-  Key,
-  LayoutGrid,
-  Lock,
-  Mail,
-  Palette,
-  Shield,
-  Star,
-  UserPlus,
-  Users,
-} from "lucide-react";
+import { Building2, Cloud, Cpu, FileText, Gauge, Home, Key, LayoutGrid, LifeBuoy, Package, Settings, Shield, Users, Wallet } from "lucide-react";
 import type { NavItem, NavSection } from "./types";
 
 const base = "/CloudManagement";
 const p = (path: string) => `${base}${path}`;
 
-/* Cloud Management — workspace/account administration, independent of any
-   AIoT product/solution (see Global Shell.dc.html's CM_NAV for the full
-   design: Workspace, Products, Usage & Billing, Developer, Branding,
-   Security, Enterprise).
+/* Mirrors CLOUD_NAV from "Cloud Management.dc.html" exactly: an ungrouped
+   Home/Dashboard pair, a "Products" group with the single AIoT entry
+   (chevron — it leaves this sidebar for the product's own nav), a "Cloud
+   management" group with the 7 admin sections, and a "Help" group.
 
-   Only "Workspace" is backed by real pages/endpoints so far — the other
-   groups are rendered per the design (so the sidebar has the full shape
-   product will eventually have) but their rows show a "Coming soon" toast
-   instead of navigating anywhere, rather than linking to unbuilt pages. */
+   "Organisation" consolidates what used to be four separate "Workspace"
+   nav rows (Settings/Members/Invitations/Roles) into the design's single
+   tabbed page — see apps/product/cloud-management/src/pages/Organisation.tsx.
+   "Workspaces" is a new row, not in the design doc: switching/creating the
+   workspace itself and its product subscriptions (@paapeli/api's
+   workspaces endpoints) is a separate concern from administering the one
+   you're already in — see pages/Workspaces.tsx.
+
+   Dashboard/Support requests/Settings have no page behind them in the
+   design doc, so they're "Coming soon" rather than dead links. */
 const items: NavItem[] = [
-  { title: "Overview", icon: Clock, comingSoon: true },
+  { title: "Home", icon: Home, path: p("/overview") },
+  { title: "Dashboard", icon: LayoutGrid, comingSoon: true },
   {
-    title: "Workspace",
-    icon: LayoutGrid,
+    title: "Products",
+    icon: Cpu,
+    children: [{ title: "AIoT", icon: Cpu, path: "/AIoT", chevron: true }],
+  },
+  {
+    title: "Cloud management",
+    icon: Cloud,
     children: [
-      { title: "Settings", icon: LayoutGrid, path: p("/workspace/general") },
-      { title: "Members", icon: UserPlus, path: p("/workspace/members") },
-      { title: "Invitations", icon: Mail, path: p("/workspace/invitations") },
-      { title: "Roles & Access", icon: Shield, path: p("/workspace/roles") },
+      { title: "Workspaces", icon: Building2, path: p("/workspaces") },
+      { title: "Subscriptions", icon: Package, path: p("/subscriptions") },
+      { title: "Billing & invoices", icon: FileText, path: p("/billing") },
+      { title: "Usage & quotas", icon: Gauge, path: p("/usage") },
+      { title: "Payment methods", icon: Wallet, path: p("/payment-methods") },
+      { title: "Organisation", icon: Users, path: p("/organisation") },
+      { title: "Access & API keys", icon: Key, path: p("/access-keys") },
+      { title: "Security", icon: Shield, path: p("/security") },
     ],
   },
   {
-    title: "Usage & Billing",
-    icon: Gauge,
+    title: "Help",
+    icon: LifeBuoy,
     children: [
-      { title: "Overview", icon: Gauge, comingSoon: true },
-      { title: "Usage", icon: Gauge, comingSoon: true },
-      { title: "Wallet", icon: Gauge, comingSoon: true },
-      { title: "Transactions", icon: Gauge, comingSoon: true },
-      { title: "Invoices", icon: Gauge, comingSoon: true },
-      { title: "Pricing", icon: Gauge, comingSoon: true },
+      { title: "Support requests", icon: LifeBuoy, comingSoon: true },
+      { title: "Settings", icon: Settings, comingSoon: true },
     ],
   },
-  {
-    title: "Developer",
-    icon: Code2,
-    children: [{ title: "API Keys", icon: Key, comingSoon: true }],
-  },
-  {
-    title: "Branding",
-    icon: Palette,
-    children: [{ title: "White Label", icon: Palette, comingSoon: true }],
-  },
-  {
-    title: "Security",
-    icon: Lock,
-    children: [
-      { title: "Authentication", icon: Lock, comingSoon: true },
-      { title: "Sessions", icon: Lock, comingSoon: true },
-      { title: "MFA", icon: Lock, comingSoon: true },
-    ],
-  },
-  // `children: []` (rather than omitting it) routes this through the Group
-  // renderer so it gets the muted row + "Coming Soon" badge treatment,
-  // instead of Leaf's plain "Coming soon" toast row.
-  { title: "Enterprise", icon: Star, comingSoon: true, children: [] },
-  { title: "Member", icon: Users, comingSoon: true },
-  { title: "Dev Center & Help", icon: Code2, href: "https://docs.paapeli.com/" },
-  { title: "Cloud Management", icon: Cloud, path: "/CloudManagement" },
 ];
 
 export const cloudManagementNav: NavSection = { title: "Cloud Management", icon: Cloud, items };
