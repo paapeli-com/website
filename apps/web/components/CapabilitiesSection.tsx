@@ -104,20 +104,22 @@ export const CapabilitiesSection = () => {
         {copy.cards.map((card, i) => (
           <div
             key={card.title}
-            className="flex flex-col items-center gap-4 overflow-hidden rounded-xl border border-[#e5e7eb] bg-white p-7 text-center shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)] sm:items-start sm:text-start"
+            className="flex flex-col gap-3 overflow-hidden rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)]"
           >
-            <Image
-              src={ICONS[i]}
-              alt=""
-              aria-hidden
-              width={116}
-              height={116}
-              className="size-[116px] shrink-0 object-contain"
-            />
-            <div className="flex flex-col gap-2">
-              <h3 className="text-lg font-semibold text-foreground rtl:text-base">{card.title}</h3>
-              <p className="text-base text-muted-foreground rtl:text-sm">{card.description}</p>
+            <div className="flex items-center gap-3">
+              <Image
+                src={ICONS[i]}
+                alt=""
+                aria-hidden
+                width={72}
+                height={72}
+                className="size-[72px] shrink-0 object-contain"
+              />
+              <h3 className="text-lg font-semibold leading-snug text-foreground rtl:text-base">
+                {card.title}
+              </h3>
             </div>
+            <p className="text-base text-muted-foreground rtl:text-sm">{card.description}</p>
           </div>
         ))}
       </div>
