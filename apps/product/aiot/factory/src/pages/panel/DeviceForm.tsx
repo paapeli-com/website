@@ -51,7 +51,7 @@ import { DEVICE_TEMPLATES, POPULAR_SENSORS } from "@/lib/formOptions";
 import { useAssetLocations } from "@/hooks/useAssetLocations";
 import { useCreateDeviceMutation, deviceCredentialsService, type DeviceCredentialType } from "@paapeli/api";
 import { PRODUCT_KEY } from "@/lib/product";
-import { useWorkspace } from "@/store/workspaceStore";
+import { useWorkspaceId } from "@/store/workspaceStore";
 
 const PROTOCOLS = [
   { value: "MQTT", icon: Radio },
@@ -180,9 +180,9 @@ const DeviceForm = () => {
   // the chosen node's id is the device's assetId.
   const { options: locationOptions, isLoading: locationsLoading } = useAssetLocations();
   const createDevice = useCreateDeviceMutation();
-  // TODO: sourced from the local workspace mock (store/workspaceStore.ts),
-  // not a real backend workspace yet — swap once workspace selection is wired up.
-  const { activeId: workspaceId } = useWorkspace();
+  // Workspace selected in the host's account menu — device creation and the
+  // credentials read-back are both scoped to /{workspaceId}/{productKey}.
+  const workspaceId = useWorkspaceId();
 
   const [deviceType, setDeviceType] = useState("blank");
   const [selectedSensors, setSelectedSensors] = useState<string[]>([]);
@@ -236,6 +236,10 @@ const DeviceForm = () => {
     }
     if (!assetId) {
       toast({ title: t("error"), description: t("locationRequired"), variant: "destructive" });
+      return;
+    }
+    if (!workspaceId) {
+      toast({ title: t("error"), description: t("noWorkspaceSelected"), variant: "destructive" });
       return;
     }
     try {

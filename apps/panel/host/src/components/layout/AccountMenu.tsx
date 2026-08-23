@@ -5,6 +5,7 @@ import { Check, ChevronDown, LayoutGrid, LogOut, Plus, Settings, SlidersHorizont
 import { useListActiveWorkspacesQuery } from "@paapeli/api";
 import { CURRENT_USER } from "@paapeli/brand/config";
 import { signOut as endSession } from "@paapeli/brand/session";
+import { setActiveWorkspaceId, useActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { cn } from "@/lib/utils";
 
 export function AccountMenu() {
@@ -16,10 +17,16 @@ export function AccountMenu() {
 
   const { data, isLoading } = useListActiveWorkspacesQuery();
   const workspaces = useMemo(() => data ?? [], [data]);
-  // First workspace in the list is selected by default.
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
+  /* The host owns the workspace selection for the whole panel: every remote
+     reads it from here to scope its API calls (see @paapeli/brand/workspace).
+     It's persisted, so a reload keeps the same workspace — fall back to the
+     first one whenever there's no stored id, or the stored one is no longer
+     a workspace this user is a member of. */
+  const activeWorkspaceId = useActiveWorkspaceId();
   useEffect(() => {
-    if (!activeWorkspaceId && workspaces.length > 0) setActiveWorkspaceId(workspaces[0].workspaceId);
+    if (workspaces.length === 0) return;
+    if (workspaces.some((ws) => ws.workspaceId === activeWorkspaceId)) return;
+    setActiveWorkspaceId(workspaces[0].workspaceId);
   }, [workspaces, activeWorkspaceId]);
 
   useEffect(() => {

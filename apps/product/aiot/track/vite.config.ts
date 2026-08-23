@@ -3,6 +3,15 @@ import react from "@vitejs/plugin-react-swc";
 import federation from "@originjs/vite-plugin-federation";
 import path from "path";
 
+// `vite build --watch` (the dev script) re-runs a full build on every save and
+// wipes dist/ before each one, so for a second or two remoteEntry.js and every
+// hashed chunk 404. A host page loaded during that window can never recover on
+// its own — see apps/panel/host/src/lib/remote.ts. Keeping the previous build's
+// files around means an in-flight load still resolves; the one-shot `vite build`
+// that precedes the watcher (and CI's `vite build`) still starts from a clean
+// dist.
+const isWatch = process.argv.includes("--watch") || process.argv.includes("-w");
+
 // https://vitejs.dev/config/
 export default defineConfig({
   // Served under the panel host at /AIoT/GPSTracking (GPS Tracking solution).
@@ -33,5 +42,6 @@ export default defineConfig({
     target: "esnext",
     modulePreload: false,
     cssCodeSplit: false,
+    emptyOutDir: !isWatch,
   },
 });

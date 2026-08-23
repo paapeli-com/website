@@ -3,6 +3,23 @@ import react from "@vitejs/plugin-react-swc";
 import federation from "@originjs/vite-plugin-federation";
 import path from "path";
 
+/* A remote is declared as a promise-typed external — an expression the plugin
+   calls on every load attempt — rather than a fixed URL string, so the host can
+   hand out a URL the browser's module map has never seen when it retries. That
+   matters because a failed remote is otherwise permanently broken for the life
+   of the document: the browser caches the failed dynamic import, remoteEntry.js
+   caches its own exposed-chunk promise (including rejections) and the hrefs of
+   the stylesheets it has already injected, and React.lazy caches the rejection.
+   Reloading the page was the only way out — see src/lib/remote.ts, which owns
+   __paapeliRemoteUrl and bumps the attempt counter. The `??` fallback keeps a
+   plain URL working if a remote is ever imported without that module loaded. */
+const remote = (name: string, url: string) => ({
+  external: `Promise.resolve((globalThis.__paapeliRemoteUrl ?? ((n, u) => u))(${JSON.stringify(name)}, ${JSON.stringify(url)}))`,
+  externalType: "promise" as const,
+  format: "esm" as const,
+  from: "vite" as const,
+});
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   // Panel host — owns "/" and everything under /AIoT/*. Served at the
@@ -42,16 +59,16 @@ export default defineConfig(({ mode }) => ({
               // `vite preview`, and in prod — see prod-server.mjs). The
               // `assets/` segment is where Vite's default `assetsDir` puts
               // even the federation plugin's unhashed remoteEntry.js chunk.
-              factory: "http://localhost:8081/AIoT/SmartFactory/assets/remoteEntry.js",
-              track: "http://localhost:8082/AIoT/GPSTracking/assets/remoteEntry.js",
-              cloudManagement: "http://localhost:8085/CloudManagement/assets/remoteEntry.js",
+              factory: remote("factory", "http://localhost:8081/AIoT/SmartFactory/assets/remoteEntry.js"),
+              track: remote("track", "http://localhost:8082/AIoT/GPSTracking/assets/remoteEntry.js"),
+              cloudManagement: remote("cloudManagement", "http://localhost:8085/CloudManagement/assets/remoteEntry.js"),
             }
           : {
               // Prod: same paths the panel host's static server exposes the
               // remotes' built dist folders under (see prod-server.mjs).
-              factory: "/AIoT/SmartFactory/assets/remoteEntry.js",
-              track: "/AIoT/GPSTracking/assets/remoteEntry.js",
-              cloudManagement: "/CloudManagement/assets/remoteEntry.js",
+              factory: remote("factory", "/AIoT/SmartFactory/assets/remoteEntry.js"),
+              track: remote("track", "/AIoT/GPSTracking/assets/remoteEntry.js"),
+              cloudManagement: remote("cloudManagement", "/CloudManagement/assets/remoteEntry.js"),
             },
       shared: ["react", "react-dom", "react-router-dom"],
     }),

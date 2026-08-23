@@ -264,7 +264,7 @@ export default function PanelHome() {
 
   return (
     <>
-      <div className="p-6 space-y-6" dir={isRTL ? "rtl" : "ltr"}>
+      <div className="space-y-6" dir={isRTL ? "rtl" : "ltr"}>
         <h1 className="text-xl font-bold text-foreground text-start">{tr("overview")}</h1>
 
         {/* Summary cards */}

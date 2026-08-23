@@ -29,7 +29,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { DataState } from "@/components/DataState";
 import { PRODUCT_KEY } from "@/lib/product";
-import { useWorkspace } from "@/store/workspaceStore";
+import { useWorkspaceId } from "@/store/workspaceStore";
 import { useProvisionAssetRootMutation, useCreateProductAssetTypeMutation } from "@paapeli/api";
 import { useGetProductAssetTreeQuery, type ProductAssetTreeNode } from "@/hooks/useProductAssetTree";
 
@@ -159,11 +159,12 @@ const Locations = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // TODO: sourced from the local workspace mock (store/workspaceStore.ts),
-  // not a real backend workspace yet — swap once workspace selection is wired up.
-  const { activeId: workspaceId } = useWorkspace();
+  // Workspace selected in the host's account menu — every asset endpoint is
+  // scoped to /{workspaceId}/{productKey}. Null until the host has one, which
+  // keeps the queries below disabled (see @paapeli/brand/workspace).
+  const workspaceId = useWorkspaceId();
 
-  const { data: apiTree, isLoading: treeLoading, isError: treeError, error: treeErrorObj, refetch: refetchTree } = useGetProductAssetTreeQuery(workspaceId, PRODUCT_KEY);
+  const { data: apiTree, isLoading: treeLoading, isError: treeError, error: treeErrorObj, refetch: refetchTree } = useGetProductAssetTreeQuery(workspaceId ?? "", PRODUCT_KEY);
 
   // The backend returns this code when the product simply has no asset tree
   // yet — that's an empty state, not a failure, so don't show an error.
@@ -336,6 +337,7 @@ const Locations = () => {
   // "..." menu once the root is there.
   const handleProvisionRoot = () => {
     if (provisionRoot.isPending) return;
+    if (!workspaceId) return void toast.error(t("noWorkspaceSelected"));
     provisionRoot.mutate({ workspaceId, productKey: PRODUCT_KEY }, {
       onSuccess: () => {
         toast.success(t("success"));
@@ -417,8 +419,10 @@ const Locations = () => {
             </div>
           </CardHeader>
           <ScrollArea className="flex-1 px-2 pb-2">
-            {treeLoading || (treeError && !treeNotFound) ? (
-              <DataState loading={treeLoading} error={treeError && !treeNotFound} onRetry={() => refetchTree()} size="sm" />
+            {/* No workspace yet means the query is still disabled, not empty —
+                keep showing the spinner until the host has picked one. */}
+            {treeLoading || !workspaceId || (treeError && !treeNotFound) ? (
+              <DataState loading={treeLoading || !workspaceId} error={treeError && !treeNotFound} onRetry={() => refetchTree()} size="sm" />
             ) : treeNotFound ? (
               <div className="py-10 text-center text-sm text-muted-foreground">{t("noLocationTree")}</div>
             ) : (
@@ -480,7 +484,7 @@ const Locations = () => {
       <AddNodeDialog
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
-        workspaceId={workspaceId}
+        workspaceId={workspaceId ?? ""}
         productKey={PRODUCT_KEY}
         parentId={addParentId}
         parentName={addParentId ? findNode(tree, addParentId)?.name : undefined}
@@ -490,7 +494,7 @@ const Locations = () => {
       <RenameNodeDialog
         open={renameDialogOpen}
         onOpenChange={setRenameDialogOpen}
-        workspaceId={workspaceId}
+        workspaceId={workspaceId ?? ""}
         productKey={PRODUCT_KEY}
         nodeId={renameTarget?.id}
         parentId={renameTarget ? findParent(tree, renameTarget.id)?.id : undefined}
@@ -501,7 +505,7 @@ const Locations = () => {
       <DeleteNodeDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
-        workspaceId={workspaceId}
+        workspaceId={workspaceId ?? ""}
         productKey={PRODUCT_KEY}
         nodeId={deleteTarget?.id}
         parentId={deleteTarget ? findParent(tree, deleteTarget.id)?.id : undefined}
@@ -511,7 +515,7 @@ const Locations = () => {
       <EditLabelDialog
         open={labelDialogOpen}
         onOpenChange={setLabelDialogOpen}
-        workspaceId={workspaceId}
+        workspaceId={workspaceId ?? ""}
         productKey={PRODUCT_KEY}
         nodeId={labelTarget?.id}
         parentId={labelTarget ? findParent(tree, labelTarget.id)?.id : undefined}

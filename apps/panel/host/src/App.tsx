@@ -1,13 +1,12 @@
-import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { setApiAuthToken, setApiBaseUrl } from "@paapeli/api";
 import { getToken } from "@paapeli/brand/session";
-import { solutionPath } from "@paapeli/brand/config";
+import { solutionPath, productKeyFor } from "@paapeli/brand/config";
 import { BrandProvider } from "@/brand/BrandProvider";
 import { Layout } from "@/components/layout/Layout";
-import { RemoteBoundary } from "@/components/RemoteBoundary";
+import { RemoteMount } from "@/components/RemoteMount";
 import { RequireAuth } from "@/components/RequireAuth";
 import { PAAPELI_API_BASE_URL } from "@/config";
 
@@ -22,13 +21,11 @@ const queryClient = new QueryClient();
 setApiBaseUrl(PAAPELI_API_BASE_URL);
 setApiAuthToken(getToken());
 
-const FactoryApp = lazy(() => import("factory/FactoryApp"));
-const TrackApp = lazy(() => import("track/TrackApp"));
-const CloudManagementApp = lazy(() => import("cloudManagement/CloudManagementApp"));
-
-const RemoteFallback = () => (
-  <div className="flex h-full items-center justify-center p-8 text-sm text-muted-foreground">Loading…</div>
-);
+/* Loaders live at module scope so RemoteMount's lazy() is only recreated on
+   an explicit retry — see components/RemoteMount.tsx and lib/remote.ts. */
+const loadFactory = () => import("factory/FactoryApp");
+const loadTrack = () => import("track/TrackApp");
+const loadCloudManagement = () => import("cloudManagement/CloudManagementApp");
 
 export default function App() {
   return (
@@ -50,34 +47,30 @@ export default function App() {
               <Route
                 path="AIoT/SmartFactory/*"
                 element={
-                  <RemoteBoundary name="Smart Factory">
-                    <Suspense fallback={<RemoteFallback />}>
-                      <FactoryApp />
-                    </Suspense>
-                  </RemoteBoundary>
+                  <RemoteMount
+                    id="factory"
+                    name="Smart Factory"
+                    productKey={productKeyFor("SmartFactory")}
+                    load={loadFactory}
+                  />
                 }
               />
               <Route
                 path="AIoT/GPSTracking/*"
                 element={
-                  <RemoteBoundary name="GPS Tracking">
-                    <Suspense fallback={<RemoteFallback />}>
-                      <TrackApp />
-                    </Suspense>
-                  </RemoteBoundary>
+                  <RemoteMount
+                    id="track"
+                    name="GPS Tracking"
+                    productKey={productKeyFor("GPSTracking")}
+                    load={loadTrack}
+                  />
                 }
               />
               {/* Independent of any AIoT product/solution — workspace/account
                   administration, reached from a product's sidebar footer. */}
               <Route
                 path="CloudManagement/*"
-                element={
-                  <RemoteBoundary name="Cloud Management">
-                    <Suspense fallback={<RemoteFallback />}>
-                      <CloudManagementApp />
-                    </Suspense>
-                  </RemoteBoundary>
-                }
+                element={<RemoteMount id="cloudManagement" name="Cloud Management" load={loadCloudManagement} />}
               />
               {/* Any other/unknown path under the host (e.g. a stale link, or
                   "/login" reached client-side when running the host standalone

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useGetProductAssetTreeQuery, type ProductAssetTreeNode } from "./useProductAssetTree";
 import { PRODUCT_KEY } from "@/lib/product";
-import { useWorkspace } from "@/store/workspaceStore";
+import { useWorkspaceId } from "@/store/workspaceStore";
 
 export interface AssetLocationOption {
   /** Asset id — this is what device creation sends as `assetId`. */
@@ -17,10 +17,10 @@ export interface AssetLocationOption {
  * off of.
  */
 export const useAssetLocations = () => {
-  // TODO: sourced from the local workspace mock (store/workspaceStore.ts),
-  // not a real backend workspace yet — swap once workspace selection is wired up.
-  const { activeId: workspaceId } = useWorkspace();
-  const { data, isLoading, isError } = useGetProductAssetTreeQuery(workspaceId, PRODUCT_KEY);
+  // Workspace selected in the host's account menu; empty until it has one,
+  // which leaves the query disabled (see @paapeli/brand/workspace).
+  const workspaceId = useWorkspaceId();
+  const { data, isLoading, isError } = useGetProductAssetTreeQuery(workspaceId ?? "", PRODUCT_KEY);
 
   const options = useMemo(() => {
     const out: AssetLocationOption[] = [];
@@ -33,5 +33,7 @@ export const useAssetLocations = () => {
     return out;
   }, [data]);
 
-  return { options, isLoading, isError };
+  // Without a workspace the query is disabled, which react-query reports as
+  // "not loading" — for the pickers that's still "not ready yet", not "empty".
+  return { options, isLoading: isLoading || !workspaceId, isError };
 };

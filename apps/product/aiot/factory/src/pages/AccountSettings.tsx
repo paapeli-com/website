@@ -28,7 +28,10 @@ const AVATAR_STORAGE_KEY = "paapeli.profile.avatar.";
 const AccountSettings = () => {
   const { t, isRTL, language } = useLanguage();
   const { signOut } = useAuth();
-  const { workspaces, activeId: activeWs, setActive: setActiveWs, addWorkspace, canAdd } = useWorkspace();
+  /* Real workspaces (GET /api/v1/aiot/workspaces); the selection is the same
+     one the panel host's account menu drives, and is what scopes this
+     product's API calls. */
+  const { workspaces, activeId: activeWs, setActive: setActiveWs, addWorkspace, canAdd, isAdding } = useWorkspace();
   const navigate = useNavigate();
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -245,8 +248,14 @@ const AccountSettings = () => {
                 placeholder={language === "en" ? "Workspace name" : language === "ar" ? "اسم مساحة العمل" : "نام فضای کاری"}
               />
               <Button
-                onClick={() => { if (addWorkspace(newWs)) setNewWs(""); }}
-                disabled={!newWs.trim()}
+                onClick={async () => {
+                  try {
+                    if (await addWorkspace(newWs)) setNewWs("");
+                  } catch {
+                    toast({ title: "Error", description: "Couldn't create the workspace.", variant: "destructive" });
+                  }
+                }}
+                disabled={!newWs.trim() || isAdding}
                 className="shrink-0 gap-2"
               >
                 <Plus className="h-4 w-4" />
