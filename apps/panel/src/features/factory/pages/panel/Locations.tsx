@@ -1,0 +1,530 @@
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLanguage } from "@/features/factory/contexts/LanguageContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/features/factory/components/ui/card";
+import { Button } from "@/features/factory/components/ui/button";
+import { Input } from "@/features/factory/components/ui/input";
+import { ScrollArea } from "@/features/factory/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/features/factory/components/ui/tooltip";
+import {
+  Search,
+  Plus,
+  RefreshCw,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  Cpu,
+} from "lucide-react";
+import { LocationTreeNode, type TreeNode } from "@/features/factory/components/locations/LocationTreeNode";
+import { LocationDetailPanel, type AssetPreview } from "@/features/factory/components/locations/LocationDetailPanel";
+import { AddNodeDialog } from "@/features/factory/components/locations/AddNodeDialog";
+import { RenameNodeDialog } from "@/features/factory/components/locations/RenameNodeDialog";
+import { DeleteNodeDialog } from "@/features/factory/components/locations/DeleteNodeDialog";
+import { EditLabelDialog } from "@/features/factory/components/locations/EditLabelDialog";
+import { toast } from "sonner";
+import { PageHeader } from "@/features/factory/components/PageHeader";
+import { DataState } from "@/features/factory/components/DataState";
+import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
+import { useProvisionAssetRootMutation, useCreateProductAssetTypeMutation } from "@paapeli/api";
+import { useGetProductAssetTreeQuery, type ProductAssetTreeNode } from "@/features/factory/hooks/useProductAssetTree";
+
+
+// The API returns free-form `type` strings (ThingsBoard asset types) that don't
+// always match our canonical kinds. Downstream UI — node icons, the "..." add
+// menu, and the Add dialog's allowed child types — is keyed off a known set, so
+// we canonicalize here. Recognized types are kept as-is; anything else is
+// inferred from the node's depth, following the fixed hierarchy:
+//   root(0) → Location(1) → Unit/Area(2) → Asset(3+).
+const CANONICAL_TYPES = new Set(["organization", "location", "area", "asset"]);
+const canonicalType = (raw: string | undefined | null, depth: number): string => {
+  // The tree root is always the top container, whatever the server stored.
+  if (depth <= 0) return "organization";
+  const s = (raw || "").trim().toLowerCase();
+  if (CANONICAL_TYPES.has(s)) return s;
+  // Unknown/foreign type: infer from depth along root → Location → Unit → Asset.
+  if (depth === 1) return "location";
+  if (depth === 2) return "area";
+  return "asset";
+};
+
+const mapApiTreeNode = (node: ProductAssetTreeNode, depth = 0): TreeNode => ({
+  id: node.id,
+  name: node.name,
+  type: canonicalType(node.type, depth),
+  label: node.label ?? undefined,
+  children: node.children?.map((c) => mapApiTreeNode(c, depth + 1)) ?? [],
+});
+
+const EMPTY_TREE: TreeNode = { id: "root", name: "", type: "organization", children: [] };
+
+// ---------- Mock assets per location ----------
+const MOCK_ASSETS_BY_LOCATION: Record<string, AssetPreview[]> = {
+  "loc-line-1": [
+    { id: "dev-001", name: "Temp Sensor A5", kind: "device", typeLabel: "Device", status: "online", updated: "2 min ago" },
+    { id: "dev-002", name: "Vibration Sensor F9", kind: "device", typeLabel: "Device", status: "online", updated: "15 sec ago" },
+    { id: "dev-003", name: "Flow Rate Meter E8", kind: "device", typeLabel: "Device", status: "error", updated: "Just now" },
+    { id: "dev-004", name: "Humidity Sensor D7", kind: "device", typeLabel: "Device", status: "online", updated: "1 hour ago" },
+    { id: "dev-005", name: "Energy Monitor C6", kind: "gateway", typeLabel: "Gateway", status: "offline", updated: "11 sec ago" },
+  ],
+  "loc-line-2": [
+    { id: "dev-006", name: "Temp Sensor A3", kind: "device", typeLabel: "Device", status: "online", updated: "5 min ago" },
+    { id: "dev-007", name: "Pressure Sensor B2", kind: "device", typeLabel: "Device", status: "online", updated: "1 min ago" },
+  ],
+  "loc-nitration": [
+    { id: "dev-008", name: "Flow Meter G4", kind: "device", typeLabel: "Device", status: "online", updated: "8 min ago" },
+    { id: "dev-009", name: "Voltage Monitor H1", kind: "device", typeLabel: "Device", status: "online", updated: "2 hour ago" },
+  ],
+};
+
+// ---------- Helpers ----------
+const collectMatchingIds = (root: TreeNode, query: string): Set<string> => {
+  const result = new Set<string>();
+  const walk = (n: TreeNode): boolean => {
+    const selfMatch = n.name.toLowerCase().includes(query.toLowerCase());
+    let childMatch = false;
+    if (n.children) for (const c of n.children) if (walk(c)) childMatch = true;
+    if (selfMatch || childMatch) { result.add(n.id); return true; }
+    return false;
+  };
+  walk(root);
+  return result;
+};
+
+const findNode = (root: TreeNode, id: string): TreeNode | null => {
+  if (root.id === id) return root;
+  if (root.children) for (const c of root.children) {
+    const f = findNode(c, id);
+    if (f) return f;
+  }
+  return null;
+};
+
+const findParent = (root: TreeNode, id: string, parent: TreeNode | null = null): TreeNode | null => {
+  if (root.id === id) return parent;
+  if (root.children) for (const c of root.children) {
+    const f = findParent(c, id, root);
+    if (f !== null) return f;
+  }
+  return null;
+};
+
+const findAncestry = (root: TreeNode, id: string): TreeNode[] => {
+  const path: TreeNode[] = [];
+  const walk = (n: TreeNode): boolean => {
+    path.push(n);
+    if (n.id === id) return true;
+    if (n.children) for (const c of n.children) if (walk(c)) return true;
+    path.pop();
+    return false;
+  };
+  walk(root);
+  return path.filter((n) => n.type !== "organization");
+};
+
+const collectIds = (n: TreeNode, acc: Set<string>) => {
+  acc.add(n.id);
+  n.children?.forEach((c) => collectIds(c, acc));
+};
+
+const mapTree = (root: TreeNode, fn: (n: TreeNode) => TreeNode | null): TreeNode | null => {
+  const m = fn(root);
+  if (!m) return null;
+  if (m.children) m.children = m.children.map((c) => mapTree(c, fn)).filter(Boolean) as TreeNode[];
+  return m;
+};
+
+// Compute total asset count (direct + descendants) per node
+const computeAssetCounts = (root: TreeNode): Map<string, number> => {
+  const map = new Map<string, number>();
+  const walk = (n: TreeNode): number => {
+    const direct = MOCK_ASSETS_BY_LOCATION[n.id]?.length ?? n.directAssetCount ?? 0;
+    let sum = direct;
+    if (n.children) for (const c of n.children) sum += walk(c);
+    map.set(n.id, sum);
+    return sum;
+  };
+  walk(root);
+  return map;
+};
+
+let nextId = 1;
+
+const Locations = () => {
+  const { t, isRTL, language } = useLanguage();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Workspace selected in the host's account menu — every asset endpoint is
+  // scoped to /{workspaceId}/{productKey}. Null until the host has one, which
+  // keeps the queries below disabled (see @paapeli/brand/workspace).
+  const workspaceId = useWorkspaceId();
+
+  const { data: apiTree, isLoading: treeLoading, isError: treeError, error: treeErrorObj, refetch: refetchTree } = useGetProductAssetTreeQuery(workspaceId ?? "", PRODUCT_KEY);
+
+  // The backend returns this code when the product simply has no asset tree
+  // yet — that's an empty state, not a failure, so don't show an error.
+  const treeNotFound = (treeErrorObj as any)?.response?.data?.code === "ASSET_TREE_NOT_FOUND";
+
+  const provisionRoot = useProvisionAssetRootMutation();
+
+  // Register the default asset type for this product once per mount. Safe to
+  // no-op/409 on repeat visits — we don't surface that to the user.
+  const createProductAssetType = useCreateProductAssetTypeMutation();
+  const didRegisterAssetType = useRef(false);
+  // useEffect(() => {
+  //   if (didRegisterAssetType.current) return;
+  //   didRegisterAssetType.current = true;
+  //   createProductAssetType.mutate({
+  //     productKey: PRODUCT_KEY,
+  //     assetType: "moosdss",
+  //     label: "Default",
+  //   });
+  // }, []); // eslint-disable-line
+
+  const [tree, setTree] = useState<TreeNode>(EMPTY_TREE);
+
+  useEffect(() => {
+    if (!apiTree) return;
+    const mapped = mapApiTreeNode(apiTree);
+    setTree(mapped);
+    setExpandedNodes((prev) => new Set([...prev, mapped.id]));
+  }, [apiTree]);
+
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Dialogs
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [addParentId, setAddParentId] = useState<string | null>(null);
+  const [addDefaultType, setAddDefaultType] = useState<"location" | "area" | "asset" | null>(null);
+
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [renameTarget, setRenameTarget] = useState<TreeNode | null>(null);
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<TreeNode | null>(null);
+
+  const [labelDialogOpen, setLabelDialogOpen] = useState(false);
+  const [labelTarget, setLabelTarget] = useState<TreeNode | null>(null);
+
+  // Select the root node once the tree has loaded
+  useEffect(() => {
+    if (!selectedNode && apiTree) {
+      setSelectedNode(mapApiTreeNode(apiTree));
+    }
+  }, [apiTree]); // eslint-disable-line
+
+  const matchingIds = useMemo(
+    () => (searchQuery ? collectMatchingIds(tree, searchQuery) : new Set<string>()),
+    [tree, searchQuery]
+  );
+
+  useMemo(() => {
+    if (searchQuery && matchingIds.size > 0) {
+      setExpandedNodes((prev) => new Set([...prev, ...matchingIds]));
+    }
+  }, [matchingIds, searchQuery]);
+
+  const assetCounts = useMemo(() => computeAssetCounts(tree), [tree]);
+
+  const toggleExpand = useCallback((nodeId: string) => {
+    setExpandedNodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) next.delete(nodeId);
+      else next.add(nodeId);
+      return next;
+    });
+  }, []);
+
+  const expandAll = () => {
+    const all = new Set<string>();
+    collectIds(tree, all);
+    setExpandedNodes(all);
+  };
+  const collapseAll = () => setExpandedNodes(new Set([tree.id]));
+
+  // ----- Mutations -----
+  // The dialog itself performs the create call against the API; here we just
+  // refresh the tree from the server and reflect the new node in the UI.
+  const handleAdd = () => {
+    refetchTree();
+    setExpandedNodes((p) => new Set([...p, addParentId || tree.id]));
+    toast.success(t("success"));
+  };
+
+  // Apply an in-place edit to one node of the local tree, keeping the detail
+  // panel's copy in sync when that node is the selected one.
+  const patchNode = (nodeId: string, apply: (n: TreeNode) => void) => {
+    setTree((prev) => {
+      const updated = JSON.parse(JSON.stringify(prev)) as TreeNode;
+      const n = findNode(updated, nodeId);
+      if (n) apply(n);
+      return updated;
+    });
+    setSelectedNode((prev) => {
+      if (!prev || prev.id !== nodeId) return prev;
+      const next = { ...prev };
+      apply(next);
+      return next;
+    });
+  };
+
+  // Both of these run after the dialog's edit call succeeded — they patch the
+  // local tree for an immediate update while the invalidated query refetches.
+  const handleRename = (newName: string) => {
+    if (!renameTarget) return;
+    patchNode(renameTarget.id, (n) => { n.name = newName; });
+    toast.success(t("success"));
+  };
+
+  const handleEditLabel = (newLabel: string) => {
+    if (!labelTarget) return;
+    patchNode(labelTarget.id, (n) => { n.label = newLabel; });
+    toast.success(t("success"));
+  };
+
+  // The dialog performs the delete call; here we drop the node from the local
+  // tree so the UI updates immediately (the invalidated query refreshes it from
+  // the server right after) and move the selection off the removed subtree.
+  const handleDelete = () => {
+    if (!deleteTarget) return;
+    const removedIds = new Set<string>();
+    collectIds(deleteTarget, removedIds);
+    const parent = findParent(tree, deleteTarget.id);
+    setTree((prev) => {
+      const updated = mapTree(JSON.parse(JSON.stringify(prev)), (n) => (n.id === deleteTarget.id ? null : n));
+      return updated || EMPTY_TREE;
+    });
+    if (selectedNode && removedIds.has(selectedNode.id)) setSelectedNode(parent);
+    toast.success(t("deleted"));
+  };
+
+  const handleDuplicate = (node: TreeNode) => {
+    const clone = JSON.parse(JSON.stringify(node)) as TreeNode;
+    const rekey = (n: TreeNode) => {
+      n.id = `node-${Date.now()}-${nextId++}`;
+      if (n.children) n.children.forEach(rekey);
+    };
+    rekey(clone);
+    clone.name = `${clone.name} (copy)`;
+    setTree((prev) => {
+      const updated = JSON.parse(JSON.stringify(prev)) as TreeNode;
+      const parent = findParent(updated, node.id);
+      const parentNode = parent ? findNode(updated, parent.id) : updated;
+      if (parentNode) {
+        if (!parentNode.children) parentNode.children = [];
+        parentNode.children.push(clone);
+      }
+      return updated;
+    });
+    toast.success(t("success"));
+  };
+
+  const handleMove = (_node: TreeNode) => {
+    toast.info(t("comingSoon") || "Coming soon");
+  };
+
+  // ----- UI handlers -----
+  // Footer button: provisions the single root asset for the product. Only
+  // relevant while no tree exists yet — children are added via each node's
+  // "..." menu once the root is there.
+  const handleProvisionRoot = () => {
+    if (provisionRoot.isPending) return;
+    if (!workspaceId) return void toast.error(t("noWorkspaceSelected"));
+    provisionRoot.mutate({ workspaceId, productKey: PRODUCT_KEY }, {
+      onSuccess: () => {
+        toast.success(t("success"));
+      },
+      onError: () => {
+        toast.error(t("failedToProvisionRoot"));
+      },
+    });
+  };
+
+  const handleAddChild = (node: TreeNode, type: "location" | "area" | "asset") => {
+    setAddParentId(node.id);
+    setAddDefaultType(type);
+    setAddDialogOpen(true);
+  };
+
+  const openLabelDialog = (node: TreeNode) => {
+    setLabelTarget(node);
+    setLabelDialogOpen(true);
+  };
+
+  const buildLocationPath = (id: string) =>
+    findAncestry(tree, id).map((n) => n.name).join(" / ");
+
+  const getLocalizedPath = (path: string) => (language === "en" ? path : `/${language}${path}`);
+
+  const handleAddAssetOnNode = (node: TreeNode) => {
+    const path = buildLocationPath(node.id);
+    navigate(getLocalizedPath(`/devices?action=add&location=${encodeURIComponent(path)}`));
+  };
+
+  const handleViewAllAssets = () => {
+    if (!selectedNode) return;
+    const path = buildLocationPath(selectedNode.id);
+    navigate(getLocalizedPath(`/devices?location=${encodeURIComponent(path)}`));
+  };
+
+  const handleNavigateAsset = (assetId: string) => {
+    navigate(getLocalizedPath(`/devices/${assetId}`));
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refetchTree();
+    setRefreshing(false);
+    toast.success(t("success"));
+  };
+
+  // ----- Derived for detail panel -----
+  const ancestry = selectedNode ? findAncestry(tree, selectedNode.id) : [];
+  const parentNode = selectedNode ? findParent(tree, selectedNode.id) : null;
+  const previewAssets = selectedNode ? (MOCK_ASSETS_BY_LOCATION[selectedNode.id] || []) : [];
+  const totalAssetCount = selectedNode ? (assetCounts.get(selectedNode.id) ?? 0) : 0;
+
+  return (
+    <>
+      {/* Header */}
+      <PageHeader title={t("locations")} />
+
+      <div className="flex gap-4 h-[calc(100vh-220px)]">
+        {/* Left: Tree */}
+        <Card dir={isRTL ? "rtl" : "ltr"} className={`${isRTL ? "w-[340px]" : "w-80"} shrink-0 flex flex-col`}>
+          <CardHeader className="pb-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className={`font-medium ${isRTL ? "text-base" : "text-sm"}`}>{t("allLocations")}</CardTitle>
+            </div>
+            <div className="relative">
+              <Search
+                className="absolute top-2.5 h-4 w-4 text-muted-foreground"
+                style={{ [isRTL ? "right" : "left"]: 10 }}
+              />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t("searchLocation")}
+                className={`h-9 ${isRTL ? "text-base" : "text-sm"}`}
+                style={{ [isRTL ? "paddingRight" : "paddingLeft"]: 32 }}
+              />
+            </div>
+          </CardHeader>
+          <ScrollArea className="flex-1 px-2 pb-2">
+            {/* No workspace yet means the query is still disabled, not empty —
+                keep showing the spinner until the host has picked one. */}
+            {treeLoading || !workspaceId || (treeError && !treeNotFound) ? (
+              <DataState loading={treeLoading || !workspaceId} error={treeError && !treeNotFound} onRetry={() => refetchTree()} size="sm" />
+            ) : treeNotFound ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">{t("noLocationTree")}</div>
+            ) : (
+              <LocationTreeNode
+                node={tree}
+                expandedNodes={expandedNodes}
+                selectedNodeId={selectedNode?.id || null}
+                searchQuery={searchQuery}
+                matchingIds={matchingIds}
+                assetCounts={assetCounts}
+                onSelect={setSelectedNode}
+                onToggle={toggleExpand}
+                onRename={(n) => { setRenameTarget(n); setRenameDialogOpen(true); }}
+                onEditLabel={openLabelDialog}
+                onAddChild={handleAddChild}
+                onMove={handleMove}
+                onDuplicate={handleDuplicate}
+                onDelete={(n) => { setDeleteTarget(n); setDeleteDialogOpen(true); }}
+              />
+            )}
+          </ScrollArea>
+          {/* Only relevant before the product has a root asset — provisions
+              the single root node. Children are added via each node's "..."
+              menu once the root exists. */}
+          {treeNotFound && (
+            <div className="p-2 border-t">
+              <Button className="w-full gap-2" onClick={handleProvisionRoot} disabled={provisionRoot.isPending}>
+                {provisionRoot.isPending ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                {t("addNode")}
+              </Button>
+            </div>
+          )}
+        </Card>
+
+        {/* Right: Details */}
+        <Card className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full">
+            <LocationDetailPanel
+              node={selectedNode}
+              ancestry={ancestry}
+              assets={previewAssets}
+              totalAssetCount={totalAssetCount}
+              parentNode={parentNode}
+              onAddAsset={() => selectedNode && handleAddChild(selectedNode, "asset")}
+              onViewAllAssets={handleViewAllAssets}
+              onNavigateAsset={handleNavigateAsset}
+              onSelectAncestor={(n) => setSelectedNode(n)}
+              onEditLabel={() => selectedNode && openLabelDialog(selectedNode)}
+            />
+          </ScrollArea>
+        </Card>
+      </div>
+
+      {/* Dialogs */}
+      <AddNodeDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        workspaceId={workspaceId ?? ""}
+        productKey={PRODUCT_KEY}
+        parentId={addParentId}
+        parentName={addParentId ? findNode(tree, addParentId)?.name : undefined}
+        defaultType={addDefaultType}
+        onAdd={handleAdd}
+      />
+      <RenameNodeDialog
+        open={renameDialogOpen}
+        onOpenChange={setRenameDialogOpen}
+        workspaceId={workspaceId ?? ""}
+        productKey={PRODUCT_KEY}
+        nodeId={renameTarget?.id}
+        parentId={renameTarget ? findParent(tree, renameTarget.id)?.id : undefined}
+        currentName={renameTarget?.name || ""}
+        currentLabel={renameTarget?.label}
+        onRename={handleRename}
+      />
+      <DeleteNodeDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        workspaceId={workspaceId ?? ""}
+        productKey={PRODUCT_KEY}
+        nodeId={deleteTarget?.id}
+        parentId={deleteTarget ? findParent(tree, deleteTarget.id)?.id : undefined}
+        nodeName={deleteTarget?.name || ""}
+        onConfirm={handleDelete}
+      />
+      <EditLabelDialog
+        open={labelDialogOpen}
+        onOpenChange={setLabelDialogOpen}
+        workspaceId={workspaceId ?? ""}
+        productKey={PRODUCT_KEY}
+        nodeId={labelTarget?.id}
+        parentId={labelTarget ? findParent(tree, labelTarget.id)?.id : undefined}
+        nodeName={labelTarget?.name || ""}
+        currentLabel={labelTarget?.label}
+        onSave={handleEditLabel}
+      />
+    </>
+  );
+};
+
+export default Locations;
