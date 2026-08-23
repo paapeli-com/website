@@ -128,7 +128,7 @@ All colors MUST be HSL.
   }
 }
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Poppins', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -146,7 +146,7 @@ html[lang="ar"] body {
 [lang="ar"] a,
 [lang="ar"] small,
 [lang="ar"] div {
-  font-size: 0.945rem;
+  /* No font-size here: sizing belongs to the utility classes. */
   line-height: 1.85;
   word-spacing: 0.06em;
   letter-spacing: 0.02em;
@@ -157,7 +157,7 @@ html[lang="ar"] body {
 [lang="ar"] h3,
 [lang="ar"] h4,
 [lang="ar"] h5 {
-  font-size: 1.74rem;
+  /* No font-size here: sizing belongs to the utility classes. */
   letter-spacing: normal;
   word-spacing: normal;
   line-height: 1.5;
@@ -210,7 +210,7 @@ html[lang="ar"] body {
 [lang="en"],
 [dir="ltr"]:lang(en),
 html[lang="en"] body {
-  font-family: 'Inter', sans-serif !important;
+  font-family: 'Poppins', sans-serif !important;
   direction: ltr;
   text-align: left;
 }
@@ -228,7 +228,7 @@ html[lang="fa"] body {
 [lang="fa"] a,
 [lang="fa"] small,
 [lang="fa"] div {
-  font-size: 0.945rem;
+  /* No font-size here: sizing belongs to the utility classes. */
   line-height: 1.85;
   word-spacing: 0.06em;
   letter-spacing: 0.02em;
@@ -239,7 +239,7 @@ html[lang="fa"] body {
 [lang="fa"] h3,
 [lang="fa"] h4,
 [lang="fa"] h5 {
-  font-size: 1.74rem;
+  /* No font-size here: sizing belongs to the utility classes. */
   letter-spacing: normal;
   word-spacing: normal;
   line-height: 1.5;
@@ -354,4 +354,12 @@ html[lang="fa"] pre {
 [lang="fa"] .language-switcher-btn,
 [lang="fa"] .language-switcher-btn span {
   font-size: 0.875rem !important;
+}
+
+/* Hold the hero shimmer still for anyone who asks for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-hero-glow {
+    animation: none;
+    opacity: 0.08;
+  }
 }

@@ -14,7 +14,7 @@ import logoFord from "@/src/assets/logo-ford.svg";
 import logoPepsi from "@/src/assets/logo-pepsi.svg";
 
 /* ------------------------------------------------------------------ */
-/* Customer logos. Logos are Figma placeholder brands — swap for real  */
+/* Customer logos. Logos are Figma placeholder brands: swap for real   */
 /* customer logos when available.                                      */
 /* ------------------------------------------------------------------ */
 
@@ -41,8 +41,27 @@ function LogoCard({ logo }: { logo: Logo }) {
   );
 }
 
+const COPY: Record<string, { heading: string; body: string; link: string }> = {
+  en: {
+    heading: "Trusted by leading industrial teams",
+    body: "Enabling organizations to improve reliability, reduce downtime, and unlock operational intelligence.",
+    link: "Explore our integrations",
+  },
+  fa: {
+    heading: "مورد اعتماد تیم‌های پیشروی صنعتی",
+    body: "به سازمان‌ها کمک می‌کنیم قابلیت اطمینان را بالا ببرند، توقف تولید را کم کنند و به هوشمندی عملیاتی برسند",
+    link: "یکپارچه‌سازی‌های ما را ببینید",
+  },
+  ar: {
+    heading: "موثوق به من فرق صناعية رائدة",
+    body: "نساعد المؤسسات على رفع الموثوقية وتقليل التوقفات وتحقيق الذكاء التشغيلي",
+    link: "استكشف تكاملاتنا",
+  },
+};
+
 export const CustomerLogosSection = () => {
-  const { isRTL } = useLanguage();
+  const { isRTL, language } = useLanguage();
+  const copy = COPY[language] ?? COPY.en;
 
   return (
     <section
@@ -52,18 +71,17 @@ export const CustomerLogosSection = () => {
       <div className="flex w-full max-w-[1280px] flex-col items-center gap-12">
         {/* Block heading */}
         <div className="flex w-full max-w-[768px] flex-col items-center gap-4">
-          <h2 className="w-full text-center text-3xl font-semibold text-foreground sm:text-4xl">
-            Trusted by leading industrial teams
+          <h2 className="w-full text-center text-3xl font-semibold text-foreground sm:text-4xl rtl:text-2xl rtl:sm:text-3xl">
+            {copy.heading}
           </h2>
-          <p className="w-full max-w-[672px] text-center text-lg text-muted-foreground">
-            Enabling organizations to improve reliability, reduce downtime, and unlock operational
-            intelligence.
+          <p className="w-full max-w-[672px] text-center text-lg text-muted-foreground rtl:text-base">
+            {copy.body}
           </p>
           <Link
             href="#"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-[#1447e6] transition-opacity hover:opacity-80"
           >
-            Explore our integrations
+            {copy.link}
             <ArrowRight className="size-4 rtl:rotate-180" />
           </Link>
         </div>

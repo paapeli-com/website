@@ -14,61 +14,133 @@ import trustedGreenhouse from "@/src/assets/trusted-greenhouse.jpg";
 /* dots work end-to-end. Swap in real copy/images per slide later.     */
 /* ------------------------------------------------------------------ */
 
-type SlideItem = { title: string; description: string };
+const SLIDE_IMAGES: StaticImageData[] = [trustedGreenhouse, trustedGreenhouse, trustedGreenhouse];
 
 type Slide = {
   heading: string;
   description: string;
-  image: StaticImageData;
-  items: SlideItem[];
+  items: { title: string; description: string }[];
 };
 
-const SLIDES: Slide[] = [
-  {
-    heading: "Easy",
-    description:
-      "Deploy industrial AIoT solutions faster with a platform designed for simplicity and operational efficiency.",
-    image: trustedGreenhouse,
-    items: [
-      { title: "Fast Onboarding", description: "Connect devices and gateways in minutes." },
+type Copy = {
+  heading: string;
+  subheading: string;
+  showSlide: (name: string) => string;
+  slides: Slide[];
+};
+
+const COPY: Record<string, Copy> = {
+  en: {
+    heading: "Trusted by leading industrial teams",
+    subheading:
+      "Enabling organizations to improve reliability, reduce downtime, and unlock operational intelligence.",
+    showSlide: (name) => `Show ${name}`,
+    slides: [
       {
-        title: "Ready-to-Use Templates",
-        description: "Accelerate deployment using industrial solution templates.",
+        heading: "Easy",
+        description: "Deploy industrial AIoT solutions faster with a platform designed for simplicity and operational efficiency.",
+        items: [
+          { title: "Fast Onboarding", description: "Connect devices and gateways in minutes." },
+          { title: "Ready-to-Use Templates", description: "Accelerate deployment using industrial solution templates." },
+          { title: "Built-in Operations", description: "Monitoring, alerts, OTA, and AI capabilities included out of the box." },
+        ],
       },
       {
-        title: "Built-in Operations",
-        description: "Monitoring, alerts, OTA, and AI capabilities included out of the box.",
+        heading: "Scalable",
+        description: "Grow from a single site to thousands of connected assets without re-architecting your platform.",
+        items: [
+          { title: "Elastic Infrastructure", description: "Scale compute and storage as your fleet grows." },
+          { title: "Multi-Site Management", description: "Operate distributed sites from a single control plane." },
+          { title: "High Throughput", description: "Ingest millions of data points with consistent performance." },
+        ],
+      },
+      {
+        heading: "Secure",
+        description: "Protect your operations end to end with enterprise-grade security and compliance built in.",
+        items: [
+          { title: "End-to-End Encryption", description: "Secure data in transit and at rest by default." },
+          { title: "Role-Based Access", description: "Control who can see and act on every resource." },
+          { title: "Compliance Ready", description: "Meet industry standards with a complete audit trail." },
+        ],
       },
     ],
   },
-  {
-    heading: "Scalable",
-    description:
-      "Grow from a single site to thousands of connected assets without re-architecting your platform.",
-    image: trustedGreenhouse,
-    items: [
-      { title: "Elastic Infrastructure", description: "Scale compute and storage as your fleet grows." },
-      { title: "Multi-Site Management", description: "Operate distributed sites from a single control plane." },
-      { title: "High Throughput", description: "Ingest millions of data points with consistent performance." },
+  fa: {
+    heading: "مورد اعتماد تیم‌های پیشروی صنعتی",
+    subheading:
+      "به سازمان‌ها کمک می‌کنیم قابلیت اطمینان را بالا ببرند، توقف تولید را کم کنند و به هوشمندی عملیاتی برسند",
+    showSlide: (name) => `نمایش ${name}`,
+    slides: [
+      {
+        heading: "ساده",
+        description: "راهکارهای AIoT صنعتی را سریع‌تر مستقر کنید، با پلتفرمی که برای سادگی و بهره‌وری عملیاتی طراحی شده",
+        items: [
+          { title: "راه‌اندازی سریع", description: "دستگاه‌ها و گیت‌وی‌ها را در چند دقیقه متصل کنید" },
+          { title: "قالب‌های آمادهٔ استفاده", description: "با قالب‌های راهکار صنعتی، استقرار را سریع‌تر کنید" },
+          { title: "عملیات درون‌ساخت", description: "پایش، هشدار، به‌روزرسانی OTA و هوش مصنوعی از همان ابتدا در دسترس است" },
+        ],
+      },
+      {
+        heading: "مقیاس‌پذیر",
+        description: "از یک سایت تا هزاران دارایی متصل رشد کنید، بدون اینکه پلتفرم را از نو بسازید",
+        items: [
+          { title: "زیرساخت کشسان", description: "با رشد ناوگان، توان پردازش و ذخیره‌سازی را مقیاس دهید" },
+          { title: "مدیریت چندسایتی", description: "سایت‌های پراکنده را از یک کنسول واحد اداره کنید" },
+          { title: "توان عبور بالا", description: "میلیون‌ها نقطهٔ داده را با کارایی پایدار دریافت کنید" },
+        ],
+      },
+      {
+        heading: "امن",
+        description: "عملیات خود را سرتاسر، با امنیت و انطباق در سطح سازمانی محافظت کنید",
+        items: [
+          { title: "رمزنگاری سرتاسری", description: "داده در حال انتقال و در حال سکون به‌صورت پیش‌فرض امن است" },
+          { title: "دسترسی مبتنی بر نقش", description: "تعیین کنید چه کسی هر منبع را ببیند و روی آن اقدام کند" },
+          { title: "آمادهٔ انطباق", description: "با ردگیری کامل ممیزی، استانداردهای صنعتی را برآورده کنید" },
+        ],
+      },
     ],
   },
-  {
-    heading: "Secure",
-    description:
-      "Protect your operations end to end with enterprise-grade security and compliance built in.",
-    image: trustedGreenhouse,
-    items: [
-      { title: "End-to-End Encryption", description: "Secure data in transit and at rest by default." },
-      { title: "Role-Based Access", description: "Control who can see and act on every resource." },
-      { title: "Compliance Ready", description: "Meet industry standards with a complete audit trail." },
+  ar: {
+    heading: "موثوق به من فرق صناعية رائدة",
+    subheading: "نساعد المؤسسات على رفع الموثوقية وتقليل التوقفات وتحقيق الذكاء التشغيلي",
+    showSlide: (name) => `عرض ${name}`,
+    slides: [
+      {
+        heading: "سهل",
+        description: "انشر حلول AIoT الصناعية بسرعة أكبر عبر منصة مصممة للبساطة والكفاءة التشغيلية",
+        items: [
+          { title: "إعداد سريع", description: "اربط الأجهزة والبوابات في دقائق" },
+          { title: "قوالب جاهزة للاستخدام", description: "سرّع النشر باستخدام قوالب الحلول الصناعية" },
+          { title: "عمليات مدمجة", description: "المراقبة والتنبيهات وتحديثات OTA وقدرات الذكاء الاصطناعي متاحة منذ البداية" },
+        ],
+      },
+      {
+        heading: "قابل للتوسع",
+        description: "انمُ من موقع واحد إلى آلاف الأصول المتصلة دون إعادة بناء منصتك",
+        items: [
+          { title: "بنية مرنة", description: "وسّع الحوسبة والتخزين مع نمو أسطولك" },
+          { title: "إدارة متعددة المواقع", description: "أدِر المواقع الموزعة من لوحة تحكم واحدة" },
+          { title: "إنتاجية عالية", description: "استقبل ملايين نقاط البيانات بأداء ثابت" },
+        ],
+      },
+      {
+        heading: "آمن",
+        description: "احمِ عملياتك من طرف إلى طرف بأمن وامتثال بمستوى المؤسسات",
+        items: [
+          { title: "تشفير من طرف إلى طرف", description: "تأمين البيانات أثناء النقل والتخزين افتراضيًا" },
+          { title: "وصول قائم على الأدوار", description: "تحكّم في من يرى كل مورد ويتصرف فيه" },
+          { title: "جاهز للامتثال", description: "استوفِ معايير القطاع مع سجل تدقيق كامل" },
+        ],
+      },
     ],
   },
-];
+};
 
 export const TrustedSection = () => {
-  const { isRTL } = useLanguage();
+  const { isRTL, language } = useLanguage();
+  const copy = COPY[language] ?? COPY.en;
   const [active, setActive] = useState(0);
-  const slide = SLIDES[active];
+  const slide = copy.slides[active];
 
   return (
     <section
@@ -78,11 +150,10 @@ export const TrustedSection = () => {
       <div className="flex w-full max-w-[1280px] flex-col items-center gap-12">
         {/* Block heading */}
         <div className="flex w-full max-w-[768px] flex-col items-center gap-4 text-center">
-          <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">Trusted by leading industrial teams</h2>
-          <p className="max-w-[672px] text-lg text-muted-foreground">
-            Enabling organizations to improve reliability, reduce downtime, and unlock operational
-            intelligence.
-          </p>
+          <h2 className="text-3xl font-semibold text-foreground sm:text-4xl rtl:text-2xl rtl:sm:text-3xl">
+            {copy.heading}
+          </h2>
+          <p className="max-w-[672px] text-lg text-muted-foreground rtl:text-base">{copy.subheading}</p>
         </div>
 
         {/* Image + content */}
@@ -90,7 +161,7 @@ export const TrustedSection = () => {
           {/* Image card with carousel dots */}
           <div className="relative flex h-[448px] w-full max-w-[384px] shrink-0 flex-col items-center justify-end overflow-hidden rounded-xl border border-[#e5e7eb] py-8 shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)]">
             <Image
-              src={slide.image}
+              src={SLIDE_IMAGES[active]}
               alt={slide.heading}
               fill
               sizes="384px"
@@ -100,11 +171,11 @@ export const TrustedSection = () => {
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.30)_100%)]" />
 
             <div className="relative flex items-center gap-1.5">
-              {SLIDES.map((s, i) => (
+              {copy.slides.map((s, i) => (
                 <button
                   key={s.heading}
                   type="button"
-                  aria-label={`Show ${s.heading}`}
+                  aria-label={copy.showSlide(s.heading)}
                   aria-current={i === active}
                   onClick={() => setActive(i)}
                   className={cn(
@@ -119,8 +190,8 @@ export const TrustedSection = () => {
           {/* Left content */}
           <div className="flex min-w-0 flex-1 flex-col items-start gap-8">
             <div className="flex flex-col gap-4">
-              <h3 className="text-3xl font-semibold text-foreground">{slide.heading}</h3>
-              <p className="text-base text-muted-foreground">{slide.description}</p>
+              <h3 className="text-3xl font-semibold text-foreground rtl:text-2xl">{slide.heading}</h3>
+              <p className="text-base text-muted-foreground rtl:text-sm">{slide.description}</p>
             </div>
 
             <ul className="flex w-full flex-col gap-8 border-t border-[#f3f4f6] pt-8">
@@ -130,8 +201,8 @@ export const TrustedSection = () => {
                     <Check className="size-7 text-primary" />
                   </span>
                   <div className="flex flex-col gap-2">
-                    <p className="text-lg font-semibold text-foreground">{item.title}</p>
-                    <p className="text-sm text-muted-foreground">{item.description}</p>
+                    <p className="text-lg font-semibold text-foreground rtl:text-base">{item.title}</p>
+                    <p className="text-sm text-muted-foreground rtl:text-[13px]">{item.description}</p>
                   </div>
                 </li>
               ))}

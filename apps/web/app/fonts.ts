@@ -1,9 +1,12 @@
 // app/fonts.ts
-import { Inter, Tajawal, Vazirmatn } from 'next/font/google'
+import { Poppins, Tajawal, Vazirmatn } from 'next/font/google'
 
-export const inter = Inter({
+/** Latin UI font. The `variable` also lets single elements opt in inside
+  * the Persian and Arabic pages, which is how the wordmark stays Poppins. */
+export const poppins = Poppins({
   subsets: ['latin'],
-  weight: ['400', '600', '700'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-poppins',
 })
 
 export const tajawal = Tajawal({
