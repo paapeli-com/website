@@ -251,7 +251,14 @@ export default function OilGasPage() {
       <main>
         {/* ------------------------------- Hero ------------------------------ */}
       <section className="relative isolate flex min-h-[75vh] items-center overflow-hidden pt-16">
-        <Image src={oilgasHero} alt="" fill priority sizes="100vw" className="-z-20 object-cover" />
+        <Image
+          src={oilgasHero}
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className={cn("-z-20 object-cover", !isRTL && "scale-x-[-1]")}
+        />
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-[#081020]/[0.72]" />
 
         <div className="container relative z-10 mx-auto px-4 py-20">

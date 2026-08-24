@@ -1,6 +1,6 @@
 'use client';
 
-import { TrendingDown, DollarSign, TrendingUp, BarChart3 } from "lucide-react";
+import { TrendingDown, DollarSign, TrendingUp } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export const PredictiveMaintenanceStats = () => {
@@ -65,9 +65,6 @@ export const PredictiveMaintenanceStats = () => {
 
           {/* Right Side - ROI Highlight */}
           <div className="bg-background border-2 border-border rounded-2xl p-8 md:p-10 text-center">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <BarChart3 className="h-8 w-8 text-muted-foreground" />
-            </div>
             <h3 className="text-xl md:text-2xl font-semibold text-foreground mb-6">
               {language === 'en' && 'Approximate return on investment with AI predictive maintenance'}
               {language === 'fa' && 'بازگشت سرمایهٔ تقریبی با نگهداری پیش‌بینانهٔ هوش مصنوعی'}
