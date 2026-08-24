@@ -1,6 +1,7 @@
 'use client';
 
 import { TrendingDown, DollarSign, TrendingUp } from "lucide-react";
+import { CountUp } from "@/components/CountUp";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export const PredictiveMaintenanceStats = () => {
@@ -56,7 +57,9 @@ export const PredictiveMaintenanceStats = () => {
                   <div className="text-right">
                     <p className="text-white/70 text-sm">{stat.prefix}</p>
                     {/* The figure is the point of the row, so it is set large. */}
-                    <p className="!text-5xl md:!text-7xl font-black text-primary leading-none tracking-tight">{stat.value}</p>
+                    <p className="!text-5xl md:!text-7xl font-black text-primary leading-none tracking-tight">
+                      <CountUp value={stat.value} />
+                    </p>
                   </div>
                 </div>
               ))}
@@ -72,7 +75,7 @@ export const PredictiveMaintenanceStats = () => {
             </h3>
 
             <p className="!text-8xl md:!text-9xl font-black text-primary mb-4 leading-none tracking-tighter">
-              250% ROI
+              <CountUp value="250% ROI" duration={2000} />
             </p>
 
             <p className="text-xl md:text-2xl font-semibold text-foreground">
