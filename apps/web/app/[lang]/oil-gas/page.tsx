@@ -4,7 +4,8 @@ import Image, { type StaticImageData } from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check } from "lucide-react";
 
-import { Navigation } from "@/components/Navigation";
+import { LandingFooter } from "@/components/LandingFooter";
+import { LandingNavbar } from "@/components/LandingNavbar";
 import { PredictiveMaintenanceStats } from "@/components/PredictiveMaintenanceStats";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -245,9 +246,10 @@ export default function OilGasPage() {
 
   return (
     <div className="min-h-screen bg-background" dir={isRTL ? "rtl" : "ltr"}>
-      <Navigation />
+      <LandingNavbar overlay />
 
-      {/* ------------------------------- Hero ------------------------------ */}
+      <main>
+        {/* ------------------------------- Hero ------------------------------ */}
       <section className="relative isolate flex min-h-[75vh] items-center overflow-hidden pt-16">
         <Image src={oilgasHero} alt="" fill priority sizes="100vw" className="-z-20 object-cover" />
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-[#081020]/[0.72]" />
@@ -360,6 +362,9 @@ export default function OilGasPage() {
           </Button>
         </div>
       </section>
+      </main>
+
+      <LandingFooter />
     </div>
   );
 }
