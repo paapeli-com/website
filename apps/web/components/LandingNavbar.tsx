@@ -42,14 +42,14 @@ const MENUS: Record<string, MegaMenu> = {
   Solution: {
     columns: [
       [
-        { id: "smartManufacturing", href: "#" },
+        { id: "smartManufacturing", href: "/smart-manufacturing" },
         { id: "smartBuildings", href: "/smart-buildings" },
-        { id: "assetFleetTracking", href: "/gps-tracking" },
+        { id: "assetFleetTracking", href: "/fleet-tracking" },
       ],
       [
         { id: "oilGasMonitoring", href: "/oil-gas" },
         { id: "smartAgriculture", href: "/smart-agriculture" },
-        { id: "energyMonitoring", href: "#" },
+        { id: "energyMonitoring", href: "/energy-monitoring" },
       ],
     ],
   },

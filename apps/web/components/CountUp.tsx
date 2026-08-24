@@ -5,7 +5,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
-/* <CountUp/> — the house treatment for a headline figure.            */
+/* <CountUp/> : the house treatment for a headline figure.            */
 /*                                                                    */
 /* Give it the finished string and it counts every number inside up    */
 /* from zero the first time the figure scrolls into view: "250% ROI",  */
