@@ -166,7 +166,7 @@ export function IndustryLanding({ config }: { config: IndustryConfig }) {
                           <Icon className="h-7 w-7 text-white" />
                         </div>
                         <p className="flex-1 text-sm text-white/80 md:text-base">{stat.label}</p>
-                        <div className="text-end">
+                        <div className="text-right">
                           <p className="text-sm text-white/70">{stat.prefix}</p>
                           <p className="!text-5xl font-black leading-none tracking-tight text-primary md:!text-7xl">
                             <CountUp value={stat.value} />
