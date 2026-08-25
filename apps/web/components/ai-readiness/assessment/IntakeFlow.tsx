@@ -29,7 +29,7 @@ const TOTAL = intakeSteps.length;
 
 /** Look a stored id back up to its human label, for the summary. */
 function labelOf(list: { id: string; label: string }[], id: string | null) {
-  return list.find((o) => o.id === id)?.label ?? '—';
+  return list.find((o) => o.id === id)?.label ?? '-';
 }
 
 export function IntakeFlow() {
@@ -130,7 +130,7 @@ export function IntakeFlow() {
 
               <dl className="mt-8 grid gap-px overflow-hidden rounded-2xl border border-[var(--ai-border)] bg-[var(--ai-border)] sm:grid-cols-2">
                 {[
-                  { label: 'نوع ارزیابی', value: selectedMode?.title ?? '—' },
+                  { label: 'نوع ارزیابی', value: selectedMode?.title ?? '-' },
                   { label: 'صنعت', value: labelOf(industries, state.industry) },
                   { label: 'اندازه سازمان', value: labelOf(orgSizes, state.size) },
                   { label: 'نقش شما', value: labelOf(roles, state.role) },

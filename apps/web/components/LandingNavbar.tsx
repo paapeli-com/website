@@ -3,9 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, ChevronRight, Menu, X, Sparkles } from "lucide-react";
+import {
+  Blocks,
+  Boxes,
+  ChevronDown,
+  ChevronRight,
+  LayoutTemplate,
+  Menu,
+  Sparkles,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
+import { PANEL_URL } from "@/lib/panel";
 import paapeliLogo from "@/src/assets/paapeli-logo.svg";
 import paapeliLogoOnDark from "@/src/assets/paapeli-logo-on-dark.svg";
 import { cn } from "@/lib/utils";
@@ -26,12 +37,13 @@ type MenuItem = {
 type MegaMenu = { columns: MenuItem[][] };
 
 const MENUS: Record<string, MegaMenu> = {
-  Platform: {
+  Products: {
     columns: [
       [
         { id: "aiotPlatform", href: "/aiot-platform" },
         { id: "edgeComputing", href: "/edge-computing" },
-        { id: "ota", href: "/ota" },
+        /* Points at the designed feature page rather than the older stub. */
+        { id: "ota", href: "/features/ota-updates" },
       ],
       [
         { id: "ddosProtection", href: "/ddos-protection" },
@@ -42,27 +54,27 @@ const MENUS: Record<string, MegaMenu> = {
   Solution: {
     columns: [
       [
-        { id: "smartManufacturing", href: "#" },
+        { id: "smartManufacturing", href: "/smart-manufacturing" },
         { id: "smartBuildings", href: "/smart-buildings" },
-        { id: "assetFleetTracking", href: "/gps-tracking" },
+        { id: "assetFleetTracking", href: "/fleet-tracking" },
       ],
       [
         { id: "oilGasMonitoring", href: "/oil-gas" },
         { id: "smartAgriculture", href: "/smart-agriculture" },
-        { id: "energyMonitoring", href: "#" },
+        { id: "energyMonitoring", href: "/energy-monitoring" },
       ],
     ],
   },
   Ecosystem: {
     columns: [
       [
-        { id: "developers", href: "#" },
-        { id: "sdkApis", href: "#" },
+        { id: "developers", href: "https://api.paapeli.com/swagger-ui/index.html" },
+        { id: "sdkApis", href: "https://docs.paapeli.com/docs/category/sdks" },
         { id: "partners", href: "#" },
       ],
       [
         { id: "whiteLabel", href: "#" },
-        { id: "github", href: "#" },
+        { id: "github", href: "https://github.com/paapeli-com" },
       ],
     ],
   },
@@ -70,12 +82,12 @@ const MENUS: Record<string, MegaMenu> = {
     columns: [
       [
         { id: "aiReadiness", href: "/AI-Readiness-Assessment", isNew: true, featured: true },
-        { id: "docs", href: "#" },
-        { id: "reports", href: "#" },
+        { id: "docs", href: "https://docs.paapeli.com/" },
+        { id: "reports", href: "/AI-Readiness-Assessment/report" },
       ],
       [
-        { id: "blog", href: "#" },
-        { id: "guides", href: "#" },
+        { id: "blog", href: "https://paapeli.com/blog" },
+        { id: "guides", href: "https://docs.paapeli.com/docs/category/getting-started" },
       ],
     ],
   },
@@ -95,8 +107,8 @@ const MENU_COPY: Record<string, Record<string, { title: string; description: str
     smartAgriculture: { title: "Smart Agriculture", description: "Monitor environmental conditions, irrigation, and connected agricultural assets." },
     assetFleetTracking: { title: "Asset & Fleet Tracking", description: "Track vehicles, equipment, and mobile assets with real-time location and alerts." },
     energyMonitoring: { title: "Energy Monitoring", description: "Measure consumption, detect anomalies, and improve energy efficiency." },
-    developers: { title: "Developers", description: "Build industrial applications and integrations on top of the Paapeli platform." },
-    sdkApis: { title: "SDK & APIs", description: "Access APIs, SDKs, and integration tools for connecting devices, systems, and external services." },
+    developers: { title: "Developer APIs", description: "Build industrial applications and integrations on top of the Paapeli platform." },
+    sdkApis: { title: "SDKs", description: "Access SDKs and integration tools for connecting devices, systems, and external services." },
     partners: { title: "Partners", description: "Collaborate with Paapeli as a technology partner, system integrator, or hardware provider." },
     whiteLabel: { title: "White-Label Platform", description: "Launch your own branded industrial platform powered by Paapeli infrastructure." },
     github: { title: "GitHub", description: "Explore open-source components, code examples, and developer resources." },
@@ -104,7 +116,7 @@ const MENU_COPY: Record<string, Record<string, { title: string; description: str
     docs: { title: "Documentation", description: "Technical docs and implementation guides." },
     reports: { title: "Reports & Insights", description: "Industry reports and data-driven insights." },
     blog: { title: "Blog", description: "Industry insights and platform updates." },
-    guides: { title: "Guides", description: "Step-by-step guides to get you started." },
+    guides: { title: "Guide", description: "Step-by-step guides to get you started." },
   },
   fa: {
     aiotPlatform: { title: "پلتفرم AIoT", description: "پلتفرم ابری اینترنت اشیا مبتنی بر هوش مصنوعی" },
@@ -118,8 +130,8 @@ const MENU_COPY: Record<string, Record<string, { title: string; description: str
     smartAgriculture: { title: "کشاورزی هوشمند", description: "شرایط محیطی، آبیاری و تجهیزات کشاورزی متصل را پایش کنید" },
     assetFleetTracking: { title: "ردیابی ناوگان و دارایی‌ها", description: "خودروها، تجهیزات و دارایی‌های متحرک را با موقعیت لحظه‌ای و هشدار ردیابی کنید" },
     energyMonitoring: { title: "پایش انرژی", description: "مصرف را اندازه بگیرید، ناهنجاری‌ها را تشخیص دهید و بهره‌وری انرژی را بالا ببرید" },
-    developers: { title: "توسعه‌دهندگان", description: "ساخت اپلیکیشن‌ها و یکپارچه‌سازی‌های صنعتی روی پلتفرم پاپلی" },
-    sdkApis: { title: "SDK و APIها", description: "دسترسی به APIها، SDKها و ابزارهای یکپارچه‌سازی برای اتصال دستگاه‌ها، سامانه‌ها و سرویس‌های بیرونی" },
+    developers: { title: "API برای توسعه‌دهندگان", description: "ساخت اپلیکیشن‌ها و یکپارچه‌سازی‌های صنعتی روی پلتفرم پاپلی" },
+    sdkApis: { title: "SDK ها", description: "دسترسی به SDKها و ابزارهای یکپارچه‌سازی برای اتصال دستگاه‌ها، سامانه‌ها و سرویس‌های بیرونی" },
     partners: { title: "شرکا", description: "همکاری با پاپلی به‌عنوان شریک فناوری، مجری سامانه یا تأمین‌کنندهٔ سخت‌افزار" },
     whiteLabel: { title: "پلتفرم وایت‌لیبل", description: "راه‌اندازی پلتفرم صنعتی با برند خودتان، بر بستر زیرساخت پاپلی" },
     github: { title: "گیت‌هاب", description: "کاوش در کامپوننت‌های متن‌باز، نمونه‌کدها و منابع توسعه‌دهندگان" },
@@ -127,7 +139,7 @@ const MENU_COPY: Record<string, Record<string, { title: string; description: str
     docs: { title: "مستندات", description: "مستندات فنی و راهنمای پیاده‌سازی" },
     reports: { title: "گزارش‌ها و بینش‌ها", description: "گزارش‌های صنعتی و بینش‌های داده‌محور" },
     blog: { title: "بلاگ", description: "تحلیل‌های صنعتی و به‌روزرسانی‌های پلتفرم" },
-    guides: { title: "راهنماها", description: "راهنماهای گام‌به‌گام برای شروع کار" },
+    guides: { title: "راهنما", description: "راهنماهای گام‌به‌گام برای شروع کار" },
   },
   ar: {
     aiotPlatform: { title: "منصة AIoT", description: "منصة سحابية لإنترنت الأشياء مدعومة بالذكاء الاصطناعي" },
@@ -141,8 +153,8 @@ const MENU_COPY: Record<string, Record<string, { title: string; description: str
     smartAgriculture: { title: "الزراعة الذكية", description: "راقب الظروف البيئية والري والأصول الزراعية المتصلة" },
     assetFleetTracking: { title: "تتبع الأصول والأساطيل", description: "تتبع المركبات والمعدات والأصول المتنقلة بموقع لحظي وتنبيهات" },
     energyMonitoring: { title: "مراقبة الطاقة", description: "قِس الاستهلاك واكتشف الشذوذ وارفع كفاءة الطاقة" },
-    developers: { title: "المطورون", description: "بناء تطبيقات وتكاملات صناعية فوق منصة بابيلي" },
-    sdkApis: { title: "SDK وواجهات API", description: "الوصول إلى واجهات API وحِزم SDK وأدوات التكامل لربط الأجهزة والأنظمة والخدمات الخارجية" },
+    developers: { title: "واجهات API للمطورين", description: "بناء تطبيقات وتكاملات صناعية فوق منصة بابيلي" },
+    sdkApis: { title: "حِزم SDK", description: "الوصول إلى حِزم SDK وأدوات التكامل لربط الأجهزة والأنظمة والخدمات الخارجية" },
     partners: { title: "الشركاء", description: "التعاون مع بابيلي كشريك تقني أو مُكامِل أنظمة أو مزوّد أجهزة" },
     whiteLabel: { title: "منصة بعلامتك التجارية", description: "أطلق منصتك الصناعية بعلامتك التجارية اعتمادًا على بنية بابيلي" },
     github: { title: "GitHub", description: "استكشف المكونات مفتوحة المصدر وأمثلة الشيفرة وموارد المطورين" },
@@ -150,7 +162,7 @@ const MENU_COPY: Record<string, Record<string, { title: string; description: str
     docs: { title: "التوثيق", description: "وثائق تقنية وأدلة التنفيذ" },
     reports: { title: "التقارير والرؤى", description: "تقارير القطاع ورؤى قائمة على البيانات" },
     blog: { title: "المدونة", description: "رؤى الصناعة وتحديثات المنصة" },
-    guides: { title: "الأدلة", description: "أدلة خطوة بخطوة للبدء" },
+    guides: { title: "الدليل", description: "أدلة خطوة بخطوة للبدء" },
   },
 };
 
@@ -158,7 +170,7 @@ const MENU_COPY: Record<string, Record<string, { title: string; description: str
    Route hrefs are language-relative and get prefixed with the active
    locale (e.g. "/pricing" -> "/en/pricing") when rendered. */
 const NAV_ITEMS: { id: string; href?: string; menu?: keyof typeof MENUS }[] = [
-  { id: "platform", menu: "Platform" },
+  { id: "products", menu: "Products" },
   { id: "solution", menu: "Solution" },
   { id: "ecosystem", menu: "Ecosystem" },
   { id: "resources", menu: "Resources" },
@@ -169,17 +181,17 @@ const NAV_ITEMS: { id: string; href?: string; menu?: keyof typeof MENUS }[] = [
    translated copy exists. */
 const NAV_COPY: Record<string, Record<string, string>> = {
   en: {
-    platform: "Platform", solution: "Solution", ecosystem: "Ecosystem",
+    products: "Products", solution: "Solution", ecosystem: "Ecosystem",
     resources: "Resources", pricing: "Pricing",
     dashboard: "Dashboard", toggleMenu: "Toggle menu", newBadge: "New",
   },
   fa: {
-    platform: "پلتفرم", solution: "راهکارها", ecosystem: "اکوسیستم",
+    products: "محصولات", solution: "راهکارها", ecosystem: "اکوسیستم",
     resources: "منابع", pricing: "تعرفه‌ها",
     dashboard: "داشبورد", toggleMenu: "باز و بسته کردن منو", newBadge: "جدید",
   },
   ar: {
-    platform: "المنصة", solution: "الحلول", ecosystem: "النظام البيئي",
+    products: "المنتجات", solution: "الحلول", ecosystem: "النظام البيئي",
     resources: "المصادر", pricing: "الأسعار",
     dashboard: "لوحة التحكم", toggleMenu: "فتح القائمة", newBadge: "جديد",
   },
@@ -200,10 +212,15 @@ function MegaMenuItem({ item }: { item: MenuItem }) {
   const localize = (href: string) => (href.startsWith("/") ? `/${language}${href}` : href);
   const copy = (MENU_COPY[language] ?? MENU_COPY.en)[item.id];
   const newLabel = (NAV_COPY[language] ?? NAV_COPY.en).newBadge;
+  /* Docs, the API reference and GitHub live off-site, so they open beside
+     the marketing site instead of replacing it. */
+  const external = item.href.startsWith("http");
 
   return (
     <Link
       href={localize(item.href)}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noopener noreferrer" : undefined}
       className="group flex w-full flex-col gap-1 rounded-lg border border-transparent p-3 transition-colors hover:border-[#ffcda1] hover:bg-[#fff7f0]"
     >
       <p className="flex flex-wrap items-center gap-1.5 text-[15px] font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
@@ -221,66 +238,131 @@ function MegaMenuItem({ item }: { item: MenuItem }) {
   );
 }
 
-/* Promo card copy. Menus without their own entry fall back to `default`.
-   The left panel still shows a placeholder icon until the artwork lands. */
+/* The bold panel on the trailing edge of every mega menu. Each menu gets its
+   own pitch and its own destination, so the panel is the one place in the
+   menu that argues for something rather than just listing links. */
 const PROMO_COPY: Record<
   string,
   Record<string, { title: string; description: string; cta: string }>
 > = {
   en: {
-    Platform: {
+    Products: {
       title: "Build Intelligent Operations at Scale",
       description:
         "Connect devices, manage infrastructure, and turn operational data into AI-powered decisions.",
       cta: "Explore Platform",
     },
-    default: {
-      title: "Build your website fast",
+    Solution: {
+      title: "One platform, six industries",
       description:
-        "In today's fast-paced digital landscape, fostering seamless collaboration among Developers.",
-      cta: "Get started",
+        "Manufacturing, oil & gas, energy, buildings, fleet and agriculture, each with a solution template that is ready on day one.",
+      cta: "See the templates",
+    },
+    Ecosystem: {
+      title: "Build on Paapeli",
+      description:
+        "APIs, SDKs and a white-label platform for integrators who ship an industrial product under their own brand.",
+      cta: "Talk to Sales",
+    },
+    Resources: {
+      title: "How ready are you for AI?",
+      description:
+        "Seven dimensions, about 10 minutes, free. Get a score for your organisation and a plan for what to fix first.",
+      cta: "Start the assessment",
+    },
+    default: {
+      title: "Build Intelligent Operations at Scale",
+      description:
+        "Connect devices, manage infrastructure, and turn operational data into AI-powered decisions.",
+      cta: "Explore Platform",
     },
   },
   fa: {
-    Platform: {
+    Products: {
       title: "عملیات هوشمند را در مقیاس بسازید",
       description:
-        "دستگاه‌ها را متصل کنید، زیرساخت را مدیریت کنید و داده‌های عملیاتی را به تصمیم‌های مبتنی بر هوش مصنوعی تبدیل کنید.",
+        "دستگاه‌ها را متصل کنید، زیرساخت را مدیریت کنید و دادهٔ عملیاتی را به تصمیم‌های مبتنی بر هوش مصنوعی تبدیل کنید.",
       cta: "کاوش در پلتفرم",
     },
-    default: {
-      title: "وب‌سایت خود را سریع بسازید",
+    Solution: {
+      title: "یک پلتفرم، شش صنعت",
       description:
-        "در چشم‌انداز پرشتاب دیجیتال امروز، همکاری یکپارچه میان توسعه‌دهندگان را تقویت کنید.",
-      cta: "شروع کنید",
+        "تولید، نفت و گاز، انرژی، ساختمان، ناوگان و کشاورزی، هر یک با یک قالب راهکار که از روز اول آماده است.",
+      cta: "دیدن قالب‌ها",
+    },
+    Ecosystem: {
+      title: "روی پاپلی بسازید",
+      description:
+        "APIها، SDKها و پلتفرم وایت‌لیبل، برای مجریانی که محصول صنعتی را با برند خودشان عرضه می‌کنند.",
+      cta: "تماس با فروش",
+    },
+    Resources: {
+      title: "چقدر برای هوش مصنوعی آماده‌اید؟",
+      description:
+        "هفت بُعد، حدود ۱۰ دقیقه، رایگان. امتیاز سازمان خود و برنامه‌ای برای اینکه از کجا شروع کنید بگیرید.",
+      cta: "شروع ارزیابی",
+    },
+    default: {
+      title: "عملیات هوشمند را در مقیاس بسازید",
+      description:
+        "دستگاه‌ها را متصل کنید، زیرساخت را مدیریت کنید و دادهٔ عملیاتی را به تصمیم‌های مبتنی بر هوش مصنوعی تبدیل کنید.",
+      cta: "کاوش در پلتفرم",
     },
   },
   ar: {
-    Platform: {
+    Products: {
       title: "ابنِ عمليات ذكية على نطاق واسع",
       description:
         "اربط الأجهزة، وأدِر البنية التحتية، وحوّل البيانات التشغيلية إلى قرارات مدعومة بالذكاء الاصطناعي.",
       cta: "استكشف المنصة",
     },
-    default: {
-      title: "أنشئ موقعك بسرعة",
+    Solution: {
+      title: "منصة واحدة وست صناعات",
       description:
-        "في المشهد الرقمي سريع الإيقاع اليوم، عزّز التعاون السلس بين المطورين.",
-      cta: "ابدأ الآن",
+        "التصنيع والنفط والغاز والطاقة والمباني والأساطيل والزراعة، لكل منها قالب حل جاهز من اليوم الأول.",
+      cta: "شاهد القوالب",
+    },
+    Ecosystem: {
+      title: "ابنِ على بابيلي",
+      description:
+        "واجهات API وحِزم SDK ومنصة بعلامتك التجارية، للمُكامِلين الذين يقدّمون منتجًا صناعيًا باسمهم.",
+      cta: "تحدّث إلى المبيعات",
+    },
+    Resources: {
+      title: "ما مدى جاهزيتك للذكاء الاصطناعي؟",
+      description:
+        "سبعة أبعاد، نحو 10 دقائق، مجانًا. احصل على درجة مؤسستك وخطة لما يجب إصلاحه أولًا.",
+      cta: "ابدأ التقييم",
+    },
+    default: {
+      title: "ابنِ عمليات ذكية على نطاق واسع",
+      description:
+        "اربط الأجهزة، وأدِر البنية التحتية، وحوّل البيانات التشغيلية إلى قرارات مدعومة بالذكاء الاصطناعي.",
+      cta: "استكشف المنصة",
     },
   },
+};
+
+/* Where each promo actually goes, and the icon that heads it. */
+const PROMO_LINK: Record<string, { href: string; icon: LucideIcon }> = {
+  Products: { href: "/aiot-platform", icon: Boxes },
+  Solution: { href: "/features/solution-templates", icon: LayoutTemplate },
+  Ecosystem: { href: "/contact", icon: Blocks },
+  Resources: { href: "/AI-Readiness-Assessment", icon: Sparkles },
 };
 
 function PromoCard({ menuKey }: { menuKey: keyof typeof MENUS }) {
   const { language } = useLanguage();
   const table = PROMO_COPY[language] ?? PROMO_COPY.en;
   const copy = table[menuKey as string] ?? table.default;
+  const link = PROMO_LINK[menuKey as string] ?? PROMO_LINK.Products;
+  const Icon = link.icon;
 
   return (
     <aside className="hidden w-[280px] shrink-0 self-stretch xl:block">
       <div className="flex h-full flex-col items-start gap-4 rounded-xl border border-[#e5e7eb] bg-[#fbfcfd] p-6">
         <span className="flex size-11 items-center justify-center rounded-xl bg-[#fff1e6]">
-          <Sparkles className="size-5 text-primary" />
+          <Icon className="size-5 text-primary" />
         </span>
         <div className="flex flex-col gap-2">
           <p className="text-base font-semibold leading-snug text-foreground">{copy.title}</p>
@@ -289,7 +371,7 @@ function PromoCard({ menuKey }: { menuKey: keyof typeof MENUS }) {
           </p>
         </div>
         <Link
-          href="#"
+          href={`/${language}${link.href}`}
           className="mt-auto inline-flex h-9 items-center gap-1.5 rounded-full border border-primary px-4 text-[13px] font-medium text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
         >
           {copy.cta}
@@ -507,9 +589,10 @@ export const LandingNavbar = ({ overlay = false }: { overlay?: boolean }) => {
 
         {/* Right side */}
         <div className="ml-auto flex items-center gap-3 lg:ml-0">
-          {/* Full navigation so the host redirects to the panel login on 8080. */}
+          {/* The dashboard is another origin, so this has to be a full
+              navigation. Signed-out visitors get its login screen first. */}
           <a
-            href="/login"
+            href={PANEL_URL}
             className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-[0px_1px_0.25px_rgba(29,41,61,0.02)] transition-colors hover:bg-primary/90"
           >
             {nav.dashboard}

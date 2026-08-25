@@ -32,7 +32,21 @@ const DDoSProtection = () => {
     }
   ];
 
-  const firstOnlineText = language === 'en' 
+  /* The hero used to print the navigation tooltip, which read as a fragment
+     under a heading that already said the same thing. This is real copy. */
+  const heroLead =
+    language === 'en'
+      ? "Keep the platform reachable when the traffic turns hostile. Volumetric and application-layer attacks are absorbed at the edge, so your devices stay connected and the panel stays available."
+      : language === 'fa'
+      ? "وقتی ترافیک خصمانه می‌شود، پلتفرم را در دسترس نگه دارید. حملات حجمی و حملات لایهٔ کاربرد در لبه جذب می‌شوند، پس دستگاه‌های شما متصل و پنل در دسترس می‌ماند."
+      : "أبقِ المنصة متاحة حين تصبح حركة المرور عدائية. تُمتص الهجمات الحجمية وهجمات طبقة التطبيق عند الحافة، فتبقى أجهزتك متصلة وتبقى اللوحة متاحة.";
+
+  const ctaPrimary =
+    language === 'en' ? "Request Demo" : language === 'fa' ? "درخواست دمو" : "طلب عرض توضيحي";
+  const ctaSecondary =
+    language === 'en' ? "Talk to Sales" : language === 'fa' ? "تماس با فروش" : "تحدّث إلى المبيعات";
+
+  const firstOnlineText = language === 'en'
     ? "First Online Platform with DDoS Protection" 
     : language === 'fa' 
     ? "اولین پلتفرم آنلاین با محافظت DDoS" 
@@ -53,11 +67,15 @@ const DDoSProtection = () => {
               {t('ddosProtection')}
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
-              {t('ddosProtectionNavDesc')}
+              {heroLead}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg">Get Protected Now</Button>
-              <Button size="lg" variant="outline">Learn More</Button>
+              <Button size="lg" asChild>
+                <a href={`/${language}/contact?from=ddos-protection`}>{ctaPrimary}</a>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                <a href={`/${language}/contact`}>{ctaSecondary}</a>
+              </Button>
             </div>
           </div>
         </div>
@@ -94,7 +112,9 @@ const DDoSProtection = () => {
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             {language === 'en' ? "Don't let DDoS attacks disrupt your operations" : language === 'fa' ? "اجازه ندهید حملات DDoS عملیات شما را مختل کنند" : "لا تدع هجمات DDoS تعطل عملياتك"}
           </p>
-          <Button size="lg">Start Free Trial</Button>
+          <Button size="lg" asChild>
+            <a href={`/${language}/contact?from=ddos-protection`}>{ctaPrimary}</a>
+          </Button>
         </div>
       </section>
     </div>

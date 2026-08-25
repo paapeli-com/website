@@ -8,6 +8,10 @@ import { CircleCheck } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 import industryManufacturing from "@/src/assets/industry-manufacturing.jpg";
+import industryOilGas from "@/src/assets/industry-oil-gas.jpg";
+import industrySmartInfrastructure from "@/src/assets/industry-smart-infrastructure.jpg";
+import industryFleetTracking from "@/src/assets/industry-fleet-tracking.jpg";
+import industrySmartAgriculture from "@/src/assets/industry-smart-agriculture.jpg";
 
 /* ------------------------------------------------------------------ */
 /* Industries (tabbed). Figma only specifies the "Manufacturing" tab;  */
@@ -18,9 +22,10 @@ import industryManufacturing from "@/src/assets/industry-manufacturing.jpg";
 /* One image per tab, in the same order as the copy below. */
 const TAB_IMAGES: StaticImageData[] = [
   industryManufacturing,
-  industryManufacturing,
-  industryManufacturing,
-  industryManufacturing,
+  industryOilGas,
+  industrySmartInfrastructure,
+  industryFleetTracking,
+  industrySmartAgriculture,
 ];
 
 type Industry = {
@@ -60,16 +65,6 @@ const COPY: Record<string, Copy> = {
         ],
       },
       {
-        tab: "Energy & Utilities",
-        heading: "Balance supply and demand with confidence",
-        description: "Connect grid assets and metering infrastructure to improve reliability, reduce losses, and respond to demand changes in real time.",
-        features: [
-          { title: "Grid visibility", description: "Monitor distribution assets and consumption patterns across the network in real time." },
-          { title: "Outage prevention", description: "Predict faults and prioritize maintenance to minimize service interruptions." },
-          { title: "Demand optimization", description: "Use data-driven insights to balance load and reduce operational losses." },
-        ],
-      },
-      {
         tab: "Smart Infrastructure",
         heading: "Make buildings and facilities run smarter",
         description: "Bring HVAC, energy, and safety systems into one platform to cut costs, improve comfort, and extend the life of critical infrastructure.",
@@ -77,6 +72,26 @@ const COPY: Record<string, Copy> = {
           { title: "Unified building data", description: "Connect disparate systems into a single operational view across every facility." },
           { title: "Energy efficiency", description: "Identify waste and optimize consumption to reduce costs and carbon footprint." },
           { title: "Proactive maintenance", description: "Detect issues before they escalate and keep critical systems running reliably." },
+        ],
+      },
+      {
+        tab: "Asset & Fleet Tracking",
+        heading: "Know where every asset is, and how it is doing",
+        description: "Follow vehicles, equipment, and mobile assets across sites with live location, geofences, and alerts that reach the right people.",
+        features: [
+          { title: "Live location", description: "Follow elderly family members, vehicles, and even pets across every site on a single map." },
+          { title: "Geofence alerts", description: "Know the moment an asset leaves or enters an area you care about." },
+          { title: "Utilisation insight", description: "See what is working, what is idle, and what is due for servicing." },
+        ],
+      },
+      {
+        tab: "Smart Agriculture",
+        heading: "Grow more with less guesswork",
+        description: "Monitor climate, soil, and irrigation across greenhouses and fields, and act on what the sensors are actually telling you.",
+        features: [
+          { title: "Climate monitoring", description: "Track temperature, humidity, and light in every growing zone." },
+          { title: "Irrigation control", description: "Water on data rather than on a fixed schedule." },
+          { title: "Crop protection", description: "Catch stress conditions early, before they cost you a harvest." },
         ],
       },
     ],
@@ -108,16 +123,6 @@ const COPY: Record<string, Copy> = {
         ],
       },
       {
-        tab: "انرژی و خدمات شهری",
-        heading: "عرضه و تقاضا را با اطمینان متعادل کنید",
-        description: "دارایی‌های شبکه و زیرساخت کنتورخوانی را متصل کنید تا قابلیت اطمینان بالا برود، تلفات کم شود و لحظه‌ای به تغییر تقاضا پاسخ دهید",
-        features: [
-          { title: "دید شبکه", description: "دارایی‌های توزیع و الگوهای مصرف را در کل شبکه لحظه‌ای پایش کنید" },
-          { title: "پیشگیری از قطعی", description: "خطاها را پیش‌بینی و نگهداری را اولویت‌بندی کنید تا وقفهٔ خدمات کمینه شود" },
-          { title: "بهینه‌سازی تقاضا", description: "با تحلیل داده‌محور، بار را متعادل و تلفات عملیاتی را کم کنید" },
-        ],
-      },
-      {
         tab: "زیرساخت هوشمند",
         heading: "ساختمان‌ها و تأسیسات را هوشمندتر اداره کنید",
         description: "سامانه‌های تهویه، انرژی و ایمنی را در یک پلتفرم گرد هم بیاورید تا هزینه کم شود، آسایش بالا برود و عمر زیرساخت حیاتی بیشتر شود",
@@ -125,6 +130,26 @@ const COPY: Record<string, Copy> = {
           { title: "دادهٔ یکپارچهٔ ساختمان", description: "سامانه‌های پراکنده را در یک نمای عملیاتی واحد برای هر ساختمان به هم وصل کنید" },
           { title: "بهره‌وری انرژی", description: "اتلاف را شناسایی و مصرف را بهینه کنید تا هزینه و ردپای کربن کم شود" },
           { title: "نگهداری پیشگیرانه", description: "مشکلات را پیش از بحرانی شدن تشخیص دهید و سامانه‌های حیاتی را پایدار نگه دارید" },
+        ],
+      },
+      {
+        tab: "ردیابی ناوگان و دارایی‌ها",
+        heading: "بدانید هر دارایی کجاست و در چه وضعیتی است",
+        description: "خودروها، تجهیزات و دارایی‌های متحرک را در همهٔ سایت‌ها با موقعیت زنده، ژئوفنس و هشدارهایی که به دست فرد درست می‌رسد دنبال کنید",
+        features: [
+          { title: "موقعیت زنده", description: "سالمندان، خودروها و حتی حیوانات خانگی را در همهٔ سایت‌ها روی یک نقشه دنبال کنید" },
+          { title: "هشدار ژئوفنس", description: "همان لحظه که دارایی از محدودهٔ موردنظر خارج یا وارد شد باخبر شوید" },
+          { title: "بینش بهره‌برداری", description: "ببینید چه چیزی کار می‌کند، چه چیزی بیکار است و چه چیزی نوبت سرویسش رسیده" },
+        ],
+      },
+      {
+        tab: "کشاورزی هوشمند",
+        heading: "بیشتر برداشت کنید، کمتر حدس بزنید",
+        description: "اقلیم، خاک و آبیاری را در گلخانه‌ها و مزارع پایش کنید و بر پایهٔ چیزی که حسگرها واقعاً می‌گویند تصمیم بگیرید",
+        features: [
+          { title: "پایش اقلیم", description: "دما، رطوبت و نور را در هر ناحیهٔ کشت دنبال کنید" },
+          { title: "کنترل آبیاری", description: "بر پایهٔ داده آبیاری کنید، نه بر پایهٔ زمان‌بندی ثابت" },
+          { title: "حفاظت از محصول", description: "شرایط تنش را زود تشخیص دهید، پیش از آنکه به برداشت آسیب بزند" },
         ],
       },
     ],
@@ -156,16 +181,6 @@ const COPY: Record<string, Copy> = {
         ],
       },
       {
-        tab: "الطاقة والمرافق",
-        heading: "وازِن بين العرض والطلب بثقة",
-        description: "اربط أصول الشبكة والبنية التحتية للقياس لرفع الموثوقية وتقليل الفاقد والاستجابة لتغيرات الطلب لحظيًا",
-        features: [
-          { title: "رؤية الشبكة", description: "راقب أصول التوزيع وأنماط الاستهلاك عبر الشبكة لحظيًا" },
-          { title: "منع الانقطاعات", description: "تنبّأ بالأعطال ورتّب أولويات الصيانة لتقليل انقطاع الخدمة" },
-          { title: "تحسين الطلب", description: "استخدم رؤى قائمة على البيانات لموازنة الحمل وتقليل الفاقد التشغيلي" },
-        ],
-      },
-      {
         tab: "البنية التحتية الذكية",
         heading: "أدِر المباني والمنشآت بذكاء أكبر",
         description: "اجمع أنظمة التكييف والطاقة والسلامة في منصة واحدة لخفض التكاليف وتحسين الراحة وإطالة عمر البنية التحتية الحرجة",
@@ -173,6 +188,26 @@ const COPY: Record<string, Copy> = {
           { title: "بيانات مبنى موحدة", description: "اربط الأنظمة المتفرقة في رؤية تشغيلية واحدة لكل منشأة" },
           { title: "كفاءة الطاقة", description: "حدّد الهدر وحسّن الاستهلاك لخفض التكاليف والبصمة الكربونية" },
           { title: "صيانة استباقية", description: "اكتشف المشكلات قبل تفاقمها وحافظ على تشغيل الأنظمة الحرجة بثبات" },
+        ],
+      },
+      {
+        tab: "تتبع الأصول والأساطيل",
+        heading: "اعرف أين كل أصل وما حالته",
+        description: "تابع المركبات والمعدات والأصول المتنقلة عبر المواقع بموقع لحظي وسياج جغرافي وتنبيهات تصل إلى الشخص المناسب",
+        features: [
+          { title: "موقع لحظي", description: "تابع كبار السن والمركبات وحتى الحيوانات الأليفة عبر كل المواقع على خريطة واحدة" },
+          { title: "تنبيهات السياج الجغرافي", description: "اعرف لحظة خروج أصل من منطقة تهمك أو دخوله إليها" },
+          { title: "رؤية الاستخدام", description: "اعرف ما يعمل وما هو متوقف وما حان موعد صيانته" },
+        ],
+      },
+      {
+        tab: "الزراعة الذكية",
+        heading: "احصد أكثر بتخمين أقل",
+        description: "راقب المناخ والتربة والري في البيوت المحمية والحقول، واتخذ قرارك بناءً على ما تقوله المستشعرات فعليًا",
+        features: [
+          { title: "مراقبة المناخ", description: "تابع الحرارة والرطوبة والإضاءة في كل منطقة زراعية" },
+          { title: "التحكم في الري", description: "اسقِ بناءً على البيانات لا على جدول ثابت" },
+          { title: "حماية المحصول", description: "اكتشف ظروف الإجهاد مبكرًا قبل أن تكلفك الموسم" },
         ],
       },
     ],
@@ -187,7 +222,7 @@ export const IndustriesSection = () => {
   return (
     <section
       dir={isRTL ? "rtl" : "ltr"}
-      className="flex w-full flex-col items-center gap-10 bg-white px-6 py-14 sm:gap-12 sm:py-20"
+      className="flex w-full flex-col items-center gap-8 bg-white px-6 py-10 sm:gap-10 sm:py-14"
     >
       {/* Block heading */}
       <div className="flex w-full max-w-[768px] flex-col items-center gap-4 text-center">
@@ -207,6 +242,7 @@ export const IndustriesSection = () => {
               <button
                 key={industry.tab}
                 type="button"
+                aria-current={isActive}
                 onClick={() => setActiveTab(i)}
                 className={cn(
                   "-mb-px shrink-0 whitespace-nowrap border-b pb-4 text-sm font-medium transition-colors",
@@ -238,6 +274,7 @@ export const IndustriesSection = () => {
 
           <div className="relative aspect-[600/332] w-full flex-1 overflow-hidden rounded-xl border border-[#e5e7eb] shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)] lg:aspect-auto lg:h-[332px]">
             <Image
+              key={activeTab}
               src={TAB_IMAGES[activeTab]}
               alt={active.tab}
               fill
@@ -256,7 +293,7 @@ export const IndustriesSection = () => {
               <CircleCheck className="size-7 shrink-0 text-primary" />
               <div className="flex flex-col gap-2.5">
                 <p className="text-xl font-semibold text-foreground rtl:text-lg">{feature.title}</p>
-                <p className="text-sm text-muted-foreground rtl:text-[13px]">{feature.description}</p>
+                <p className="text-base text-muted-foreground rtl:text-sm">{feature.description}</p>
               </div>
             </div>
           ))}

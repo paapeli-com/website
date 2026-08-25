@@ -1,6 +1,7 @@
 'use client';
 
-import { TrendingDown, DollarSign, TrendingUp, BarChart3 } from "lucide-react";
+import { TrendingDown, DollarSign, TrendingUp } from "lucide-react";
+import { CountUp } from "@/components/CountUp";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export const PredictiveMaintenanceStats = () => {
@@ -41,7 +42,7 @@ export const PredictiveMaintenanceStats = () => {
               {language === 'fa' && 'نگهداری پیش‌بینی‌کننده با AIoT'}
               {language === 'ar' && 'الصيانة التنبؤية مع AIoT'}
             </h3>
-            
+
             <div className="space-y-6">
               {stats.map((stat, index) => (
                 <div key={index} className="flex items-center gap-4 border-t border-white/20 pt-6 first:border-t-0 first:pt-0">
@@ -55,7 +56,10 @@ export const PredictiveMaintenanceStats = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-white/70 text-sm">{stat.prefix}</p>
-                    <p className="text-3xl md:text-4xl font-bold text-primary">{stat.value}</p>
+                    {/* The figure is the point of the row, so it is set large. */}
+                    <p className="!text-5xl md:!text-7xl font-black text-primary leading-none tracking-tight">
+                      <CountUp value={stat.value} />
+                    </p>
                   </div>
                 </div>
               ))}
@@ -64,19 +68,16 @@ export const PredictiveMaintenanceStats = () => {
 
           {/* Right Side - ROI Highlight */}
           <div className="bg-background border-2 border-border rounded-2xl p-8 md:p-10 text-center">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <BarChart3 className="h-8 w-8 text-muted-foreground" />
-            </div>
             <h3 className="text-xl md:text-2xl font-semibold text-foreground mb-6">
-              {language === 'en' && 'AI predictive maintenance delivers about'}
-              {language === 'fa' && 'نگهداری پیش‌بینی‌کننده هوش مصنوعی تقریباً ارائه می‌دهد'}
-              {language === 'ar' && 'تقدم الصيانة التنبؤية بالذكاء الاصطناعي حوالي'}
+              {language === 'en' && 'Approximate return on investment with AI predictive maintenance'}
+              {language === 'fa' && 'بازگشت سرمایهٔ تقریبی با نگهداری پیش‌بینانهٔ هوش مصنوعی'}
+              {language === 'ar' && 'العائد التقريبي على الاستثمار مع الصيانة التنبؤية بالذكاء الاصطناعي'}
             </h3>
-            
-            <p className="text-6xl md:text-7xl font-bold text-primary mb-4">
-              250% ROI
+
+            <p className="!text-8xl md:!text-9xl font-black text-primary mb-4 leading-none tracking-tighter">
+              <CountUp value="250% ROI" duration={2000} />
             </p>
-            
+
             <p className="text-xl md:text-2xl font-semibold text-foreground">
               {language === 'en' && 'Returning over twice the investment'}
               {language === 'fa' && 'بازگشت بیش از دو برابر سرمایه'}

@@ -3,22 +3,17 @@
 import Image, { type StaticImageData } from "next/image";
 
 import { useLanguage } from "@/contexts/LanguageContext";
-import assetConnectivity from "@/src/assets/Asset-Connectivity.png";
-import activeProduction from "@/src/assets/Active-production.png";
-import pumpOptimization from "@/src/assets/Industrial-Pump-Flow-Optimization.png";
-import aiPrecisionArm from "@/src/assets/AI-precision-arm.png";
+import cardConnect from "@/src/assets/vc2-1-connect.jpg";
+import cardRealtime from "@/src/assets/vc2-2-realtime.jpg";
+import cardOptimize from "@/src/assets/vc2-3-optimize.jpg";
+import cardAi from "@/src/assets/vc2-4-ai.jpg";
 
 /* ------------------------------------------------------------------ */
-/* Four equal cards on one row: accent rule, illustration, then copy.  */
-/* Compact by design, so the section stays short on desktop.           */
+/* Four equal cards on one row: a full-bleed image, then the copy.     */
+/* The artwork is 4:3 and gets centre-cropped to the 2:1 card window.  */
 /* ------------------------------------------------------------------ */
 
-const CARD_IMAGES: StaticImageData[] = [
-  assetConnectivity,
-  activeProduction,
-  pumpOptimization,
-  aiPrecisionArm,
-];
+const CARD_IMAGES: StaticImageData[] = [cardConnect, cardRealtime, cardOptimize, cardAi];
 
 type Copy = {
   heading: string;
@@ -55,9 +50,9 @@ const COPY: Record<string, Copy> = {
     ],
   },
   fa: {
-    heading: "عملکرد را در سراسر عملیات خود ارتقا دهید",
+    heading: "عملکرد را در سراسر زیرساخت خود ارتقا دهید",
     subheading:
-      "هر دارایی را متصل کنید، لحظه‌ای واکنش نشان دهید و عملکرد صنعتی را پیوسته بهبود دهید",
+      "هر دستگاهی را متصل کنید، لحظه‌ای واکنش نشان دهید و عملکرد صنعتی را پیوسته به کمک هوش مصنوعی بهبود دهید",
     cards: [
       {
         title: "اتصال تجهیزات",
@@ -117,36 +112,33 @@ export const FeaturesSection = () => {
   return (
     <section
       dir={isRTL ? "rtl" : "ltr"}
-      className="flex w-full flex-col items-center gap-8 bg-white px-6 py-12 sm:gap-10 sm:py-16"
+      className="flex w-full flex-col items-center gap-7 bg-white px-6 py-10 sm:gap-8 sm:py-12"
     >
-      <div className="flex w-full max-w-[760px] flex-col items-center gap-3 text-center">
+      <div className="flex w-full max-w-[880px] flex-col items-center gap-3 text-center">
         <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{copy.heading}</h2>
-        <p className="text-base text-muted-foreground">{copy.subheading}</p>
+        <p className="text-base text-muted-foreground rtl:text-[15px]">{copy.subheading}</p>
       </div>
 
       <div className="grid w-full max-w-[1240px] gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {copy.cards.map((card, i) => (
           <article
             key={card.title}
-            className="flex flex-col gap-4 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-5"
+            className="flex flex-col overflow-hidden rounded-xl border border-[#e5e7eb] bg-white"
           >
-            {/* Accent rule, sits on the reading edge in both directions. */}
-            <span aria-hidden className="h-1 w-7 rounded-full bg-primary" />
-
-            <div className="relative h-[132px] w-full">
+            <div className="relative aspect-[2/1] w-full bg-[#0b1729]">
               <Image
                 src={CARD_IMAGES[i]}
                 alt=""
                 aria-hidden
                 fill
                 sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 290px"
-                className="object-contain"
+                className="object-cover"
               />
             </div>
 
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 p-5">
               <h3 className="text-lg font-semibold text-foreground rtl:text-base">{card.title}</h3>
-              <p className="text-sm leading-snug text-muted-foreground rtl:text-[13px]">{card.description}</p>
+              <p className="text-base leading-snug text-muted-foreground rtl:text-sm">{card.description}</p>
             </div>
           </article>
         ))}

@@ -128,17 +128,17 @@ export const researchQuotes = [
   {
     title: 'Scale نیازمند تغییر سازمانی است',
     body: 'مقیاس‌دهی AI صرفاً یک rollout فنی نیست؛ به governance، change management و مدل عملیاتی و KPI مناسب نیاز دارد.',
-    source: "McKinsey — Moving past gen AI's honeymoon phase, 2024",
+    source: "McKinsey, Moving past gen AI's honeymoon phase, 2024",
   },
   {
     title: 'ارزش از بازطراحی می‌آید',
     body: 'Deploy کردن ابزار به‌تنهایی کافی نیست؛ سازمان‌هایی که workflowها را بازطراحی می‌کنند، شانس بیشتری برای خلق ارزش دارند.',
-    source: 'McKinsey — The state of AI, 2025',
+    source: 'McKinsey, The state of AI, 2025',
   },
   {
     title: 'AI فقط ابزار بهره‌وری نیست',
     body: 'شرکت‌های پیشرو از AI هم برای efficiency و هم برای effectiveness استفاده می‌کنند؛ یعنی هم سریع‌تر می‌شوند و هم بهتر تصمیم می‌گیرند.',
-    source: 'McKinsey — Growth favors the bold, 2026',
+    source: 'McKinsey, Growth favors the bold, 2026',
   },
 ];
 

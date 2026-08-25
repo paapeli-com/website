@@ -1,14 +1,18 @@
 "use client";
 
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ChevronRight } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
+import { PANEL_URL } from "@/lib/panel";
+import { HOW_IT_WORKS_ID, glideToSection } from "@/lib/scroll-to-section";
 
 /* ------------------------------------------------------------------ */
 /* Hero section: full-bleed network photo, centred copy on top. The    */
-/* announcement pill links to the INOTEX 2026 campaign landing.        */
+/* announcement pill links to the INOTEX 2026 campaign landing, and    */
+/* "Learn More" glides down to the product video.                      */
 /* ------------------------------------------------------------------ */
 
 /** Route for the INOTEX 2026 campaign landing, prefixed with the locale. */
@@ -57,6 +61,34 @@ const COPY: Record<
 export const HeroSection = () => {
   const { isRTL, language } = useLanguage();
   const copy = COPY[language] ?? COPY.en;
+  const headlineRef = useRef<HTMLHeadingElement>(null);
+  const pillRef = useRef<HTMLAnchorElement>(null);
+  const [pillOffset, setPillOffset] = useState(0);
+
+  const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+  useIsomorphicLayoutEffect(() => {
+    const headline = headlineRef.current;
+    if (!headline) return;
+
+    const measure = () => {
+      const range = document.createRange();
+      range.selectNodeContents(headline);
+      const lines = range.getClientRects();
+      if (!lines.length) return;
+      const block = headline.getBoundingClientRect();
+      const first = lines[0];
+      /* how far the first line sits inside the block, on the reading side */
+      const inset = isRTL ? block.right - first.right : first.left - block.left;
+      const room = block.width - (pillRef.current?.offsetWidth ?? 0);
+      setPillOffset(Math.max(0, Math.min(Math.round(inset), Math.round(room))));
+    };
+
+    measure();
+    window.addEventListener("resize", measure);
+    /* the web font lands after first paint and changes the line breaks */
+    document.fonts?.ready.then(measure).catch(() => {});
+    return () => window.removeEventListener("resize", measure);
+  }, [isRTL, copy.title, copy.description]);
 
   return (
     <section
@@ -94,11 +126,10 @@ export const HeroSection = () => {
         <div className="flex w-fit max-w-full flex-col items-start gap-5">
           {/* Announcement pill */}
           <Link
+            ref={pillRef}
+            style={{ marginInlineStart: pillOffset }}
             href={`/${language}${INOTEX_PATH}`}
-            /* On wide LTR screens the headline is two centred lines, so its first
-               line starts ~150px inside the block. Nudge the pill over to sit above
-               it. RTL headlines are a single line and already line up. */
-            className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 py-1 pl-1 pr-2 backdrop-blur-sm transition-colors hover:bg-white/20 rtl:pl-2 rtl:pr-1 lg:ltr:ms-[150px]"
+            className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 py-1 pl-1 pr-2 backdrop-blur-sm transition-colors hover:bg-white/20 rtl:pl-2 rtl:pr-1"
           >
             <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
               {copy.badge}
@@ -109,29 +140,36 @@ export const HeroSection = () => {
             </span>
           </Link>
 
-          <h1 className="text-balance text-center text-3xl font-bold leading-[1.15] text-white sm:text-4xl lg:text-5xl">
+          <h1 ref={headlineRef} className="text-balance text-center text-3xl font-bold leading-[1.15] text-white sm:text-4xl lg:text-5xl">
             {copy.title}
           </h1>
         </div>
 
-        <p className="max-w-[680px] text-base leading-relaxed text-white/80 sm:text-lg">
+        <p className="max-w-[680px] text-base leading-relaxed text-white/80 sm:text-lg rtl:sm:text-[17px]">
           {copy.description}
         </p>
 
         <div className="mt-2 flex flex-wrap items-center justify-center gap-4">
-          <Link
-            href="#"
+          {/* Straight to the dashboard on its own host, so it has to be a full
+              navigation rather than a client-side route. */}
+          <a
+            href={PANEL_URL}
             className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-base font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             {copy.primary}
             <ArrowRight className="size-4 rtl:rotate-180" />
-          </Link>
-          <Link
-            href="#"
+          </a>
+          {/* Plain anchor: without JS it still jumps to the section, and the
+              handler only upgrades that jump to an eased glide. */}
+          <a
+            href={`#${HOW_IT_WORKS_ID}`}
+            onClick={(event) => {
+              if (glideToSection(HOW_IT_WORKS_ID)) event.preventDefault();
+            }}
             className="inline-flex h-12 items-center justify-center rounded-lg border border-white/30 bg-white/10 px-6 text-base font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/20"
           >
             {copy.secondary}
-          </Link>
+          </a>
         </div>
       </div>
     </section>

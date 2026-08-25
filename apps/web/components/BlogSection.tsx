@@ -38,7 +38,7 @@ const COPY: Record<string, Copy> = {
   en: {
     heading: "Explore insights, real-world use cases, and best practices in AIoT.",
     subheading: "Learn how to turn data into operational value and scale your industrial systems.",
-    viewMore: "View more",
+    viewMore: "Read Blog",
     readMore: "Read more",
     date: "March 26, 2020",
     featured: {
@@ -54,7 +54,7 @@ const COPY: Record<string, Copy> = {
   fa: {
     heading: "بینش‌ها، کاربردهای واقعی و بهترین شیوه‌ها در AIoT را کشف کنید",
     subheading: "یاد بگیرید چطور داده را به ارزش عملیاتی تبدیل کنید و سامانه‌های صنعتی خود را مقیاس دهید",
-    viewMore: "موارد بیشتر",
+    viewMore: "بلاگ پاپلی را بخوانید",
     readMore: "ادامهٔ مطلب",
     date: "۲۶ مارس ۲۰۲۰",
     featured: {
@@ -70,7 +70,7 @@ const COPY: Record<string, Copy> = {
   ar: {
     heading: "استكشف الرؤى وحالات الاستخدام الواقعية وأفضل الممارسات في AIoT",
     subheading: "تعلّم كيف تحوّل البيانات إلى قيمة تشغيلية وتوسّع أنظمتك الصناعية",
-    viewMore: "عرض المزيد",
+    viewMore: "اقرأ مدونة بابيلي",
     readMore: "اقرأ المزيد",
     date: "26 مارس 2020",
     featured: {
@@ -131,7 +131,7 @@ export const BlogSection = () => {
   return (
     <section
       dir={isRTL ? "rtl" : "ltr"}
-      className="flex w-full flex-col items-center bg-white px-6 pb-10 pt-14 sm:pt-20"
+      className="flex w-full flex-col items-center border-y border-[#eef0f3] bg-[#f8fafc] px-6 pb-12 pt-12 sm:pb-16 sm:pt-16"
     >
       <div className="flex w-full max-w-[1280px] flex-col items-start gap-12">
         {/* Heading + View more */}

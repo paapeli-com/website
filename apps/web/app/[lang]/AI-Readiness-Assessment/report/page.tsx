@@ -16,7 +16,7 @@ import {
 import { highlights, report } from '@/components/ai-readiness/report/content';
 
 const URL = `https://www.paapeli.com${AI_BASE}/report`;
-const TITLE = 'گزارش جامع وضعیت هوش مصنوعی در ایران — شماره ۰ | Paapeli × Rayka';
+const TITLE = 'گزارش جامع وضعیت هوش مصنوعی در ایران، شماره ۰ | Paapeli × Rayka';
 const DESCRIPTION =
   'مروری مدیریتی بر روندهای جهانی AI، مسیر تحول دیجیتال و وضعیت فعلی هوش مصنوعی در ایران: نفوذ در صنایع، زیرساخت، چالش‌ها و فرصت‌ها. دریافت رایگان نسخه PDF.';
 

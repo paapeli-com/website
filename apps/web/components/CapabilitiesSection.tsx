@@ -1,27 +1,45 @@
 "use client";
 
 import Image, { type StaticImageData } from "next/image";
+import Link from "next/link";
 
 import { useLanguage } from "@/contexts/LanguageContext";
-import capCompass from "@/src/assets/cap-compass.png";
-import capGears from "@/src/assets/cap-gears.png";
-import capRocket from "@/src/assets/cap-rocket.png";
-import capClipboard from "@/src/assets/cap-clipboard.png";
+import { featureHref, type FeatureSlug } from "@/lib/site-links";
+import capDeployment from "@/src/assets/card-4-deployment.png";
+import capDevices from "@/src/assets/card-3-devices-gateway.png";
+import capRealtime from "@/src/assets/card-2-realtime.png";
+import capAlerts from "@/src/assets/card-1-alerts.png";
+import capOta from "@/src/assets/card-8-ota.png";
+import capAnomaly from "@/src/assets/card-7-anomaly.png";
+import capForecast from "@/src/assets/card-6-forecast.png";
+import capTemplates from "@/src/assets/card-5-templates.png";
 
 /* ------------------------------------------------------------------ */
-/* Core platform capabilities. The four 3D icons are reused across the */
-/* eight cards, each centred and clipped inside a 116px box.          */
+/* Core platform capabilities. One 3D icon per card, in the same order */
+/* as the copy below.                                                 */
 /* ------------------------------------------------------------------ */
 
-const ICONS: { icon: StaticImageData; iconSize: number }[] = [
-  { icon: capCompass, iconSize: 132 },
-  { icon: capGears, iconSize: 132 },
-  { icon: capRocket, iconSize: 132 },
-  { icon: capClipboard, iconSize: 124 },
-  { icon: capCompass, iconSize: 132 },
-  { icon: capGears, iconSize: 132 },
-  { icon: capRocket, iconSize: 132 },
-  { icon: capClipboard, iconSize: 124 },
+const ICONS: StaticImageData[] = [
+  capDeployment,
+  capDevices,
+  capRealtime,
+  capAlerts,
+  capOta,
+  capAnomaly,
+  capForecast,
+  capTemplates,
+];
+
+/* Each card is the doorway to that capability's own page, in card order. */
+const SLUGS: FeatureSlug[] = [
+  "flexible-deployment",
+  "device-management",
+  "realtime-monitoring",
+  "alerts-events",
+  "ota-updates",
+  "anomaly-detection",
+  "predictive-analytics",
+  "solution-templates",
 ];
 
 type Copy = {
@@ -40,7 +58,7 @@ const COPY: Record<string, Copy> = {
       { title: "Device & Gateway Management", description: "Manage devices and gateways at scale with support for industrial protocols such as MQTT, OPC-UA, and Modbus." },
       { title: "Real-Time Monitoring", description: "Track device data and system performance in real time to gain full visibility across your operations." },
       { title: "Alerts & Event Management", description: "Detect critical events instantly and trigger alerts to respond quickly before issues escalate." },
-      { title: "OTA Updates", description: "We ensure Paapeli stays secure, spam-free, and protected for your safety." },
+      { title: "OTA Updates", description: "Push firmware and software to distributed devices remotely and safely, with staged rollouts and rollback." },
       { title: "Anomaly Detection", description: "Identify abnormal patterns in your data to detect issues early and prevent unexpected failures." },
       { title: "Predictive Analytics", description: "Analyze trends and predict equipment failures to optimize maintenance and improve reliability." },
       { title: "Solution Templates", description: "Use ready-to-deploy templates tailored for different industries to accelerate implementation and reduce time to value." },
@@ -85,7 +103,7 @@ export const CapabilitiesSection = () => {
   return (
     <section
       dir={isRTL ? "rtl" : "ltr"}
-      className="flex w-full flex-col items-center gap-10 bg-white px-6 py-14 sm:gap-12 sm:py-20"
+      className="flex w-full flex-col items-center gap-8 bg-white px-6 py-10 sm:gap-10 sm:py-14"
     >
       {/* Block heading */}
       <div className="flex w-full max-w-[672px] flex-col items-center gap-4 text-center">
@@ -98,25 +116,26 @@ export const CapabilitiesSection = () => {
       {/* 4x2 capability grid */}
       <div className="grid w-full max-w-[1280px] grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
         {copy.cards.map((card, i) => (
-          <div
+          <Link
             key={card.title}
-            className="flex flex-col items-center gap-4 overflow-hidden rounded-xl border border-[#e5e7eb] bg-white p-7 text-center shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)] sm:items-start sm:text-start"
+            href={`/${language}${featureHref(SLUGS[i])}`}
+            className="group flex flex-col gap-3 overflow-hidden rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)] transition-shadow hover:border-primary/40 hover:shadow-md"
           >
-            <div className="relative size-[116px] shrink-0 overflow-hidden">
+            <div className="flex items-center gap-3">
               <Image
-                src={ICONS[i].icon}
+                src={ICONS[i]}
                 alt=""
                 aria-hidden
-                width={ICONS[i].iconSize}
-                height={ICONS[i].iconSize}
-                className="absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2 object-cover"
+                width={72}
+                height={72}
+                className="size-[72px] shrink-0 object-contain"
               />
+              <h3 className="text-lg font-semibold leading-snug text-foreground transition-colors group-hover:text-primary rtl:text-base">
+                {card.title}
+              </h3>
             </div>
-            <div className="flex flex-col gap-2">
-              <h3 className="text-lg font-semibold text-foreground rtl:text-base">{card.title}</h3>
-              <p className="text-sm text-muted-foreground rtl:text-[13px]">{card.description}</p>
-            </div>
-          </div>
+            <p className="text-base text-muted-foreground rtl:text-sm">{card.description}</p>
+          </Link>
         ))}
       </div>
     </section>
