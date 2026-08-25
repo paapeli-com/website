@@ -36,6 +36,7 @@ import { LandingNavbar } from "@/components/LandingNavbar";
 import { RevealCard } from "@/components/RevealCard";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { contactHref } from "@/lib/contact-link";
 import {
   LinkedText,
   featureHref,
@@ -123,7 +124,7 @@ export function FeatureLanding({ config }: { config: FeatureConfig }) {
                   size="lg"
                   variant="outline"
                   className="border-white bg-white/10 px-8 py-6 text-lg text-white backdrop-blur-sm hover:bg-white/20 hover:text-white"
-                  onClick={() => router.push(localize("/request-demo"))}
+                  onClick={() => router.push(contactHref(language, config.slug))}
                 >
                   {copy.hero.secondary}
                 </Button>
@@ -264,7 +265,7 @@ export function FeatureLanding({ config }: { config: FeatureConfig }) {
           <div className="container mx-auto px-4 text-center">
             <h2 className="mb-4 text-3xl font-bold text-foreground md:text-4xl">{copy.cta.heading}</h2>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground">{copy.cta.description}</p>
-            <Button size="lg" className="px-8 py-6 text-lg" onClick={() => router.push(localize("/request-demo"))}>
+            <Button size="lg" className="px-8 py-6 text-lg" onClick={() => router.push(contactHref(language, config.slug))}>
               {copy.cta.button}
               <ArrowRight className={cn("h-5 w-5", isRTL && "rotate-180")} />
             </Button>

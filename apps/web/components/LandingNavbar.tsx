@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
+import { PANEL_URL } from "@/lib/panel";
 import paapeliLogo from "@/src/assets/paapeli-logo.svg";
 import paapeliLogoOnDark from "@/src/assets/paapeli-logo-on-dark.svg";
 import { cn } from "@/lib/utils";
@@ -588,9 +589,10 @@ export const LandingNavbar = ({ overlay = false }: { overlay?: boolean }) => {
 
         {/* Right side */}
         <div className="ml-auto flex items-center gap-3 lg:ml-0">
-          {/* Full navigation so the host redirects to the panel login on 8080. */}
+          {/* The dashboard is another origin, so this has to be a full
+              navigation. Signed-out visitors get its login screen first. */}
           <a
-            href="/login"
+            href={PANEL_URL}
             className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-[0px_1px_0.25px_rgba(29,41,61,0.02)] transition-colors hover:bg-primary/90"
           >
             {nav.dashboard}

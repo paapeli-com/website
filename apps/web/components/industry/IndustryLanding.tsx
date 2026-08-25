@@ -21,6 +21,7 @@ import { LandingNavbar } from "@/components/LandingNavbar";
 import { CheckList, RevealCard } from "@/components/RevealCard";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { contactHref } from "@/lib/contact-link";
 import { CAPABILITIES_RAIL, LinkedText, featureHref, featureName, industryHref } from "@/lib/site-links";
 import { cn } from "@/lib/utils";
 
@@ -53,7 +54,7 @@ export function IndustryLanding({ config }: { config: IndustryConfig }) {
   /* Own href, so the page never links its industry name back to itself. */
   const self = industryHref(config.slug);
 
-  const goToDemo = () => router.push(`/${language}/request-demo`);
+  const goToDemo = () => router.push(contactHref(language, config.slug));
 
   return (
     <div className="min-h-screen bg-background" dir={isRTL ? "rtl" : "ltr"}>

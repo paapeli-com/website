@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Github, Linkedin, Twitter } from "lucide-react";
+import { Github, Linkedin } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
 import paapeliLogo from "@/src/assets/paapeli-logo.svg";
@@ -17,7 +17,7 @@ import paapeliLogo from "@/src/assets/paapeli-logo.svg";
 const COLUMN_HREFS: string[][] = [
   ["/operations-hub", "/edge-hub", "/intelligence-hub", "/gps-tracking", "/features/ota-updates"],
   ["https://docs.paapeli.com/", "https://docs.paapeli.com/docs/category/sdks", "https://github.com/paapeli-com", "#"],
-  ["https://paapeli.com/blog", "#", "#", "#"],
+  ["https://paapeli.com/blog", "/AI-Readiness-Assessment", "/contact"],
   ["#", "#", "#", "/pricing"],
 ];
 
@@ -35,7 +35,7 @@ const COPY: Record<string, Copy> = {
     columns: [
       { title: "Platform", labels: ["Operations Hub", "Edge Hub", "Intelligence Hub", "Tracking Hub", "OTA Updates"] },
       { title: "Developers", labels: ["Documentation", "SDKs", "GitHub", "Platform Status"] },
-      { title: "Resources", labels: ["Blog", "Case Studies", "Use Cases", "Contact"] },
+      { title: "Resources", labels: ["Blog", "AI Readiness Assessment", "Contact"] },
       { title: "Company", labels: ["About", "Partners", "Careers", "Pricing"] },
     ],
   },
@@ -46,7 +46,7 @@ const COPY: Record<string, Copy> = {
     columns: [
       { title: "پلتفرم", labels: ["هاب عملیات", "هاب لبه", "هاب هوشمندی", "هاب ردیابی", "به‌روزرسانی OTA"] },
       { title: "توسعه‌دهندگان", labels: ["مستندات", "SDK ها", "گیت‌هاب", "وضعیت پلتفرم"] },
-      { title: "منابع", labels: ["بلاگ", "مطالعات موردی", "کاربردها", "تماس با ما"] },
+      { title: "منابع", labels: ["بلاگ", "ارزیابی آمادگی هوش مصنوعی", "تماس با ما"] },
       { title: "شرکت", labels: ["دربارهٔ ما", "شرکا", "فرصت‌های شغلی", "تعرفه‌ها"] },
     ],
   },
@@ -57,15 +57,14 @@ const COPY: Record<string, Copy> = {
     columns: [
       { title: "المنصة", labels: ["مركز العمليات", "مركز الحافة", "مركز الذكاء", "مركز التتبع", "تحديثات OTA"] },
       { title: "المطورون", labels: ["التوثيق", "حِزم SDK", "GitHub", "حالة المنصة"] },
-      { title: "المصادر", labels: ["المدونة", "دراسات الحالة", "حالات الاستخدام", "اتصل بنا"] },
+      { title: "المصادر", labels: ["المدونة", "تقييم الجاهزية للذكاء الاصطناعي", "اتصل بنا"] },
       { title: "الشركة", labels: ["من نحن", "الشركاء", "الوظائف", "الأسعار"] },
     ],
   },
 };
 const SOCIALS = [
-  { label: "GitHub", href: "#", icon: Github },
-  { label: "Twitter", href: "#", icon: Twitter },
-  { label: "LinkedIn", href: "#", icon: Linkedin },
+  { label: "GitHub", href: "https://github.com/paapeli-com", icon: Github },
+  { label: "LinkedIn", href: "https://www.linkedin.com/company/paapeli/", icon: Linkedin },
 ];
 
 export const LandingFooter = () => {
@@ -94,6 +93,8 @@ export const LandingFooter = () => {
                 <Link
                   key={label}
                   href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label={label}
                   className="text-muted-foreground transition-colors hover:text-foreground"
                 >

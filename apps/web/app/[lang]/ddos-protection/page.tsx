@@ -71,7 +71,7 @@ const DDoSProtection = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" asChild>
-                <a href={`/${language}/request-demo`}>{ctaPrimary}</a>
+                <a href={`/${language}/contact?from=ddos-protection`}>{ctaPrimary}</a>
               </Button>
               <Button size="lg" variant="outline" asChild>
                 <a href={`/${language}/contact`}>{ctaSecondary}</a>
@@ -113,7 +113,7 @@ const DDoSProtection = () => {
             {language === 'en' ? "Don't let DDoS attacks disrupt your operations" : language === 'fa' ? "اجازه ندهید حملات DDoS عملیات شما را مختل کنند" : "لا تدع هجمات DDoS تعطل عملياتك"}
           </p>
           <Button size="lg" asChild>
-            <a href={`/${language}/request-demo`}>{ctaPrimary}</a>
+            <a href={`/${language}/contact?from=ddos-protection`}>{ctaPrimary}</a>
           </Button>
         </div>
       </section>

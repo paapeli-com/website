@@ -1,9 +1,11 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { BadgePercent, Headphones, LayoutGrid, Play, type LucideIcon } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
+import { contactHref } from "@/lib/contact-link";
 import { HOW_IT_WORKS_ID } from "@/lib/scroll-to-section";
 import howDashboard from "@/src/assets/how-dashboard.png";
 import howBg from "@/src/assets/how-bg.svg";
@@ -137,22 +139,36 @@ export const HowItWorksSection = () => {
           </button>
         </div>
 
-        {/* Three action items */}
+        {/* Three action items. Booking a demo and talking to an expert both
+            end up on the contact form; the middle one has no page yet. */}
         <div className="flex w-full flex-col items-center justify-center gap-10 pt-8 mt-2 lg:flex-row lg:gap-16 lg:pt-2">
           {copy.actions.map(({ title, description }, i) => {
             const Icon = ACTION_ICONS[i];
-            return (
-            <div key={title} className="flex flex-1 flex-col items-center gap-4 text-center">
-              <span className="flex size-16 items-center justify-center rounded-full bg-[#f3f4f6]">
-                <Icon className="size-9 text-foreground" strokeWidth={1.5} />
-              </span>
-              <div className="flex flex-col items-center gap-1.5">
-                <p className="text-xl font-semibold text-foreground rtl:text-lg">{title}</p>
-                <p className="max-w-[328px] whitespace-pre-line text-base text-muted-foreground rtl:text-sm">
-                  {description}
-                </p>
+            const href = i === 1 ? null : contactHref(language, "home");
+            const body = (
+              <>
+                <span className="flex size-16 items-center justify-center rounded-full bg-[#f3f4f6] transition-colors group-hover:bg-[#fff1e6]">
+                  <Icon className="size-9 text-foreground transition-colors group-hover:text-primary" strokeWidth={1.5} />
+                </span>
+                <div className="flex flex-col items-center gap-1.5">
+                  <p className="text-xl font-semibold text-foreground transition-colors group-hover:text-primary rtl:text-lg">
+                    {title}
+                  </p>
+                  <p className="max-w-[328px] whitespace-pre-line text-base text-muted-foreground rtl:text-sm">
+                    {description}
+                  </p>
+                </div>
+              </>
+            );
+
+            return href ? (
+              <Link key={title} href={href} className="group flex flex-1 flex-col items-center gap-4 text-center">
+                {body}
+              </Link>
+            ) : (
+              <div key={title} className="flex flex-1 flex-col items-center gap-4 text-center">
+                {body}
               </div>
-            </div>
             );
           })}
         </div>

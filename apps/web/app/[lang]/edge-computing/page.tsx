@@ -131,7 +131,7 @@ const EdgeComputing = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" asChild>
-                <a href={localize("/request-demo")}>{copy.primary}</a>
+                <a href={localize("/contact?from=edge-computing")}>{copy.primary}</a>
               </Button>
               <Button size="lg" variant="outline" asChild>
                 <a href={localize("/contact")}>{copy.secondary}</a>
@@ -195,7 +195,7 @@ const EdgeComputing = () => {
             <h2 className="text-3xl font-bold mb-4 text-foreground">{copy.ctaHeading}</h2>
             <p className="text-xl text-muted-foreground mb-8">{copy.ctaLead}</p>
             <Button size="lg" asChild>
-              <a href={localize("/request-demo")}>{copy.ctaButton}</a>
+              <a href={localize("/contact?from=edge-computing")}>{copy.ctaButton}</a>
             </Button>
           </Card>
         </div>

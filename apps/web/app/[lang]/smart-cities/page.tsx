@@ -195,10 +195,10 @@ const SmartCities = () => {
                 {t('smartCitiesDesc')}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button size="lg" className="text-lg px-8 py-6" onClick={() => navigate(`${langPrefix}/request-demo`)}>
+                <Button size="lg" className="text-lg px-8 py-6" onClick={() => navigate(`${langPrefix}/contact?from=smart-cities`)}>
                   {t('getStarted')} <ArrowRight className={`${isRTL ? 'mr-2 rotate-180' : 'ml-2'} h-5 w-5`} />
                 </Button>
-                <Button size="lg" variant="outline" className="text-lg px-8 py-6" onClick={() => navigate(`${langPrefix}/request-demo`)}>
+                <Button size="lg" variant="outline" className="text-lg px-8 py-6" onClick={() => navigate(`${langPrefix}/contact?from=smart-cities`)}>
                   {t('requestDemo')}
                 </Button>
               </div>
@@ -278,10 +278,10 @@ const SmartCities = () => {
                 {t('ctaSubtitle')}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button size="lg" className="text-lg px-8 py-6" onClick={() => navigate(`${langPrefix}/request-demo`)}>
+                <Button size="lg" className="text-lg px-8 py-6" onClick={() => navigate(`${langPrefix}/contact?from=smart-cities`)}>
                   {t('getStarted')} <ArrowRight className={`${isRTL ? 'mr-2 rotate-180' : 'ml-2'} h-5 w-5`} />
                 </Button>
-                <Button size="lg" variant="outline" className="text-lg px-8 py-6" onClick={() => navigate(`${langPrefix}/request-demo`)}>
+                <Button size="lg" variant="outline" className="text-lg px-8 py-6" onClick={() => navigate(`${langPrefix}/contact?from=smart-cities`)}>
                   {t('contactSales')}
                 </Button>
               </div>

@@ -107,7 +107,7 @@ const AIoTPlatform = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" asChild>
-                <a href={localize("/request-demo")}>{copy.primary}</a>
+                <a href={localize("/contact?from=aiot-platform")}>{copy.primary}</a>
               </Button>
               <Button size="lg" variant="outline" asChild>
                 <a href={localize("/contact")}>{copy.secondary}</a>
@@ -144,7 +144,7 @@ const AIoTPlatform = () => {
           <h2 className="text-4xl font-bold mb-6 text-foreground">{copy.ctaHeading}</h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">{copy.ctaLead}</p>
           <Button size="lg" asChild>
-            <a href={localize("/request-demo")}>{copy.ctaButton}</a>
+            <a href={localize("/contact?from=aiot-platform")}>{copy.ctaButton}</a>
           </Button>
         </div>
       </section>
