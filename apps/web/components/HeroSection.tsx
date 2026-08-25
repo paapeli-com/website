@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowRight, ChevronRight } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
+import { PANEL_URL } from "@/lib/panel";
 import { HOW_IT_WORKS_ID, glideToSection } from "@/lib/scroll-to-section";
 
 /* ------------------------------------------------------------------ */
@@ -149,13 +150,15 @@ export const HeroSection = () => {
         </p>
 
         <div className="mt-2 flex flex-wrap items-center justify-center gap-4">
-          <Link
-            href="#"
+          {/* Straight to the dashboard on its own host, so it has to be a full
+              navigation rather than a client-side route. */}
+          <a
+            href={PANEL_URL}
             className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-base font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             {copy.primary}
             <ArrowRight className="size-4 rtl:rotate-180" />
-          </Link>
+          </a>
           {/* Plain anchor: without JS it still jumps to the section, and the
               handler only upgrades that jump to an eased glide. */}
           <a
