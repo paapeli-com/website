@@ -4,6 +4,7 @@ import Image from "next/image";
 import { BadgePercent, Headphones, LayoutGrid, Play, type LucideIcon } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
+import { HOW_IT_WORKS_ID } from "@/lib/scroll-to-section";
 import howDashboard from "@/src/assets/how-dashboard.png";
 import howBg from "@/src/assets/how-bg.svg";
 import howFrameBezel from "@/src/assets/how-frame-bezel.svg";
@@ -67,8 +68,11 @@ export const HowItWorksSection = () => {
 
   return (
     <section
+      id={HOW_IT_WORKS_ID}
       dir={isRTL ? "rtl" : "ltr"}
-      className="relative flex w-full flex-col items-center overflow-hidden bg-white"
+      /* scroll-mt keeps the heading clear of the fixed navbar when the hero's
+         "Learn More" or a #how-it-works link brings someone here. */
+      className="relative flex w-full scroll-mt-20 flex-col items-center overflow-hidden bg-white"
     >
       {/* Faint background decoration */}
       <Image

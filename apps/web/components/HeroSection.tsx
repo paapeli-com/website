@@ -6,10 +6,12 @@ import Link from "next/link";
 import { ArrowRight, ChevronRight } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
+import { HOW_IT_WORKS_ID, glideToSection } from "@/lib/scroll-to-section";
 
 /* ------------------------------------------------------------------ */
 /* Hero section: full-bleed network photo, centred copy on top. The    */
-/* announcement pill links to the INOTEX 2026 campaign landing.        */
+/* announcement pill links to the INOTEX 2026 campaign landing, and    */
+/* "Learn More" glides down to the product video.                      */
 /* ------------------------------------------------------------------ */
 
 /** Route for the INOTEX 2026 campaign landing, prefixed with the locale. */
@@ -154,12 +156,17 @@ export const HeroSection = () => {
             {copy.primary}
             <ArrowRight className="size-4 rtl:rotate-180" />
           </Link>
-          <Link
-            href="#"
+          {/* Plain anchor: without JS it still jumps to the section, and the
+              handler only upgrades that jump to an eased glide. */}
+          <a
+            href={`#${HOW_IT_WORKS_ID}`}
+            onClick={(event) => {
+              if (glideToSection(HOW_IT_WORKS_ID)) event.preventDefault();
+            }}
             className="inline-flex h-12 items-center justify-center rounded-lg border border-white/30 bg-white/10 px-6 text-base font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/20"
           >
             {copy.secondary}
-          </Link>
+          </a>
         </div>
       </div>
     </section>
