@@ -1,5 +1,0 @@
-# panel.paapeli.com is the signed-in product panel — every route sits behind
-# authentication, so there is nothing here for a crawler to index. The public
-# marketing site (paapeli.com, apps/web) carries its own robots.txt/sitemap.
-User-agent: *
-Disallow: /
