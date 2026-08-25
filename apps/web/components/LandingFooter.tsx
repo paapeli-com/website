@@ -12,11 +12,12 @@ import paapeliLogo from "@/src/assets/paapeli-logo.svg";
 /* "ntelligence Hub" / "Platform Statu" corrected here).               */
 /* ------------------------------------------------------------------ */
 
-/* One href list per column, in the same order as the labels below. */
+/* One href list per column, in the same order as the labels below.
+   Docs, the SDK reference, GitHub and the blog live off-site. */
 const COLUMN_HREFS: string[][] = [
   ["/operations-hub", "/edge-hub", "/intelligence-hub", "/gps-tracking", "/features/ota-updates"],
-  ["#", "#", "#", "#"],
-  ["#", "#", "#", "#"],
+  ["https://docs.paapeli.com/", "https://docs.paapeli.com/docs/category/sdks", "https://github.com/paapeli-com", "#"],
+  ["https://paapeli.com/blog", "#", "#", "#"],
   ["#", "#", "#", "/pricing"],
 ];
 
@@ -33,7 +34,7 @@ const COPY: Record<string, Copy> = {
     rights: (year) => `© ${year} Paapeli, Inc. All rights reserved.`,
     columns: [
       { title: "Platform", labels: ["Operations Hub", "Edge Hub", "Intelligence Hub", "Tracking Hub", "OTA Updates"] },
-      { title: "Developers", labels: ["Documentation", "SDK & APIs", "GitHub", "Platform Status"] },
+      { title: "Developers", labels: ["Documentation", "SDKs", "GitHub", "Platform Status"] },
       { title: "Resources", labels: ["Blog", "Case Studies", "Use Cases", "Contact"] },
       { title: "Company", labels: ["About", "Partners", "Careers", "Pricing"] },
     ],
@@ -44,7 +45,7 @@ const COPY: Record<string, Copy> = {
     rights: (year) => `© ${year} پاپلی. تمامی حقوق محفوظ است.`,
     columns: [
       { title: "پلتفرم", labels: ["هاب عملیات", "هاب لبه", "هاب هوشمندی", "هاب ردیابی", "به‌روزرسانی OTA"] },
-      { title: "توسعه‌دهندگان", labels: ["مستندات", "SDK و APIها", "گیت‌هاب", "وضعیت پلتفرم"] },
+      { title: "توسعه‌دهندگان", labels: ["مستندات", "SDK ها", "گیت‌هاب", "وضعیت پلتفرم"] },
       { title: "منابع", labels: ["بلاگ", "مطالعات موردی", "کاربردها", "تماس با ما"] },
       { title: "شرکت", labels: ["دربارهٔ ما", "شرکا", "فرصت‌های شغلی", "تعرفه‌ها"] },
     ],
@@ -55,7 +56,7 @@ const COPY: Record<string, Copy> = {
     rights: (year) => `© ${year} بابيلي. جميع الحقوق محفوظة.`,
     columns: [
       { title: "المنصة", labels: ["مركز العمليات", "مركز الحافة", "مركز الذكاء", "مركز التتبع", "تحديثات OTA"] },
-      { title: "المطورون", labels: ["التوثيق", "SDK وواجهات API", "GitHub", "حالة المنصة"] },
+      { title: "المطورون", labels: ["التوثيق", "حِزم SDK", "GitHub", "حالة المنصة"] },
       { title: "المصادر", labels: ["المدونة", "دراسات الحالة", "حالات الاستخدام", "اتصل بنا"] },
       { title: "الشركة", labels: ["من نحن", "الشركاء", "الوظائف", "الأسعار"] },
     ],
@@ -112,6 +113,8 @@ export const LandingFooter = () => {
                     <li key={label}>
                       <Link
                         href={localize(COLUMN_HREFS[ci][li])}
+                        target={COLUMN_HREFS[ci][li].startsWith("http") ? "_blank" : undefined}
+                        rel={COLUMN_HREFS[ci][li].startsWith("http") ? "noopener noreferrer" : undefined}
                         className="text-base text-muted-foreground transition-colors hover:text-foreground rtl:text-sm"
                       >
                         {label}

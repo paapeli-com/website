@@ -67,13 +67,13 @@ const MENUS: Record<string, MegaMenu> = {
   Ecosystem: {
     columns: [
       [
-        { id: "developers", href: "#" },
-        { id: "sdkApis", href: "#" },
+        { id: "developers", href: "https://api.paapeli.com/swagger-ui/index.html" },
+        { id: "sdkApis", href: "https://docs.paapeli.com/docs/category/sdks" },
         { id: "partners", href: "#" },
       ],
       [
         { id: "whiteLabel", href: "#" },
-        { id: "github", href: "#" },
+        { id: "github", href: "https://github.com/paapeli-com" },
       ],
     ],
   },
@@ -81,12 +81,12 @@ const MENUS: Record<string, MegaMenu> = {
     columns: [
       [
         { id: "aiReadiness", href: "/AI-Readiness-Assessment", isNew: true, featured: true },
-        { id: "docs", href: "#" },
-        { id: "reports", href: "#" },
+        { id: "docs", href: "https://docs.paapeli.com/" },
+        { id: "reports", href: "/AI-Readiness-Assessment/report" },
       ],
       [
-        { id: "blog", href: "#" },
-        { id: "guides", href: "#" },
+        { id: "blog", href: "https://paapeli.com/blog" },
+        { id: "guides", href: "https://docs.paapeli.com/docs/category/getting-started" },
       ],
     ],
   },
@@ -106,8 +106,8 @@ const MENU_COPY: Record<string, Record<string, { title: string; description: str
     smartAgriculture: { title: "Smart Agriculture", description: "Monitor environmental conditions, irrigation, and connected agricultural assets." },
     assetFleetTracking: { title: "Asset & Fleet Tracking", description: "Track vehicles, equipment, and mobile assets with real-time location and alerts." },
     energyMonitoring: { title: "Energy Monitoring", description: "Measure consumption, detect anomalies, and improve energy efficiency." },
-    developers: { title: "Developers", description: "Build industrial applications and integrations on top of the Paapeli platform." },
-    sdkApis: { title: "SDK & APIs", description: "Access APIs, SDKs, and integration tools for connecting devices, systems, and external services." },
+    developers: { title: "Developer APIs", description: "Build industrial applications and integrations on top of the Paapeli platform." },
+    sdkApis: { title: "SDKs", description: "Access SDKs and integration tools for connecting devices, systems, and external services." },
     partners: { title: "Partners", description: "Collaborate with Paapeli as a technology partner, system integrator, or hardware provider." },
     whiteLabel: { title: "White-Label Platform", description: "Launch your own branded industrial platform powered by Paapeli infrastructure." },
     github: { title: "GitHub", description: "Explore open-source components, code examples, and developer resources." },
@@ -115,7 +115,7 @@ const MENU_COPY: Record<string, Record<string, { title: string; description: str
     docs: { title: "Documentation", description: "Technical docs and implementation guides." },
     reports: { title: "Reports & Insights", description: "Industry reports and data-driven insights." },
     blog: { title: "Blog", description: "Industry insights and platform updates." },
-    guides: { title: "Guides", description: "Step-by-step guides to get you started." },
+    guides: { title: "Guide", description: "Step-by-step guides to get you started." },
   },
   fa: {
     aiotPlatform: { title: "پلتفرم AIoT", description: "پلتفرم ابری اینترنت اشیا مبتنی بر هوش مصنوعی" },
@@ -129,8 +129,8 @@ const MENU_COPY: Record<string, Record<string, { title: string; description: str
     smartAgriculture: { title: "کشاورزی هوشمند", description: "شرایط محیطی، آبیاری و تجهیزات کشاورزی متصل را پایش کنید" },
     assetFleetTracking: { title: "ردیابی ناوگان و دارایی‌ها", description: "خودروها، تجهیزات و دارایی‌های متحرک را با موقعیت لحظه‌ای و هشدار ردیابی کنید" },
     energyMonitoring: { title: "پایش انرژی", description: "مصرف را اندازه بگیرید، ناهنجاری‌ها را تشخیص دهید و بهره‌وری انرژی را بالا ببرید" },
-    developers: { title: "توسعه‌دهندگان", description: "ساخت اپلیکیشن‌ها و یکپارچه‌سازی‌های صنعتی روی پلتفرم پاپلی" },
-    sdkApis: { title: "SDK و APIها", description: "دسترسی به APIها، SDKها و ابزارهای یکپارچه‌سازی برای اتصال دستگاه‌ها، سامانه‌ها و سرویس‌های بیرونی" },
+    developers: { title: "API برای توسعه‌دهندگان", description: "ساخت اپلیکیشن‌ها و یکپارچه‌سازی‌های صنعتی روی پلتفرم پاپلی" },
+    sdkApis: { title: "SDK ها", description: "دسترسی به SDKها و ابزارهای یکپارچه‌سازی برای اتصال دستگاه‌ها، سامانه‌ها و سرویس‌های بیرونی" },
     partners: { title: "شرکا", description: "همکاری با پاپلی به‌عنوان شریک فناوری، مجری سامانه یا تأمین‌کنندهٔ سخت‌افزار" },
     whiteLabel: { title: "پلتفرم وایت‌لیبل", description: "راه‌اندازی پلتفرم صنعتی با برند خودتان، بر بستر زیرساخت پاپلی" },
     github: { title: "گیت‌هاب", description: "کاوش در کامپوننت‌های متن‌باز، نمونه‌کدها و منابع توسعه‌دهندگان" },
@@ -138,7 +138,7 @@ const MENU_COPY: Record<string, Record<string, { title: string; description: str
     docs: { title: "مستندات", description: "مستندات فنی و راهنمای پیاده‌سازی" },
     reports: { title: "گزارش‌ها و بینش‌ها", description: "گزارش‌های صنعتی و بینش‌های داده‌محور" },
     blog: { title: "بلاگ", description: "تحلیل‌های صنعتی و به‌روزرسانی‌های پلتفرم" },
-    guides: { title: "راهنماها", description: "راهنماهای گام‌به‌گام برای شروع کار" },
+    guides: { title: "راهنما", description: "راهنماهای گام‌به‌گام برای شروع کار" },
   },
   ar: {
     aiotPlatform: { title: "منصة AIoT", description: "منصة سحابية لإنترنت الأشياء مدعومة بالذكاء الاصطناعي" },
@@ -152,8 +152,8 @@ const MENU_COPY: Record<string, Record<string, { title: string; description: str
     smartAgriculture: { title: "الزراعة الذكية", description: "راقب الظروف البيئية والري والأصول الزراعية المتصلة" },
     assetFleetTracking: { title: "تتبع الأصول والأساطيل", description: "تتبع المركبات والمعدات والأصول المتنقلة بموقع لحظي وتنبيهات" },
     energyMonitoring: { title: "مراقبة الطاقة", description: "قِس الاستهلاك واكتشف الشذوذ وارفع كفاءة الطاقة" },
-    developers: { title: "المطورون", description: "بناء تطبيقات وتكاملات صناعية فوق منصة بابيلي" },
-    sdkApis: { title: "SDK وواجهات API", description: "الوصول إلى واجهات API وحِزم SDK وأدوات التكامل لربط الأجهزة والأنظمة والخدمات الخارجية" },
+    developers: { title: "واجهات API للمطورين", description: "بناء تطبيقات وتكاملات صناعية فوق منصة بابيلي" },
+    sdkApis: { title: "حِزم SDK", description: "الوصول إلى حِزم SDK وأدوات التكامل لربط الأجهزة والأنظمة والخدمات الخارجية" },
     partners: { title: "الشركاء", description: "التعاون مع بابيلي كشريك تقني أو مُكامِل أنظمة أو مزوّد أجهزة" },
     whiteLabel: { title: "منصة بعلامتك التجارية", description: "أطلق منصتك الصناعية بعلامتك التجارية اعتمادًا على بنية بابيلي" },
     github: { title: "GitHub", description: "استكشف المكونات مفتوحة المصدر وأمثلة الشيفرة وموارد المطورين" },
@@ -161,7 +161,7 @@ const MENU_COPY: Record<string, Record<string, { title: string; description: str
     docs: { title: "التوثيق", description: "وثائق تقنية وأدلة التنفيذ" },
     reports: { title: "التقارير والرؤى", description: "تقارير القطاع ورؤى قائمة على البيانات" },
     blog: { title: "المدونة", description: "رؤى الصناعة وتحديثات المنصة" },
-    guides: { title: "الأدلة", description: "أدلة خطوة بخطوة للبدء" },
+    guides: { title: "الدليل", description: "أدلة خطوة بخطوة للبدء" },
   },
 };
 
@@ -211,10 +211,15 @@ function MegaMenuItem({ item }: { item: MenuItem }) {
   const localize = (href: string) => (href.startsWith("/") ? `/${language}${href}` : href);
   const copy = (MENU_COPY[language] ?? MENU_COPY.en)[item.id];
   const newLabel = (NAV_COPY[language] ?? NAV_COPY.en).newBadge;
+  /* Docs, the API reference and GitHub live off-site, so they open beside
+     the marketing site instead of replacing it. */
+  const external = item.href.startsWith("http");
 
   return (
     <Link
       href={localize(item.href)}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noopener noreferrer" : undefined}
       className="group flex w-full flex-col gap-1 rounded-lg border border-transparent p-3 transition-colors hover:border-[#ffcda1] hover:bg-[#fff7f0]"
     >
       <p className="flex flex-wrap items-center gap-1.5 text-[15px] font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
