@@ -211,6 +211,11 @@ export default function ContactPage() {
   }, []);
 
   const source = sourceLabel(from, language);
+  /* Email and phone read left to right once there is something in them, but
+     while empty they should show their placeholder the way the page reads.
+     Spelled out rather than left off, because browsers force type="tel" to
+     LTR on their own. */
+  const pageDir = isRTL ? "rtl" : "ltr";
 
   const set = (field: keyof typeof EMPTY) => (event: { target: { value: string } }) =>
     setForm((current) => ({ ...current, [field]: event.target.value }));
@@ -310,7 +315,7 @@ export default function ContactPage() {
                       <Input
                         id="c-email"
                         type="email"
-                        dir="ltr"
+                        dir={form.email ? "ltr" : pageDir}
                         value={form.email}
                         onChange={set("email")}
                         placeholder={copy.emailPlaceholder}
@@ -326,7 +331,7 @@ export default function ContactPage() {
                       <Input
                         id="c-phone"
                         type="tel"
-                        dir="ltr"
+                        dir={form.phone ? "ltr" : pageDir}
                         value={form.phone}
                         onChange={set("phone")}
                         placeholder={copy.phonePlaceholder}
