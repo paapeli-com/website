@@ -1,0 +1,232 @@
+import { useState, useEffect } from "react";
+import { useLanguage } from "@/features/factory/contexts/LanguageContext";
+import { Button } from "@/features/factory/components/ui/button";
+import { Input } from "@/features/factory/components/ui/input";
+import { Label } from "@/features/factory/components/ui/label";
+import { Textarea } from "@/features/factory/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/features/factory/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/features/factory/components/ui/dialog";
+import { Badge } from "@/features/factory/components/ui/badge";
+import { Plus, X } from "lucide-react";
+import { useEscalationsStore } from "@/features/factory/hooks/useAlertStore";
+import { useToast } from "@/features/factory/hooks/use-toast";
+
+interface EscalationLevel {
+  level: number;
+  role: string;
+  delayMinutes: number;
+}
+
+interface CreateEscalationDialogProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  inline?: boolean;
+  hideActions?: boolean;
+  onActionsChange?: (a: { primary: { label: string; onClick: () => void; disabled?: boolean }; secondary?: { label: string; onClick: () => void } }) => void;
+  onCancel?: () => void;
+  onCreated?: () => void;
+}
+
+export const CreateEscalationDialog = ({ open, onOpenChange, inline, hideActions, onActionsChange, onCancel, onCreated }: CreateEscalationDialogProps) => {
+
+  const { t } = useLanguage();
+  const { toast } = useToast();
+  const { create: createPolicy } = useEscalationsStore();
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [slaMinutes, setSlaMinutes] = useState("60");
+  const [levels, setLevels] = useState<EscalationLevel[]>([
+    { level: 1, role: "Operator", delayMinutes: 0 },
+  ]);
+
+  const handleAddLevel = () => {
+    setLevels([...levels, { level: levels.length + 1, role: "", delayMinutes: 15 }]);
+  };
+
+  const handleRemoveLevel = (level: number) => {
+    setLevels(levels.filter(l => l.level !== level));
+  };
+
+  const handleUpdateLevel = (level: number, field: string, value: string | number) => {
+    setLevels(levels.map(l => l.level === level ? { ...l, [field]: value } : l));
+  };
+
+  const handleCreate = () => {
+    const created = createPolicy({
+      name: name.trim(),
+      description,
+      slaMinutes: parseInt(slaMinutes, 10) || 60,
+      levels: levels.map(l => ({ level: l.level, role: l.role, delayMinutes: l.delayMinutes, notificationChannelIds: [] })),
+      enabled: true,
+    });
+    toast({ title: t("success"), description: t("alertCreatedToast").replace("{name}", created.name) });
+    if (inline) { onCreated?.(); return; }
+    onOpenChange?.(false);
+    setName("");
+    setDescription("");
+    setSlaMinutes("60");
+    setLevels([{ level: 1, role: "Operator", delayMinutes: 0 }]);
+  };
+
+  const handleCancel = () => {
+    if (inline) { onCancel?.(); return; }
+    onOpenChange?.(false);
+  };
+
+  const submitDisabled = !name || levels.length === 0;
+
+  useEffect(() => {
+    if (!hideActions || !onActionsChange) return;
+    onActionsChange({
+      primary: { label: t("create"), onClick: handleCreate, disabled: submitDisabled },
+      secondary: { label: t("cancel"), onClick: handleCancel },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hideActions, name, levels, description, slaMinutes]);
+
+  const roleOptions: { value: string; label: string }[] = [
+    { value: "Operator", label: t("alertRoleOperator") },
+    { value: "Supervisor", label: t("alertRoleSupervisor") },
+    { value: "Admin", label: t("alertRoleAdmin") },
+    { value: "Manager", label: t("alertRoleManager") },
+    { value: "Director", label: t("alertRoleDirector") },
+  ];
+
+  const inner = (
+    <>
+      {!inline && (
+        <DialogHeader>
+          <DialogTitle>{t("alertCreateEscalation")}</DialogTitle>
+          <DialogDescription>
+            {t("alertEscalationDescription")}
+          </DialogDescription>
+        </DialogHeader>
+      )}
+
+      <div className="space-y-3">
+{/* Name */}
+          <div className="space-y-2">
+            <Label>{t("name")}</Label>
+            <Input
+              placeholder={t("alertEnterRuleName")}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+
+          {/* Description */}
+          <div className="space-y-2">
+            <Label>{t("alertRuleDescription")}</Label>
+            <Textarea
+              placeholder={t("alertEnterRuleDescription")}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+            />
+          </div>
+
+          {/* SLA */}
+          <div className="space-y-2">
+            <Label>SLA ({t("alertMinutes")})</Label>
+            <Input
+              type="number"
+              value={slaMinutes}
+              onChange={(e) => setSlaMinutes(e.target.value)}
+            />
+          </div>
+
+          {/* Escalation Levels */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>{t("alertEscalationPoliciesCount")}</Label>
+              <Button size="sm" variant="outline" onClick={handleAddLevel}>
+                <Plus className="h-3 w-3 me-1" />
+                {t("add")}
+              </Button>
+            </div>
+
+            {levels.map((level, idx) => (
+              <div key={level.level} className="grid grid-cols-3 gap-2 p-3 border rounded-lg">
+                <div className="space-y-1">
+                  <Label className="text-xs">{t("alertLevel")}</Label>
+                  <div className="text-sm font-medium">{level.level}</div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">{t("alertTeamOperations")}</Label>
+                  <Select value={level.role} onValueChange={(v) => handleUpdateLevel(level.level, "role", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {roleOptions.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">{t("alertMinutes")}</Label>
+                  <div className="flex gap-1">
+                    <Input
+                      type="number"
+                      value={level.delayMinutes}
+                      onChange={(e) => handleUpdateLevel(level.level, "delayMinutes", parseInt(e.target.value) || 0)}
+                      className="flex-1"
+                    />
+                    {idx > 0 && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleRemoveLevel(level.level)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Summary */}
+          <div className="bg-muted/50 p-3 rounded-lg space-y-2">
+            <p className="text-xs font-medium">{t("alertRuleSummary")}</p>
+            <div className="flex flex-wrap gap-2">
+              {levels.map(l => {
+                const roleLabel = roleOptions.find(r => r.value === l.role)?.label || l.role;
+                return (
+                  <Badge key={l.level} variant="outline">
+                    L{l.level}: {roleLabel} ({l.delayMinutes}m)
+                  </Badge>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground">{t("slaUnit").replace("{n}", slaMinutes)}</p>
+          </div>
+      </div>
+
+      {inline ? (
+        hideActions ? null : (
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={handleCancel}>{t("cancel")}</Button>
+            <Button onClick={handleCreate} disabled={submitDisabled}>{t("create")}</Button>
+          </div>
+        )
+      ) : (
+        <DialogFooter>
+          <Button variant="outline" onClick={handleCancel}>{t("cancel")}</Button>
+          <Button onClick={handleCreate} disabled={submitDisabled}>{t("create")}</Button>
+        </DialogFooter>
+      )}
+    </>
+  );
+
+  if (inline) {
+    return <div className="space-y-2">{inner}</div>;
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        {inner}
+      </DialogContent>
+    </Dialog>
+  );
+};
+

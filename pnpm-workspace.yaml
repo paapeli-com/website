@@ -1,6 +1,5 @@
 packages:
+  # apps/panel is the whole panel now — one Vite app (shell + features), not a
+  # host plus a tree of Module Federation remotes under apps/product/*.
   - "apps/*"
-  - "apps/panel/*"
-  - "apps/product/*"
-  - "apps/product/aiot/*"
   - "packages/*"
