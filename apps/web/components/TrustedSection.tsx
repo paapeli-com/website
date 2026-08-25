@@ -177,12 +177,16 @@ export const TrustedSection = () => {
             onMouseLeave={() => setPaused(false)}
             className="relative flex h-[448px] w-full max-w-[384px] shrink-0 flex-col items-center justify-end overflow-hidden rounded-xl border border-[#e5e7eb] py-8 shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)]"
           >
+            {/* The card is 384x448 but the photos are landscape, so object-cover
+                scales them by height: 448 x (1280/896) is about 640px of image
+                across. Asking for the card's width instead left the browser
+                upscaling a too-small file, which read as blur. */}
             <Image
               key={active}
               src={SLIDE_IMAGES[active]}
               alt={slide.heading}
               fill
-              sizes="384px"
+              sizes="640px"
               className="object-cover"
             />
             {/* Subtle radial vignette to match the design */}
