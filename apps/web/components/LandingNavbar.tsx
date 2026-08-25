@@ -3,7 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, ChevronRight, Menu, X, Sparkles } from "lucide-react";
+import {
+  Blocks,
+  Boxes,
+  ChevronDown,
+  ChevronRight,
+  LayoutTemplate,
+  Menu,
+  Sparkles,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
 import paapeliLogo from "@/src/assets/paapeli-logo.svg";
@@ -26,12 +36,13 @@ type MenuItem = {
 type MegaMenu = { columns: MenuItem[][] };
 
 const MENUS: Record<string, MegaMenu> = {
-  Platform: {
+  Products: {
     columns: [
       [
         { id: "aiotPlatform", href: "/aiot-platform" },
         { id: "edgeComputing", href: "/edge-computing" },
-        { id: "ota", href: "/ota" },
+        /* Points at the designed feature page rather than the older stub. */
+        { id: "ota", href: "/features/ota-updates" },
       ],
       [
         { id: "ddosProtection", href: "/ddos-protection" },
@@ -158,7 +169,7 @@ const MENU_COPY: Record<string, Record<string, { title: string; description: str
    Route hrefs are language-relative and get prefixed with the active
    locale (e.g. "/pricing" -> "/en/pricing") when rendered. */
 const NAV_ITEMS: { id: string; href?: string; menu?: keyof typeof MENUS }[] = [
-  { id: "platform", menu: "Platform" },
+  { id: "products", menu: "Products" },
   { id: "solution", menu: "Solution" },
   { id: "ecosystem", menu: "Ecosystem" },
   { id: "resources", menu: "Resources" },
@@ -169,17 +180,17 @@ const NAV_ITEMS: { id: string; href?: string; menu?: keyof typeof MENUS }[] = [
    translated copy exists. */
 const NAV_COPY: Record<string, Record<string, string>> = {
   en: {
-    platform: "Platform", solution: "Solution", ecosystem: "Ecosystem",
+    products: "Products", solution: "Solution", ecosystem: "Ecosystem",
     resources: "Resources", pricing: "Pricing",
     dashboard: "Dashboard", toggleMenu: "Toggle menu", newBadge: "New",
   },
   fa: {
-    platform: "پلتفرم", solution: "راهکارها", ecosystem: "اکوسیستم",
+    products: "محصولات", solution: "راهکارها", ecosystem: "اکوسیستم",
     resources: "منابع", pricing: "تعرفه‌ها",
     dashboard: "داشبورد", toggleMenu: "باز و بسته کردن منو", newBadge: "جدید",
   },
   ar: {
-    platform: "المنصة", solution: "الحلول", ecosystem: "النظام البيئي",
+    products: "المنتجات", solution: "الحلول", ecosystem: "النظام البيئي",
     resources: "المصادر", pricing: "الأسعار",
     dashboard: "لوحة التحكم", toggleMenu: "فتح القائمة", newBadge: "جديد",
   },
@@ -221,66 +232,131 @@ function MegaMenuItem({ item }: { item: MenuItem }) {
   );
 }
 
-/* Promo card copy. Menus without their own entry fall back to `default`.
-   The left panel still shows a placeholder icon until the artwork lands. */
+/* The bold panel on the trailing edge of every mega menu. Each menu gets its
+   own pitch and its own destination, so the panel is the one place in the
+   menu that argues for something rather than just listing links. */
 const PROMO_COPY: Record<
   string,
   Record<string, { title: string; description: string; cta: string }>
 > = {
   en: {
-    Platform: {
+    Products: {
       title: "Build Intelligent Operations at Scale",
       description:
         "Connect devices, manage infrastructure, and turn operational data into AI-powered decisions.",
       cta: "Explore Platform",
     },
-    default: {
-      title: "Build your website fast",
+    Solution: {
+      title: "One platform, six industries",
       description:
-        "In today's fast-paced digital landscape, fostering seamless collaboration among Developers.",
-      cta: "Get started",
+        "Manufacturing, oil & gas, energy, buildings, fleet and agriculture, each with a solution template that is ready on day one.",
+      cta: "See the templates",
+    },
+    Ecosystem: {
+      title: "Build on Paapeli",
+      description:
+        "APIs, SDKs and a white-label platform for integrators who ship an industrial product under their own brand.",
+      cta: "Talk to Sales",
+    },
+    Resources: {
+      title: "How ready are you for AI?",
+      description:
+        "Seven dimensions, about 10 minutes, free. Get a score for your organisation and a plan for what to fix first.",
+      cta: "Start the assessment",
+    },
+    default: {
+      title: "Build Intelligent Operations at Scale",
+      description:
+        "Connect devices, manage infrastructure, and turn operational data into AI-powered decisions.",
+      cta: "Explore Platform",
     },
   },
   fa: {
-    Platform: {
+    Products: {
       title: "عملیات هوشمند را در مقیاس بسازید",
       description:
-        "دستگاه‌ها را متصل کنید، زیرساخت را مدیریت کنید و داده‌های عملیاتی را به تصمیم‌های مبتنی بر هوش مصنوعی تبدیل کنید.",
+        "دستگاه‌ها را متصل کنید، زیرساخت را مدیریت کنید و دادهٔ عملیاتی را به تصمیم‌های مبتنی بر هوش مصنوعی تبدیل کنید.",
       cta: "کاوش در پلتفرم",
     },
-    default: {
-      title: "وب‌سایت خود را سریع بسازید",
+    Solution: {
+      title: "یک پلتفرم، شش صنعت",
       description:
-        "در چشم‌انداز پرشتاب دیجیتال امروز، همکاری یکپارچه میان توسعه‌دهندگان را تقویت کنید.",
-      cta: "شروع کنید",
+        "تولید، نفت و گاز، انرژی، ساختمان، ناوگان و کشاورزی، هر یک با یک قالب راهکار که از روز اول آماده است.",
+      cta: "دیدن قالب‌ها",
+    },
+    Ecosystem: {
+      title: "روی پاپلی بسازید",
+      description:
+        "APIها، SDKها و پلتفرم وایت‌لیبل، برای مجریانی که محصول صنعتی را با برند خودشان عرضه می‌کنند.",
+      cta: "تماس با فروش",
+    },
+    Resources: {
+      title: "چقدر برای هوش مصنوعی آماده‌اید؟",
+      description:
+        "هفت بُعد، حدود ۱۰ دقیقه، رایگان. امتیاز سازمان خود و برنامه‌ای برای اینکه از کجا شروع کنید بگیرید.",
+      cta: "شروع ارزیابی",
+    },
+    default: {
+      title: "عملیات هوشمند را در مقیاس بسازید",
+      description:
+        "دستگاه‌ها را متصل کنید، زیرساخت را مدیریت کنید و دادهٔ عملیاتی را به تصمیم‌های مبتنی بر هوش مصنوعی تبدیل کنید.",
+      cta: "کاوش در پلتفرم",
     },
   },
   ar: {
-    Platform: {
+    Products: {
       title: "ابنِ عمليات ذكية على نطاق واسع",
       description:
         "اربط الأجهزة، وأدِر البنية التحتية، وحوّل البيانات التشغيلية إلى قرارات مدعومة بالذكاء الاصطناعي.",
       cta: "استكشف المنصة",
     },
-    default: {
-      title: "أنشئ موقعك بسرعة",
+    Solution: {
+      title: "منصة واحدة وست صناعات",
       description:
-        "في المشهد الرقمي سريع الإيقاع اليوم، عزّز التعاون السلس بين المطورين.",
-      cta: "ابدأ الآن",
+        "التصنيع والنفط والغاز والطاقة والمباني والأساطيل والزراعة، لكل منها قالب حل جاهز من اليوم الأول.",
+      cta: "شاهد القوالب",
+    },
+    Ecosystem: {
+      title: "ابنِ على بابيلي",
+      description:
+        "واجهات API وحِزم SDK ومنصة بعلامتك التجارية، للمُكامِلين الذين يقدّمون منتجًا صناعيًا باسمهم.",
+      cta: "تحدّث إلى المبيعات",
+    },
+    Resources: {
+      title: "ما مدى جاهزيتك للذكاء الاصطناعي؟",
+      description:
+        "سبعة أبعاد، نحو 10 دقائق، مجانًا. احصل على درجة مؤسستك وخطة لما يجب إصلاحه أولًا.",
+      cta: "ابدأ التقييم",
+    },
+    default: {
+      title: "ابنِ عمليات ذكية على نطاق واسع",
+      description:
+        "اربط الأجهزة، وأدِر البنية التحتية، وحوّل البيانات التشغيلية إلى قرارات مدعومة بالذكاء الاصطناعي.",
+      cta: "استكشف المنصة",
     },
   },
+};
+
+/* Where each promo actually goes, and the icon that heads it. */
+const PROMO_LINK: Record<string, { href: string; icon: LucideIcon }> = {
+  Products: { href: "/aiot-platform", icon: Boxes },
+  Solution: { href: "/features/solution-templates", icon: LayoutTemplate },
+  Ecosystem: { href: "/contact", icon: Blocks },
+  Resources: { href: "/AI-Readiness-Assessment", icon: Sparkles },
 };
 
 function PromoCard({ menuKey }: { menuKey: keyof typeof MENUS }) {
   const { language } = useLanguage();
   const table = PROMO_COPY[language] ?? PROMO_COPY.en;
   const copy = table[menuKey as string] ?? table.default;
+  const link = PROMO_LINK[menuKey as string] ?? PROMO_LINK.Products;
+  const Icon = link.icon;
 
   return (
     <aside className="hidden w-[280px] shrink-0 self-stretch xl:block">
       <div className="flex h-full flex-col items-start gap-4 rounded-xl border border-[#e5e7eb] bg-[#fbfcfd] p-6">
         <span className="flex size-11 items-center justify-center rounded-xl bg-[#fff1e6]">
-          <Sparkles className="size-5 text-primary" />
+          <Icon className="size-5 text-primary" />
         </span>
         <div className="flex flex-col gap-2">
           <p className="text-base font-semibold leading-snug text-foreground">{copy.title}</p>
@@ -289,7 +365,7 @@ function PromoCard({ menuKey }: { menuKey: keyof typeof MENUS }) {
           </p>
         </div>
         <Link
-          href="#"
+          href={`/${language}${link.href}`}
           className="mt-auto inline-flex h-9 items-center gap-1.5 rounded-full border border-primary px-4 text-[13px] font-medium text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
         >
           {copy.cta}

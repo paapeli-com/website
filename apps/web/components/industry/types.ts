@@ -1,5 +1,7 @@
 import type { StaticImageData } from "next/image";
 
+import type { FeatureSlug, IndustrySlug } from "@/lib/site-links";
+
 /* ------------------------------------------------------------------ */
 /* The shape every industry landing page is described by.             */
 /* One config per industry, one template that renders them all.       */
@@ -38,12 +40,15 @@ export type IndustryCopy = {
 };
 
 export type IndustryConfig = {
+  slug: IndustrySlug;
   /** Full-bleed photograph behind the hero. */
   hero: StaticImageData;
   /** Three photographs, in the order the "what we deliver" cards use them. */
   images: [StaticImageData, StaticImageData, StaticImageData];
   /** Which of `images` each "why partners" card takes, by index. */
   whyOrder: [number, number, number];
+  /** Feature pages this solution is built on, rendered as linked cards. */
+  features: [FeatureSlug, FeatureSlug, FeatureSlug, FeatureSlug];
   /**
    * Mirrors the hero photograph in LTR only. Set it when the subject sits on
    * the left of the frame, where English copy starts.

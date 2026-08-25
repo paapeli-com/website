@@ -6,6 +6,9 @@ import refinery from "@/src/assets/oilgas-refinery.jpg";
 import tank from "@/src/assets/oilgas-tank.jpg";
 
 export const oilGasConfig: IndustryConfig = {
+  slug: "oil-gas",
+  /* The platform capabilities this solution leans on. */
+  features: ["realtime-monitoring", "alerts-events", "anomaly-detection", "predictive-analytics"],
   hero,
   images: [refinery, pipeline, tank],
   whyOrder: [0, 1, 2],

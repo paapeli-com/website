@@ -6,6 +6,9 @@ import solar from "@/src/assets/energy-solar.jpg";
 import storage from "@/src/assets/energy-storage.jpg";
 
 export const energyMonitoringConfig: IndustryConfig = {
+  slug: "energy-monitoring",
+  /* The platform capabilities this solution leans on. */
+  features: ["realtime-monitoring", "anomaly-detection", "predictive-analytics", "alerts-events"],
   hero,
   images: [meter, storage, solar],
   whyOrder: [0, 2, 1],

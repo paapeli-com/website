@@ -6,6 +6,9 @@ import irrigation from "@/src/assets/agri-irrigation.jpg";
 import sensor from "@/src/assets/agri-sensor.jpg";
 
 export const smartAgricultureConfig: IndustryConfig = {
+  slug: "smart-agriculture",
+  /* The platform capabilities this solution leans on. */
+  features: ["device-management", "ota-updates", "anomaly-detection", "solution-templates"],
   hero,
   images: [sensor, irrigation, greenhouse],
   whyOrder: [0, 1, 2],

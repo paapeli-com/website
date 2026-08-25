@@ -6,6 +6,9 @@ import hero from "@/src/assets/fleet-hero.jpg";
 import telematics from "@/src/assets/fleet-telematics.jpg";
 
 export const fleetTrackingConfig: IndustryConfig = {
+  slug: "fleet-tracking",
+  /* The platform capabilities this solution leans on. */
+  features: ["realtime-monitoring", "ota-updates", "alerts-events", "predictive-analytics"],
   hero,
   images: [telematics, assets, coldchain],
   whyOrder: [0, 1, 2],

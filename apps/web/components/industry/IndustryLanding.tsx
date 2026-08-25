@@ -1,10 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
-  Check,
   DollarSign,
   Droplets,
   Leaf,
@@ -18,11 +18,13 @@ import {
 import { CountUp } from "@/components/CountUp";
 import { LandingFooter } from "@/components/LandingFooter";
 import { LandingNavbar } from "@/components/LandingNavbar";
+import { CheckList, RevealCard } from "@/components/RevealCard";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { CAPABILITIES_RAIL, LinkedText, featureHref, featureName, industryHref } from "@/lib/site-links";
 import { cn } from "@/lib/utils";
 
-import type { IndustryCard, IndustryConfig, StatIcon } from "./types";
+import type { IndustryConfig, StatIcon } from "./types";
 
 /* ------------------------------------------------------------------ */
 /* <IndustryLanding/> : one template for every industry page.         */
@@ -44,53 +46,12 @@ const STAT_ICONS: Record<StatIcon, LucideIcon> = {
   shield: ShieldCheck,
 };
 
-function CheckList({ items, tone }: { items: string[]; tone: "light" | "dark" }) {
-  return (
-    <ul className="space-y-2">
-      {items.map((item) => (
-        <li
-          key={item}
-          className={cn("flex items-start gap-2 text-sm", tone === "light" ? "text-white/85" : "text-foreground/80")}
-        >
-          <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <span>{item}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/** A photograph that steps aside on hover to make room for the detail. */
-function RevealCard({ card, image }: { card: IndustryCard; image: IndustryConfig["images"][number] }) {
-  return (
-    <div
-      tabIndex={0}
-      className="group relative flex h-[360px] overflow-hidden rounded-2xl bg-[hsl(215_60%_13%)] outline-none ring-primary/60 focus-visible:ring-2"
-    >
-      <div className="relative h-full w-full shrink-0 transition-[width] duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] group-hover:w-1/5 group-focus-visible:w-1/5">
-        <Image src={image} alt={card.title} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-gradient-to-t from-[hsl(215_60%_8%)]/90 via-[hsl(215_60%_8%)]/25 to-transparent"
-        />
-        <h3 className="absolute inset-x-0 bottom-0 p-5 text-lg font-semibold text-white transition-opacity duration-300 group-hover:opacity-0 group-focus-visible:opacity-0">
-          {card.title}
-        </h3>
-      </div>
-
-      <div className="flex min-w-0 flex-1 flex-col justify-center gap-3 p-6 opacity-0 transition-opacity delay-200 duration-500 group-hover:opacity-100 group-focus-visible:opacity-100">
-        <h3 className="text-xl font-bold text-white">{card.title}</h3>
-        <p className="text-sm leading-relaxed text-white/70">{card.description}</p>
-        <CheckList items={card.items} tone="light" />
-      </div>
-    </div>
-  );
-}
-
 export function IndustryLanding({ config }: { config: IndustryConfig }) {
   const { isRTL, language } = useLanguage();
   const router = useRouter();
   const copy = config.copy[language] ?? config.copy.en;
+  /* Own href, so the page never links its industry name back to itself. */
+  const self = industryHref(config.slug);
 
   const goToDemo = () => router.push(`/${language}/request-demo`);
 
@@ -114,7 +75,13 @@ export function IndustryLanding({ config }: { config: IndustryConfig }) {
           <div className="container relative z-10 mx-auto px-4 py-20">
             <div className="max-w-3xl">
               <h1 className="mb-6 text-4xl font-bold leading-tight text-white md:text-6xl">{copy.hero.title}</h1>
-              <p className="mb-8 text-lg text-white/80 md:text-xl">{copy.hero.description}</p>
+              <p className="mb-8 text-lg text-white/80 md:text-xl">
+                <LinkedText
+                  text={copy.hero.description}
+                  self={self}
+                  className="font-medium text-primary underline decoration-primary/50 underline-offset-4 hover:decoration-primary"
+                />
+              </p>
               <div className="flex flex-col gap-4 sm:flex-row">
                 <Button size="lg" className="px-8 py-6 text-lg" onClick={goToDemo}>
                   {copy.hero.primary}
@@ -141,7 +108,7 @@ export function IndustryLanding({ config }: { config: IndustryConfig }) {
 
             <div className="grid gap-6 md:grid-cols-3">
               {copy.offer.cards.map((card, i) => (
-                <RevealCard key={card.title} card={card} image={config.images[i]} />
+                <RevealCard key={card.title} card={card} image={config.images[i]} self={self} />
               ))}
             </div>
           </div>
@@ -210,10 +177,38 @@ export function IndustryLanding({ config }: { config: IndustryConfig }) {
                     />
                     <h3 className="text-lg font-bold leading-snug text-foreground">{card.title}</h3>
                   </div>
-                  <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{card.description}</p>
-                  <CheckList items={card.items} tone="dark" />
+                  <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
+                    <LinkedText text={card.description} self={self} />
+                  </p>
+                  <CheckList items={card.items} tone="dark" self={self} />
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ------------- The capabilities this solution is built on ---------- */}
+        <section className="bg-background py-14 md:py-16">
+          <div className="container mx-auto px-4">
+            <h2 className="mb-6 text-xl font-bold text-foreground md:text-2xl">
+              {CAPABILITIES_RAIL[language] ?? CAPABILITIES_RAIL.en}
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {config.features.map((slug) => {
+                const named = featureName(slug, language);
+                return (
+                  <Link
+                    key={slug}
+                    href={`/${language}${featureHref(slug)}`}
+                    className="group rounded-xl border border-border bg-card p-4 text-start transition-colors hover:border-primary/50"
+                  >
+                    <p className="mb-1 text-sm font-semibold text-foreground group-hover:text-primary">
+                      {named.title}
+                    </p>
+                    <p className="text-xs leading-relaxed text-muted-foreground">{named.tagline}</p>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </section>

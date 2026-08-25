@@ -6,6 +6,9 @@ import machines from "@/src/assets/mfg-machines.jpg";
 import operator from "@/src/assets/mfg-operator.jpg";
 
 export const smartManufacturingConfig: IndustryConfig = {
+  slug: "smart-manufacturing",
+  /* The platform capabilities this solution leans on. */
+  features: ["realtime-monitoring", "predictive-analytics", "anomaly-detection", "device-management"],
   hero,
   images: [line, machines, operator],
   whyOrder: [0, 2, 1],

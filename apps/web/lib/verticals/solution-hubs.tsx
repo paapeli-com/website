@@ -37,7 +37,7 @@ export const operationsHubConfig: VerticalConfig = {
   titleTop: "Unified operational visibility for",
   titleBottom: "industrial environments",
   subtitle:
-    "Monitor every asset, process, and site in real time — with AI-driven insight that turns raw data into operational decisions.",
+    "Monitor every asset, process, and site in real time, with AI-driven insight that turns raw data into operational decisions.",
   primaryCta: { label: "Start Free", href: "#" },
   secondaryCta: { label: "Contact Sales", href: CONTACT },
   chips: [
@@ -107,7 +107,7 @@ export const operationsHubConfig: VerticalConfig = {
   ],
   steps: {
     heading: "From data to decisions in three steps",
-    subtitle: "Connect your assets and start operating smarter — no rip-and-replace required.",
+    subtitle: "Connect your assets and start operating smarter, with no rip-and-replace required.",
     items: [
       { title: "Connect assets", description: "Onboard machines and gateways with support for MQTT, OPC-UA, and Modbus." },
       { title: "Configure views", description: "Build dashboards, KPIs, and alert rules tailored to each team." },
@@ -128,7 +128,7 @@ export const edgeHubConfig: VerticalConfig = {
   titleTop: "Connect and manage devices",
   titleBottom: "at the edge, at scale",
   subtitle:
-    "Onboard, monitor, and update industrial assets and edge devices across every site — with support for the protocols your equipment already speaks.",
+    "Onboard, monitor, and update industrial assets and edge devices across every site, with support for the protocols your equipment already speaks.",
   primaryCta: { label: "Start Free", href: "#" },
   secondaryCta: { label: "Contact Sales", href: CONTACT },
   chips: [
@@ -219,7 +219,7 @@ export const intelligenceHubConfig: VerticalConfig = {
   titleTop: "Predict, detect, and optimize",
   titleBottom: "with industrial AI",
   subtitle:
-    "Turn operational data into foresight — predict failures before they happen, detect anomalies in real time, and continuously optimize performance.",
+    "Turn operational data into foresight: predict failures before they happen, detect anomalies in real time, and continuously optimize performance.",
   primaryCta: { label: "Start Free", href: "#" },
   secondaryCta: { label: "Contact Sales", href: CONTACT },
   chips: [
@@ -260,7 +260,7 @@ export const intelligenceHubConfig: VerticalConfig = {
   },
   features: {
     heading: "Industrial AI, ready to deploy",
-    subtitle: "Models and tooling designed for real operational data — not a data-science project.",
+    subtitle: "Models and tooling designed for real operational data, not a data-science project.",
     items: [
       { icon: BrainCircuit, title: "Predictive Models", description: "Forecast failures and remaining useful life from your telemetry." },
       { icon: Sparkles, title: "Anomaly Detection", description: "Detect abnormal behaviour with self-learning baselines." },
@@ -272,7 +272,7 @@ export const intelligenceHubConfig: VerticalConfig = {
   },
   showcase: {
     heading: "From reactive to predictive",
-    subtitle: "Intelligence Hub layers AI on top of your existing data so you can act before problems happen — not after.",
+    subtitle: "Intelligence Hub layers AI on top of your existing data so you can act before problems happen, not after.",
     points: [
       { icon: TrendingUp, title: "Fewer surprises", description: "Predict failures and plan maintenance before breakdowns." },
       { icon: Sparkles, title: "Catch it early", description: "Real-time anomaly detection flags issues as they emerge." },
@@ -310,7 +310,7 @@ export const infrastructureHubConfig: VerticalConfig = {
   titleTop: "Operational intelligence for",
   titleBottom: "mission-critical infrastructure",
   subtitle:
-    "Monitor and manage the systems the world depends on — energy, utilities, and critical facilities — with the reliability and security they demand.",
+    "Monitor and manage the systems the world depends on: energy, utilities and critical facilities, with the reliability and security they demand.",
   primaryCta: { label: "Start Free", href: "#" },
   secondaryCta: { label: "Contact Sales", href: CONTACT },
   chips: [

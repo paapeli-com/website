@@ -1,8 +1,10 @@
 "use client";
 
 import Image, { type StaticImageData } from "next/image";
+import Link from "next/link";
 
 import { useLanguage } from "@/contexts/LanguageContext";
+import { featureHref, type FeatureSlug } from "@/lib/site-links";
 import capDeployment from "@/src/assets/card-4-deployment.png";
 import capDevices from "@/src/assets/card-3-devices-gateway.png";
 import capRealtime from "@/src/assets/card-2-realtime.png";
@@ -28,6 +30,18 @@ const ICONS: StaticImageData[] = [
   capTemplates,
 ];
 
+/* Each card is the doorway to that capability's own page, in card order. */
+const SLUGS: FeatureSlug[] = [
+  "flexible-deployment",
+  "device-management",
+  "realtime-monitoring",
+  "alerts-events",
+  "ota-updates",
+  "anomaly-detection",
+  "predictive-analytics",
+  "solution-templates",
+];
+
 type Copy = {
   heading: string;
   subheading: string;
@@ -44,7 +58,7 @@ const COPY: Record<string, Copy> = {
       { title: "Device & Gateway Management", description: "Manage devices and gateways at scale with support for industrial protocols such as MQTT, OPC-UA, and Modbus." },
       { title: "Real-Time Monitoring", description: "Track device data and system performance in real time to gain full visibility across your operations." },
       { title: "Alerts & Event Management", description: "Detect critical events instantly and trigger alerts to respond quickly before issues escalate." },
-      { title: "OTA Updates", description: "We ensure Paapeli stays secure, spam-free, and protected for your safety." },
+      { title: "OTA Updates", description: "Push firmware and software to distributed devices remotely and safely, with staged rollouts and rollback." },
       { title: "Anomaly Detection", description: "Identify abnormal patterns in your data to detect issues early and prevent unexpected failures." },
       { title: "Predictive Analytics", description: "Analyze trends and predict equipment failures to optimize maintenance and improve reliability." },
       { title: "Solution Templates", description: "Use ready-to-deploy templates tailored for different industries to accelerate implementation and reduce time to value." },
@@ -102,9 +116,10 @@ export const CapabilitiesSection = () => {
       {/* 4x2 capability grid */}
       <div className="grid w-full max-w-[1280px] grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
         {copy.cards.map((card, i) => (
-          <div
+          <Link
             key={card.title}
-            className="flex flex-col gap-3 overflow-hidden rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)]"
+            href={`/${language}${featureHref(SLUGS[i])}`}
+            className="group flex flex-col gap-3 overflow-hidden rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)] transition-shadow hover:border-primary/40 hover:shadow-md"
           >
             <div className="flex items-center gap-3">
               <Image
@@ -115,12 +130,12 @@ export const CapabilitiesSection = () => {
                 height={72}
                 className="size-[72px] shrink-0 object-contain"
               />
-              <h3 className="text-lg font-semibold leading-snug text-foreground rtl:text-base">
+              <h3 className="text-lg font-semibold leading-snug text-foreground transition-colors group-hover:text-primary rtl:text-base">
                 {card.title}
               </h3>
             </div>
             <p className="text-base text-muted-foreground rtl:text-sm">{card.description}</p>
-          </div>
+          </Link>
         ))}
       </div>
     </section>

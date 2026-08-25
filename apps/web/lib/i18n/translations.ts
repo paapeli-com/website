@@ -351,7 +351,7 @@ export const translations = {
   ar: {
     // Hero Section
     heroTitle: "بناء وربط وإدارة البنية التحتية لإنترنت الأشياء، بذكاء",
-    heroSubtitle: "باپيلي هي أول منصة سحابة إنترنت الأشياء المدعومة بالذكاء الاصطناعي (AIoT) التي تساعدك على ربط ملايين الأجهزة، وتحليل الرؤى والاتجاهات، وفي النهاية التحكم الذكي في بنيتك التحتية من أي مكان",
+    heroSubtitle: "بابيلي هي أول منصة سحابة إنترنت الأشياء المدعومة بالذكاء الاصطناعي (AIoT) التي تساعدك على ربط ملايين الأجهزة، وتحليل الرؤى والاتجاهات، وفي النهاية التحكم الذكي في بنيتك التحتية من أي مكان",
     getStarted: "ابدأ مجاناً",
     learnMore: "اعرف المزيد",
     
@@ -372,7 +372,7 @@ export const translations = {
     
     // Data Flow
     dataFlowTitle: "من المستشعر إلى الرؤية",
-    dataFlowDesc: "تمكّن باپيلي الشركات الصغيرة والمتوسطة والمصنعين الصناعيين من ربط أجهزة التحكم المنطقية والمستشعرات والآلات - معالجة البيانات في الوقت الفعلي بشكل آمن وتقديم رؤى مدعومة بالذكاء الاصطناعي لتحسين العمليات وتقليل وقت التوقف.",
+    dataFlowDesc: "تمكّن بابيلي الشركات الصغيرة والمتوسطة والمصنعين الصناعيين من ربط أجهزة التحكم المنطقية والمستشعرات والآلات - معالجة البيانات في الوقت الفعلي بشكل آمن وتقديم رؤى مدعومة بالذكاء الاصطناعي لتحسين العمليات وتقليل وقت التوقف.",
     
     // Use Cases
     useCasesTitle: "مصممة لكل صناعة",
@@ -387,7 +387,7 @@ export const translations = {
     
     // OTA Updates
     otaTitle: "تحديثات البرامج الثابتة الآمنة، مبسطة",
-    otaDesc: "إدارة إصدارات البرامج الثابتة، وتوقيع التحديثات، وطرح الإصدارات تدريجياً — كل ذلك من خلال لوحة تحكم بسيطة",
+    otaDesc: "إدارة إصدارات البرامج الثابتة، وتوقيع التحديثات، وطرح الإصدارات تدريجياً، كل ذلك من خلال لوحة تحكم بسيطة",
     exploreOTA: "استكشف التحديثات",
     
     // Dashboard
@@ -405,12 +405,12 @@ export const translations = {
     products: "المنتجات",
     aiotPlatform: "منصة AIoT",
     aiotPlatformNavDesc: "منصة سحابة إنترنت الأشياء مدعومة بالذكاء الاصطناعي",
-    ddosProtection: "محافظت از DDoS",
-    ddosProtectionNavDesc: "أمن بنيتك التحتية من هجمات DDoS - أول منصة عبر الإنترنت تقدم هذه الميزة",
-    edgeComputing: "محاسبات لبه",
+    ddosProtection: "الحماية من DDoS",
+    ddosProtectionNavDesc: "أمّن بنيتك التحتية ضد هجمات DDoS",
+    edgeComputing: "الحوسبة الطرفية",
     edgeComputingNavDesc: "معالجة البيانات على الحافة للحصول على رؤى أسرع",
-    intelligenceInsight: "هوش مصنوعی",
-    intelligenceInsightNavDesc: "تحليلات ورؤى مدعومة بالذكاء الاصطناعي - أول منصة عبر الإنترنت تقدم هذه الميزة",
+    intelligenceInsight: "رؤى ذكية",
+    intelligenceInsightNavDesc: "تحليلات ورؤى مدعومة بالذكاء الاصطناعي",
     ota: "OTA",
     otaNavDesc: "تحديثات البرامج الثابتة عن بُعد",
     useCases: "حالات الاستخدام",
@@ -442,7 +442,7 @@ export const translations = {
     transformYourFarm: "حوّل مزرعتك اليوم",
     
     // Login Page
-    welcomeBack: "مرحباً بك في باپيلي",
+    welcomeBack: "مرحباً بك في بابيلي",
     loginSubtitle: "الوصول إلى لوحة تحكم إنترنت الأشياء",
     or: "أو",
     createAccount: "إنشاء حساب",
@@ -460,7 +460,7 @@ export const translations = {
     status: "الحالة",
     contact: "اتصل بنا",
     connect: "تواصل",
-    copyright: "© 2025 باپيلي. جميع الحقوق محفوظة.",
+    copyright: "© 2025 بابيلي. جميع الحقوق محفوظة.",
     tagline: "منصة سحابية مدعومة بالذكاء الاصطناعي لإنترنت الأشياء والبنية التحتية الذكية",
     
     // Panel
@@ -476,7 +476,7 @@ export const translations = {
     add: "إضافة",
     
     // Panel Pages
-    welcomeToPanel: "مرحبًا بك في لوحة باپيلي",
+    welcomeToPanel: "مرحبًا بك في لوحة بابيلي",
     homePanelDesc: "إدارة أجهزة إنترنت الأشياء الخاصة بك، وعرض التحليلات، وتكوين الإعدادات من لوحة التحكم هذه.",
     totalDevices: "إجمالي الأجهزة",
     activeDevices: "الأجهزة النشطة",
@@ -489,7 +489,7 @@ export const translations = {
     noOTAUpdatesYet: "لا توجد تحديثات OTA بعد. انقر فوق زر الإضافة لتحميل البرنامج الثابت الأول الخاص بك.",
     noMembersYet: "لا يوجد أعضاء بعد. انقر فوق زر الإضافة لدعوة أعضاء الفريق.",
     apiDocumentation: "وثائق API",
-    apiDocDesc: "الوصول إلى وثائق API الشاملة للتكامل مع خدمات باپيلي.",
+    apiDocDesc: "الوصول إلى وثائق API الشاملة للتكامل مع خدمات بابيلي.",
     
     // Add Forms
     addNew: "إضافة جديد",
@@ -516,7 +516,7 @@ export const translations = {
     helpCenter: "مركز المساعدة",
     helpCenterDesc: "تصفح الوثائق والأدلة",
     tutorials: "البرامج التعليمية",
-    tutorialsDesc: "تعلم كيفية استخدام باپيلي",
+    tutorialsDesc: "تعلم كيفية استخدام بابيلي",
     
     // Device Page
     search: "بحث",
@@ -692,7 +692,7 @@ export const translations = {
     
     // Data Flow
     dataFlowTitle: "از سنسور تا بینش",
-    dataFlowDesc: "پاپلی به شرکت‌های کوچک و متوسط و تولیدکنندگان صنعتی امکان می‌دهد PLCها، سنسورها و ماشین‌آلات را متصل کنند—پردازش امن داده‌ها در لحظه و ارائه بینش‌های مبتنی بر هوش مصنوعی برای بهینه‌سازی عملیات و کاهش زمان توقف.",
+    dataFlowDesc: "پاپلی به شرکت‌های کوچک و متوسط و تولیدکنندگان صنعتی امکان می‌دهد PLCها، سنسورها و ماشین‌آلات را متصل کنند و داده‌ها را در لحظه و به‌صورت امن پردازش کنند و ارائه بینش‌های مبتنی بر هوش مصنوعی برای بهینه‌سازی عملیات و کاهش زمان توقف.",
     
     // Use Cases
     useCasesTitle: "طراحی شده برای هر صنعتی",
@@ -725,12 +725,12 @@ export const translations = {
     products: "محصولات",
     aiotPlatform: "پلتفرم AIoT",
     aiotPlatformNavDesc: "پلتفرم ابری اینترنت اشیا مبتنی بر هوش مصنوعی",
-    ddosProtection: "محافظت از DDoS",
-    ddosProtectionNavDesc: "زیرساخت خود را از حملات DDoS امن کنید - اولین پلتفرم آنلاین با این قابلیت",
-    edgeComputing: "محاسبات لبه",
+    ddosProtection: "حفاظت در برابر DDoS",
+    ddosProtectionNavDesc: "زیرساخت خود را در برابر حملات DDoS ایمن کنید",
+    edgeComputing: "رایانش لبه",
     edgeComputingNavDesc: "پردازش داده‌ها در لبه برای بینش‌های سریع‌تر",
-    intelligenceInsight: "هوش مصنوعی",
-    intelligenceInsightNavDesc: "تحلیل‌ها و بینش‌های مبتنی بر هوش مصنوعی - اولین پلتفرم آنلاین با این قابلیت",
+    intelligenceInsight: "بینش هوشمند",
+    intelligenceInsightNavDesc: "تحلیل و بینش مبتنی بر هوش مصنوعی",
     ota: "OTA",
     otaNavDesc: "به‌روزرسانی‌های فریم‌ور از راه دور",
     useCases: "موارد استفاده",

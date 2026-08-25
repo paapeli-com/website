@@ -6,6 +6,9 @@ import lobby from "@/src/assets/bld-lobby.jpg";
 import meters from "@/src/assets/bld-meters.jpg";
 
 export const smartBuildingsConfig: IndustryConfig = {
+  slug: "smart-buildings",
+  /* The platform capabilities this solution leans on. */
+  features: ["realtime-monitoring", "alerts-events", "solution-templates", "flexible-deployment"],
   hero,
   images: [hvac, meters, lobby],
   whyOrder: [0, 2, 1],

@@ -91,6 +91,18 @@ export default {
             height: "0",
           },
         },
+        /* Slowly drifts a panel screenshot sideways so a still image reads
+           as a live screen. */
+        'panel-pan': {
+          '0%, 100%': { transform: 'scale(1.08) translateX(-3%)' },
+          '50%': { transform: 'scale(1.08) translateX(3%)' },
+        },
+        /* A soft band of light sweeping down over the panel screenshot. */
+        'scan-glow': {
+          '0%': { transform: 'translateY(-100%)', opacity: '0' },
+          '10%, 90%': { opacity: '0.6' },
+          '100%': { transform: 'translateY(100%)', opacity: '0' },
+        },
         /* Breathes a screen-blended copy of the hero photo in and out, so the
            lit nodes glow while the dark background stays put. */
         "hero-glow": {
@@ -102,6 +114,8 @@ export default {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "hero-glow": "hero-glow 6s ease-in-out infinite",
+        "panel-pan": "panel-pan 18s ease-in-out infinite",
+        "scan-glow": "scan-glow 6s ease-in-out infinite",
       },
     },
   },

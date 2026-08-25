@@ -14,7 +14,7 @@ import paapeliLogo from "@/src/assets/paapeli-logo.svg";
 
 /* One href list per column, in the same order as the labels below. */
 const COLUMN_HREFS: string[][] = [
-  ["/operations-hub", "/edge-hub", "/intelligence-hub", "/gps-tracking", "#"],
+  ["/operations-hub", "/edge-hub", "/intelligence-hub", "/gps-tracking", "/features/ota-updates"],
   ["#", "#", "#", "#"],
   ["#", "#", "#", "#"],
   ["#", "#", "#", "/pricing"],
