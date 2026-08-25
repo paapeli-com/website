@@ -10,11 +10,10 @@
     "./config": "./config.ts",
     "./session": "./session.ts",
     "./theme": "./theme.ts",
-    "./workspace": "./workspace.ts",
     "./logo.svg": "./assets/paapeli-logo.svg",
     "./logo-dark.svg": "./assets/paapeli-logo-dark.svg"
   },
-  "files": ["tokens.css", "preset.ts", "config.ts", "session.ts", "theme.ts", "workspace.ts", "assets"],
+  "files": ["tokens.css", "preset.ts", "config.ts", "session.ts", "theme.ts", "assets"],
   "dependencies": {
     "tailwindcss-animate": "^1.0.7"
   },

@@ -29,65 +29,20 @@ This setup enables **code sharing**, **consistent tooling**, and **fast builds**
 ```
 .
 ├── apps/
-│ ├── panel/ # panel.paapeli.com — the signed-in product panel (Vite + React)
-│ ├── web/ # paapeli.com — marketing site (Next.js)
-│ ├── web_old/ # previous marketing site, kept for reference
-│ └── docs/ # Storybook
+│ ├── web/ # Web application (e.g. Next.js / Vite)
+│ ├── mobile/ # Mobile application (e.g. React Native / Expo)
+│ └── desktop/ # Desktop application (e.g. Electron / Tauri)
 │
 ├── packages/
-│ ├── paapeli-api/ # Shared API client + React Query hooks (@paapeli/api)
-│ ├── brand/ # Tenant config, design tokens, shared session (@paapeli/brand)
-│ ├── ui-kit/ # Shared UI components
-│ ├── ui/ # Legacy shared UI components
-│ ├── paapeli-font/ # Font assets
-│ ├── eslint-config/ # Shared eslint config
-│ └── typescript-config/ # Shared tsconfig bases
+│ ├── ui/ # Shared UI components
+│ ├── utils/ # Shared utility functions
+│ ├── config/ # Shared configs (eslint, tsconfig, etc.)
+│ └── api/ # Shared API / SDK layer
 │
-├── ci/docker/panel/ # Panel container image
 ├── turbo.json # Turborepo pipeline configuration
 ├── package.json # Root package.json
-├── pnpm-workspace.yaml
+├── pnpm-workspace.yaml / yarn.lock / package-lock.json
 └── README.md
-```
-
----
-
-## 🖥️ The panel app
-
-`apps/panel` is **one Vite app** serving everything at `panel.paapeli.com`:
-
-```
-apps/panel/
-├── index.html            # the SPA shell
-├── login/index.html      # standalone sign-in page, served at /login
-├── server.mjs            # production static server (one dist, one port)
-└── src/
-    ├── app/              # entry, router, feature registry
-    ├── shell/            # persistent chrome: header, sidebar, nav, providers
-    ├── shared/           # cross-feature helpers
-    └── features/
-        ├── factory/      # Smart Factory   → /AIoT/SmartFactory/*
-        ├── track/        # GPS Tracking    → /AIoT/GPSTracking/*
-        └── cloud-management/  #            → /CloudManagement/*
-```
-
-Each feature is a lazily-imported route module (`src/app/features.ts`), so it
-still ships as its own chunk fetched on first navigation — the split is just
-resolved at **build time**.
-
-> This replaced a Module Federation setup (a host plus three remotes, each its
-> own Vite project and dev server). That bought independent deployability the
-> project never used — the container built and served all of them as one unit —
-> while costing HMR, duplicating dependencies in every remote, and causing
-> intermittent `couldn't load remote` errors when the host fetched
-> `remoteEntry.js` while a remote's `vite build --watch` was rewriting `dist/`.
-
-Run it:
-
-```bash
-pnpm --filter panel dev      # http://localhost:8080  (real HMR)
-pnpm --filter panel build    # one build → apps/panel/dist
-pnpm --filter panel start    # serve that build on :8080
 ```
 
 ---

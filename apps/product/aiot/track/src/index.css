@@ -1,0 +1,51 @@
+/* Shared Paapeli design tokens (single source of truth). */
+@import "@paapeli/brand/tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  html[lang="fa"] body {
+    font-family: "Vazirmatn", sans-serif;
+  }
+  html[lang="ar"] body {
+    font-family: "Tajawal", sans-serif;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-border;
+  }
+}
+
+/* Leaflet: brand-styled geofence labels + rounded controls */
+.tk-zone-label {
+  background: hsl(28 100% 50% / 0.12);
+  color: hsl(28 100% 42%);
+  border: none;
+  box-shadow: none;
+  border-radius: 9999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.tk-zone-label::before {
+  display: none;
+}
+.leaflet-container {
+  font: inherit;
+  background: hsl(var(--muted));
+}
+.leaflet-bar,
+.leaflet-bar a {
+  border-radius: 10px;
+}
