@@ -9,7 +9,20 @@
 /* Shared so every product app offers the same switch list. A product   */
 /* may contain one or more Solutions (specialised domains/apps) that     */
 /* appear as a tree under the product.                                   */
-export type Solution = { id: string; name: string; href?: string; disabled?: boolean };
+export type Solution = {
+  id: string;
+  name: string;
+  href?: string;
+  disabled?: boolean;
+  /** Workspace-product key (see @paapeli/api workspaces.subscribeWorkspaceProduct)
+   *  this solution's backend calls are scoped under: every endpoint like
+   *  /api/v1/aiot/<resource>/{workspaceId}/{productKey}/… 404s until the
+   *  active workspace holds a subscription for it. Absent for a solution
+   *  with no such scope. Single source of truth — the host reads it to
+   *  subscribe before mounting the solution's remote, and the remote reads
+   *  it for its own API calls, so the two can't drift apart on the string. */
+  productKey?: string;
+};
 export type Product = { id: string; name: string; href?: string; disabled?: boolean; solutions?: Solution[] };
 
 export const PRODUCTS: Product[] = [
@@ -17,12 +30,21 @@ export const PRODUCTS: Product[] = [
     id: "aiot",
     name: "AIoT",
     solutions: [
-      { id: "GPSTracking", name: "GPS Tracking" },
-      { id: "SmartFactory", name: "Smart Factory" },
+      { id: "GPSTracking", name: "GPS Tracking", productKey: "gpsTracking" },
+      { id: "SmartFactory", name: "Smart Factory", productKey: "smartFactory" },
     ],
   },
   { id: "ai", name: "AI Infra", disabled: true },
 ];
+
+/** The workspace-product key a solution's API calls are scoped under. */
+export function productKeyFor(solutionId: string): string | undefined {
+  for (const product of PRODUCTS) {
+    const solution = product.solutions?.find((s) => s.id === solutionId);
+    if (solution) return solution.productKey;
+  }
+  return undefined;
+}
 
 /* Base URL segment for the product that owns the solutions above.       */
 /* Solution routes are `/{PRODUCT_BASE}/{solutionId}` on one host, e.g.  */
