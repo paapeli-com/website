@@ -29,6 +29,7 @@ import {
   LayoutGrid, Plus, X, Hash, LineChart, BarChart3, PieChart, Table as TableIcon, Type, Settings2,
   ChevronUp, ChevronDown,
 } from "lucide-react";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 
 
@@ -142,7 +143,7 @@ const ManagersDashboard = () => {
   const navigate = useNavigate();
   const { language, isRTL, formatNumber } = useLanguage();
   const lang = language as Lang;
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
   const t = (k: keyof typeof DICT) => DICT[k][lang] ?? DICT[k].en;
   const fmt = (n: number | string) => formatNumber(n);
 

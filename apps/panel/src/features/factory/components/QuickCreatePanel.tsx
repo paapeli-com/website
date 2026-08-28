@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import { Button } from "@/features/factory/components/ui/button";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 interface CreateOption {
   icon: React.ElementType;
@@ -31,7 +32,7 @@ export const QuickCreatePanel = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
   const isFaAr = language === "fa" || language === "ar";
   const titleCls = "text-sm";
   const descCls = "text-xs";

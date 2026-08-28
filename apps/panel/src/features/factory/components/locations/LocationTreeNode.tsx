@@ -23,11 +23,15 @@ import {
 } from "lucide-react";
 import { Button } from "@/features/factory/components/ui/button";
 import { localizedNodeName } from "@/features/factory/lib/locationLabels";
+import { useAllowedChildTypes } from "@/features/factory/hooks/useAllowedChildTypes";
 
 export interface TreeNode {
   id: string;
   name: string;
+  /** Canonical UI kind, used only to pick an icon. */
   type: string;
+  /** Raw asset type key from the server — the key the asset-type graph is keyed by. */
+  assetType?: string;
   /** Server-side asset label, edited via the asset edit endpoint. */
   label?: string;
   children?: TreeNode[];
@@ -37,6 +41,7 @@ export interface TreeNode {
 
 interface LocationTreeNodeProps {
   node: TreeNode;
+  productKey: string;
   depth?: number;
   expandedNodes: Set<string>;
   selectedNodeId: string | null;
@@ -47,7 +52,7 @@ interface LocationTreeNodeProps {
   onToggle: (nodeId: string) => void;
   onRename: (node: TreeNode) => void;
   onEditLabel: (node: TreeNode) => void;
-  onAddChild: (node: TreeNode, type: "location" | "area" | "asset") => void;
+  onAddChild: (node: TreeNode, assetType?: string) => void;
   onMove: (node: TreeNode) => void;
   onDuplicate: (node: TreeNode) => void;
   onDelete: (node: TreeNode) => void;
@@ -69,15 +74,53 @@ const getNodeIcon = (type: string, isSelected: boolean) => {
   }
 };
 
-// Graph rules — which child types each node type may contain:
-//   organization → location, unit, asset   location → unit, asset
-//   unit (area)  → asset                    asset    → (none)
-const canAddLocation = (type: string) => type === "organization";
-const canAddArea = (type: string) => type === "organization" || type === "location";
-const canAddAsset = (type: string) => type === "organization" || type === "location" || type === "area";
+// Icon for one of the server's asset types. The keys are product-defined, so
+// this matches on the well-known words rather than an exhaustive list.
+const iconForAssetType = (assetType: string) => {
+  const s = assetType.toLowerCase();
+  if (s.includes("location") || s.includes("site")) return <MapPin className="h-3.5 w-3.5" />;
+  if (s.includes("unit") || s.includes("area") || s.includes("line")) return <Factory className="h-3.5 w-3.5" />;
+  if (s.includes("asset") || s.includes("device") || s.includes("machine")) return <Cpu className="h-3.5 w-3.5" />;
+  return <Plus className="h-3.5 w-3.5" />;
+};
+
+/* The "Add <type>" entries, one per asset type the server allows under this
+   node. Split into its own component so the allowed-children request fires
+   when a menu opens rather than for every node in the tree — Radix keeps the
+   menu content unmounted while closed. */
+const AddChildMenuItems = ({
+  productKey,
+  node,
+  onAddChild,
+  showSeparator,
+}: Pick<LocationTreeNodeProps, "productKey" | "node" | "onAddChild"> & {
+  /** Whether entries follow these in the menu, and so need a divider. */
+  showSeparator: boolean;
+}) => {
+  const { t } = useLanguage();
+  const { options, isLoading } = useAllowedChildTypes(productKey, node.assetType);
+
+  if (isLoading) {
+    return <DropdownMenuItem disabled>{t("loading")}</DropdownMenuItem>;
+  }
+  if (options.length === 0) return null;
+
+  return (
+    <>
+      {options.map((opt) => (
+        <DropdownMenuItem key={opt.assetType} onClick={() => onAddChild(node, opt.assetType)}>
+          {iconForAssetType(opt.assetType)}
+          {`${t("add")} ${opt.label}`}
+        </DropdownMenuItem>
+      ))}
+      {showSeparator && <DropdownMenuSeparator />}
+    </>
+  );
+};
 
 export const LocationTreeNode = ({
   node,
+  productKey,
   depth = 0,
   expandedNodes,
   selectedNodeId,
@@ -187,26 +230,13 @@ export const LocationTreeNode = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align={isRTL ? "start" : "end"} className="w-44 bg-popover z-50">
-            {/* Add actions — gated by the graph hierarchy */}
-            {canAddLocation(node.type) && (
-              <DropdownMenuItem onClick={() => onAddChild(node, "location")}>
-                <MapPin className="h-3.5 w-3.5" />
-                {t("addLocation")}
-              </DropdownMenuItem>
-            )}
-            {canAddArea(node.type) && (
-              <DropdownMenuItem onClick={() => onAddChild(node, "area")}>
-                <Factory className="h-3.5 w-3.5" />
-                {t("addUnit")}
-              </DropdownMenuItem>
-            )}
-            {canAddAsset(node.type) && (
-              <DropdownMenuItem onClick={() => onAddChild(node, "asset")}>
-                <Cpu className="h-3.5 w-3.5" />
-                {t("addAsset")}
-              </DropdownMenuItem>
-            )}
-            {node.type !== "asset" && <DropdownMenuSeparator />}
+            {/* Add actions — the set comes from the product's asset-type graph */}
+            <AddChildMenuItems
+              productKey={productKey}
+              node={node}
+              onAddChild={onAddChild}
+              showSeparator={node.type !== "organization"}
+            />
 
             {/* The product root asset is immutable server-side, so it only
                 offers the add actions above. */}
@@ -245,6 +275,7 @@ export const LocationTreeNode = ({
         <LocationTreeNode
           key={child.id}
           node={child}
+          productKey={productKey}
           depth={depth + 1}
           expandedNodes={expandedNodes}
           selectedNodeId={selectedNodeId}

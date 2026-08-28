@@ -22,6 +22,7 @@ import {
 } from "@/features/factory/components/ui/breadcrumb";
 import { Camera, Mail, User as UserIcon, Shield, LogOut, Building2, Plus, Check } from "lucide-react";
 import sinaProfileImg from "@/features/factory/assets/sina-profile.png";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 const AVATAR_STORAGE_KEY = "paapeli.profile.avatar.";
 
@@ -42,7 +43,7 @@ const AccountSettings = () => {
   const isSina = username === "sina";
   const displayName = CURRENT_USER.name;
   const email = CURRENT_USER.email;
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
 
   // Avatar: per-user, persisted in localStorage. Default Sina to uploaded picture.
   const storageKey = AVATAR_STORAGE_KEY + (username || "anon");

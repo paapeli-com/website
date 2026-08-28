@@ -63,6 +63,7 @@ import {
 } from "lucide-react";
 import { useDashboards, useViewMode, DashboardItem } from "@/features/factory/hooks/useDashboards";
 import { toast } from "sonner";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 type Lang = "en" | "ar" | "fa";
 
@@ -296,7 +297,7 @@ const Dashboard = () => {
   const tt = (k: string) => DICT[k]?.[lang] ?? k;
   const timeAgo = makeTimeAgo(lang);
   const navigate = useNavigate();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
   const { items, remove, duplicate, update } = useDashboards();
   const [view, setView] = useViewMode();
   const [search, setSearch] = useState("");

@@ -47,6 +47,7 @@ import {
   type ForecastAsset,
 } from "@/features/factory/data/forecastAssets";
 import { useAnomalyStore } from "@/features/factory/hooks/useAnomalyStore";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 const buildHealthSeries = (currentHealth: number) => {
   const len = 24;
@@ -70,7 +71,7 @@ const AIoTForecastDetails = () => {
   const navigate = useNavigate();
   const { language, formatNumber, t } = useLanguage();
   const { toast } = useToast();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
 
   const asset: ForecastAsset | undefined = useMemo(
     () => FORECAST_ASSETS.find((a) => a.devId === id),

@@ -27,6 +27,7 @@ import {
   Lightbulb,
 } from "lucide-react";
 import { OPPORTUNITIES } from "@/features/factory/data/trends";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 
 type Lang = "en" | "ar" | "fa";
@@ -147,7 +148,7 @@ const DICT: Record<string, Record<Lang, string>> = {
 const ExecutiveDashboard = () => {
   const { language, isRTL, formatNumber } = useLanguage();
   const navigate = useNavigate();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
   const tr = (k: keyof typeof DICT) => DICT[k][language as Lang] ?? DICT[k].en;
   const fmt = (n: number | string) => formatNumber(n);
 

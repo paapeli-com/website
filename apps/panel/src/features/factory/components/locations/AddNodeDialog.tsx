@@ -17,10 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/features/factory/components/ui/select";
-import { useCreateAssetChildMutation, useGetProductAssetTypesQuery } from "@paapeli/api";
+import { useCreateAssetChildMutation } from "@paapeli/api";
+import { useAllowedChildTypes } from "@/features/factory/hooks/useAllowedChildTypes";
 import { toast } from "sonner";
-
-type NodeType = "location" | "area" | "asset";
 
 interface AddNodeDialogProps {
   open: boolean;
@@ -29,17 +28,26 @@ interface AddNodeDialogProps {
   productKey: string;
   parentId?: string | null;
   parentName?: string;
-  defaultType?: NodeType | null;
+  /** Raw asset type of the parent — the allowed child types are looked up from it. */
+  parentAssetType?: string;
+  /** Asset type preselected when the user picked one from a node's "..." menu. */
+  defaultType?: string | null;
   onAdd: (name: string, type: string) => void;
 }
 
-export const AddNodeDialog = ({ open, onOpenChange, workspaceId, productKey, parentId, parentName, defaultType, onAdd }: AddNodeDialogProps) => {
+export const AddNodeDialog = ({ open, onOpenChange, workspaceId, productKey, parentId, parentName, parentAssetType, defaultType, onAdd }: AddNodeDialogProps) => {
   const { t } = useLanguage();
   const [name, setName] = useState("");
   const [type, setType] = useState("");
   const [label, setLabel] = useState("");
   const createAsset = useCreateAssetChildMutation();
-  const { data: assetTypes, isLoading: typesLoading } = useGetProductAssetTypesQuery(productKey, open);
+  // Only the types the server allows directly under this parent, labelled from
+  // the product's asset-type catalogue.
+  const { options: allowedTypes, isLoading: typesLoading } = useAllowedChildTypes(
+    productKey,
+    parentAssetType,
+    open,
+  );
 
   // Reset each time it opens; preselect the type when one was chosen from a
   // node's "..." menu (Add Location / Add Unit / Add Asset).
@@ -50,8 +58,6 @@ export const AddNodeDialog = ({ open, onOpenChange, workspaceId, productKey, par
       setType(defaultType || "");
     }
   }, [open, defaultType]);
-
-  const allowedTypes = assetTypes || [];
 
   const handleAdd = () => {
     if (!name.trim() || !type || !parentId || createAsset.isPending) return;
@@ -101,11 +107,14 @@ export const AddNodeDialog = ({ open, onOpenChange, workspaceId, productKey, par
               <SelectContent>
                 {allowedTypes.map((opt) => (
                   <SelectItem key={opt.assetType} value={opt.assetType}>
-                    {opt.assetType}
+                    {opt.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {!typesLoading && allowedTypes.length === 0 && (
+              <p className="text-sm text-muted-foreground">{t("noAllowedChildTypes")}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label>{t("name")}</Label>

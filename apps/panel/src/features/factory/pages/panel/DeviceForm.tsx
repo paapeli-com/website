@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
-import { useDevices } from "@/features/factory/hooks/useDevices";
 import { useToast } from "@/features/factory/hooks/use-toast";
 import { Button } from "@/features/factory/components/ui/button";
 import { Input } from "@/features/factory/components/ui/input";
@@ -52,6 +51,7 @@ import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
 import { useCreateDeviceMutation, deviceCredentialsService, type DeviceCredentialType } from "@paapeli/api";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 const PROTOCOLS = [
   { value: "MQTT", icon: Radio },
@@ -172,9 +172,8 @@ const DeviceForm = () => {
   const { t, language, isRTL } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { create } = useDevices();
 
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
 
   // Location options come from the product asset tree (side menu → Location);
   // the chosen node's id is the device's assetId.
@@ -229,6 +228,22 @@ const DeviceForm = () => {
 
   const locationPath = locationOptions.find((l) => l.id === assetId)?.path || "";
 
+  /* Step 1's picker is what the API's `type` means — "temperature_sensor" in
+     the endpoint's own example. It used to always send the catch-all, so a
+     device created as a Vibration sensor came back typed "default". A blank
+     device genuinely has no profile, so that alone falls back. */
+  const apiDeviceType =
+    deviceType === "popular"
+      ? selectedSensors[0] || BLANK_DEVICE_TYPE
+      : deviceType === "templates"
+        ? selectedTemplate || BLANK_DEVICE_TYPE
+        : BLANK_DEVICE_TYPE;
+
+  /* The Gateway template is the only thing on this form that creates a
+     gateway — the endpoint's second example ("MQTT basic device") is exactly
+     this shape: type "gateway", isGateway true, MQTT_BASIC credentials. */
+  const isGateway = deviceType === "templates" && selectedTemplate === "gateway";
+
   const handleSubmit = async () => {
     if (!deviceName.trim()) {
       toast({ title: t("error"), description: t("deviceNameRequired"), variant: "destructive" });
@@ -252,9 +267,9 @@ const DeviceForm = () => {
         name: trimmedName,
         // The API requires a label; the form has no separate field for it.
         label: trimmedName,
-        type: BLANK_DEVICE_TYPE,
+        type: apiDeviceType,
         description: description || undefined,
-        isGateway: false,
+        isGateway,
         assetId,
         ...credentialsFor(security),
       });
@@ -270,35 +285,21 @@ const DeviceForm = () => {
           console.warn("Unable to read the new device credentials", error);
         }
       }
-      // Mirror the created device into the local store the devices list and
-      // credentials screen still read from, keyed by the server-assigned id.
-      const item = create({
-        name: trimmedName,
-        deviceId: newDeviceId,
-        protocol,
-        location: locationPath,
-        useSsl: security.method === "ssl",
-        authMethod: security.method,
-        authUsername: security.method === "basic" ? security.username : undefined,
-        authClientId: security.method === "basic" ? security.clientId : undefined,
-        sslCert: security.method === "ssl" ? security.sslCert : undefined,
-        apiKey: accessToken,
-        sharedUsers,
-        tags: finalTags.join(", "),
-        description,
-      });
+      // Hand the credentials to the devices list, which shows them once — this
+      // is the only moment the access token is available to display. The device
+      // itself is not mirrored anywhere: the list re-reads it from the server.
       try {
         sessionStorage.setItem(
           "paapeli.newDeviceCredentials",
           JSON.stringify({
-            deviceId: item.deviceId,
-            apiKey: item.apiKey,
-            name: item.name,
-            protocol: item.protocol,
-            location: item.location,
-            tags: item.tags,
-            description: item.description,
-            useSsl: !!item.useSsl,
+            deviceId: newDeviceId,
+            apiKey: accessToken,
+            name: trimmedName,
+            protocol,
+            location: locationPath,
+            tags: finalTags.join(", "),
+            description,
+            useSsl: security.method === "ssl",
             authMethod: security.method,
             clientId: security.clientId,
             username: security.username,

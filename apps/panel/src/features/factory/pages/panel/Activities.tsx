@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 type Lang = "en" | "ar" | "fa";
 
@@ -135,7 +136,7 @@ const Activities = () => {
   const { language, isRTL, formatNumber } = useLanguage();
   const navigate = useNavigate();
   const tr = (k: keyof typeof DICT) => DICT[k][language as Lang] ?? DICT[k].en;
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
   const fmt = (n: number | string) => formatNumber(n);
 
   const [search, setSearch] = useState("");

@@ -62,6 +62,7 @@ import paapeliLogoFa from "@/features/factory/assets/paapeli-logo-fa.svg";
 import { GlobalSearch } from "@/features/factory/components/GlobalSearch";
 import { QuickCreatePanel } from "@/features/factory/components/QuickCreatePanel";
 import { ProductSwitcher } from "@/features/factory/components/ProductSwitcher";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 interface MenuItem {
   title: string;
@@ -207,7 +208,7 @@ export const PanelLayout = ({ children }: PanelLayoutProps) => {
     }
   };
 
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
 
   const mainItems: MenuItem[] = [
     { title: t("overview"), icon: PieChart, path: lp("/") },

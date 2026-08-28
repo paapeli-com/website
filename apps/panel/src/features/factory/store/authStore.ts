@@ -6,7 +6,7 @@ import {
   CognitoUserSession,
   CognitoUserAttribute,
 } from 'amazon-cognito-identity-js';
-import { apiClient, setApiAuthToken } from '@paapeli/api';
+import { onUnauthorized, setApiAuthToken } from '@paapeli/api';
 import { getSession as getSharedSession } from '@paapeli/brand/session';
 import { toast } from 'sonner';
 
@@ -319,19 +319,21 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   })();
 })();
 
-// Any request coming back 401 means the token is dead — sign the user out and
-// let ProtectedRoute redirect to /login. Guarded on isAuthenticated so a burst
-// of parallel 401s (several in-flight requests) only signs out/toasts once.
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error?.response?.status === 401 && useAuthStore.getState().isAuthenticated) {
-      toast.error('Session expired. Please sign in again.');
-      useAuthStore.getState().signOut();
-    }
-    return Promise.reject(error);
-  }
-);
+/* A 401 means the token is dead. The single interceptor lives in
+   @paapeli/api (napiHttpHandler) — it clears the token, drops the shared
+   session and redirects to /login. This only adds the teardown that is
+   specific to this store: the Cognito sign-out and the local state.
+
+   This used to be a second interceptor on the same client. Both fired on every
+   401, each with its own guard: this one required `isAuthenticated`, the other
+   latched on the first 401 of the page and never re-armed. Between them a
+   session could expire and leave the user sitting on a signed-in-looking page. */
+onUnauthorized(() => {
+  if (!useAuthStore.getState().isAuthenticated) return;
+  toast.error('Session expired. Please sign in again.');
+  // stayOnPage: the interceptor owns the redirect.
+  useAuthStore.getState().signOut(true);
+});
 
 /** Drop-in replacement for the old `useAuth()` context hook. */
 export const useAuth = useAuthStore;

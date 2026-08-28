@@ -46,6 +46,7 @@ import {
   type TrendDirection,
 } from "@/features/factory/data/trends";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 const AIoTAnalyzeTrends = () => {
   const navigate = useNavigate();
@@ -53,7 +54,7 @@ const AIoTAnalyzeTrends = () => {
   const tt = t as (k: string) => string;
 
   const { toast } = useToast();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
 
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") || "overview";

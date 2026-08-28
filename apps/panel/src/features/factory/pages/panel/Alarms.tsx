@@ -11,12 +11,13 @@ import { AlertTemplates } from "@/features/factory/components/alerts/AlertTempla
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { mockAlerts } from "@/features/factory/data/mockAlertData";
 import { FileText } from "lucide-react";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 const Alarms = () => {
   const { t, language } = useLanguage();
   const tt = t as (k: string) => string;
   const navigate = useNavigate();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "all");
 

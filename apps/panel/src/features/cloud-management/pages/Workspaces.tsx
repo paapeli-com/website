@@ -1,12 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Building2, Check, Loader2, Plus } from "lucide-react";
-import {
-  useCreateWorkspaceMutation,
-  useGetProductsQuery,
-  useListWorkspaceProductsQuery,
-  useSubscribeWorkspaceProductMutation,
-} from "@paapeli/api";
+import { useCreateWorkspaceMutation, useListWorkspaceProductsQuery } from "@paapeli/api";
 import { useWorkspaceSelection } from "@/features/cloud-management/contexts/WorkspaceContext";
 import { Badge, Button, Card, EmptyState, Input, Label, PageHeader } from "@/features/cloud-management/ui";
 import { cn } from "@/shared/lib/utils";
@@ -38,26 +33,10 @@ export default function Workspaces() {
     );
   };
 
-  const { data: products } = useGetProductsQuery();
   const { data: workspaceProducts, isLoading: productsLoading } = useListWorkspaceProductsQuery(
     selectedId ?? "",
     !!selectedId,
   );
-  const subscribeProduct = useSubscribeWorkspaceProductMutation();
-
-  const subscribedKeys = new Set((workspaceProducts ?? []).map((p) => p.productKey));
-  const availableProducts = (products ?? []).filter((p) => !subscribedKeys.has(p.productKey));
-
-  const handleSubscribe = (productKey: string) => {
-    if (!selectedId || subscribeProduct.isPending) return;
-    subscribeProduct.mutate(
-      { workspaceId: selectedId, productKey },
-      {
-        onSuccess: () => toast.success("Product subscribed"),
-        onError: () => toast.error("Failed to subscribe product"),
-      },
-    );
-  };
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -133,25 +112,6 @@ export default function Workspaces() {
                     </Badge>
                   </div>
                 ))}
-              </div>
-            )}
-
-            {selectedId && availableProducts.length > 0 && (
-              <div className="flex flex-col gap-2 border-t border-border pt-3">
-                <Label>Subscribe a product</Label>
-                <div className="flex flex-wrap gap-2">
-                  {availableProducts.map((p) => (
-                    <Button
-                      key={p.productKey}
-                      variant="ghost"
-                      onClick={() => handleSubscribe(p.productKey)}
-                      disabled={subscribeProduct.isPending}
-                    >
-                      <Plus className="size-4" />
-                      {p.name}
-                    </Button>
-                  ))}
-                </div>
               </div>
             )}
           </Card>

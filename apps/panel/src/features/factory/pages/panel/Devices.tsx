@@ -19,6 +19,10 @@ import { ListPageSkeleton } from "@/features/factory/components/panel/ListPageSk
 import { Checkbox } from "@/features/factory/components/ui/checkbox";
 import { useToast } from "@/features/factory/hooks/use-toast";
 import { useDevices } from "@/features/factory/hooks/useDevices";
+import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
+import { deviceCredentialsService } from "@paapeli/api";
+import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { LocationCell } from "@/features/factory/components/panel/LocationCell";
 import {
   Select,
@@ -49,6 +53,7 @@ import {
 } from "@/features/factory/components/ui/dropdown-menu";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
 import { Wifi, WifiOff, AlertTriangle } from "lucide-react";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 
 interface Device {
@@ -146,19 +151,6 @@ const getDeviceMeta = (device: Device, t: (k: any) => string) => {
   };
 };
 
-// Mock devices used when API is unavailable or empty (demo mode)
-const MOCK_DEVICES: Device[] = [
-  { id: "dev-001", deviceId: "DEV-001", name: "Temp Sensor A5", protocol: "MQTT", created_at: new Date(Date.now() - 3 * 60 * 1000).toISOString(), last_activity: new Date(Date.now() - 3 * 60 * 1000).toISOString() },
-  { id: "dev-002", deviceId: "DEV-002", name: "حسگر دمای کوره", protocol: "MQTT", created_at: new Date(Date.now() - 15 * 1000).toISOString(), last_activity: new Date(Date.now() - 15 * 1000).toISOString() },
-  { id: "dev-003", deviceId: "DEV-003", name: "Flow Rate Meter E8", protocol: "OPC-UA", created_at: new Date().toISOString(), last_activity: new Date().toISOString() },
-  { id: "dev-004", deviceId: "DEV-025", name: "حسگر فشار بویلر", protocol: "MQTT", created_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(), last_activity: new Date(Date.now() - 60 * 60 * 1000).toISOString() },
-  { id: "dev-005", deviceId: "DEV-005", name: "Energy Monitor C6", protocol: "CoAP", created_at: new Date(Date.now() - 11 * 1000).toISOString(), last_activity: new Date(Date.now() - 11 * 1000).toISOString() },
-  { id: "dev-006", deviceId: "DEV-006", name: "کنتور مصرف برق خط بسته‌بندی", protocol: "MQTT", created_at: new Date().toISOString(), last_activity: new Date().toISOString() },
-  { id: "dev-007", deviceId: "DEV-007", name: "Pressure Sensor B2", protocol: "MQTT", created_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(), last_activity: new Date(Date.now() - 5 * 60 * 1000).toISOString() },
-  { id: "dev-008", deviceId: "DEV-008", name: "حسگر ارتعاش پمپ ۲", protocol: "HTTP", created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(), last_activity: new Date(Date.now() - 30 * 60 * 1000).toISOString() },
-  { id: "dev-009", deviceId: "DEV-009", name: "Voltage Monitor H1", protocol: "MQTT", created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), last_activity: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
-  { id: "dev-010", deviceId: "DEV-010", name: "Humidity Sensor K5", protocol: "LoRaWAN", created_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(), last_activity: new Date(Date.now() - 45 * 60 * 1000).toISOString() },
-];
 
 const formatRelative = (iso: string | undefined, t: (k: any) => string, fmt?: (n: number | string) => string) => {
   if (!iso) return '—';
@@ -189,17 +181,24 @@ const Devices = () => {
   const { t, isRTL, language, formatNumber } = useLanguage();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
   const goToAddDevice = () => navigate(lp("/devices/new"));
   const [searchParams, setSearchParams] = useSearchParams();
   const [addPanelOpen, setAddPanelOpen] = useState(false);
   const [prefillLocation, setPrefillLocation] = useState<string | null>(null);
-  const [devices, setDevices] = useState<Device[]>([]);
-  const { items: userDevices, create: createUserDevice, remove: removeUserDevice } = useDevices();
+  const workspaceId = useWorkspaceId();
+  const { options: locationOptions } = useAssetLocations();
+  const {
+    items: userDevices,
+    create: createUserDevice,
+    remove: removeUserDevice,
+    refetch: refetchDevices,
+    isLoading: devicesLoading,
+    noWorkspace,
+  } = useDevices();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingDevices, setIsLoadingDevices] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [credentialsDialogOpen, setCredentialsDialogOpen] = useState(false);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
@@ -262,71 +261,30 @@ const Devices = () => {
     try {
       const stored = sessionStorage.getItem("paapeli.newDeviceCredentials");
       if (stored) {
+        // The form already created the device server-side and its mutation
+        // invalidated this list. All that is left is to show the access token
+        // once, since it can never be read back afterwards.
         const creds = JSON.parse(stored) as DeviceCredentials;
-        if (!userDevices.some((device) => device.deviceId === creds.deviceId || device.name === creds.name)) {
-          createUserDevice({
-            name: creds.name,
-            protocol: creds.protocol,
-            deviceId: creds.deviceId,
-            apiKey: creds.apiKey,
-            location: creds.location || "Factory A > Line 1",
-            gateway: creds.gateway,
-            tags: creds.tags,
-            description: creds.description,
-            externalId: creds.externalId,
-            useSsl: creds.useSsl,
-            authMethod: creds.authMethod,
-            authClientId: creds.clientId,
-            authUsername: creds.username,
-          });
-        }
         setNewDeviceCredentials(creds);
         setCredentialsDialogOpen(true);
-        // Optimistically add to list
-        setDevices((prev) => [
-          {
-            id: creds.deviceId,
-            name: creds.name,
-            deviceId: creds.deviceId,
-            protocol: creds.protocol,
-            location: creds.location,
-            gateway: creds.gateway,
-            tags: creds.tags,
-            description: creds.description,
-            externalId: creds.externalId,
-            lastActivity: "-",
-            createdAt: new Date().toLocaleDateString(),
-          },
-          ...prev,
-        ]);
         sessionStorage.removeItem("paapeli.newDeviceCredentials");
       }
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    fetchDevices();
-  }, []);
-
-
+  // useDevices loads and caches the list; this only re-runs the request behind
+  // the toolbar's refresh button.
   const fetchDevices = async (showRefreshToast = false) => {
-    if (showRefreshToast) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoadingDevices(true);
-    }
-    
+    setIsRefreshing(true);
     try {
-      setDevices(MOCK_DEVICES);
+      await refetchDevices();
       if (showRefreshToast) {
         toast({ title: t("success"), description: t("devicesRefreshed") });
       }
     } catch (error) {
       console.error("Failed to fetch devices:", error);
-      setDevices(MOCK_DEVICES);
     } finally {
-      setIsLoadingDevices(false);
       setIsRefreshing(false);
     }
   };
@@ -355,23 +313,48 @@ const Devices = () => {
       return;
     }
 
+    // Every device must hang off an asset. This quick-add panel has no location
+    // picker, so it uses the node it was opened from and falls back to the tree
+    // root — /devices/new is where a location is actually chosen.
+    const assetId =
+      locationOptions.find((l) => l.path === prefillLocation)?.id ?? locationOptions[0]?.id;
+    if (!assetId) {
+      toast({ title: t("error"), description: t("locationRequired"), variant: "destructive" });
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const created = createUserDevice({
-        name: deviceName.trim(),
-        protocol,
-        location: prefillLocation || label || "Factory A > Line 1",
-        tags: label,
-        useSsl,
+      const name = deviceName.trim();
+      const created = await createUserDevice({
+        name,
+        label: name,
+        type: "default",
+        assetId,
+        credentialType: "ACCESS_TOKEN",
       });
-      
-      // Show credentials dialog with device ID and API key
+
+      // ACCESS_TOKEN is minted server-side, so read it back to show it once.
+      let apiKey: string | undefined;
+      if (workspaceId) {
+        try {
+          const creds = await deviceCredentialsService.getDeviceCredentials(
+            workspaceId,
+            PRODUCT_KEY,
+            created.id,
+          );
+          apiKey = creds.credentialsId;
+        } catch (error) {
+          console.warn("Unable to read the new device credentials", error);
+        }
+      }
+
       setNewDeviceCredentials({
-        deviceId: created.deviceId,
-        apiKey: created.apiKey,
+        deviceId: created.id,
+        apiKey: apiKey ?? "",
         name: created.name,
-        protocol: created.protocol,
-        useSsl: !!created.useSsl,
+        protocol,
+        useSsl,
       });
       setCredentialsDialogOpen(true);
 
@@ -417,7 +400,6 @@ const Devices = () => {
       last_activity: u.lastActivity || u.createdAt,
       ...(u.location ? { location: u.location } : {}),
     } as Device)),
-    ...devices.filter((d) => !userDevices.some((u) => (u.id === (d.id || d._id)) || (u.deviceId === (d.deviceId || d.device_id)))),
   ];
 
   const filteredDevices = mergedDevices.filter(device => {
@@ -498,16 +480,19 @@ const Devices = () => {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
-    selectedDevices.forEach((id) => removeUserDevice(id));
-    setDevices((prev) => prev.filter((device) => {
-      const id = device.deviceId || device.device_id || device.deviceID || device.id || device._id || '';
-      return !selectedDevices.includes(id);
-    }));
-    toast({
-      title: t("deleted") || "Deleted",
-      description: `${formatNumber(selectedDevices.length)} ${t("devicesUnit") || "devices"} ${t("deleted") || "deleted"}`,
-    });
+  const confirmDelete = async () => {
+    // Each delete is its own request; the mutation invalidates the list, so the
+    // table ends up reflecting whatever actually succeeded.
+    const results = await Promise.allSettled(selectedDevices.map((id) => removeUserDevice(id)));
+    const failed = results.filter((r) => r.status === "rejected").length;
+    toast(
+      failed
+        ? { title: t("error"), description: t("failedToDeleteDevices"), variant: "destructive" }
+        : {
+            title: t("deleted") || "Deleted",
+            description: `${formatNumber(selectedDevices.length)} ${t("devicesUnit") || "devices"} ${t("deleted") || "deleted"}`,
+          },
+    );
     setSelectedDevices([]);
     setDeleteDialogOpen(false);
   };
@@ -523,7 +508,7 @@ const Devices = () => {
 
   return (
     <>
-      {isLoadingDevices ? (
+      {devicesLoading || noWorkspace ? (
         <ListPageSkeleton rows={9} columns={8} toolbarButtons={3} showPrimaryCta />
       ) : viewMode === 'details' && selectedDeviceId ? (
         <DeviceDetailsContent deviceId={selectedDeviceId} onBack={handleBackToList} />

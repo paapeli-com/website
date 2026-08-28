@@ -42,11 +42,11 @@ export default function CloudManagementRoutes() {
   // surface errors from this to the user.
   const createProduct = useCreateProductMutation();
   const didCreateProduct = useRef(false);
-  useEffect(() => {
-    if (didCreateProduct.current) return;
-    didCreateProduct.current = true;
-    createProduct.mutate({ productKey: "aiot", name: "Industrial IoT" });
-  }, []); // eslint-disable-line
+  // useEffect(() => {
+  //   if (didCreateProduct.current) return;
+  //   didCreateProduct.current = true;
+  //   createProduct.mutate({ productKey: "aiot", name: "Industrial IoT" });
+  // }, []); // eslint-disable-line
 
   return (
     <WorkspaceProvider>

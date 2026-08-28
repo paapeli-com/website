@@ -62,6 +62,31 @@ const hasPersian = (v: string) => /[\u0600-\u06FF]/.test(v || "");
 const fa = (v: string) => (hasPersian(v) ? "font-vazirmatn" : "");
 
 import { formatRelativeTime } from "@/features/factory/lib/relativeTime";
+import {
+  useGetDeviceActivitiesQuery,
+  useGetDeviceByIdQuery,
+  useGetDeviceCredentialsQuery,
+  useEditDeviceMutation,
+  useSendDeviceRpcMutation,
+  useGetDeviceAlarmsQuery,
+  useAckAlarmMutation,
+  useClearAlarmMutation,
+  type PaapeliAlarmListItem,
+  type DeviceActivityResponse,
+} from "@paapeli/api";
+import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
+import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
+
+/** One page of a device's activity is all either table on this page shows. */
+const ACTIVITY_PAGE_SIZE = 50;
+
+/* The feed carries its own server-rendered description; the enum is the
+   fallback when one is missing. These strings arrive from the gateway as-is
+   and are not translated. */
+const activityLabel = (a: DeviceActivityResponse) =>
+  a.description || a.type.replace(/_/g, " ").toLowerCase();
 
 const channelIcon = (key: string) => {
   switch (key) {
@@ -93,13 +118,10 @@ const PROFILE_LABEL_KEY: Record<string, string> = {
 const profileLabelT = (p: string, t: (k: any) => string) =>
   PROFILE_LABEL_KEY[p] ? t(PROFILE_LABEL_KEY[p]) : p;
 
-// Status of device (deterministic from id)
-const deviceStatus = (d: UserDevice): "online" | "offline" | "error" => {
-  const h = (d.id.charCodeAt(d.id.length - 1) || 0) % 10;
-  if (h < 7) return "online";
-  if (h < 9) return "offline";
-  return "error";
-};
+// The API reports connectivity as a boolean; there is no third "error" state
+// behind it, so a device is either online or it is not.
+const deviceStatus = (d: UserDevice): "online" | "offline" =>
+  d.active ? "online" : "offline";
 
 const StatCard = ({
   icon: Icon, label, value, tone = "primary", trailing, onClick,
@@ -131,27 +153,70 @@ const StatCard = ({
   );
 };
 
-const MOCK_ALARMS = [
-  { id: "al-1", time: new Date(Date.now() - 2 * 3600_000).toISOString(), severity: "High", ruleKey: "ruleHighTemp", status: "Active" },
-  { id: "al-2", time: new Date(Date.now() - 5 * 3600_000).toISOString(), severity: "Medium", ruleKey: "ruleTempFluctuation", status: "Acknowledged" },
-  { id: "al-3", time: new Date(Date.now() - 86400_000).toISOString(), severity: "Low", ruleKey: "ruleCalibrationDrift", status: "Cleared" },
-];
+/** One page of alarms is all this page shows. */
+const ALARM_PAGE_SIZE = 50;
 
-const MOCK_EVENTS = [
-  { time: new Date(Date.now() - 2 * 60_000).toISOString(), activityKey: "evtTelemetryUpdated", by: "system" },
-  { time: new Date(Date.now() - 15 * 60_000).toISOString(), activityKey: "evtDeviceConnected", by: "system" },
-  { time: new Date(Date.now() - 3600_000).toISOString(), activityKey: "evtCommandSent", by: "ali@paapeli.io" },
-  { time: new Date(Date.now() - 3 * 3600_000).toISOString(), activityKey: "evtAlarmTriggered", by: "rule engine" },
-  { time: new Date(Date.now() - 5 * 3600_000).toISOString(), activityKey: "evtTelemetryUpdated", by: "system" },
-  { time: new Date(Date.now() - 86400_000).toISOString(), activityKey: "evtFirmwareUpdated", by: "ali@paapeli.io" },
-  { time: new Date(Date.now() - 2 * 86400_000).toISOString(), activityKey: "evtDeviceRegistered", by: "ali@paapeli.io" },
-];
+/* `severity` and `status` come back as free strings — the spec documents no
+   enum for either — so these map the values the backend actually emits onto
+   the three buckets the badges render, and pass anything unrecognised through
+   rather than silently mislabelling it. */
+const normalizeSeverity = (raw: string): string => {
+  switch (raw?.toUpperCase()) {
+    case "CRITICAL":
+    case "MAJOR":
+    case "HIGH":
+      return "High";
+    case "MINOR":
+    case "WARNING":
+    case "MEDIUM":
+      return "Medium";
+    case "INDETERMINATE":
+    case "LOW":
+      return "Low";
+    default:
+      return raw;
+  }
+};
 
-const MOCK_COMMANDS = [
-  { time: new Date(Date.now() - 3600_000).toISOString(), command: "Set Threshold = 85°C", status: "Delivered", by: "ali@paapeli.io" },
-  { time: new Date(Date.now() - 86400_000).toISOString(), command: "Restart", status: "Delivered", by: "ali@paapeli.io" },
-  { time: new Date(Date.now() - 3 * 86400_000).toISOString(), command: "Reset Counters", status: "Failed", by: "ops@paapeli.io" },
-];
+const normalizeAlarmStatus = (raw: string): string => {
+  const v = raw?.toUpperCase() ?? "";
+  if (v.startsWith("CLEARED")) return "Cleared";
+  if (v.endsWith("_ACK") || v === "ACKNOWLEDGED") return "Acknowledged";
+  if (v.startsWith("ACTIVE")) return "Active";
+  return raw;
+};
+
+/** The row shape the alarm tables render, mapped from PaapeliAlarmListItem. */
+interface AlarmRow {
+  id: string;
+  name: string;
+  /** creationTime is epoch millis; the table formatter wants an ISO string. */
+  time: string;
+  severity: string;
+  status: string;
+}
+
+const toAlarmRow = (a: PaapeliAlarmListItem): AlarmRow => ({
+  id: a.id,
+  name: a.name,
+  time: new Date(a.creationTime).toISOString(),
+  severity: normalizeSeverity(a.severity),
+  status: normalizeAlarmStatus(a.status),
+});
+
+/** Alarms for one device, shared by the overview card and the alarms tab. */
+const useDeviceAlarmRows = (deviceId: string | undefined, enabled = true) => {
+  const workspaceId = useWorkspaceId();
+  const { data, isLoading } = useGetDeviceAlarmsQuery(
+    workspaceId ?? "", PRODUCT_KEY, deviceId ?? "", 0, ALARM_PAGE_SIZE, enabled,
+  );
+  const rows = useMemo(() => (data?.data ?? []).map(toAlarmRow), [data]);
+  return { rows, isLoading };
+};
+
+
+
+
 
 const DeviceDetails = () => {
   const { deviceId } = useParams<{ deviceId: string }>();
@@ -160,30 +225,47 @@ const DeviceDetails = () => {
   const { toast } = useToast();
   const { items: devices, remove: removeDevice } = useDevices();
   const { items: gateways } = useGateways();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const workspaceId = useWorkspaceId();
+  const { options: locationOptions } = useAssetLocations();
+  // The device's own audit trail.
+  const { data: activityPage, isLoading: activitiesLoading } = useGetDeviceActivitiesQuery(
+    workspaceId ?? "", PRODUCT_KEY, deviceId ?? "", 0, ACTIVITY_PAGE_SIZE,
+  );
+  const events = activityPage?.data ?? [];
+  const { rows: alarms } = useDeviceAlarmRows(deviceId);
 
-  const device = useMemo(() => {
-    const found = devices.find((d) => d.id === deviceId || d.deviceId === deviceId);
-    if (found) return found;
-    if (!deviceId) return null;
-    // Fallback synthesized device for mock/demo IDs so the details page always renders
+  const { data: credentials } = useGetDeviceCredentialsQuery(
+    workspaceId ?? "", PRODUCT_KEY, deviceId ?? "",
+  );
+  const lp = (p: string) => localizedPath(p, language);
+
+  // Prefer the row already in the cached list; otherwise fetch this one device,
+  // which is what a deep link or a page reload hits.
+  const listed = devices.find((d) => d.id === deviceId || d.deviceId === deviceId);
+  const { data: fetched, isLoading: deviceLoading } = useGetDeviceByIdQuery(
+    workspaceId ?? "",
+    PRODUCT_KEY,
+    deviceId ?? "",
+    !listed,
+  );
+
+  const device = useMemo<UserDevice | null>(() => {
+    if (listed) return listed;
+    if (!fetched) return null;
     return {
-      id: deviceId,
-      deviceId: deviceId,
-      apiKey: "demo-" + deviceId.toLowerCase(),
-      name: deviceId,
-      protocol: "MQTT",
-      location: "",
-      useSsl: true,
-      useOta: false,
-      useMonitoring: true,
-      tags: "",
-      description: "",
-      externalId: "",
-      createdAt: new Date().toISOString(),
-      lastActivity: new Date().toISOString(),
-    } as typeof devices[number];
-  }, [devices, deviceId]);
+      id: fetched.id,
+      deviceId: fetched.id,
+      name: fetched.name,
+      label: fetched.label,
+      type: fetched.type,
+      protocol: fetched.protocol,
+      active: fetched.active,
+      assetId: fetched.assetId,
+      location: locationOptions.find((l) => l.id === fetched.assetId)?.path,
+      createdAt: fetched.createdAt,
+      lastActivity: fetched.updatedAt,
+    };
+  }, [listed, fetched, locationOptions]);
 
   const [activeTab, setActiveTab] = useState("overview");
   const [editOpen, setEditOpen] = useState(false);
@@ -198,6 +280,14 @@ const DeviceDetails = () => {
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   if (!device) {
+    // Don't call it missing until the fetch has actually come back.
+    if (deviceLoading) {
+      return (
+        <div className="flex items-center justify-center py-24">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-current border-t-transparent text-muted-foreground" />
+        </div>
+      );
+    }
     return (
       <>
         <div className="flex flex-col items-center justify-center py-24 gap-4">
@@ -210,7 +300,10 @@ const DeviceDetails = () => {
     );
   }
 
-  const profile: DeviceProfileKey = guessProfile(device.name, device.tags || "");
+  // The gateway exposes no tag surface for devices, so these render empty
+  // rather than showing invented labels. Populate from the API when one exists.
+  const deviceTags: string[] = [];
+  const profile: DeviceProfileKey = guessProfile(device.name, "");
   const channels: Channel[] = PROFILE_CHANNELS[profile];
   const status = deviceStatus(device);
   const statusLabel = status === "online" ? t("online") : status === "offline" ? t("offline") : t("error");
@@ -218,13 +311,28 @@ const DeviceDetails = () => {
   const seed = (device.id?.charCodeAt(0) || 1) * 7;
 
   // Read-only view of the credentials/security method chosen at creation.
+  // Credentials are their own endpoint, not part of the device record.
+  // MQTT_BASIC returns its clientId/userName as a JSON string in credentialsValue.
+  const basic = (() => {
+    if (credentials?.credentialType !== "MQTT_BASIC" || !credentials.credentialsValue) return null;
+    try {
+      return JSON.parse(credentials.credentialsValue) as { clientId?: string; userName?: string };
+    } catch {
+      return null;
+    }
+  })();
   const securityView: SecurityValue = {
-    method: device.authMethod || (device.useSsl ? "ssl" : "accessToken"),
-    accessToken: device.apiKey,
-    clientId: device.authClientId || "",
-    username: device.authUsername || device.deviceId,
+    method:
+      credentials?.credentialType === "X509_CERTIFICATE"
+        ? "ssl"
+        : credentials?.credentialType === "MQTT_BASIC"
+          ? "basic"
+          : "accessToken",
+    accessToken: credentials?.credentialsId ?? "",
+    clientId: basic?.clientId ?? "",
+    username: basic?.userName ?? "",
     password: "",
-    sslCert: device.sslCert || "",
+    sslCert: credentials?.credentialType === "X509_CERTIFICATE" ? credentials.credentialsValue ?? "" : "",
   };
 
   // Health metrics (deterministic)
@@ -281,10 +389,20 @@ const DeviceDetails = () => {
     try { await navigator.clipboard.writeText(val); setCopied(key); setTimeout(() => setCopied(null), 1500); } catch {}
   };
 
-  const onDelete = () => {
-    removeDevice(device.id);
-    toast({ title: "Device deleted", description: device.name });
-    navigate(lp("/devices"));
+  // remove() is an HTTP call — await it, or a failed delete still reports
+  // success and navigates away while the device is still there.
+  const onDelete = async () => {
+    try {
+      await removeDevice(device.id);
+      toast({ title: t("deleted") || "Device deleted", description: device.name });
+      navigate(lp("/devices"));
+    } catch (error) {
+      toast({
+        title: t("error"),
+        description: error instanceof Error ? error.message : t("failedToDeleteDevices"),
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -329,7 +447,7 @@ const DeviceDetails = () => {
                   <MapPin className="h-3.5 w-3.5" />
                   <LocationCell path={device.location || "Qazvin > Factory A > Sulfonation > Line 1"} />
                 </span>
-                {(device.tags?.split(",").map((s: string) => s.trim()).filter(Boolean) || []).map((tg: string) => (
+                {deviceTags.map((tg: string) => (
                   <Badge key={tg} variant="outline" className="text-xs font-normal">{tg}</Badge>
                 ))}
               </div>
@@ -370,7 +488,7 @@ const DeviceDetails = () => {
           <StatCard
             icon={Bell}
             label={t("activeAlarms")}
-            value={MOCK_ALARMS.filter(a => a.status === "Active").length}
+            value={alarms.filter((a) => a.status === "Active").length}
             tone="rose"
             trailing={isRTL ? <ChevronLeft className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
             onClick={() => setActiveTab("alarms")}
@@ -383,7 +501,7 @@ const DeviceDetails = () => {
             {[
               { v: "overview", label: t("overview"), icon: Activity },
               { v: "telemetry", label: language === "fa" ? "آخرین داده" : language === "ar" ? "أحدث البيانات" : "Latest Data", icon: Waves },
-              { v: "alarms", label: t("alarms"), icon: Bell, badge: MOCK_ALARMS.filter(a => a.status === "Active").length },
+              { v: "alarms", label: t("alarms"), icon: Bell, badge: alarms.filter((a) => a.status === "Active").length },
               
               { v: "events", label: t("events"), icon: Calendar },
               { v: "settings", label: t("settings"), icon: SettingsIcon },
@@ -413,10 +531,10 @@ const DeviceDetails = () => {
                   <div className="flex items-start gap-3">
                     <span className="text-muted-foreground w-24 shrink-0">{t("tags")}</span>
                     <div className="flex flex-wrap gap-1">
-                      {(device.tags?.split(",").map(t => t.trim()).filter(Boolean) || []).length === 0
+                      {deviceTags.length === 0
                         ? <span className="text-muted-foreground">—</span>
-                        : device.tags!.split(",").map((tg) => (
-                          <Badge key={tg} variant="secondary" className={fa(tg)}>{tg.trim()}</Badge>
+                        : deviceTags.map((tg) => (
+                          <Badge key={tg} variant="secondary" className={fa(tg)}>{tg}</Badge>
                         ))}
                     </div>
                   </div>
@@ -489,10 +607,10 @@ const DeviceDetails = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {MOCK_EVENTS.slice(0, 5).map((e, i) => (
-                        <TableRow key={i}>
-                          <TableCell className="text-muted-foreground">{formatRelativeTime(e.time, t, formatNumber)}</TableCell>
-                          <TableCell>{t(e.activityKey as any)}</TableCell>
+                      {events.slice(0, 5).map((e) => (
+                        <TableRow key={e.id}>
+                          <TableCell className="text-muted-foreground">{formatRelativeTime(e.occurredAt, t, formatNumber)}</TableCell>
+                          <TableCell>{activityLabel(e)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -514,11 +632,13 @@ const DeviceDetails = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {MOCK_ALARMS.map((a) => (
+                      {alarms.length === 0 ? (
+                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">{t("noAlarms")}</TableCell></TableRow>
+                      ) : alarms.map((a) => (
                         <TableRow key={a.id}>
-                        <TableCell className="text-muted-foreground">{formatRelativeTime(a.time, t, formatNumber)}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatRelativeTime(a.time, t, formatNumber)}</TableCell>
                           <TableCell><SeverityBadge severity={a.severity} /></TableCell>
-                          <TableCell>{t(a.ruleKey as any)}</TableCell>
+                          <TableCell>{a.name}</TableCell>
                           <TableCell><StatusBadge status={a.status} /></TableCell>
                         </TableRow>
                       ))}
@@ -543,7 +663,7 @@ const DeviceDetails = () => {
 
           {/* ALARMS */}
           <TabsContent value="alarms" className="space-y-4 mt-4">
-            <DeviceAlarms />
+            <DeviceAlarms device={device} />
           </TabsContent>
 
 
@@ -568,11 +688,19 @@ const DeviceDetails = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {MOCK_EVENTS.map((e, i) => (
-                      <TableRow key={i}>
-                        <TableCell className="text-muted-foreground">{formatRelativeTime(e.time, t, formatNumber)}</TableCell>
-                        <TableCell>{t(e.activityKey as any)}</TableCell>
-                        <TableCell className="text-muted-foreground">{e.by}</TableCell>
+                    {activitiesLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center text-muted-foreground">{t("loading")}</TableCell>
+                      </TableRow>
+                    ) : events.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center text-muted-foreground">{t("noActivityYet")}</TableCell>
+                      </TableRow>
+                    ) : events.map((e) => (
+                      <TableRow key={e.id}>
+                        <TableCell className="text-muted-foreground">{formatRelativeTime(e.occurredAt, t, formatNumber)}</TableCell>
+                        <TableCell>{activityLabel(e)}</TableCell>
+                        <TableCell className="text-muted-foreground">{e.actorName || e.actorType}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -595,7 +723,7 @@ const DeviceDetails = () => {
                 <InfoRow label={t("description")} value={device.description || "—"} />
                 <InfoRow label={t("tags")} value={
                   <div className="flex flex-wrap gap-1">
-                    {(device.tags?.split(",").filter(Boolean) || ["—"]).map((tg, i) =>
+                    {(deviceTags.length ? deviceTags : ["—"]).map((tg, i) =>
                       tg === "—" ? <span key={i} className="text-muted-foreground">—</span> :
                       <Badge key={i} variant="secondary" className={fa(tg)}>{tg.trim()}</Badge>
                     )}
@@ -1282,15 +1410,51 @@ const Checkmark = ({ on }: { on: boolean }) => (
   </span>
 );
 
-const DeviceAlarms = () => {
+const DeviceAlarms = ({ device }: { device: UserDevice }) => {
   const [severity, setSeverity] = useState("all");
   const [status, setStatus] = useState("all");
   const { t, formatNumber } = useLanguage();
-  const filtered = MOCK_ALARMS.filter(a =>
+  const workspaceId = useWorkspaceId();
+  const { rows, isLoading } = useDeviceAlarmRows(device?.id);
+  const ackAlarm = useAckAlarmMutation();
+  const clearAlarm = useClearAlarmMutation();
+  const filtered = rows.filter(a =>
     (severity === "all" || a.severity.toLowerCase() === severity) &&
     (status === "all" || a.status.toLowerCase() === status)
   );
   const { toast } = useToast();
+
+  /* Both endpoints are POST /alarms/{ws}/{pk}/{ack|clear}/{alarmId}/device/{deviceId}
+     and their mutations invalidate this device's alarm list, so the row's
+     status updates from the server rather than being patched locally. */
+  const runAlarmAction = async (
+    kind: "ack" | "clear",
+    alarm: AlarmRow,
+  ) => {
+    if (!workspaceId) {
+      toast({ title: t("error"), description: t("noWorkspaceSelected"), variant: "destructive" });
+      return;
+    }
+    const mutation = kind === "ack" ? ackAlarm : clearAlarm;
+    try {
+      await mutation.mutateAsync({
+        workspaceId,
+        productKey: PRODUCT_KEY,
+        alarmId: alarm.id,
+        deviceId: device.id,
+      });
+      toast({
+        title: kind === "ack" ? t("alarmAcknowledged") : t("alarmCleared"),
+        description: alarm.name,
+      });
+    } catch (error) {
+      toast({
+        title: t("error"),
+        description: error instanceof Error ? error.message : t("error"),
+        variant: "destructive",
+      });
+    }
+  };
   return (
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
@@ -1330,7 +1494,7 @@ const DeviceAlarms = () => {
               <TableRow key={a.id}>
                 <TableCell className="text-muted-foreground">{formatRelativeTime(a.time, t, formatNumber)}</TableCell>
                 <TableCell><SeverityBadge severity={a.severity} /></TableCell>
-                <TableCell>{t(a.ruleKey as any)}</TableCell>
+                <TableCell>{a.name}</TableCell>
                 <TableCell><StatusBadge status={a.status} /></TableCell>
                 <TableCell className="text-end">
                   <DropdownMenu>
@@ -1338,15 +1502,25 @@ const DeviceAlarms = () => {
                       <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => toast({ title: t("alarmViewed"), description: t(a.ruleKey as any) })}>{t("viewAlarm")}</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toast({ title: t("alarmAcknowledged"), description: t(a.ruleKey as any) })}>{t("acknowledge")}</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toast({ title: t("alarmCleared"), description: t(a.ruleKey as any) })}>{t("clearAlarm")}</DropdownMenuItem>
+                      {/* Acknowledging a cleared alarm, or clearing a cleared one,
+                          is not something the backend has anything to do. */}
+                      <DropdownMenuItem
+                        disabled={a.status !== "Active" || ackAlarm.isPending}
+                        onClick={() => runAlarmAction("ack", a)}
+                      >{t("acknowledge")}</DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={a.status === "Cleared" || clearAlarm.isPending}
+                        onClick={() => runAlarmAction("clear", a)}
+                      >{t("clearAlarm")}</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}
-            {filtered.length === 0 && (
+            {isLoading && (
+              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">{t("loading")}</TableCell></TableRow>
+            )}
+            {!isLoading && filtered.length === 0 && (
               <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">{t("noAlarms")}</TableCell></TableRow>
             )}
           </TableBody>
@@ -1361,6 +1535,8 @@ const DeviceAlarms = () => {
 export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
   const { isRTL, t } = useLanguage();
   const { toast } = useToast();
+  const workspaceId = useWorkspaceId();
+  const editDevice = useEditDeviceMutation();
   const [name, setName] = useState(device?.name || "");
   const [desc, setDesc] = useState(device?.description || "");
   const [tagInput, setTagInput] = useState("");
@@ -1441,30 +1617,36 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
         </div>
         <SheetFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("cancel")}</Button>
-          <Button onClick={() => {
-            try {
-              const raw = localStorage.getItem("paapeli-devices-v1");
-              const arr = raw ? JSON.parse(raw) : [];
-              const idx = arr.findIndex((d: any) => d.id === device.id);
-              if (idx >= 0) {
-                arr[idx] = {
-                  ...arr[idx],
-                  name, description: desc, tags: tags.join(", "),
-                  authMethod: security.method,
-                  authUsername: security.method === "basic" ? security.username : arr[idx].authUsername,
-                  authClientId: security.method === "basic" ? security.clientId : arr[idx].authClientId,
-                  sslCert: security.method === "ssl" ? security.sslCert : arr[idx].sslCert,
-                  apiKey: security.method === "accessToken" ? security.accessToken : arr[idx].apiKey,
-                  useSsl: security.method === "ssl",
-                  sharedUsers: shared,
-                };
-                localStorage.setItem("paapeli-devices-v1", JSON.stringify(arr));
-                window.dispatchEvent(new Event("paapeli:devices-updated"));
+          {/* PUT /devices/{ws}/{pk} takes name, label and description — the only
+              fields on this form the API can persist. Tags, sharing and the
+              credential block have no endpoint, so they are not saved. */}
+          <Button
+            disabled={editDevice.isPending || !name.trim()}
+            onClick={async () => {
+              if (!workspaceId) {
+                toast({ title: t("error"), description: t("noWorkspaceSelected"), variant: "destructive" });
+                return;
               }
-            } catch {}
-            toast({ title: t("editDeviceTitle") });
-            onOpenChange(false);
-          }}>{t("save")}</Button>
+              try {
+                await editDevice.mutateAsync({
+                  workspaceId,
+                  productKey: PRODUCT_KEY,
+                  id: device.id,
+                  name: name.trim(),
+                  label: name.trim(),
+                  description: desc || undefined,
+                });
+                toast({ title: t("editDeviceTitle") });
+                onOpenChange(false);
+              } catch (error) {
+                toast({
+                  title: t("error"),
+                  description: error instanceof Error ? error.message : t("error"),
+                  variant: "destructive",
+                });
+              }
+            }}
+          >{t("save")}</Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>
@@ -1472,12 +1654,102 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
 };
 
 
+/* The command types this dialog offers, mapped onto the RPC body. `params` is
+   an object the device's own firmware interprets — the endpoint just forwards
+   it (its example uses {"temperature": 72.5, "unit": "C"}). Restart and reset
+   are fire-and-forget, so they go one-way and queue if the device is offline;
+   the others wait for a reply, matching the endpoint's two example shapes. */
+const RPC_PRESETS: Record<string, { action: string; isOneWay: boolean; queue: boolean }> = {
+  restart: { action: "restart", isOneWay: true, queue: true },
+  reset: { action: "reset", isOneWay: true, queue: true },
+  threshold: { action: "setThreshold", isOneWay: false, queue: false },
+};
+
+/** Activity types the gateway records for a command's lifecycle. */
+const COMMAND_ACTIVITY_TYPES = new Set(["COMMAND_SENT", "COMMAND_SUCCEEDED", "COMMAND_FAILED"]);
+
 export const SendCommandDialog = ({ open, onOpenChange, device }: any) => {
   const { isRTL, t, formatNumber } = useLanguage();
   const [cmd, setCmd] = useState("restart");
   const [threshold, setThreshold] = useState("85");
   const [custom, setCustom] = useState('{"action":"ping"}');
   const { toast } = useToast();
+  const workspaceId = useWorkspaceId();
+  const sendRpc = useSendDeviceRpcMutation();
+
+  /* There is no "list commands" endpoint. The gateway records each command in
+     the device's activity feed instead ("record their command lifecycle"), so
+     the history is that feed filtered to the COMMAND_* types. */
+  const { data: activityPage, isLoading: historyLoading } = useGetDeviceActivitiesQuery(
+    workspaceId ?? "", PRODUCT_KEY, device?.id ?? "", 0, ACTIVITY_PAGE_SIZE, open,
+  );
+  const commandHistory = (activityPage?.data ?? []).filter((a) => COMMAND_ACTIVITY_TYPES.has(a.type));
+
+  const handleSend = async () => {
+    if (!workspaceId) {
+      toast({ title: t("error"), description: t("noWorkspaceSelected"), variant: "destructive" });
+      return;
+    }
+
+    let action: string;
+    let params: Record<string, unknown> = {};
+    let isOneWay = false;
+    let queue = false;
+
+    if (cmd === "custom") {
+      // The textarea is the RPC body itself: {"action": "...", "params": {...}}.
+      let parsed: any;
+      try {
+        parsed = JSON.parse(custom);
+      } catch {
+        toast({ title: t("error"), description: t("invalidJsonPayload"), variant: "destructive" });
+        return;
+      }
+      if (!parsed?.action) {
+        toast({ title: t("error"), description: t("payloadNeedsAction"), variant: "destructive" });
+        return;
+      }
+      action = parsed.action;
+      params = parsed.params ?? {};
+      isOneWay = !!parsed.isOneWay;
+      queue = !!parsed.queue;
+    } else {
+      const preset = RPC_PRESETS[cmd];
+      action = preset.action;
+      isOneWay = preset.isOneWay;
+      queue = preset.queue;
+      if (cmd === "threshold") {
+        const value = Number(threshold);
+        if (!Number.isFinite(value)) {
+          toast({ title: t("error"), description: t("thresholdMustBeNumber"), variant: "destructive" });
+          return;
+        }
+        params = { threshold: value };
+      }
+    }
+
+    try {
+      await sendRpc.mutateAsync({
+        workspaceId,
+        productKey: PRODUCT_KEY,
+        action,
+        deviceId: device.id,
+        deviceName: device.name,
+        params,
+        isOneWay,
+        queue,
+      });
+      toast({ title: t("commandQueued"), description: action });
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: t("error"),
+        description: error instanceof Error ? error.message : t("commandFailed"),
+        variant: "destructive",
+      });
+    }
+  };
+
   if (!device) return null;
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -1520,13 +1792,21 @@ export const SendCommandDialog = ({ open, onOpenChange, device }: any) => {
                   <TableRow><TableHead>{t("time")}</TableHead><TableHead>{t("command")}</TableHead><TableHead>{t("status")}</TableHead></TableRow>
                 </TableHeader>
                 <TableBody>
-                  {MOCK_COMMANDS.map((c, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="text-muted-foreground text-xs">{formatRelativeTime(c.time, t, formatNumber)}</TableCell>
-                      <TableCell className="text-xs">{c.command}</TableCell>
+                  {historyLoading ? (
+                    <TableRow><TableCell colSpan={3} className="text-center text-xs text-muted-foreground">{t("loading")}</TableCell></TableRow>
+                  ) : commandHistory.length === 0 ? (
+                    <TableRow><TableCell colSpan={3} className="text-center text-xs text-muted-foreground">{t("noCommandsYet")}</TableCell></TableRow>
+                  ) : commandHistory.map((c) => (
+                    <TableRow key={c.id}>
+                      <TableCell className="text-muted-foreground text-xs">{formatRelativeTime(c.occurredAt, t, formatNumber)}</TableCell>
+                      <TableCell className="text-xs">{activityLabel(c)}</TableCell>
                       <TableCell>
-                        <Badge className={c.status === "Delivered" ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/10" : "bg-rose-500/10 text-rose-600 hover:bg-rose-500/10"}>
-                          {c.status === "Delivered" ? t("delivered") : t("commandFailed")}
+                        <Badge className={c.type === "COMMAND_FAILED"
+                          ? "bg-rose-500/10 text-rose-600 hover:bg-rose-500/10"
+                          : c.type === "COMMAND_SUCCEEDED"
+                            ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/10"
+                            : "bg-muted text-muted-foreground hover:bg-muted"}>
+                          {c.type === "COMMAND_FAILED" ? t("commandFailed") : c.type === "COMMAND_SUCCEEDED" ? t("delivered") : t("commandSent")}
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -1538,7 +1818,7 @@ export const SendCommandDialog = ({ open, onOpenChange, device }: any) => {
         </div>
         <SheetFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("cancel")}</Button>
-          <Button onClick={() => { toast({ title: t("commandQueued"), description: cmd }); onOpenChange(false); }}>
+          <Button onClick={handleSend} disabled={sendRpc.isPending}>
             {t("sendCommand")}
           </Button>
         </SheetFooter>
@@ -1605,6 +1885,7 @@ const FirmwareDialog = ({ open, onOpenChange }: any) => {
 };
 
 const MoveLocationDialog = ({ open, onOpenChange, device }: any) => {
+  const { t } = useLanguage();
   const [loc, setLoc] = useState(device.location || "");
   const { toast } = useToast();
   const presets = getLocationOptions().map((l) => l.path);
@@ -1626,20 +1907,15 @@ const MoveLocationDialog = ({ open, onOpenChange, device }: any) => {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => {
-            try {
-              const raw = localStorage.getItem("paapeli-devices-v1");
-              const arr = raw ? JSON.parse(raw) : [];
-              const idx = arr.findIndex((d: any) => d.id === device.id);
-              if (idx >= 0) {
-                arr[idx].location = loc;
-                localStorage.setItem("paapeli-devices-v1", JSON.stringify(arr));
-                window.dispatchEvent(new Event("paapeli:devices-updated"));
-              }
-            } catch {}
-            toast({ title: "Location updated" });
-            onOpenChange(false);
-          }}>Move</Button>
+          {/* A device's location is its assetId, and no endpoint reassigns one
+              after creation — PUT /devices carries name/label/description only.
+              Until one exists this cannot be saved, so it says so. */}
+          <Button
+            onClick={() => {
+              toast({ title: t("comingSoon") || "Coming soon" });
+              onOpenChange(false);
+            }}
+          >Move</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

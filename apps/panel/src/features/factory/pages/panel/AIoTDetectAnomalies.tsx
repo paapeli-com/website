@@ -42,6 +42,7 @@ import {
 } from "@/features/factory/hooks/useAnomalyStore";
 import { WorkOrderSheet } from "@/features/factory/components/anomalies/WorkOrderSheet";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 
 const SEV_BADGE: Record<AnomalySeverity, string> = {
@@ -71,7 +72,7 @@ const AIoTDetectAnomalies = () => {
   const { language, formatNumber, t } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
   const { items, updateStatus } = useAnomalyStore();
 
   const formatRelative = (iso: string) => {

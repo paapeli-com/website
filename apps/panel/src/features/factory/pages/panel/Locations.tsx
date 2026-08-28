@@ -29,17 +29,23 @@ import { toast } from "sonner";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { DataState } from "@/features/factory/components/DataState";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { useProvisionAssetRootMutation, useCreateProductAssetTypeMutation } from "@paapeli/api";
+import {
+  useProvisionAssetRootMutation,
+  useCreateProductAssetTypeMutation,
+  useGetAssetDevicesQuery,
+} from "@paapeli/api";
 import { useGetProductAssetTreeQuery, type ProductAssetTreeNode } from "@/features/factory/hooks/useProductAssetTree";
 
 
-// The API returns free-form `type` strings (ThingsBoard asset types) that don't
-// always match our canonical kinds. Downstream UI — node icons, the "..." add
-// menu, and the Add dialog's allowed child types — is keyed off a known set, so
-// we canonicalize here. Recognized types are kept as-is; anything else is
-// inferred from the node's depth, following the fixed hierarchy:
-//   root(0) → Location(1) → Unit/Area(2) → Asset(3+).
+// The API returns free-form `type` strings (the product's own asset types) that
+// don't always match our canonical kinds. Node icons and the root-only rules are
+// keyed off a known set, so we canonicalize for those. Recognized types are kept
+// as-is; anything else is inferred from the node's depth, following the fixed
+// hierarchy: root(0) → Location(1) → Unit/Area(2) → Asset(3+).
+// The raw type is kept on the node as `assetType` — the "..." add menu and the
+// Add dialog read the real asset-type graph from the server off it.
 const CANONICAL_TYPES = new Set(["organization", "location", "area", "asset"]);
 const canonicalType = (raw: string | undefined | null, depth: number): string => {
   // The tree root is always the top container, whatever the server stored.
@@ -56,30 +62,13 @@ const mapApiTreeNode = (node: ProductAssetTreeNode, depth = 0): TreeNode => ({
   id: node.id,
   name: node.name,
   type: canonicalType(node.type, depth),
+  assetType: node.type,
   label: node.label ?? undefined,
   children: node.children?.map((c) => mapApiTreeNode(c, depth + 1)) ?? [],
 });
 
 const EMPTY_TREE: TreeNode = { id: "root", name: "", type: "organization", children: [] };
 
-// ---------- Mock assets per location ----------
-const MOCK_ASSETS_BY_LOCATION: Record<string, AssetPreview[]> = {
-  "loc-line-1": [
-    { id: "dev-001", name: "Temp Sensor A5", kind: "device", typeLabel: "Device", status: "online", updated: "2 min ago" },
-    { id: "dev-002", name: "Vibration Sensor F9", kind: "device", typeLabel: "Device", status: "online", updated: "15 sec ago" },
-    { id: "dev-003", name: "Flow Rate Meter E8", kind: "device", typeLabel: "Device", status: "error", updated: "Just now" },
-    { id: "dev-004", name: "Humidity Sensor D7", kind: "device", typeLabel: "Device", status: "online", updated: "1 hour ago" },
-    { id: "dev-005", name: "Energy Monitor C6", kind: "gateway", typeLabel: "Gateway", status: "offline", updated: "11 sec ago" },
-  ],
-  "loc-line-2": [
-    { id: "dev-006", name: "Temp Sensor A3", kind: "device", typeLabel: "Device", status: "online", updated: "5 min ago" },
-    { id: "dev-007", name: "Pressure Sensor B2", kind: "device", typeLabel: "Device", status: "online", updated: "1 min ago" },
-  ],
-  "loc-nitration": [
-    { id: "dev-008", name: "Flow Meter G4", kind: "device", typeLabel: "Device", status: "online", updated: "8 min ago" },
-    { id: "dev-009", name: "Voltage Monitor H1", kind: "device", typeLabel: "Device", status: "online", updated: "2 hour ago" },
-  ],
-};
 
 // ---------- Helpers ----------
 const collectMatchingIds = (root: TreeNode, query: string): Set<string> => {
@@ -138,11 +127,15 @@ const mapTree = (root: TreeNode, fn: (n: TreeNode) => TreeNode | null): TreeNode
   return m;
 };
 
-// Compute total asset count (direct + descendants) per node
+/* Total device count (direct + descendants) per node. `directAssetCount` is
+   only populated for the node currently selected — the API counts devices one
+   asset at a time (GET /devices/{ws}/{pk}/asset/{assetId}), and walking the
+   whole tree would be one request per node. Unvisited nodes therefore count 0
+   rather than showing a made-up number. */
 const computeAssetCounts = (root: TreeNode): Map<string, number> => {
   const map = new Map<string, number>();
   const walk = (n: TreeNode): number => {
-    const direct = MOCK_ASSETS_BY_LOCATION[n.id]?.length ?? n.directAssetCount ?? 0;
+    const direct = n.directAssetCount ?? 0;
     let sum = direct;
     if (n.children) for (const c of n.children) sum += walk(c);
     map.set(n.id, sum);
@@ -151,6 +144,9 @@ const computeAssetCounts = (root: TreeNode): Map<string, number> => {
   walk(root);
   return map;
 };
+
+/** One page of devices is all the detail panel previews. */
+const ASSET_DEVICE_PAGE_SIZE = 100;
 
 let nextId = 1;
 
@@ -203,7 +199,7 @@ const Locations = () => {
   // Dialogs
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [addParentId, setAddParentId] = useState<string | null>(null);
-  const [addDefaultType, setAddDefaultType] = useState<"location" | "area" | "asset" | null>(null);
+  const [addDefaultType, setAddDefaultType] = useState<string | null>(null);
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameTarget, setRenameTarget] = useState<TreeNode | null>(null);
@@ -233,6 +229,31 @@ const Locations = () => {
   }, [matchingIds, searchQuery]);
 
   const assetCounts = useMemo(() => computeAssetCounts(tree), [tree]);
+
+  /* Devices hanging off whichever node is selected —
+     GET /api/v1/aiot/devices/{workspaceId}/{productKey}/asset/{assetId}. */
+  const { data: selectedDevicesPage } = useGetAssetDevicesQuery(
+    workspaceId ?? "",
+    PRODUCT_KEY,
+    selectedNode?.id ?? "",
+    0,
+    ASSET_DEVICE_PAGE_SIZE,
+  );
+
+  const selectedAssetPreviews = useMemo<AssetPreview[]>(
+    () =>
+      (selectedDevicesPage?.data ?? []).map((d) => ({
+        id: d.id,
+        name: d.name,
+        // The device record carries no gateway flag, so everything reads as a device.
+        kind: "device" as const,
+        typeLabel: d.type,
+        // `active` is a boolean; there is no third "error" state behind it.
+        status: d.active ? ("online" as const) : ("offline" as const),
+        updated: d.updatedAt ?? d.createdAt,
+      })),
+    [selectedDevicesPage],
+  );
 
   const toggleExpand = useCallback((nodeId: string) => {
     setExpandedNodes((prev) => {
@@ -348,9 +369,12 @@ const Locations = () => {
     });
   };
 
-  const handleAddChild = (node: TreeNode, type: "location" | "area" | "asset") => {
+  // `assetType` is set when the user picked a specific type from the node's
+  // "..." menu; the detail panel's add button leaves it unset so the dialog
+  // asks which of the allowed types to create.
+  const handleAddChild = (node: TreeNode, assetType?: string) => {
     setAddParentId(node.id);
-    setAddDefaultType(type);
+    setAddDefaultType(assetType ?? null);
     setAddDialogOpen(true);
   };
 
@@ -362,7 +386,7 @@ const Locations = () => {
   const buildLocationPath = (id: string) =>
     findAncestry(tree, id).map((n) => n.name).join(" / ");
 
-  const getLocalizedPath = (path: string) => (language === "en" ? path : `/${language}${path}`);
+  const getLocalizedPath = (path: string) => localizedPath(path, language);
 
   const handleAddAssetOnNode = (node: TreeNode) => {
     const path = buildLocationPath(node.id);
@@ -389,8 +413,8 @@ const Locations = () => {
   // ----- Derived for detail panel -----
   const ancestry = selectedNode ? findAncestry(tree, selectedNode.id) : [];
   const parentNode = selectedNode ? findParent(tree, selectedNode.id) : null;
-  const previewAssets = selectedNode ? (MOCK_ASSETS_BY_LOCATION[selectedNode.id] || []) : [];
-  const totalAssetCount = selectedNode ? (assetCounts.get(selectedNode.id) ?? 0) : 0;
+  const previewAssets = selectedAssetPreviews;
+  const totalAssetCount = selectedDevicesPage?.totalElements ?? 0;
 
   return (
     <>
@@ -428,6 +452,7 @@ const Locations = () => {
             ) : (
               <LocationTreeNode
                 node={tree}
+                productKey={PRODUCT_KEY}
                 expandedNodes={expandedNodes}
                 selectedNodeId={selectedNode?.id || null}
                 searchQuery={searchQuery}
@@ -470,7 +495,7 @@ const Locations = () => {
               assets={previewAssets}
               totalAssetCount={totalAssetCount}
               parentNode={parentNode}
-              onAddAsset={() => selectedNode && handleAddChild(selectedNode, "asset")}
+              onAddAsset={() => selectedNode && handleAddChild(selectedNode)}
               onViewAllAssets={handleViewAllAssets}
               onNavigateAsset={handleNavigateAsset}
               onSelectAncestor={(n) => setSelectedNode(n)}
@@ -488,6 +513,7 @@ const Locations = () => {
         productKey={PRODUCT_KEY}
         parentId={addParentId}
         parentName={addParentId ? findNode(tree, addParentId)?.name : undefined}
+        parentAssetType={addParentId ? findNode(tree, addParentId)?.assetType : undefined}
         defaultType={addDefaultType}
         onAdd={handleAdd}
       />

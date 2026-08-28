@@ -22,6 +22,7 @@ export function useEditDeviceMutation() {
 }
 
 export function useCreateDeviceMutation() {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationKey: ['createDevice'],
         mutationFn: ({
@@ -30,6 +31,16 @@ export function useCreateDeviceMutation() {
             ...req
         }: CreateDeviceRequest & { workspaceId: string; productKey: string }) =>
             deviceService.createDevice(workspaceId, productKey, req),
+        onSuccess: (_data, { workspaceId, productKey, assetId }) => {
+            // Without this the new device does not show up in either listing
+            // it belongs to until something else happens to refetch them.
+            queryClient.invalidateQueries({
+                queryKey: ['tenantDevices', workspaceId, productKey],
+            });
+            queryClient.invalidateQueries({
+                queryKey: ['assetDevices', workspaceId, productKey, assetId],
+            });
+        },
     });
 }
 
@@ -49,6 +60,13 @@ export function useDeleteDeviceMutation() {
         onSuccess: (_data, { workspaceId, productKey, deviceId }) => {
             queryClient.invalidateQueries({
                 queryKey: ['device', workspaceId, productKey, deviceId],
+            });
+            // Drop it from the listings too, or the tables keep showing it.
+            queryClient.invalidateQueries({
+                queryKey: ['tenantDevices', workspaceId, productKey],
+            });
+            queryClient.invalidateQueries({
+                queryKey: ['assetDevices', workspaceId, productKey],
             });
         },
     });

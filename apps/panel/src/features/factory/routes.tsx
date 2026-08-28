@@ -86,11 +86,11 @@ export default function FactoryRoutes() {
   // don't surface errors from this to the user.
   const createProduct = useCreateProductMutation();
   const didCreateProduct = useRef(false);
-  useEffect(() => {
-    if (didCreateProduct.current) return;
-    didCreateProduct.current = true;
-    createProduct.mutate({ productKey: PRODUCT_KEY, name: "Smart Factory" });
-  }, []); // eslint-disable-line
+  // useEffect(() => {
+  //   if (didCreateProduct.current) return;
+  //   didCreateProduct.current = true;
+  //   createProduct.mutate({ productKey: PRODUCT_KEY, name: "Smart Factory" });
+  // }, []); // eslint-disable-line
 
   return (
     <LanguageProvider>

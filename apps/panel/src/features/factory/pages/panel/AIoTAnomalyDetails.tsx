@@ -44,6 +44,7 @@ import {
   type AnomalySeverity,
   type AnomalyStatus,
 } from "@/features/factory/hooks/useAnomalyStore";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 const SEV_BADGE: Record<AnomalySeverity, string> = {
   Critical: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
@@ -86,7 +87,7 @@ const AIoTAnomalyDetails = () => {
   const navigate = useNavigate();
   const { language, formatNumber, t } = useLanguage();
   const { toast } = useToast();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
   const {
     getById,
     updateStatus,

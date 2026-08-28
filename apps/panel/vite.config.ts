@@ -57,6 +57,21 @@ export default defineConfig({
   server: {
     host: "::",
     port: 8080,
+    /* Proxy the gateway in dev so API calls are same-origin.
+       Not a convenience: the gateway omits Access-Control-Allow-Origin on its
+       401 responses (it sends them on preflight and on a 400, but the auth
+       entry point short-circuits before the CORS filter). Cross-origin, the
+       browser then withholds the whole response from JS — axios sees an opaque
+       network error with no `response`, so the 401 interceptor in
+       @paapeli/api never recognises it and the app never signs out, even
+       though DevTools shows a clear 401. Same-origin, there is no CORS check
+       and the status is readable. */
+    proxy: {
+      "/api": {
+        target: "https://gateway.paapeli.me",
+        changeOrigin: true,
+      },
+    },
   },
   preview: {
     port: 8080,

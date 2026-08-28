@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Box, MapPin, Bell, AlertTriangle, Clock } from "lucide-react";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 interface ResultItem {
   id: string;
@@ -73,7 +74,7 @@ export const GlobalSearch = () => {
   const localeSubFont = language === "fa" || language === "ar" ? "text-[12px]" : "text-[11px]";
   const localeSectionFont = language === "fa" || language === "ar" ? "text-[12px]" : "text-[10px]";
 
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
 
   useEffect(() => {
     try {

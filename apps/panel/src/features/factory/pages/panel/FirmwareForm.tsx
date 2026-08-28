@@ -24,6 +24,7 @@ import {
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
 import { Upload, Package } from "lucide-react";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 type TargetType =
   | "Temperature Sensors"
@@ -130,7 +131,7 @@ const FirmwareForm = () => {
   const { toast } = useToast();
   const { id } = useParams<{ id?: string }>();
   const isEdit = !!id;
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
 
   const [name, setName] = useState("");
   const [version, setVersion] = useState("");

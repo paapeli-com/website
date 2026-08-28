@@ -80,6 +80,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 type Lang = "en" | "ar" | "fa";
 
@@ -301,7 +302,7 @@ const DashboardCanvas = () => {
   const tt = (k: string) => T[k]?.[lang] ?? k;
   const navigate = useNavigate();
   const params = useParams<{ id: string; lang?: string }>();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
   const { items } = useDashboards();
   const dashboard = useMemo(() => items.find((d) => d.id === params.id), [items, params.id]);
 

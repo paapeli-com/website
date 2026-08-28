@@ -28,6 +28,7 @@ import { mockAlerts } from "@/features/factory/data/mockAlertData";
 import { mockRollouts, mockOtaDevices } from "@/features/factory/data/mockOtaData";
 import { FORECAST_ASSETS } from "@/features/factory/data/forecastAssets";
 import { TRENDS, OPPORTUNITIES } from "@/features/factory/data/trends";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 type Lang = "en" | "ar" | "fa";
 
@@ -110,7 +111,7 @@ function countLocations(): number {
 export default function PanelHome() {
   const { language, formatNumber, isRTL } = useLanguage();
   const navigate = useNavigate();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
   const tr = (k: keyof typeof D) => D[k][language as Lang];
   const fn = (n: number) => formatNumber(n);
 

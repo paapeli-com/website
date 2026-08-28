@@ -12,13 +12,14 @@ import {
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
 import { AlertRuleWizard } from "@/features/factory/components/alerts/AlertRuleWizard";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 type Action = { label: string; onClick: () => void; disabled?: boolean };
 
 const AlertRuleForm = () => {
   const { t, language, isRTL } = useLanguage();
   const navigate = useNavigate();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
   const tt = t as (k: string) => string;
   const goBack = (tab?: string) => navigate(lp(tab ? `/alarms?tab=${tab}` : "/alarms"));
   const [actions, setActions] = useState<{ primary: Action; secondary?: Action; tertiary?: Action } | null>(null);

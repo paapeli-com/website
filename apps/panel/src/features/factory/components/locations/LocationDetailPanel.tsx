@@ -30,7 +30,8 @@ import {
 } from "lucide-react";
 import type { TreeNode } from "./LocationTreeNode";
 import { useState, useMemo } from "react";
-import { localizedNodeName, localizedKindLabel, localizedRelative } from "@/features/factory/lib/locationLabels";
+import { localizedNodeName, localizedKindLabel } from "@/features/factory/lib/locationLabels";
+import { formatRelativeTime } from "@/features/factory/lib/relativeTime";
 
 export interface AssetPreview {
   id: string;
@@ -38,6 +39,7 @@ export interface AssetPreview {
   kind: "device" | "gateway" | "other";
   typeLabel: string;
   status: "online" | "offline" | "error";
+  /** ISO timestamp of the last server-side change. */
   updated: string;
 }
 
@@ -242,7 +244,7 @@ export const LocationDetailPanel = ({
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{localizedKindLabel(a.kind, t)}</TableCell>
                     <TableCell>{statusDot(a.status)}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{localizedRelative(a.updated, t, formatNumber)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{formatRelativeTime(a.updated, t, formatNumber)}</TableCell>
                     <TableCell className="text-end text-muted-foreground">
                       {isRTL ? <ArrowLeft className="h-4 w-4 inline" /> : <ArrowRight className="h-4 w-4 inline" />}
                     </TableCell>

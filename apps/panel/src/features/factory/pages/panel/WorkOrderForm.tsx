@@ -28,6 +28,7 @@ import {
   type WorkOrderPriority,
   type WorkOrderStatus,
 } from "@/features/factory/hooks/useWorkOrders";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 const WorkOrderForm = () => {
   const { id } = useParams<{ id: string }>();
@@ -35,7 +36,7 @@ const WorkOrderForm = () => {
   const navigate = useNavigate();
   const { language, t } = useLanguage();
   const { toast } = useToast();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
   const { getById, create, update } = useWorkOrders();
 
   const existing = isEdit ? getById(id) : undefined;

@@ -14,6 +14,7 @@ import {
 import { ArrowLeft, Plus, LayoutGrid } from "lucide-react";
 import { useDashboards } from "@/features/factory/hooks/useDashboards";
 import { toast } from "sonner";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 type Lang = "en" | "ar" | "fa";
 
@@ -110,7 +111,7 @@ const DashboardTemplates = () => {
   const lang = language as Lang;
   const tt = (k: string) => DICT[k]?.[lang] ?? k;
   const navigate = useNavigate();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
   const { create } = useDashboards();
 
   const useTemplate = (tpl: Template) => {

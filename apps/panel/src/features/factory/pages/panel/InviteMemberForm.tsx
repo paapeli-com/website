@@ -16,6 +16,7 @@ import {
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
 import { Send, X, Mail, ShieldCheck, MessageSquare } from "lucide-react";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 type AiotRole = "Full Access" | "Manager" | "Editor" | "Operator" | "Viewer";
 const AIOT_ROLES: AiotRole[] = ["Full Access", "Manager", "Editor", "Operator", "Viewer"];
@@ -54,7 +55,7 @@ const InviteMemberForm = () => {
   const { language, t } = useLanguage();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
 
   const [emails, setEmails] = useState<string[]>([]);
   const [emailInput, setEmailInput] = useState("");

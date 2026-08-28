@@ -26,6 +26,7 @@ import {
 import { ChevronUp, UploadCloud, X, Info } from "lucide-react";
 import { useDashboards, DashboardItem } from "@/features/factory/hooks/useDashboards";
 import { toast } from "sonner";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 type Lang = "en" | "ar" | "fa";
 
@@ -206,7 +207,7 @@ const DashboardForm = () => {
     }
   }, [isEdit, existing]);
 
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
 
   const handleImage = (file: File) => {
     if (file.size > 2 * 1024 * 1024) {

@@ -1,151 +1,144 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useMemo } from "react";
+import {
+  useCreateDeviceMutation,
+  useDeleteDeviceMutation,
+  useGetTenantDevicesQuery,
+  type CreateDeviceRequest,
+  type DeviceResponse,
+} from "@paapeli/api";
+import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
+import { useAssetLocations } from "./useAssetLocations";
 
+/**
+ * The device list for the active workspace, straight from
+ * GET /api/v1/aiot/devices/{workspaceId}/{productKey}/tenant.
+ *
+ * This used to be a localStorage store seeded with eight sample devices; it is
+ * now the real listing. Two consequences for callers:
+ *   - `create` and `remove` are async — they are HTTP calls.
+ *   - `apiKey` is not part of a device. Credentials live behind their own
+ *     per-device endpoint; read them with useGetDeviceCredentialsQuery.
+ */
 export interface UserDevice {
   id: string;
+  /** The server has one identifier; kept as `deviceId` for existing call sites. */
   deviceId: string;
-  apiKey: string;
   name: string;
+  label?: string;
+  type?: string;
   protocol: string;
+  /** Server-reported connectivity — the source for the status pill. */
+  active: boolean;
+  /** Asset the device hangs off, i.e. the location tree node id. */
+  assetId?: string;
+  /** Breadcrumb resolved from `assetId` against the product asset tree. */
   location?: string;
-  gateway?: string;
-  useSsl?: boolean;
-  useOta?: boolean;
-  useMonitoring?: boolean;
-  tags?: string;
-  description?: string;
-  externalId?: string;
-  authMethod?: "accessToken" | "basic" | "ssl";
-  authUsername?: string;
-  authClientId?: string;
-  sslCert?: string;
-  sharedUsers?: string[];
-  createdAt: string; // ISO
+  createdAt: string;
+  /** Last server-side change; the API exposes no separate "last seen". */
   lastActivity?: string;
+
+  /* ---------------------------------------------------------------------
+     No endpoint backs any of the fields below — the gateway has no tags,
+     gateway-assignment, sharing or OTA surface, and credentials are their own
+     per-device call rather than part of the device record. They stay on the
+     type so the pages reading them keep compiling, and they are always
+     undefined, so those pages render blanks instead of invented data. When an
+     endpoint appears, populate it in `toUserDevice` and delete the field here.
+     --------------------------------------------------------------------- */
+  /** Use useGetDeviceCredentialsQuery — not part of the device record. */
+  apiKey?: undefined;
+  tags?: undefined;
+  description?: undefined;
+  externalId?: undefined;
+  gateway?: undefined;
+  sharedUsers?: undefined;
+  useSsl?: undefined;
+  useOta?: undefined;
+  useMonitoring?: undefined;
+  authMethod?: undefined;
+  authClientId?: undefined;
+  authUsername?: undefined;
+  sslCert?: undefined;
 }
 
-const STORAGE_KEY = "paapeli-devices-v1";
+/** One page covers the device counts these products carry today. */
+const DEVICE_PAGE_SIZE = 200;
 
-const SEED_KEY = "paapeli-devices-seeded-v1";
-const DEVICE_STORAGE_EVENT = "paapeli:devices-updated";
-
-const seed = (): UserDevice[] => {
-  const now = Date.now();
-  const mk = (i: number, name: string, protocol: string, location: string): UserDevice => ({
-    id: `seed-dev-${i}`,
-    deviceId: `DEV-${String(1000 + i)}`,
-    apiKey: `seed-demo-key-${String(i).padStart(2, "0")}`,
-    name,
-    protocol,
-    location,
-    useSsl: i % 2 === 0,
-    useOta: i % 3 === 0,
-    useMonitoring: true,
-    createdAt: new Date(now - i * 300_000).toISOString(),
-    lastActivity: new Date(now - i * 120_000).toISOString(),
-  });
-  return [
-    mk(1, "Temp Sensor Line 1", "MQTT", "Factory A > Line 1"),
-    mk(2, "حسگر دمای کوره", "MQTT", "کارخانه الف > سولفوناسیون"),
-    mk(3, "Vibration Compressor #3", "OPC-UA", "Factory A > Utilities"),
-    mk(4, "حسگر فشار بویلر", "Modbus TCP", "کارخانه ب > بویلر"),
-    mk(5, "Flow Meter Inlet", "HTTP", "Factory C > WTP"),
-    mk(6, "کنتور مصرف برق خط بسته‌بندی", "MQTT", "کارخانه ب > بسته‌بندی"),
-    mk(7, "Humidity Sensor Warehouse", "LoRaWAN", "Factory A > Line 1"),
-    mk(8, "حسگر ارتعاش پمپ ۲", "MQTT", "کارخانه الف > تأسیسات"),
-  ];
-};
-
-const mergeSeedDevices = (items: UserDevice[]) => {
-  const existingKeys = new Set(items.flatMap((item) => [item.id, item.deviceId]));
-  const missingSeeds = seed().filter((item) => !existingKeys.has(item.id) && !existingKeys.has(item.deviceId));
-  return missingSeeds.length ? [...items, ...missingSeeds] : items;
-};
-
-const load = (): UserDevice[] => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const items = Array.isArray(parsed) ? parsed : [];
-      const merged = mergeSeedDevices(items);
-      if (merged.length !== items.length) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-        localStorage.setItem(SEED_KEY, "1");
-      }
-      return merged;
-    }
-    // First run → seed mixed-language samples
-    const seeded = seed();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-    localStorage.setItem(SEED_KEY, "1");
-    return seeded;
-  } catch {
-    return [];
-  }
-  return [];
-};
-
-const save = (items: UserDevice[]) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    window.dispatchEvent(new Event(DEVICE_STORAGE_EVENT));
-  } catch {
-    return;
-  }
-};
+const toUserDevice = (
+  d: DeviceResponse,
+  locationOf: (assetId: string) => string | undefined,
+): UserDevice => ({
+  id: d.id,
+  deviceId: d.id,
+  name: d.name,
+  label: d.label,
+  type: d.type,
+  protocol: d.protocol,
+  active: d.active,
+  assetId: d.assetId,
+  location: d.assetId ? locationOf(d.assetId) : undefined,
+  createdAt: d.createdAt,
+  lastActivity: d.updatedAt,
+});
 
 export const useDevices = () => {
-  const [items, setItems] = useState<UserDevice[]>(() => load());
-  // Mirror of latest items so writes persist synchronously even if the caller unmounts right after.
-  const itemsRef = useRef(items);
-  itemsRef.current = items;
+  // Every device endpoint is scoped to /{workspaceId}/{productKey}; null until
+  // the host has picked a workspace, which keeps the query disabled.
+  const workspaceId = useWorkspaceId();
+  const { options: locations } = useAssetLocations();
 
-  const persist = useCallback((updater: (prev: UserDevice[]) => UserDevice[]) => {
-    const next = updater(itemsRef.current);
-    itemsRef.current = next;
-    save(next);
-    setItems(next);
-  }, []);
+  const query = useGetTenantDevicesQuery(
+    workspaceId ?? "",
+    PRODUCT_KEY,
+    0,
+    DEVICE_PAGE_SIZE,
+  );
+  const createDevice = useCreateDeviceMutation();
+  const deleteDevice = useDeleteDeviceMutation();
+
+  const items = useMemo(() => {
+    const paths = new Map(locations.map((l) => [l.id, l.path]));
+    return (query.data?.data ?? []).map((d) =>
+      toUserDevice(d, (assetId) => paths.get(assetId)),
+    );
+  }, [query.data, locations]);
 
   const create = useCallback(
-    (d: Omit<UserDevice, "id" | "createdAt" | "deviceId" | "apiKey"> & Partial<Pick<UserDevice, "deviceId" | "apiKey" | "createdAt">>) => {
-      const now = Date.now();
-      const deviceId = d.deviceId || `DEV-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-      const apiKey = d.apiKey || Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-      const item: UserDevice = {
-        id: `dev-${now}-${Math.random().toString(36).slice(2, 7)}`,
-        createdAt: new Date(now).toISOString(),
-        ...d,
-        deviceId,
-        apiKey,
-      };
-      persist((prev) => [item, ...prev]);
-      return item;
+    async (req: CreateDeviceRequest) => {
+      if (!workspaceId) throw new Error("No workspace selected");
+      return createDevice.mutateAsync({
+        workspaceId,
+        productKey: PRODUCT_KEY,
+        ...req,
+      });
     },
-    [persist],
+    [createDevice, workspaceId],
   );
 
   const remove = useCallback(
-    (id: string) => persist((prev) => prev.filter((it) => it.id !== id && it.deviceId !== id)),
-    [persist],
+    async (deviceId: string) => {
+      if (!workspaceId) throw new Error("No workspace selected");
+      return deleteDevice.mutateAsync({
+        workspaceId,
+        productKey: PRODUCT_KEY,
+        deviceId,
+      });
+    },
+    [deleteDevice, workspaceId],
   );
 
-  useEffect(() => {
-    const sync = () => {
-      const fresh = load();
-      itemsRef.current = fresh;
-      setItems(fresh);
-    };
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) sync();
-    };
-    window.addEventListener("storage", onStorage);
-    window.addEventListener(DEVICE_STORAGE_EVENT, sync);
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener(DEVICE_STORAGE_EVENT, sync);
-    };
-  }, []);
-
-  return { items, create, remove };
+  return {
+    items,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    /** No workspace picked yet — the query is disabled, not empty. */
+    noWorkspace: !workspaceId,
+    refetch: query.refetch,
+    totalElements: query.data?.totalElements ?? 0,
+    create,
+    isCreating: createDevice.isPending,
+    remove,
+    isRemoving: deleteDevice.isPending,
+  };
 };

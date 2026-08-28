@@ -30,6 +30,7 @@ import {
   Plus, MoreHorizontal, Eye, Pencil, UserX, Trash2, Mail, Users as UsersIcon,
   Send, X as XIcon, ShieldCheck, ShieldAlert, Shield, Wrench, EyeIcon, Sparkles, Clock,
 } from "lucide-react";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 // ---------------- Types ----------------
 type AiotRole = "Full Access" | "Manager" | "Editor" | "Operator" | "Viewer" | "Custom";
@@ -194,7 +195,7 @@ const MembersPage = () => {
   );
   const { toast } = useToast();
   const navigate = useNavigate();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");

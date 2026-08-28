@@ -47,6 +47,7 @@ import {
   type ForecastStatus,
 } from "@/features/factory/hooks/useForecastStore";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 interface Recommendation {
   asset: string;
@@ -83,7 +84,7 @@ const AIoTForecastFailures = () => {
   const { toast } = useToast();
   const { getStatus, setStatus } = useForecastStore();
   const tt = t as (k: string) => string;
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
 
   const riskLabel = (r: ForecastRisk): string => {
     const map: Record<ForecastRisk, string> = {

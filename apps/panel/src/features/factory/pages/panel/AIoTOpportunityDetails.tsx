@@ -47,13 +47,14 @@ import {
   OPPORTUNITY_STATUS_BADGE,
   type OpportunityStatus,
 } from "@/features/factory/hooks/useOpportunityStore";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 const AIoTOpportunityDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { language, formatNumber, t } = useLanguage();
   const { toast } = useToast();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
 
   const opp: Opportunity | undefined = useMemo(
     () => OPPORTUNITIES.find((o) => o.id === id),

@@ -37,6 +37,7 @@ import {
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
 import { Cpu, Radio, Network, Plus, Trash2, Server, Shield, ListTree } from "lucide-react";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 const CONNECTOR_TYPES: { value: ConnectorType; label: string; icon: any }[] = [
   { value: "opcua", label: "OPC-UA", icon: Cpu },
@@ -124,7 +125,7 @@ const ConnectorForm = () => {
   const { gatewayId, connectorId } = useParams<{ gatewayId: string; connectorId: string }>();
   const { items: gateways } = useGateways();
   const { create, update, getById } = useConnectors();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
 
   const gateway = useMemo(
     () => gateways.find((g) => g.gatewayId === gatewayId || g.id === gatewayId),

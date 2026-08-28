@@ -75,6 +75,7 @@ const MOCK_GATEWAYS: Gateway[] = [
 ];
 
 import { formatRelativeTime } from "@/features/factory/lib/relativeTime";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 const statusVariant = (s: Gateway["status"]) =>
   s === "online" ? "default" : s === "offline" ? "secondary" : "destructive";
@@ -84,7 +85,7 @@ const Gateways = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
 
   const { items: userGateways, remove: removeUserGateway } = useGateways();
   const [mockGateways, setMockGateways] = useState<Gateway[]>(MOCK_GATEWAYS);

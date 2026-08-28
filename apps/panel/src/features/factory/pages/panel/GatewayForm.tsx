@@ -46,6 +46,7 @@ import { SecurityConfig, emptySecurity, type SecurityValue } from "@/features/fa
 import { TemplatePicker } from "@/features/factory/components/panel/TemplatePicker";
 import { GATEWAY_TEMPLATES } from "@/features/factory/lib/formOptions";
 import { getLocationOptions, getDefaultLocationPath } from "@/features/factory/lib/locations";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 const PROTOCOLS = [
   { value: "MQTT", icon: Radio },
@@ -139,7 +140,7 @@ const GatewayForm = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { create: createGateway } = useGateways();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
 
   // Location options come from the Location feature (side menu → Location).
   const locationOptions = useMemo(() => getLocationOptions(), []);

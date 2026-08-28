@@ -31,6 +31,7 @@ import {
   Pencil, Copy, Trash2, Upload, Download, RefreshCw, RotateCw, X, Settings as SettingsIcon, Rocket, FileText,
 } from "lucide-react";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 // ------------------- Types -------------------
 type UpdateStatus = "Active" | "Completed" | "Failed" | "Draft";
@@ -269,7 +270,7 @@ const OTAPage = () => {
   const targetTypeLabel = useTargetTypeLabel();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
   const goToCreate = () => navigate(lp("/firmware/new"));
   const goToEdit = (u: FirmwareUpdate) => navigate(lp(`/firmware/${u.id}/edit`));
 

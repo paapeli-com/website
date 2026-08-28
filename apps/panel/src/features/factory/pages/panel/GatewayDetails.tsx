@@ -65,6 +65,7 @@ import { formatRelativeTime } from "@/features/factory/lib/relativeTime";
 import { SecurityConfig, type SecurityValue } from "@/features/factory/components/panel/SecurityConfig";
 import { ShareWithUsers } from "@/features/factory/components/panel/ShareWithUsers";
 import { getLocationOptions } from "@/features/factory/lib/locations";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 const formatUptime = (createdAt: string, t: (k: string) => string, formatNumber: (n: number) => string) => {
   const diff = Date.now() - new Date(createdAt).getTime();
@@ -154,10 +155,10 @@ const GatewayDetails = () => {
   const { language, isRTL, t, formatNumber } = useLanguage();
   const { toast } = useToast();
   const { items: gateways, remove: removeGw, update: updateGw } = useGateways();
-  const { items: devices, create: createDevice } = useDevices();
+  const { items: devices } = useDevices();
   const { byGateway: connectorsByGateway, update: updateConnector, remove: removeConnector } = useConnectors();
   const [searchParams] = useSearchParams();
-  const lp = (p: string) => (language === "en" ? p : `/${language}${p}`);
+  const lp = (p: string) => localizedPath(p, language);
 
   const gateway = useMemo(() => {
     const found = gateways.find((g) => g.id === gatewayId || g.gatewayId === gatewayId);
@@ -457,7 +458,6 @@ const GatewayDetails = () => {
               fa={fa}
               formatNumber={formatNumber}
               toast={toast}
-              createDevice={createDevice}
               updateConnector={updateConnector}
               updateGw={updateGw}
               goToDevices={() => setActiveTab("devices")}
@@ -908,7 +908,7 @@ const QualityBadge = ({ signal }: { signal: number }) => {
 
 const DiscoveryTab = ({
   gateway, connectors, connectorId, setConnectorId, lp, navigate,
-  t, fa, formatNumber, toast, createDevice, updateConnector, updateGw, goToDevices,
+  t, fa, formatNumber, toast, updateConnector, updateGw, goToDevices,
 }: any) => {
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -955,23 +955,18 @@ const DiscoveryTab = ({
   const toggleIgnore = (id: string, ignored: boolean) =>
     setResults((prev) => prev.map((d) => (d.id === id ? { ...d, ignored } : d)));
 
+  /* Provisioning discovered devices has no API path. Gateways themselves are
+     not a gateway-side concept the endpoints know about: creating a device
+     needs an assetId and a credentialType, neither of which a discovery result
+     carries. This used to call the local device store, which no longer exists —
+     firing the real create with this shape would just 400. Say so instead of
+     pretending it worked. */
   const provision = () => {
     if (!selectedVisible.length) return;
-    const perConnector: Record<string, string[]> = {};
-    selectedVisible.forEach((d) => {
-      const created = createDevice({ name: d.name, protocol: d.protocol, gateway: gateway.name, location: gateway.location });
-      (perConnector[d.connectorId] ||= []).push(created.deviceId);
+    toast({
+      title: t("comingSoon") || "Coming soon",
+      description: t("gatewayProvisionUnavailable"),
     });
-    Object.entries(perConnector).forEach(([cid, ids]) => {
-      const conn = connectors.find((c: GatewayConnector) => c.id === cid);
-      updateConnector(cid, { deviceIds: [...(conn?.deviceIds || []), ...ids], status: "active" });
-    });
-    updateGw(gateway.id, { connectedDevices: (gateway.connectedDevices || 0) + selectedVisible.length });
-    // Drop provisioned devices from the result list.
-    const provisionedIds = new Set(selectedVisible.map((d) => d.id));
-    setResults((prev) => prev.filter((d) => !provisionedIds.has(d.id)));
-    toast({ title: t("success"), description: `${selectedVisible.length} ${t("devicesProvisioned")}` });
-    goToDevices();
   };
 
   if (!connectors.length) {
