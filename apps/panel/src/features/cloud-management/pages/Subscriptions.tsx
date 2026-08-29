@@ -1,9 +1,25 @@
-import { Cpu } from "lucide-react";
-import { Badge, Button, Card, PageHeader, ProgressBar, Table, Toggle } from "@/features/cloud-management/ui";
+import { Check, Cpu, Loader2, Plus } from "lucide-react";
+import { toast } from "sonner";
+import { PRODUCTS } from "@paapeli/brand/config";
+import {
+  useListWorkspaceProductsQuery,
+  useSubscribeWorkspaceProductMutation,
+} from "@paapeli/api";
+import { useWorkspaceSelection } from "@/features/cloud-management/contexts/WorkspaceContext";
+import { Badge, Button, Card, EmptyState, PageHeader, ProgressBar, Table, Toggle } from "@/features/cloud-management/ui";
 
-/* Placeholder data throughout — @paapeli/api has no subscriptions/billing
-   module yet. This renders the design's shape so the page is ready to
-   wire up once that backend exists. */
+/* The PLAN/BILLING data below is placeholder — @paapeli/api has no
+   subscriptions or billing module, so plans, entitlements, add-ons and
+   invoices have nothing behind them.
+
+   Product subscriptions are the exception and are real: the workspace's
+   subscribed products come from GET /workspaces/{id}/products and subscribing
+   posts to the matching POST. That card is at the top of the page. */
+
+/** The products this panel knows how to open. Deliberately the brand config
+    rather than GET /api/v1/aiot/products — the panel only routes to the
+    solutions it actually ships, and this keeps the page to one request. */
+const SUBSCRIBABLE = PRODUCTS.flatMap((p) => p.solutions ?? []);
 const ENTITLEMENTS = [
   { label: "Connected assets", used: 8, limit: 25, text: "8 of 25" },
   { label: "Messages / month", used: 4.1, limit: 5, text: "4.1M of 5M" },
@@ -32,12 +48,104 @@ const NEXT_INVOICE = [
   ["VAT (9%)", "included"],
 ];
 
+function ProductSubscriptions() {
+  const { selectedId, selected, isLoading: workspacesLoading } = useWorkspaceSelection();
+  const { data: subscribed, isLoading } = useListWorkspaceProductsQuery(
+    selectedId ?? "",
+    !!selectedId,
+  );
+  const subscribe = useSubscribeWorkspaceProductMutation();
+
+  const subscribedKeys = new Set((subscribed ?? []).map((p) => p.productKey));
+  const available = SUBSCRIBABLE.filter((p) => !subscribedKeys.has(p.productKey));
+  const nameFor = (key: string) =>
+    SUBSCRIBABLE.find((p) => p.productKey === key)?.name ?? key;
+
+  const handleSubscribe = (productKey: string) => {
+    if (!selectedId || subscribe.isPending) return;
+    subscribe.mutate(
+      { workspaceId: selectedId, productKey },
+      {
+        onSuccess: () => toast.success(`Subscribed to ${nameFor(productKey)}`),
+        onError: () => toast.error(`Could not subscribe to ${nameFor(productKey)}`),
+      },
+    );
+  };
+
+  return (
+    <Card className="flex flex-col gap-4">
+      <div>
+        <h2 className="text-base font-bold text-foreground">
+          {selected ? `Products — ${selected.workspaceName}` : "Products"}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Which products this workspace can use. This section is live.
+        </p>
+      </div>
+
+      {workspacesLoading || (selectedId && isLoading) ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" />
+          Loading products…
+        </div>
+      ) : !selectedId ? (
+        <p className="text-sm text-muted-foreground">Select a workspace on the Workspaces page first.</p>
+      ) : (subscribed ?? []).length === 0 ? (
+        <EmptyState title="No products subscribed" description="Subscribe one below to get started." />
+      ) : (
+        <div className="flex flex-col gap-2">
+          {subscribed!.map((p) => (
+            <div
+              key={p.workspaceProductId}
+              className="flex items-center justify-between rounded-xl border border-border px-3 py-2.5"
+            >
+              <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Cpu className="size-4 text-muted-foreground" />
+                {nameFor(p.productKey)}
+                <span className="font-mono text-xs text-muted-foreground">{p.productKey}</span>
+              </span>
+              <Badge tone={p.status === "ACTIVE" ? "ok" : p.status === "FAILED" ? "bad" : "gray"}>
+                {p.status}
+              </Badge>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {selectedId && available.length > 0 && (
+        <div className="flex flex-col gap-2 border-t border-border pt-3">
+          <span className="text-sm font-medium text-foreground">Subscribe a product</span>
+          <div className="flex flex-wrap gap-2">
+            {available.map((p) => (
+              <Button
+                key={p.productKey}
+                variant="ghost"
+                onClick={() => handleSubscribe(p.productKey)}
+                disabled={subscribe.isPending}
+              >
+                {subscribe.isPending ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                {p.name}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {selectedId && available.length === 0 && (subscribed ?? []).length > 0 && (
+        <p className="flex items-center gap-1.5 border-t border-border pt-3 text-sm text-muted-foreground">
+          <Check className="size-4" /> Every product this panel ships is subscribed.
+        </p>
+      )}
+    </Card>
+  );
+}
+
 export default function Subscriptions() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <PageHeader
         title="Subscriptions"
-        description="Plan, entitlements, add-ons and renewal settings — preview data, no billing backend yet."
+        description="Product subscriptions are live. Plan, entitlements, add-ons and renewal are preview data — there is no billing backend yet."
         actions={
           <>
             <Button variant="ghost">Compare plans</Button>
@@ -45,6 +153,8 @@ export default function Subscriptions() {
           </>
         }
       />
+
+      <ProductSubscriptions />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]">
         <div className="flex flex-col gap-6">

@@ -17,11 +17,16 @@ export const LOGIN_URL = "/login";
  *  session object so every product app can attach it to its own API client. */
 export type Session = { email: string; name: string; initial: string; expiresAt: number; token?: string };
 
-export function signIn(email = CURRENT_USER.email, token?: string): Session {
+/** `name` is the account's own display name when the caller knows it (signup
+ *  returns one); it falls back to the placeholder user until the gateway
+ *  exposes a "who am I" endpoint. */
+export function signIn(email = CURRENT_USER.email, token?: string, name?: string): Session {
+  const resolvedEmail = email || CURRENT_USER.email;
+  const resolvedName = name?.trim() || CURRENT_USER.name;
   const s: Session = {
-    email: email || CURRENT_USER.email,
-    name: CURRENT_USER.name,
-    initial: CURRENT_USER.initial,
+    email: resolvedEmail,
+    name: resolvedName,
+    initial: (resolvedName || resolvedEmail).trim().charAt(0).toUpperCase(),
     expiresAt: Date.now() + IDLE_MS,
     token,
   };

@@ -1,18 +1,28 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Bell, LayoutGrid, MapPin, Plus, Server, Settings, Wrench, type LucideIcon } from "lucide-react";
+import { solutionPath } from "@paapeli/brand/config";
 import { cn } from "@/shared/lib/utils";
 
 interface CreateNewItem {
   title: string;
   subtitle: string;
   icon: LucideIcon;
+  /** Where it goes. Without one the row is not built yet and says so. */
+  path?: string;
 }
 
+/* This menu lives in the shell, outside any feature, so destinations are built
+   from the solution's mount point rather than from a feature-local helper. */
+const factory = (path: string) => `${solutionPath("SmartFactory")}${path}`;
+
 const MAIN_ITEMS: CreateNewItem[] = [
-  { title: "Device", subtitle: "Add industrial devices", icon: Settings },
+  { title: "Device", subtitle: "Add industrial devices", icon: Settings, path: factory("/devices/new") },
   { title: "Gateway", subtitle: "Register edge gateways", icon: Server },
-  { title: "Location", subtitle: "Create regions and production lines", icon: MapPin },
+  /* Locations are created in the tree on that page (each node's "..." menu),
+     not on a dedicated form, so this opens the page itself. */
+  { title: "Location", subtitle: "Create regions and production lines", icon: MapPin, path: factory("/locations") },
   { title: "Rule", subtitle: "Create monitoring rules", icon: Bell },
 ];
 
@@ -21,12 +31,12 @@ const ADVANCED_ITEMS: CreateNewItem[] = [
   { title: "Dashboard", subtitle: "Create operational dashboards", icon: LayoutGrid },
 ];
 
-function CreateNewRow({ item, onPick }: { item: CreateNewItem; onPick: (title: string) => void }) {
+function CreateNewRow({ item, onPick }: { item: CreateNewItem; onPick: (item: CreateNewItem) => void }) {
   const Icon = item.icon;
   return (
     <button
       type="button"
-      onClick={() => onPick(item.title)}
+      onClick={() => onPick(item)}
       className="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-start transition-colors hover:border-primary/30 hover:bg-primary/5"
     >
       <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
@@ -42,6 +52,7 @@ function CreateNewRow({ item, onPick }: { item: CreateNewItem; onPick: (title: s
 
 export function CreateNewMenu() {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -53,9 +64,14 @@ export function CreateNewMenu() {
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [open]);
 
-  const handlePick = (title: string) => {
-    toast.info(title, { description: "Coming soon." });
+  const handlePick = (item: CreateNewItem) => {
     setOpen(false);
+    if (item.path) {
+      navigate(item.path);
+      return;
+    }
+    // Gateway, Rule, Work Order and Dashboard have no page and no endpoint yet.
+    toast.info(item.title, { description: "Coming soon." });
   };
 
   return (
