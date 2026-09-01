@@ -58,10 +58,15 @@ const items = [
     icon: Wrench,
     children: [{ title: "Work Orders", icon: ClipboardList, path: p("/work-orders") }],
   },
+  { title: "Cloud Management", icon: Cloud, path: "/CloudManagement" },
+];
+
+/* Pinned to the bottom of the sidebar — account-level rows rather than places
+   inside the product, so they sit under a divider below the scrolling list. */
+const footerItems = [
   { title: "Members", icon: Users, path: p("/members") },
   { title: "Dev Center & Help", icon: Code2, href: "https://docs.paapeli.com/" },
-  { title: "Cloud Management", icon: Cloud, path: "/CloudManagement" },
   { title: "Settings", icon: Settings, path: p("/account-settings") },
 ];
 
-export const factoryNav: NavSection = { title: "Smart Factory", icon: Factory, items };
+export const factoryNav: NavSection = { title: "Smart Factory", icon: Factory, items, footerItems };

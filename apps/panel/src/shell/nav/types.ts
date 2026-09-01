@@ -23,4 +23,9 @@ export interface NavSection {
   title: string;
   icon: LucideIcon;
   items: NavItem[];
+  /**
+   * Account-level rows (members, help, settings) pinned to the bottom of the
+   * sidebar under a divider, below the scrolling `items` list.
+   */
+  footerItems?: NavItem[];
 }
