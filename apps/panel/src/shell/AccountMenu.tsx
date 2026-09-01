@@ -7,11 +7,13 @@ import { CURRENT_USER } from "@paapeli/brand/config";
 import { signOut as endSession } from "@paapeli/brand/session";
 import { setActiveWorkspaceId, useActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { cn } from "@/shared/lib/utils";
+import { useShellT } from "@/shared/i18n/shell";
 
 export function AccountMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const t = useShellT();
   const displayName = CURRENT_USER.name;
   const initial = CURRENT_USER.initial;
 
@@ -45,7 +47,7 @@ export function AccountMenu() {
       <button
         onClick={() => setOpen((o) => !o)}
         className="flex h-10 items-center gap-2 rounded-xl px-1.5 hover:bg-muted"
-        aria-label="Account"
+        aria-label={t("Account")}
       >
         <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
           {initial}
@@ -62,13 +64,13 @@ export function AccountMenu() {
           </div>
 
           <div className="px-4 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Workspaces
+            {t("Workspaces")}
           </div>
           <div className="px-2 py-1">
             {isLoading ? (
-              <p className="px-2 py-2 text-sm text-muted-foreground">Loading…</p>
+              <p className="px-2 py-2 text-sm text-muted-foreground">{t("Loading…")}</p>
             ) : workspaces.length === 0 ? (
-              <p className="px-2 py-2 text-sm text-muted-foreground">No workspaces yet.</p>
+              <p className="px-2 py-2 text-sm text-muted-foreground">{t("No workspaces yet.")}</p>
             ) : (
               workspaces.map((ws) => {
                 const isActive = ws.workspaceId === activeWorkspaceId;
@@ -105,23 +107,23 @@ export function AccountMenu() {
           <div className="px-2 py-1">
             <button
               onClick={() => {
-                toast.info("Create new workspace", { description: "Coming soon." });
+                toast.info(t("Create new workspace"), { description: t("Coming soon.") });
                 close();
               }}
               className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-sm text-foreground transition-colors hover:bg-muted"
             >
               <Plus className="size-4 text-muted-foreground" />
-              Create new workspace
+              {t("Create new workspace")}
             </button>
             <button
               onClick={() => {
-                toast.info("Manage workspaces", { description: "Coming soon." });
+                toast.info(t("Manage workspaces"), { description: t("Coming soon.") });
                 close();
               }}
               className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-sm text-foreground transition-colors hover:bg-muted"
             >
               <SlidersHorizontal className="size-4 text-muted-foreground" />
-              Manage workspaces
+              {t("Manage workspaces")}
             </button>
           </div>
 
@@ -136,7 +138,7 @@ export function AccountMenu() {
               className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-sm text-foreground transition-colors hover:bg-muted"
             >
               <Settings className="size-4 text-muted-foreground" />
-              Account Settings
+              {t("Account Settings")}
             </button>
             <button
               onClick={() => {
@@ -146,7 +148,7 @@ export function AccountMenu() {
               className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-sm text-destructive transition-colors hover:bg-destructive/10"
             >
               <LogOut className="size-4" />
-              Sign out
+              {t("Sign out")}
             </button>
           </div>
         </div>

@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext } from "react";
 import { translations, LABELS, Language, TranslationKey } from "./translations";
-import { DEFAULT_BRAND } from "@paapeli/brand/config";
+import { isRTLLanguage, setAppLanguage, useAppLanguage } from "@/shared/i18n/appLanguage";
 
 type LanguageContextType = {
   language: Language;
@@ -20,25 +20,13 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 const FA_DIGITS = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
 const AR_DIGITS = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
 
+/* Language itself lives in the shell (src/shared/i18n/appLanguage.ts) so the
+   header's switcher and this provider can never disagree; what stays here is
+   this feature's own translation table and formatting helpers. */
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window === "undefined") return DEFAULT_BRAND.defaultLang;
-    // `?lang=` override (used by previews/screenshots), then saved, then default.
-    const q = new URLSearchParams(window.location.search).get("lang") as Language | null;
-    if (q && ["en", "fa", "ar"].includes(q)) return q;
-    const saved = window.localStorage.getItem("track_lang") as Language | null;
-    return saved && ["en", "fa", "ar"].includes(saved) ? saved : DEFAULT_BRAND.defaultLang;
-  });
-
-  const isRTL = language === "fa" || language === "ar";
-
-  useEffect(() => {
-    document.documentElement.lang = language;
-    document.documentElement.dir = isRTL ? "rtl" : "ltr";
-    window.localStorage.setItem("track_lang", language);
-  }, [language, isRTL]);
-
-  const setLanguage = (l: Language) => setLanguageState(l);
+  const language = useAppLanguage();
+  const isRTL = isRTLLanguage(language);
+  const setLanguage = setAppLanguage;
 
   const t = (key: TranslationKey) => translations[language][key] || translations.en[key] || key;
 

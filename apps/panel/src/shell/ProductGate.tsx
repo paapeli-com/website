@@ -7,6 +7,7 @@ import {
   useSubscribeWorkspaceProductMutation,
 } from "@paapeli/api";
 import { useActiveWorkspaceId } from "@paapeli/brand/workspace";
+import { LoadingSpinner } from "@/shared/components/LoadingSpinner";
 
 interface Props {
   /** Human-readable feature name, used in messages. */
@@ -166,6 +167,10 @@ export function ProductGate({ name, productKey, children }: Props) {
   return <FeatureFallback />;
 }
 
+/* Shown while a feature's chunk loads and while its product is being enabled —
+   the branded loader rather than bare text, since it fills the whole pane. */
 export const FeatureFallback = () => (
-  <div className="flex h-full items-center justify-center p-8 text-sm text-muted-foreground">Loading…</div>
+  <div className="flex h-full min-h-[60vh] items-center justify-center p-8">
+    <LoadingSpinner size="lg" />
+  </div>
 );

@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/features/factory/components/ui/dropdown-menu";
 import { Skeleton } from "@/features/factory/components/ui/skeleton";
-import { LoadingSpinner } from "@/features/factory/components/ui/loading-spinner";
+import { LoadingSpinner } from "@/shared/components/LoadingSpinner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/features/factory/components/ui/sheet";
 import { Input } from "@/features/factory/components/ui/input";
 import { Label } from "@/features/factory/components/ui/label";

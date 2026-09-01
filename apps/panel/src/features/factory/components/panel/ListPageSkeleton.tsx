@@ -1,5 +1,5 @@
 import { Skeleton } from "@/features/factory/components/ui/skeleton";
-import { LoadingSpinner } from "@/features/factory/components/ui/loading-spinner";
+import { LoadingSpinner } from "@/shared/components/LoadingSpinner";
 
 interface ListPageSkeletonProps {
   /** Number of skeleton table rows to render */

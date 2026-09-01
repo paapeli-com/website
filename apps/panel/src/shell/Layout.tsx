@@ -14,11 +14,33 @@ import { cloudManagementNav } from "@/shell/nav/cloudManagementNav";
    item set follows whichever solution's URL prefix is currently active —
    this is the one place idle-session-watch runs now (it used to be
    duplicated inside every remote's own layout). */
+const COLLAPSED_KEY = "sidebar_collapsed";
+
 export function Layout() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => window.localStorage.getItem(COLLAPSED_KEY) === "1");
 
   useEffect(() => startIdleWatch(), []);
+
+  /* One header button, two jobs: below lg the sidebar is a drawer that has to
+     be opened before it can be anything, and at lg and up it's always on
+     screen, so the button toggles it down to an icon-only rail instead. */
+  const toggleSidebar = () => {
+    if (window.matchMedia("(min-width: 1024px)").matches) {
+      setCollapsed((c) => {
+        window.localStorage.setItem(COLLAPSED_KEY, c ? "0" : "1");
+        return !c;
+      });
+      return;
+    }
+    setMobileOpen(true);
+  };
+
+  const expandSidebar = () => {
+    window.localStorage.setItem(COLLAPSED_KEY, "0");
+    setCollapsed(false);
+  };
 
   const navSection = location.pathname.startsWith("/CloudManagement")
     ? cloudManagementNav
@@ -28,11 +50,16 @@ export function Layout() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
-      <Header onMenu={() => setMobileOpen(true)} />
+      <Header onMenu={toggleSidebar} />
 
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden shrink-0 border-border lg:block lg:w-60 ltr:border-r rtl:border-l">
-          <SidebarContent section={navSection} />
+        <aside
+          className={cn(
+            "hidden shrink-0 border-border transition-[width] duration-200 lg:block ltr:border-r rtl:border-l",
+            collapsed ? "lg:w-14" : "lg:w-60",
+          )}
+        >
+          <SidebarContent section={navSection} collapsed={collapsed} onExpand={expandSidebar} />
         </aside>
 
         <div className={cn("fixed inset-0 z-50 lg:hidden", mobileOpen ? "" : "pointer-events-none")}>

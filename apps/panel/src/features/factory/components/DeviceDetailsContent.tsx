@@ -8,7 +8,7 @@ import { useToast } from "@/features/factory/hooks/use-toast";
 import { Label } from "@/features/factory/components/ui/label";
 import { Input } from "@/features/factory/components/ui/input";
 import { Switch } from "@/features/factory/components/ui/switch";
-import { LoadingSpinner } from "@/features/factory/components/ui/loading-spinner";
+import { LoadingSpinner } from "@/shared/components/LoadingSpinner";
 
 interface DeviceDetails {
   id?: string;

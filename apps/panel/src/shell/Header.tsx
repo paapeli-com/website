@@ -1,8 +1,8 @@
-import { toast } from "sonner";
-import { Globe, Menu, Moon, Sun } from "lucide-react";
+import { Menu, Moon, Sun } from "lucide-react";
 import paapeliLogo from "@paapeli/brand/logo.svg";
 import paapeliLogoDark from "@paapeli/brand/logo-dark.svg";
 import { useBrand } from "@/shell/BrandProvider";
+import { useShellT } from "@/shared/i18n/shell";
 import { useTheme } from "@paapeli/brand/theme";
 import { ProductSwitcher } from "./ProductSwitcher";
 import { HeaderSearch } from "./HeaderSearch";
@@ -10,6 +10,7 @@ import { CreateNewMenu } from "./CreateNewMenu";
 import { NotificationsMenu } from "./NotificationsMenu";
 import { WalletMenu } from "./WalletMenu";
 import { AccountMenu } from "./AccountMenu";
+import { LanguageMenu } from "./LanguageMenu";
 
 const iconBtn =
   "inline-flex size-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
@@ -17,10 +18,11 @@ const iconBtn =
 export function Header({ onMenu }: { onMenu: () => void }) {
   const { brand } = useBrand();
   const { dark, toggle } = useTheme();
+  const t = useShellT();
 
   return (
     <header className="z-40 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-card px-3 lg:px-4">
-      <button onClick={onMenu} className={iconBtn} aria-label="Toggle sidebar">
+      <button onClick={onMenu} className={iconBtn} aria-label={t("Toggle sidebar")}>
         <Menu className="h-5 w-5" />
       </button>
 
@@ -41,17 +43,11 @@ export function Header({ onMenu }: { onMenu: () => void }) {
 
         <span className="hidden h-6 w-px bg-border sm:mx-1 sm:block" aria-hidden />
 
-        <button onClick={toggle} className={iconBtn} aria-label="Toggle dark mode">
+        <button onClick={toggle} className={iconBtn} aria-label={t("Toggle dark mode")}>
           {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </button>
 
-        <button
-          onClick={() => toast.info("Language", { description: "Coming soon." })}
-          className={iconBtn}
-          aria-label="Language"
-        >
-          <Globe className="h-5 w-5" />
-        </button>
+        <LanguageMenu />
 
         <NotificationsMenu />
 

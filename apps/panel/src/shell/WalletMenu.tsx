@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeftRight, CreditCard, FileText, Gauge, Gift, Plus, Settings } from "lucide-react";
 import { CURRENT_USER } from "@paapeli/brand/config";
+import { localizeDigits, useAppLanguage } from "@/shared/i18n/appLanguage";
+import { useShellT } from "@/shared/i18n/shell";
 
 // No billing integration yet — placeholder balance to match the design.
 const WALLET_BALANCE = "2,999,185";
@@ -16,6 +18,9 @@ const MENU_ITEMS = [
 
 export function WalletMenu() {
   const [open, setOpen] = useState(false);
+  const language = useAppLanguage();
+  const t = useShellT();
+  const balance = localizeDigits(language, WALLET_BALANCE);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,7 +33,7 @@ export function WalletMenu() {
   }, [open]);
 
   const handlePick = (title: string) => {
-    toast.info(title, { description: "Coming soon." });
+    toast.info(t(title), { description: t("Coming soon.") });
     setOpen(false);
   };
 
@@ -39,19 +44,19 @@ export function WalletMenu() {
         className="hidden h-10 shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3.5 text-sm transition-colors hover:bg-muted/40 lg:flex"
       >
         <CreditCard className="size-5 text-primary" />
-        <span className="text-base font-bold text-foreground">{WALLET_BALANCE}</span>
-        <span className="text-muted-foreground">IRR</span>
+        <span className="text-base font-bold text-foreground">{balance}</span>
+        <span className="text-muted-foreground">{t("IRR")}</span>
       </button>
 
       {open && (
         <div className="absolute z-50 mt-2 w-[340px] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-border bg-popover p-5 shadow-lg ltr:right-0 rtl:left-0">
-          <p className="text-sm text-muted-foreground">Workspace balance</p>
+          <p className="text-sm text-muted-foreground">{t("Workspace balance")}</p>
           <p className="mt-1 flex items-baseline gap-1.5">
-            <span className="text-3xl font-bold text-foreground">{WALLET_BALANCE}</span>
-            <span className="text-sm text-muted-foreground">IRR</span>
+            <span className="text-3xl font-bold text-foreground">{balance}</span>
+            <span className="text-sm text-muted-foreground">{t("IRR")}</span>
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {CURRENT_USER.name} · {USAGE_ESTIMATE}
+            {CURRENT_USER.name} · {t(USAGE_ESTIMATE)}
           </p>
 
           <button
@@ -59,7 +64,7 @@ export function WalletMenu() {
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
           >
             <Plus className="size-4" />
-            Add credit
+            {t("Add credit")}
           </button>
 
           <div className="my-4 -mx-5 border-t border-border" />
@@ -72,7 +77,7 @@ export function WalletMenu() {
                 className="flex w-full items-center gap-3 rounded-lg px-1 py-2 text-start text-sm text-foreground transition-colors hover:bg-muted"
               >
                 <item.icon className="size-5 text-muted-foreground" />
-                {item.title}
+                {t(item.title)}
               </button>
             ))}
           </div>
@@ -84,7 +89,7 @@ export function WalletMenu() {
             className="flex w-full items-center gap-3 rounded-lg px-1 py-2 text-start text-sm text-foreground transition-colors hover:bg-muted"
           >
             <Settings className="size-5 text-muted-foreground" />
-            Billing & payment settings
+            {t("Billing & payment settings")}
           </button>
         </div>
       )}

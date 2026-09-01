@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Bell, LayoutGrid, MapPin, Plus, Server, Settings, Wrench, type LucideIcon } from "lucide-react";
 import { solutionPath } from "@paapeli/brand/config";
 import { cn } from "@/shared/lib/utils";
+import { useShellT } from "@/shared/i18n/shell";
 
 interface CreateNewItem {
   title: string;
@@ -33,6 +34,7 @@ const ADVANCED_ITEMS: CreateNewItem[] = [
 
 function CreateNewRow({ item, onPick }: { item: CreateNewItem; onPick: (item: CreateNewItem) => void }) {
   const Icon = item.icon;
+  const t = useShellT();
   return (
     <button
       type="button"
@@ -43,8 +45,8 @@ function CreateNewRow({ item, onPick }: { item: CreateNewItem; onPick: (item: Cr
         <Icon className="size-5" />
       </span>
       <span className="min-w-0">
-        <span className="block text-sm font-bold text-foreground">{item.title}</span>
-        <span className="block text-sm text-muted-foreground">{item.subtitle}</span>
+        <span className="block text-sm font-bold text-foreground">{t(item.title)}</span>
+        <span className="block text-sm text-muted-foreground">{t(item.subtitle)}</span>
       </span>
     </button>
   );
@@ -54,6 +56,7 @@ export function CreateNewMenu() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const ref = useRef<HTMLDivElement>(null);
+  const t = useShellT();
 
   useEffect(() => {
     if (!open) return;
@@ -71,7 +74,7 @@ export function CreateNewMenu() {
       return;
     }
     // Gateway, Rule, Work Order and Dashboard have no page and no endpoint yet.
-    toast.info(item.title, { description: "Coming soon." });
+    toast.info(t(item.title), { description: t("Coming soon.") });
   };
 
   return (
@@ -81,7 +84,7 @@ export function CreateNewMenu() {
         className="hidden h-10 shrink-0 items-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 sm:flex"
       >
         <Plus className="size-4" />
-        New Items
+        {t("New Items")}
       </button>
 
       {open && (
@@ -92,8 +95,8 @@ export function CreateNewMenu() {
           )}
         >
           <div className="mb-3">
-            <h3 className="text-base font-bold text-foreground">Create New</h3>
-            <p className="text-sm text-muted-foreground">Create and configure a new industrial entity.</p>
+            <h3 className="text-base font-bold text-foreground">{t("Create New")}</h3>
+            <p className="text-sm text-muted-foreground">{t("Create and configure a new industrial entity.")}</p>
           </div>
 
           <div className="space-y-1">
@@ -105,7 +108,7 @@ export function CreateNewMenu() {
           <div className="my-3 border-t border-border" />
 
           <div className="mb-1 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Advanced Options
+            {t("Advanced Options")}
           </div>
           <div className="space-y-1">
             {ADVANCED_ITEMS.map((item) => (

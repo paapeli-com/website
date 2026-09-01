@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Check, ChevronDown, LayoutGrid, MapPin, Server, Settings2, Sparkles, SquareCheckBig, type LucideIcon } from "lucide-react";
 import { PRODUCTS, solutionPath } from "@paapeli/brand/config";
 import { cn } from "@/shared/lib/utils";
+import { useShellT } from "@/shared/i18n/shell";
 
 /* Adapted from apps/product/aiot/track/src/components/layout/ProductSwitcher.tsx.
    Unlike the per-remote copies it replaces, the active solution is derived
@@ -17,6 +18,7 @@ export function ProductSwitcher() {
   const ref = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const t = useShellT();
 
   useEffect(() => {
     if (!open) return;
@@ -55,13 +57,13 @@ export function ProductSwitcher() {
         )}
       >
         <LayoutGrid className="size-4 text-primary" />
-        <span className="flex-1 whitespace-nowrap text-start">{activeSolutionName}</span>
+        <span className="flex-1 whitespace-nowrap text-start">{t(activeSolutionName)}</span>
         <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")} />
       </button>
 
       {open && (
         <div className="absolute z-50 mt-1 w-72 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-border bg-popover py-1.5 shadow-lg ltr:left-0 rtl:right-0">
-          <div className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Switch Product</div>
+          <div className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("Switch Product")}</div>
 
           {PRODUCTS.map((p) => {
             const PIcon = PRODUCT_ICONS[p.id] ?? LayoutGrid;
@@ -79,8 +81,8 @@ export function ProductSwitcher() {
                   <span className={cn("flex size-7 items-center justify-center rounded-full", isActiveProduct ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
                     <PIcon className="size-4" />
                   </span>
-                  <span className={cn("flex-1", isActiveProduct && "font-semibold text-primary")}>{p.name}</span>
-                  {p.disabled && <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60">soon</span>}
+                  <span className={cn("flex-1", isActiveProduct && "font-semibold text-primary")}>{t(p.name)}</span>
+                  {p.disabled && <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60">{t("soon")}</span>}
                 </div>
 
                 {hasSolutions && (
@@ -103,7 +105,7 @@ export function ProductSwitcher() {
                           )}
                         >
                           <SIcon className={cn("size-4", isActive ? "text-primary" : "text-muted-foreground")} />
-                          <span className="flex-1 text-start">{s.name}</span>
+                          <span className="flex-1 text-start">{t(s.name)}</span>
                           {isActive && <Check className="size-4" />}
                         </button>
                       );
@@ -122,7 +124,7 @@ export function ProductSwitcher() {
             <span className="flex size-6 items-center justify-center rounded-md bg-muted text-muted-foreground/50">
               <Settings2 className="size-4" />
             </span>
-            Manage Products
+            {t("Manage Products")}
           </button>
         </div>
       )}

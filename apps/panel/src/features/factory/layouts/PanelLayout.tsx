@@ -55,7 +55,7 @@ import {
   TooltipTrigger,
 } from "@/features/factory/components/ui/tooltip";
 import paapeliLogo from "@/features/factory/assets/paapeli-logo.svg";
-import { LoadingSpinner } from "@/features/factory/components/ui/loading-spinner";
+import { LoadingSpinner } from "@/shared/components/LoadingSpinner";
 import { Skeleton } from "@/features/factory/components/ui/skeleton";
 import paapeliLogoDark from "@/features/factory/assets/paapeli-logo-dark.svg";
 import paapeliLogoFa from "@/features/factory/assets/paapeli-logo-fa.svg";

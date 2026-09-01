@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AlertTriangle, Bell } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
+import { useShellT } from "@/shared/i18n/shell";
 
 type Tone = "critical" | "warning" | "info";
 type Category = "alarm" | "billing" | "system";
@@ -44,6 +45,7 @@ export function NotificationsMenu() {
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("all");
   const [hasUnread, setHasUnread] = useState(true);
   const ref = useRef<HTMLDivElement>(null);
+  const t = useShellT();
 
   useEffect(() => {
     if (!open) return;
@@ -58,12 +60,12 @@ export function NotificationsMenu() {
 
   const handleMarkAllRead = () => {
     setHasUnread(false);
-    toast.success("All notifications marked as read.");
+    toast.success(t("All notifications marked as read."));
   };
 
   return (
     <div className="relative" ref={ref}>
-      <button onClick={() => setOpen((o) => !o)} className={`relative ${iconBtn}`} aria-label="Notifications">
+      <button onClick={() => setOpen((o) => !o)} className={`relative ${iconBtn}`} aria-label={t("Notifications")}>
         <Bell className="h-5 w-5" />
         {hasUnread && <span className="absolute right-2 top-2 size-2 rounded-full bg-destructive" aria-hidden />}
       </button>
@@ -71,30 +73,30 @@ export function NotificationsMenu() {
       {open && (
         <div className="absolute z-50 mt-2 w-[380px] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-border bg-popover shadow-lg ltr:right-0 rtl:left-0">
           <div className="flex items-center justify-between px-4 pb-3 pt-4">
-            <h3 className="text-base font-bold text-foreground">Notifications</h3>
+            <h3 className="text-base font-bold text-foreground">{t("Notifications")}</h3>
             <button onClick={handleMarkAllRead} className="text-sm font-semibold text-primary hover:underline">
-              Mark all read
+              {t("Mark all read")}
             </button>
           </div>
 
           <div className="flex items-center gap-1 border-b border-border px-4 pb-3">
-            {TABS.map((t) => (
+            {TABS.map((item) => (
               <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
+                key={item.key}
+                onClick={() => setTab(item.key)}
                 className={cn(
                   "rounded-full px-3 py-1 text-sm font-medium transition-colors",
-                  tab === t.key ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
+                  tab === item.key ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {t.label}
+                {t(item.label)}
               </button>
             ))}
           </div>
 
           <div className="max-h-96 overflow-y-auto">
             {items.length === 0 ? (
-              <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nothing here yet.</p>
+              <p className="px-4 py-8 text-center text-sm text-muted-foreground">{t("Nothing here yet.")}</p>
             ) : (
               items.map((n) => (
                 <div key={n.id} className="flex items-start gap-3 border-b border-border px-4 py-3 last:border-b-0">
@@ -102,9 +104,9 @@ export function NotificationsMenu() {
                     <AlertTriangle className="size-4" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground">{n.title}</p>
+                    <p className="text-sm font-semibold text-foreground">{t(n.title)}</p>
                     <p className="text-sm text-muted-foreground">
-                      {n.source} · {n.time}
+                      {t(n.source)} · {t(n.time)}
                     </p>
                   </div>
                 </div>
@@ -114,12 +116,12 @@ export function NotificationsMenu() {
 
           <button
             onClick={() => {
-              toast.info("View all notifications", { description: "Coming soon." });
+              toast.info(t("View all notifications"), { description: t("Coming soon.") });
               setOpen(false);
             }}
             className="block w-full border-t border-border py-3 text-center text-sm font-semibold text-primary hover:bg-muted/40"
           >
-            View all notifications
+            {t("View all notifications")}
           </button>
         </div>
       )}

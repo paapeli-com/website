@@ -1,6 +1,6 @@
 import { cn } from "@/shared/lib/utils";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
-import { LoadingSpinner } from "@/features/factory/components/ui/loading-spinner";
+import { LoadingSpinner } from "@/shared/components/LoadingSpinner";
 import { Button } from "@/features/factory/components/ui/button";
 import { AlertCircle, RefreshCw } from "lucide-react";
 

@@ -6,7 +6,8 @@ interface LoadingSpinnerProps {
 }
 
 /**
- * Branded Paapeli loader.
+ * Branded Paapeli loader — shared, because the shell's own page-loading
+ * fallback uses it too and must not import from a feature chunk.
  * The black swirl stays static; the orange circle rotates around the icon center
  * at a continuous, linear speed (~1.1s).
  */

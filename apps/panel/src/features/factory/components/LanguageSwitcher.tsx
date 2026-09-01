@@ -2,7 +2,6 @@ import { Globe } from "lucide-react";
 import { Button } from "@/features/factory/components/ui/button";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { Language } from "@/features/factory/i18n/translations";
-import { useLocation, Link } from "react-router-dom";
 
 const languages = [
   { code: 'en' as Language, name: 'English', nativeName: 'English' },
@@ -12,13 +11,6 @@ const languages = [
 
 export const LanguageSwitcher = () => {
   const { language, setLanguage, isRTL } = useLanguage();
-  const location = useLocation();
-  
-  // Get path without language prefix for constructing new URLs
-  const getPathForLanguage = (lang: Language) => {
-    const pathWithoutLang = location.pathname.replace(/^\/(en|ar|fa)/, '');
-    return lang === 'en' ? (pathWithoutLang || '/') : `/${lang}${pathWithoutLang || ''}`;
-  };
 
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);
@@ -65,17 +57,17 @@ export const LanguageSwitcher = () => {
       >
         <div className="py-1">
           {languages.map((lang) => (
-            <Link
+            <button
               key={lang.code}
-              to={getPathForLanguage(lang.code)}
+              type="button"
               onClick={() => handleLanguageChange(lang.code)}
               className={`block w-full text-left px-4 py-2 text-sm hover:bg-accent cursor-pointer ${
                 language === lang.code ? 'bg-primary/10 text-primary font-medium' : ''
               }`}
-              hrefLang={lang.code}
+              lang={lang.code}
             >
               {lang.nativeName}
-            </Link>
+            </button>
           ))}
         </div>
       </div>

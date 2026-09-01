@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/features/factory/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/features/factory/components/ui/table";
 import { Search, Filter, LayoutGrid, Smartphone, Copy, CheckCheck, Plus, RefreshCw, Trash2, ArrowUpDown, X, ChevronDown, ChevronUp, Eye, MoreHorizontal, Info, Box, Upload, Download, Pencil, UserPlus, Archive } from "lucide-react";
 import { ListToolbar, type ActionItem, type FilterField, type SortOption } from "@/features/factory/components/panel/ListToolbar";
-import { LoadingSpinner } from "@/features/factory/components/ui/loading-spinner";
+import { LoadingSpinner } from "@/shared/components/LoadingSpinner";
 import { ListPageSkeleton } from "@/features/factory/components/panel/ListPageSkeleton";
 import { Checkbox } from "@/features/factory/components/ui/checkbox";
 import { useToast } from "@/features/factory/hooks/use-toast";
