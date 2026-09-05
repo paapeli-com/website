@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Github, Linkedin } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
+import { BLOG_URL, blogHref } from "@/lib/blog-link";
 import paapeliLogo from "@/src/assets/paapeli-logo.svg";
 
 /* ------------------------------------------------------------------ */
@@ -17,7 +18,7 @@ import paapeliLogo from "@/src/assets/paapeli-logo.svg";
 const COLUMN_HREFS: string[][] = [
   ["/operations-hub", "/edge-hub", "/intelligence-hub", "/gps-tracking", "/features/ota-updates"],
   ["https://docs.paapeli.com/", "https://docs.paapeli.com/docs/category/sdks", "https://github.com/paapeli-com", "#"],
-  ["https://paapeli.com/blog", "/AI-Readiness-Assessment", "/contact"],
+  [BLOG_URL, "/AI-Readiness-Assessment", "/contact"],
   ["#", "#", "#", "/pricing"],
 ];
 
@@ -72,9 +73,15 @@ export const LandingFooter = () => {
   const copy = COPY[language] ?? COPY.en;
   const year = new Date().getFullYear();
 
-  /* Prefix internal routes with the active locale; leave "#" links as-is. */
+  /* Prefix internal routes with the active locale; leave "#" links as-is.
+     The blog is off-site, but the docs host carries a locale prefix of its
+     own, so it follows the language the visitor is reading in. */
   const localize = (href: string) =>
-    href.startsWith("/") ? `/${language}${href === "/" ? "" : href}` : href;
+    href === BLOG_URL
+      ? blogHref(language)
+      : href.startsWith("/")
+        ? `/${language}${href === "/" ? "" : href}`
+        : href;
 
   return (
     <footer dir={isRTL ? "rtl" : "ltr"} className="flex w-full flex-col items-center bg-white">

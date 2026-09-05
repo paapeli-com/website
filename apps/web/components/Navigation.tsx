@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { Settings, LogOut } from "lucide-react";
 import paapeliLogo from "@/src/assets/paapeli-logo.svg";
+import { blogHref } from "@/lib/blog-link";
 import { cn } from "@/lib/utils";
 
 function localePath(language: string, path: string) {
@@ -50,11 +51,6 @@ export const Navigation = () => {
     hostname === "paapeli.com" ||
     hostname === "www.paapeli.com" ||
     hostname === "localhost";
-
-  const getBlogUrl = () =>
-    language === "en"
-      ? "https://docs.paapeli.com/blog/"
-      : `https://docs.paapeli.com/${language}/blog/`;
 
   const handleLogin = () => {
     if (isMainDomain && !isPanelDomain) {
@@ -300,7 +296,7 @@ export const Navigation = () => {
                   {/* Blog Link */}
                   <NavigationMenuItem>
                     <a
-                      href={getBlogUrl()}
+                      href={blogHref(language)}
                       className="inline-flex h-10 items-center justify-center rounded-md bg-transparent px-4 py-2 text-base font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none"
                     >
                       {t("blog")}

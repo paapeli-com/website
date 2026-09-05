@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
+import { BLOG_URL, blogHref } from "@/lib/blog-link";
 import { PANEL_URL } from "@/lib/panel";
 import paapeliLogo from "@/src/assets/paapeli-logo.svg";
 import paapeliLogoOnDark from "@/src/assets/paapeli-logo-on-dark.svg";
@@ -86,7 +87,8 @@ const MENUS: Record<string, MegaMenu> = {
         { id: "reports", href: "/AI-Readiness-Assessment/report" },
       ],
       [
-        { id: "blog", href: "https://paapeli.com/blog" },
+        /* Locale-dependent: resolved through blogHref() at render time. */
+        { id: "blog", href: BLOG_URL },
         { id: "guides", href: "https://docs.paapeli.com/docs/category/getting-started" },
       ],
     ],
@@ -215,10 +217,13 @@ function MegaMenuItem({ item }: { item: MenuItem }) {
   /* Docs, the API reference and GitHub live off-site, so they open beside
      the marketing site instead of replacing it. */
   const external = item.href.startsWith("http");
+  /* The blog is off-site too, but the docs host keeps its own locale
+     prefix, so it needs the reader's language rather than a fixed URL. */
+  const href = item.id === "blog" ? blogHref(language) : localize(item.href);
 
   return (
     <Link
-      href={localize(item.href)}
+      href={href}
       target={external ? "_blank" : undefined}
       rel={external ? "noopener noreferrer" : undefined}
       className="group flex w-full flex-col gap-1 rounded-lg border border-transparent p-3 transition-colors hover:border-[#ffcda1] hover:bg-[#fff7f0]"
