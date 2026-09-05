@@ -24,7 +24,6 @@ import {
 
 import { LandingNavbar } from "@/components/LandingNavbar";
 import { LandingFooter } from "@/components/LandingFooter";
-import { CheckList } from "@/components/RevealCard";
 import { CtaSection } from "@/components/CtaSection";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { contactHref } from "@/lib/contact-link";
@@ -187,9 +186,10 @@ const PANEL_ICONS: Record<PanelIcon, LucideIcon> = {
 
 /* ------------------------------------------------------------------ */
 /* What the Pay-as-you-Go and On-Premise tabs show instead of the plan  */
-/* cards. It borrows the landings' rhythm rather than the plan grid's:  */
-/* a lead, three bordered cards, and a dark inset that closes on the    */
-/* contact link, so the two families read as one site.                  */
+/* cards. It is set in this page's own vocabulary rather than the       */
+/* landings' — the same #e5e7eb card, the same #d56300 ticks and the    */
+/* same orange button as the plan cards and the FAQ — so the tabs read  */
+/* as three views of one pricing page instead of a landing bolted on.   */
 /* ------------------------------------------------------------------ */
 const TabPanelView = ({ panel, language }: { panel: TabPanel; language: string }) => (
   <div className="flex w-full flex-col items-center gap-10">
@@ -206,7 +206,7 @@ const TabPanelView = ({ panel, language }: { panel: TabPanel; language: string }
         return (
           <div
             key={card.title}
-            className="flex flex-col gap-3 rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)] transition-shadow hover:border-primary/40 hover:shadow-md"
+            className="flex flex-col gap-3 rounded-xl border border-[#e5e7eb] bg-white p-6 drop-shadow-[0px_1px_1px_rgba(29,41,61,0.05)]"
           >
             <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#fff3e8]">
               <Icon className="size-5 text-[#d56300]" />
@@ -220,18 +220,23 @@ const TabPanelView = ({ panel, language }: { panel: TabPanel; language: string }
       })}
     </div>
 
-    {/* Dark inset, as on the industry landings. */}
-    <div className="flex w-full flex-col gap-8 rounded-2xl bg-[hsl(215_60%_19%)] p-8 md:p-10 lg:flex-row lg:items-center lg:justify-between">
-      <div className="flex flex-col gap-6">
-        <h3 className="text-xl font-bold text-white md:text-2xl rtl:text-lg rtl:md:text-xl">
-          {panel.note.heading}
-        </h3>
-        <CheckList items={panel.note.items} tone="light" />
+    {/* Closing note: the plan cards' own container, tick and button. */}
+    <div className="flex w-full flex-col gap-8 rounded-xl border border-[#e5e7eb] bg-white p-6 drop-shadow-[0px_1px_1px_rgba(29,41,61,0.05)] sm:p-8 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-5">
+        <h3 className="text-xl font-semibold text-[#101828] rtl:text-lg">{panel.note.heading}</h3>
+        <ul className="flex flex-col gap-4">
+          {panel.note.items.map((item) => (
+            <li key={item} className="flex items-start gap-1.5">
+              <CircleCheck className="mt-0.5 size-5 shrink-0 text-[#d56300]" />
+              <span className="text-base text-[#4a5565] rtl:text-sm">{item}</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <Link
         href={contactHref(language, "pricing")}
-        className="inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#ff7900] px-6 py-3 text-base font-medium text-white transition-colors hover:bg-[#e66d00] rtl:text-sm"
+        className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#ff7900] px-5 py-2.5 text-sm font-medium text-white drop-shadow-[0px_1px_0.25px_rgba(29,41,61,0.02)] transition-colors hover:bg-[#e66d00]"
       >
         {panel.note.cta}
         <ArrowRight className="size-4 rtl:rotate-180" />
