@@ -15,7 +15,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { CountUp } from "@/components/CountUp";
 import { LandingNavbar } from "@/components/LandingNavbar";
 import { LandingFooter } from "@/components/LandingFooter";
 import { CtaSection } from "@/components/CtaSection";
@@ -206,41 +205,6 @@ const PricingSection = ({ copy, language }: { copy: PricingCopy; language: strin
   );
 };
 
-const SocialProofSection = ({ copy }: { copy: PricingCopy }) => (
-  <section className="flex w-full flex-col items-center bg-white px-6 py-14 sm:py-20">
-    <div className="flex w-full max-w-[1280px] flex-col items-center gap-12">
-      <div className="flex w-full max-w-[672px] flex-col items-center gap-4 text-center">
-        <h2 className="text-3xl font-semibold text-[#101828] sm:text-[40px] sm:leading-normal rtl:text-2xl rtl:sm:text-[34px]">
-          {copy.social.heading}
-        </h2>
-        <p className="text-lg text-[#4a5565] rtl:text-base">{copy.social.subheading}</p>
-      </div>
-
-      <div className="grid w-full max-w-[1024px] grid-cols-2 rounded-xl border border-[#e5e7eb] bg-white px-4 py-6 drop-shadow-[0px_1px_1px_rgba(29,41,61,0.05)] sm:grid-cols-4">
-        {copy.social.stats.map((stat, index) => (
-          <div
-            key={stat.label}
-            className={cn(
-              "flex flex-col items-center gap-1 text-center",
-              index < copy.social.stats.length - 1 && "sm:border-r sm:border-[#e5e7eb] rtl:sm:border-l rtl:sm:border-r-0",
-              index % 2 === 0 && "border-r border-[#e5e7eb] sm:border-r rtl:border-l rtl:border-r-0 rtl:sm:border-l",
-              index === copy.social.stats.length - 1 && "sm:border-r-0 rtl:sm:border-l-0",
-            )}
-          >
-            {/* The unit sits outside <CountUp/>, which lays its figure out
-                strictly left-to-right and would reverse a word set in it. */}
-            <p className="text-[32px] font-semibold leading-normal text-[#101828] rtl:text-2xl">
-              <CountUp value={stat.value} />
-              {stat.unit}
-            </p>
-            <p className="text-base text-[#4a5565]">{stat.label}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  </section>
-);
-
 const FaqSection = ({ copy }: { copy: PricingCopy }) => {
   /* The design shows the third question expanded by default. */
   const [openIndex, setOpenIndex] = useState<number | null>(2);
@@ -308,7 +272,6 @@ const Pricing = () => {
 
       <main>
         <PricingSection copy={copy} language={language} />
-        <SocialProofSection copy={copy} />
         <FaqSection copy={copy} />
         <CtaSection />
       </main>
