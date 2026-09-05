@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
+  Activity,
   ArrowRight,
   Briefcase,
   ChevronDown,
@@ -11,17 +13,30 @@ import {
   CircleMinus,
   CircleUserRound,
   CreditCard,
+  Database,
+  Gauge,
+  Server,
+  ShieldCheck,
   SlidersHorizontal,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 
 import { LandingNavbar } from "@/components/LandingNavbar";
 import { LandingFooter } from "@/components/LandingFooter";
+import { CheckList } from "@/components/RevealCard";
 import { CtaSection } from "@/components/CtaSection";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { contactHref } from "@/lib/contact-link";
 import { PANEL_URL } from "@/lib/panel";
-import { PRICING_COPY, type Plan, type PricingCopy, type PricingTabKey } from "@/lib/pricing";
+import {
+  PRICING_COPY,
+  type PanelIcon,
+  type Plan,
+  type PricingCopy,
+  type PricingTabKey,
+  type TabPanel,
+} from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -161,6 +176,70 @@ const PlanCard = ({ plan, copy, language }: { plan: Plan; copy: PricingCopy; lan
   );
 };
 
+const PANEL_ICONS: Record<PanelIcon, LucideIcon> = {
+  gauge: Gauge,
+  activity: Activity,
+  database: Database,
+  shield: ShieldCheck,
+  server: Server,
+  wrench: Wrench,
+};
+
+/* ------------------------------------------------------------------ */
+/* What the Pay-as-you-Go and On-Premise tabs show instead of the plan  */
+/* cards. It borrows the landings' rhythm rather than the plan grid's:  */
+/* a lead, three bordered cards, and a dark inset that closes on the    */
+/* contact link, so the two families read as one site.                  */
+/* ------------------------------------------------------------------ */
+const TabPanelView = ({ panel, language }: { panel: TabPanel; language: string }) => (
+  <div className="flex w-full flex-col items-center gap-10">
+    <div className="flex w-full max-w-[820px] flex-col items-center gap-4 text-center">
+      <h2 className="text-2xl font-semibold text-[#101828] sm:text-3xl rtl:text-xl rtl:sm:text-2xl">
+        {panel.heading}
+      </h2>
+      <p className="text-base text-[#4a5565] sm:text-lg rtl:text-sm rtl:sm:text-base">{panel.lead}</p>
+    </div>
+
+    <div className="grid w-full gap-6 md:grid-cols-3">
+      {panel.cards.map((card) => {
+        const Icon = PANEL_ICONS[card.icon];
+        return (
+          <div
+            key={card.title}
+            className="flex flex-col gap-3 rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)] transition-shadow hover:border-primary/40 hover:shadow-md"
+          >
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#fff3e8]">
+              <Icon className="size-5 text-[#d56300]" />
+            </div>
+            <h3 className="text-lg font-semibold leading-snug text-[#101828] rtl:text-base">
+              {card.title}
+            </h3>
+            <p className="text-base text-[#4a5565] rtl:text-sm">{card.description}</p>
+          </div>
+        );
+      })}
+    </div>
+
+    {/* Dark inset, as on the industry landings. */}
+    <div className="flex w-full flex-col gap-8 rounded-2xl bg-[hsl(215_60%_19%)] p-8 md:p-10 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-6">
+        <h3 className="text-xl font-bold text-white md:text-2xl rtl:text-lg rtl:md:text-xl">
+          {panel.note.heading}
+        </h3>
+        <CheckList items={panel.note.items} tone="light" />
+      </div>
+
+      <Link
+        href={contactHref(language, "pricing")}
+        className="inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#ff7900] px-6 py-3 text-base font-medium text-white transition-colors hover:bg-[#e66d00] rtl:text-sm"
+      >
+        {panel.note.cta}
+        <ArrowRight className="size-4 rtl:rotate-180" />
+      </Link>
+    </div>
+  </div>
+);
+
 const PricingSection = ({ copy, language }: { copy: PricingCopy; language: string }) => {
   const [activeTab, setActiveTab] = useState<PricingTabKey>("subscription");
 
@@ -193,12 +272,16 @@ const PricingSection = ({ copy, language }: { copy: PricingCopy; language: strin
             ))}
           </div>
 
-          {/* Plan cards */}
-          <div className="grid w-full grid-cols-1 overflow-hidden rounded-xl border border-[#e5e7eb] bg-white md:grid-cols-2 lg:grid-cols-4">
-            {copy.plans.map((plan) => (
-              <PlanCard key={plan.key} plan={plan} copy={copy} language={language} />
-            ))}
-          </div>
+          {activeTab === "subscription" ? (
+            /* Plan cards */
+            <div className="grid w-full grid-cols-1 overflow-hidden rounded-xl border border-[#e5e7eb] bg-white md:grid-cols-2 lg:grid-cols-4">
+              {copy.plans.map((plan) => (
+                <PlanCard key={plan.key} plan={plan} copy={copy} language={language} />
+              ))}
+            </div>
+          ) : (
+            <TabPanelView panel={copy.panels[activeTab]} language={language} />
+          )}
         </div>
       </div>
     </section>
