@@ -20,3 +20,14 @@ export const BLOG_URL = `${DOCS_URL}/blog`;
 /** The blog on the docs host, in the language the visitor is reading. */
 export const blogHref = (language: string) =>
   language === "en" ? BLOG_URL : `${DOCS_URL}/${language}/blog`;
+
+/**
+ * A single blog post, in the reader's language. `slug` is the post's
+ * Docusaurus slug, which is the same string in every locale — only the
+ * locale prefix in front of it changes.
+ */
+export const blogPostHref = (language: string, slug: string) =>
+  `${blogHref(language)}/${slug}`;
+
+/** The INOTEX 2026 announcement post, linked from the landing hero. */
+export const INOTEX_2026_POST = "paapeli-at-inotex-2026";

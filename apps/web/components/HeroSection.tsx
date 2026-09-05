@@ -2,21 +2,18 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { ArrowRight, ChevronRight } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
+import { INOTEX_2026_POST, blogPostHref } from "@/lib/blog-link";
 import { PANEL_URL } from "@/lib/panel";
 import { HOW_IT_WORKS_ID, glideToSection } from "@/lib/scroll-to-section";
 
 /* ------------------------------------------------------------------ */
 /* Hero section: full-bleed network photo, centred copy on top. The    */
-/* announcement pill links to the INOTEX 2026 campaign landing, and    */
+/* announcement pill links to the INOTEX 2026 blog post, and           */
 /* "Learn More" glides down to the product video.                      */
 /* ------------------------------------------------------------------ */
-
-/** Route for the INOTEX 2026 campaign landing, prefixed with the locale. */
-const INOTEX_PATH = "/inotex-2026";
 
 const COPY: Record<
   string,
@@ -124,11 +121,14 @@ export const HeroSection = () => {
         {/* Pill + headline share a shrink-to-fit column so the pill starts
             exactly where the headline text starts. */}
         <div className="flex w-fit max-w-full flex-col items-start gap-5">
-          {/* Announcement pill */}
-          <Link
+          {/* Announcement pill. The post lives on the docs host, so this is a
+              plain <a> to another origin rather than a client-side route. */}
+          <a
             ref={pillRef}
             style={{ marginInlineStart: pillOffset }}
-            href={`/${language}${INOTEX_PATH}`}
+            href={blogPostHref(language, INOTEX_2026_POST)}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 py-1 pl-1 pr-2 backdrop-blur-sm transition-colors hover:bg-white/20 rtl:pl-2 rtl:pr-1"
           >
             <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
@@ -138,7 +138,7 @@ export const HeroSection = () => {
               {copy.announcement}
               <ChevronRight className="size-4 shrink-0 rtl:rotate-180" />
             </span>
-          </Link>
+          </a>
 
           <h1 ref={headlineRef} className="text-balance text-center text-3xl font-bold leading-[1.15] text-white sm:text-4xl lg:text-5xl">
             {copy.title}
