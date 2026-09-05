@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import type { Language } from '@/lib/i18n/translations';
-import { DEFAULT_LOCALE, LOCALES, alternatesFor, routeOf, type Locale } from '@/lib/seo';
+import { alternatesFor, localeOf, routeOf } from '@/lib/seo';
 
 export async function generateStaticParams() {
   return [
@@ -23,18 +23,15 @@ export async function generateStaticParams() {
  * for. Every page under here inherits these, which matters because 32
  * of the 39 pages are client components and cannot export metadata of
  * their own.
+ *
+ * The locale is read from that same header rather than from the layout's
+ * own params: in production those came back as English for every locale,
+ * which pointed each Persian and Arabic page at its English twin.
  */
-export async function generateMetadata({ params }: {
-  params: Promise<{ lang: Language }>;
-}): Promise<Metadata> {
-  const { lang } = await params;
-  const locale: Locale = LOCALES.includes(lang as Locale)
-    ? (lang as Locale)
-    : DEFAULT_LOCALE;
-
+export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
-  const route = routeOf(requestHeaders.get('x-pathname') ?? '/');
-  const alternates = alternatesFor(locale, route);
+  const pathname = requestHeaders.get('x-pathname') ?? '/';
+  const alternates = alternatesFor(localeOf(pathname), routeOf(pathname));
 
   return {
     alternates,
