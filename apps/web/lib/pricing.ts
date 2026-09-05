@@ -7,10 +7,7 @@
 /* each market is priced in its own currency, so the number and the    */
 /* currency word are written together per locale.                     */
 /*                                                                    */
-/* Persian and Arabic copy uses its own numerals, except in a stat's   */
-/* `value`, which <CountUp/> localises while it animates. A stat's     */
-/* unit is kept out of `value`: CountUp overrides bidi to lay a figure */
-/* out strictly left-to-right, which would reverse a word set in it.   */
+/* Persian and Arabic copy is written in its own numerals.             */
 /* ------------------------------------------------------------------ */
 
 export type PricingTabKey = "subscription" | "payg" | "onpremise";
@@ -44,12 +41,6 @@ export type PricingCopy = {
   tabs: Record<PricingTabKey, string>;
   billing: { monthly: string; yearly: string; onlyMonthly: string };
   plans: Plan[];
-  social: {
-    heading: string;
-    subheading: string;
-    /** `value` is digits only (it animates); `unit` is the suffix beside it. */
-    stats: { value: string; unit: string; label: string }[];
-  };
   faq: { heading: string; items: { question: string; answer: string }[] };
 };
 
@@ -144,17 +135,6 @@ export const PRICING_COPY: Record<string, PricingCopy> = {
         ],
       },
     ],
-    social: {
-      heading: "Why Paapeli",
-      subheading:
-        "Built for industrial operations, designed to turn data into actionable intelligence.",
-      stats: [
-        { value: "73", unit: "M+", label: "Developers" },
-        { value: "1", unit: "B+", label: "Contributors" },
-        { value: "90", unit: "+", label: "Top companies" },
-        { value: "4", unit: "M+", label: "Organizations" },
-      ],
-    },
     faq: {
       heading: "Pricing FAQs",
       items: [
@@ -277,17 +257,6 @@ export const PRICING_COPY: Record<string, PricingCopy> = {
         ],
       },
     ],
-    social: {
-      heading: "چرا پاپلی",
-      subheading:
-        "ساخته‌شده برای عملیات صنعتی، طراحی‌شده برای تبدیل داده به هوشمندی قابل اجرا.",
-      stats: [
-        { value: "73", unit: " میلیون+", label: "توسعه‌دهنده" },
-        { value: "1", unit: " میلیارد+", label: "مشارکت‌کننده" },
-        { value: "90", unit: "+", label: "شرکت برتر" },
-        { value: "4", unit: " میلیون+", label: "سازمان" },
-      ],
-    },
     faq: {
       heading: "پرسش‌های متداول دربارهٔ تعرفه‌ها",
       items: [
@@ -410,16 +379,6 @@ export const PRICING_COPY: Record<string, PricingCopy> = {
         ],
       },
     ],
-    social: {
-      heading: "لماذا بابيلي",
-      subheading: "مبنية للعمليات الصناعية، ومصمّمة لتحويل البيانات إلى ذكاء قابل للتنفيذ.",
-      stats: [
-        { value: "73", unit: " مليون+", label: "مطوّر" },
-        { value: "1", unit: " مليار+", label: "مساهم" },
-        { value: "90", unit: "+", label: "شركة رائدة" },
-        { value: "4", unit: " مليون+", label: "مؤسسة" },
-      ],
-    },
     faq: {
       heading: "أسئلة شائعة حول الأسعار",
       items: [
