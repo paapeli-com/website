@@ -19,7 +19,12 @@ const GA_MEASUREMENT_ID = 'G-03JWQ664FV';
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
 
-  title: 'Paapeli - AI-Powered IoT Cloud Platform',
+  /* The default is the home page's own title; every other page sets its
+     own in lib/page-meta.ts and gets the brand appended by the template. */
+  title: {
+    default: 'Paapeli - AI-Powered IoT Cloud Platform',
+    template: '%s | Paapeli',
+  },
   description:
     "Build, connect, and manage IoT infrastructure intelligently with Paapeli's AI-powered cloud platform. Device management, real-time analytics, and secure OTA updates.",
 
