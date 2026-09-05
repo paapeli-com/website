@@ -18,6 +18,19 @@ export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "en";
 
 /**
+ * The locale a request path is in. Read it from the path rather than
+ * from the route's own `params`: a layout's params came back as the
+ * default locale in production, which quietly canonicalised every
+ * Persian and Arabic page to its English twin.
+ */
+export function localeOf(pathname: string): Locale {
+  const segment = pathname.split("/")[1];
+  return LOCALES.includes(segment as Locale)
+    ? (segment as Locale)
+    : DEFAULT_LOCALE;
+}
+
+/**
  * The route behind a request path, with any locale prefix removed:
  * "/fa/gps-tracking" and "/en/gps-tracking" and "/gps-tracking" are all
  * the route "/gps-tracking".

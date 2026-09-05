@@ -34,7 +34,8 @@ export const metadata: Metadata = {
     'Paapeli',
     'Rayka',
   ],
-  alternates: { canonical: URL },
+  /* No canonical here: it would name the English page from all three
+     locales. app/[lang]/layout.tsx builds one per language. */
   robots: {
     index: true,
     follow: true,
