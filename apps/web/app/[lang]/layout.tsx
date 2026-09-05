@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import type { Language } from '@/lib/i18n/translations';
+import { metaFor } from '@/lib/page-meta';
 import { alternatesFor, localeOf, routeOf } from '@/lib/seo';
 
 export async function generateStaticParams() {
@@ -14,7 +15,8 @@ export async function generateStaticParams() {
 }
 
 /**
- * The canonical and hreflang links for whatever page is being rendered.
+ * The title, description, canonical and hreflang links for whatever page
+ * is being rendered.
  *
  * A layout is not told which page sits under it, so the address comes
  * from the x-pathname header the middleware sets — the middleware
@@ -31,11 +33,19 @@ export async function generateStaticParams() {
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
   const pathname = requestHeaders.get('x-pathname') ?? '/';
-  const alternates = alternatesFor(localeOf(pathname), routeOf(pathname));
+  const locale = localeOf(pathname);
+  const route = routeOf(pathname);
+
+  const alternates = alternatesFor(locale, route);
+  const meta = metaFor(locale, route);
 
   return {
+    ...(meta && { title: meta.title, description: meta.description }),
     alternates,
-    openGraph: { url: alternates.canonical },
+    openGraph: {
+      url: alternates.canonical,
+      ...(meta && { title: meta.title, description: meta.description }),
+    },
   };
 }
 
