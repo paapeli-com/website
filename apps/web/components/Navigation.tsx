@@ -23,14 +23,13 @@ import { Settings, LogOut } from "lucide-react";
 import paapeliLogo from "@/src/assets/paapeli-logo.svg";
 import { blogHref } from "@/lib/blog-link";
 import { cn } from "@/lib/utils";
+import { localePath as localeHref } from "@/lib/seo";
 
+/* Callers pass paths with and without a leading slash, and sometimes with
+   a locale already on the front; normalise before handing it over. */
 function localePath(language: string, path: string) {
-  const cleanPath = path.replace(/^\/(en|ar|fa)/, "");
-  const target = `/${language}/${cleanPath}`.replace("//", "/");
-
-  const clean = path.replace(/^\/(en|ar|fa)/, "").replace(/^\/+/, "");
-  // if (language === 'en') return `/${clean}` || '/';
-  return target;
+  const clean = path.replace(/^\/(en|ar|fa)(?=\/|$)/, "").replace(/^\/+/, "");
+  return localeHref(language, clean ? `/${clean}` : "/");
 }
 
 export const Navigation = () => {

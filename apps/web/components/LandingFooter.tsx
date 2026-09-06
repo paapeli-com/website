@@ -7,6 +7,7 @@ import { Github, Linkedin } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { BLOG_URL, blogHref } from "@/lib/blog-link";
 import paapeliLogo from "@/src/assets/paapeli-logo.svg";
+import { localePath } from "@/lib/seo";
 
 /* ------------------------------------------------------------------ */
 /* Landing footer. Link text matches Figma (typos in the design like   */
@@ -80,7 +81,7 @@ export const LandingFooter = () => {
     href === BLOG_URL
       ? blogHref(language)
       : href.startsWith("/")
-        ? `/${language}${href === "/" ? "" : href}`
+        ? localePath(language, href)
         : href;
 
   return (

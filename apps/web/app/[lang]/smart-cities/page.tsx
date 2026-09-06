@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { PredictiveMaintenanceStats } from "@/components/PredictiveMaintenanceStats";
+import { localePath } from "@/lib/seo";
 
 const SmartCities = () => {
   const { t, isRTL, language } = useLanguage();
@@ -27,7 +28,7 @@ const SmartCities = () => {
     const target =
       language === 'en'
         ? `/${cleanPath}`.replace('//', '/')
-        : `/${language}/${cleanPath}`.replace('//', '/');
+        : localePath(language, `/${cleanPath}`);
   
     router.push(target);
   };
