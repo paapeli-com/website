@@ -108,7 +108,7 @@ release:k8s:
     - docker
   variables:
     GIT_STRATEGY: none
-    INFRA_REPO: paapeli/paapeli-infra
+    INFRA_REPO: paapeli/infra
     CHART_PATH: helm/paapeli-client/values.yaml
   rules:
     - if: '$CI_COMMIT_TAG'
