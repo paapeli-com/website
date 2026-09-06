@@ -4,6 +4,8 @@
 /* are on so the form can show, quietly, where the visitor came from.  */
 /* ------------------------------------------------------------------ */
 
+import { localePath } from "@/lib/seo";
+
 export const CONTACT_PATH = "/contact";
 
 /**
@@ -13,4 +15,4 @@ export const CONTACT_PATH = "/contact";
  * useful to say.
  */
 export const contactHref = (language: string, from?: string) =>
-  `/${language}${CONTACT_PATH}${from ? `?from=${encodeURIComponent(from)}` : ""}`;
+  `${localePath(language, CONTACT_PATH)}${from ? `?from=${encodeURIComponent(from)}` : ""}`;

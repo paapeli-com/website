@@ -26,6 +26,7 @@ import { CAPABILITIES_RAIL, LinkedText, featureHref, featureName, industryHref }
 import { cn } from "@/lib/utils";
 
 import type { IndustryConfig, StatIcon } from "./types";
+import { localePath } from "@/lib/seo";
 
 /* ------------------------------------------------------------------ */
 /* <IndustryLanding/> : one template for every industry page.         */
@@ -200,7 +201,7 @@ export function IndustryLanding({ config }: { config: IndustryConfig }) {
                 return (
                   <Link
                     key={slug}
-                    href={`/${language}${featureHref(slug)}`}
+                    href={localePath(language, featureHref(slug))}
                     className="group rounded-xl border border-border bg-card p-4 text-start transition-colors hover:border-primary/50"
                   >
                     <p className="mb-1 text-sm font-semibold text-foreground group-hover:text-primary">

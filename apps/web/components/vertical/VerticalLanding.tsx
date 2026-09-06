@@ -10,6 +10,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 import ctaGradient from "@/src/assets/cta-gradient.png";
 import type { CTA, FeatureItem, Segment, VerticalConfig } from "./types";
+import { localePath } from "@/lib/seo";
 
 /* ------------------------------------------------------------------ */
 /* <VerticalLanding/> — one template, every solution page.            */
@@ -24,7 +25,7 @@ const HEADING = "text-3xl font-semibold text-foreground sm:text-4xl";
 function useLocalize() {
   const { language } = useLanguage();
   return (href: string) =>
-    href.startsWith("/") ? `/${language}${href === "/" ? "" : href}` : href;
+    href.startsWith("/") ? localePath(language, href) : href;
 }
 
 function PrimaryButton({ cta, dark }: { cta: CTA; dark?: boolean }) {

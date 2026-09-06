@@ -13,6 +13,7 @@ import capOta from "@/src/assets/card-8-ota.png";
 import capAnomaly from "@/src/assets/card-7-anomaly.png";
 import capForecast from "@/src/assets/card-6-forecast.png";
 import capTemplates from "@/src/assets/card-5-templates.png";
+import { localePath } from "@/lib/seo";
 
 /* ------------------------------------------------------------------ */
 /* Core platform capabilities. One 3D icon per card, in the same order */
@@ -118,7 +119,7 @@ export const CapabilitiesSection = () => {
         {copy.cards.map((card, i) => (
           <Link
             key={card.title}
-            href={`/${language}${featureHref(SLUGS[i])}`}
+            href={localePath(language, featureHref(SLUGS[i]))}
             className="group flex flex-col gap-3 overflow-hidden rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)] transition-shadow hover:border-primary/40 hover:shadow-md"
           >
             <div className="flex items-center gap-3">

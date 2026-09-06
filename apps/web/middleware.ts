@@ -22,6 +22,17 @@ export function middleware(req: NextRequest) {
   const headers = new Headers(req.headers);
   headers.set("x-pathname", pathname);
 
+  /* English is canonical at the bare path, so "/en/pricing" is a second
+     address for a page that already has one. Send it to the real one
+     permanently rather than leaving two of everything for a crawler to
+     reconcile. Rewrites below do not re-enter middleware, so the bare
+     path it lands on is served, not redirected again. */
+  if (pathname === "/en" || pathname.startsWith("/en/")) {
+    const url = req.nextUrl.clone();
+    url.pathname = pathname.slice(3) || "/";
+    return NextResponse.redirect(url, 301);
+  }
+
   const hasLocale = LOCALES.some(
     (l) => pathname === `/${l}` || pathname.startsWith(`/${l}/`),
   );

@@ -21,6 +21,7 @@ import { PANEL_URL } from "@/lib/panel";
 import paapeliLogo from "@/src/assets/paapeli-logo.svg";
 import paapeliLogoOnDark from "@/src/assets/paapeli-logo-on-dark.svg";
 import { cn } from "@/lib/utils";
+import { localePath } from "@/lib/seo";
 
 /* ------------------------------------------------------------------ */
 /* Mega-menu data (English copy from Figma; links are placeholders).  */
@@ -211,7 +212,7 @@ const LANGS = [
 
 function MegaMenuItem({ item }: { item: MenuItem }) {
   const { language } = useLanguage();
-  const localize = (href: string) => (href.startsWith("/") ? `/${language}${href}` : href);
+  const localize = (href: string) => (href.startsWith("/") ? localePath(language, href) : href);
   const copy = (MENU_COPY[language] ?? MENU_COPY.en)[item.id];
   const newLabel = (NAV_COPY[language] ?? NAV_COPY.en).newBadge;
   /* Docs, the API reference and GitHub live off-site, so they open beside
@@ -376,7 +377,7 @@ function PromoCard({ menuKey }: { menuKey: keyof typeof MENUS }) {
           </p>
         </div>
         <Link
-          href={`/${language}${link.href}`}
+          href={localePath(language, link.href)}
           className="mt-auto inline-flex h-9 items-center gap-1.5 rounded-full border border-primary px-4 text-[13px] font-medium text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
         >
           {copy.cta}
@@ -511,7 +512,7 @@ export const LandingNavbar = ({ overlay = false }: { overlay?: boolean }) => {
 
   /* Prefix internal routes with the active locale; leave "#" links as-is. */
   const localize = (href: string) =>
-    href.startsWith("/") ? `/${language}${href === "/" ? "" : href}` : href;
+    href.startsWith("/") ? localePath(language, href) : href;
 
   return (
     <header

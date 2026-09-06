@@ -43,6 +43,21 @@ export function routeOf(pathname: string): string {
   return stripped === "" ? "/" : stripped;
 }
 
+/**
+ * An in-site link to a route, in one language.
+ *
+ * English lives at the bare path, so "/pricing" is an English reader's
+ * address and "/en/pricing" is a second address for the same page. Both
+ * resolve, but only the bare one is canonical and only the bare one is
+ * in the sitemap — so every internal link has to use it. A menu that
+ * points at /en/... spends crawl budget on a URL whose own canonical
+ * sends the crawler somewhere else.
+ */
+export function localePath(language: string, route: string): string {
+  const path = route === "/" ? "" : route;
+  return language === DEFAULT_LOCALE ? path || "/" : `/${language}${path}`;
+}
+
 /** Where a route lives in one language. English keeps the bare path. */
 export function localeUrl(locale: Locale, route: string): string {
   const path = route === "/" ? "" : route;

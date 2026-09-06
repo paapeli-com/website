@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLanguage } from "@/contexts/LanguageContext";
 import ctaGradient from "@/src/assets/cta-gradient.png";
 import ctaLeaves from "@/src/assets/cta-leaves.svg";
+import { localePath } from "@/lib/seo";
 
 /* ------------------------------------------------------------------ */
 /* Closing CTA (Figma 158:2157). The soft orange gradient and the leaf */
@@ -66,7 +67,7 @@ export const CtaSection = () => {
           {/* Button */}
           <div className="relative flex flex-wrap items-start gap-4">
             <Link
-              href={`/${language}/contact?from=home`}
+              href={`${localePath(language, "/contact")}?from=home`}
               className="inline-flex h-12 items-center justify-center gap-1.5 rounded-xl bg-[#1e2939] px-5 py-3 text-base font-medium text-white drop-shadow-[0px_1px_0.25px_rgba(29,41,61,0.02)] transition-colors hover:bg-[#101828]"
             >
               {copy.demo}
