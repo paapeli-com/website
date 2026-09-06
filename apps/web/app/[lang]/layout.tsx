@@ -1,10 +1,41 @@
-import { headers } from 'next/headers';
 import type { Metadata } from 'next';
+import Script from 'next/script';
 
+import '../globals.css';
+import { Toaster } from '@/components/ui/toaster';
+import { Toaster as Sonner } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import type { Language } from '@/lib/i18n/translations';
-import { metaFor } from '@/lib/page-meta';
-import { alternatesFor, localeOf, routeOf } from '@/lib/seo';
+import { metadataForRoute } from '@/lib/route-metadata';
+import { SITE_URL } from '@/lib/seo';
+import Providers from '../providers';
+
+import { poppins, tajawal, vazirmatn } from '../fonts';
+
+/* ------------------------------------------------------------------ */
+/* The document, and the home page's metadata.                         */
+/*                                                                     */
+/* This is the root layout. It sits under [lang] rather than above it  */
+/* because <html lang> and dir have to be right in the HTML that comes */
+/* off the server: globals.css hangs the Persian and Arabic fonts, the */
+/* 1.85 line-height and the RTL rules off [lang="fa"] / [lang="ar"],   */
+/* so a document that arrives without the attribute paints every       */
+/* Persian page left-to-right in the Latin font and only rights itself */
+/* once the client sets them — a full reflow on every visit. Above     */
+/* [lang] there is no way to know the language, which is exactly why   */
+/* it lives here.                                                      */
+/*                                                                     */
+/* Every address reaches a locale: the middleware rewrites bare paths  */
+/* to /en, so "/" and "/pricing" render this document too.             */
+/* ------------------------------------------------------------------ */
+
+const RTL_LANGS = ['fa', 'ar'];
+
+/* The docs site measures with this same ID on purpose: docs.paapeli.com
+   and www.paapeli.com are one property, so a visit that starts on the
+   marketing site and ends in the documentation stays one session. */
+const GA_MEASUREMENT_ID = 'G-03JWQ664FV';
 
 export async function generateStaticParams() {
   return [
@@ -15,49 +46,96 @@ export async function generateStaticParams() {
 }
 
 /**
- * The title, description, canonical and hreflang links for whatever page
- * is being rendered.
+ * The site-wide defaults, plus the home page's own canonical and
+ * hreflang — this layout covers "/" and nothing else, because every
+ * other page carries its own route layout (see lib/route-metadata).
  *
- * A layout is not told which page sits under it, so the address comes
- * from the x-pathname header the middleware sets — the middleware
- * rewrites "/gps-tracking" to "/en/gps-tracking", and without the header
- * the rendered page has no way back to the address the visitor asked
- * for. Every page under here inherits these, which matters because 32
- * of the 39 pages are client components and cannot export metadata of
- * their own.
- *
- * The locale is read from that same header rather than from the layout's
- * own params: in production those came back as English for every locale,
- * which pointed each Persian and Arabic page at its English twin.
+ * The title template declared here is what lets those route layouts
+ * export a bare title and still come out "Pricing | Paapeli".
  */
-export async function generateMetadata(): Promise<Metadata> {
-  const requestHeaders = await headers();
-  const pathname = requestHeaders.get('x-pathname') ?? '/';
-  const locale = localeOf(pathname);
-  const route = routeOf(pathname);
-
-  const alternates = alternatesFor(locale, route);
-  const meta = metaFor(locale, route);
+export async function generateMetadata({ params }: {
+  params: Promise<{ lang: Language }>;
+}): Promise<Metadata> {
+  const home = await metadataForRoute('/')({ params });
 
   return {
-    ...(meta && { title: meta.title, description: meta.description }),
-    alternates,
+    metadataBase: new URL(SITE_URL),
+
+    title: {
+      default: 'Paapeli - AI-Powered IoT Cloud Platform',
+      template: '%s | Paapeli',
+    },
+    description:
+      "Build, connect, and manage IoT infrastructure intelligently with Paapeli's AI-powered cloud platform. Device management, real-time analytics, and secure OTA updates.",
+
+    authors: [{ name: 'Paapeli' }],
+
+    icons: {
+      icon: '/favicon.ico',
+      apple: '/favicon.ico',
+      shortcut: '/favicon.ico',
+    },
+
+    ...home,
+
     openGraph: {
-      url: alternates.canonical,
-      ...(meta && { title: meta.title, description: meta.description }),
+      title: 'Paapeli - AI-Powered IoT Cloud Platform',
+      description:
+        'Connect devices, collect insights, and control your IoT infrastructure from anywhere with Paapeli.',
+      siteName: 'Paapeli',
+      type: 'website',
+      ...home.openGraph,
     },
   };
 }
 
 export default async function LangLayout({ children, params }: {
   children: React.ReactNode;
-  params: { lang: Language };
+  /* Next 15 hands params in as a promise. */
+  params: Promise<{ lang: Language }>;
 }) {
   const { lang } = await params;
 
+  const fontClass =
+    lang === 'ar'
+      ? tajawal.className
+      : lang === 'fa'
+      ? vazirmatn.className
+      : poppins.className;
+
+  const dir = RTL_LANGS.includes(lang) ? 'rtl' : 'ltr';
+
   return (
-    <LanguageProvider lang={lang}>
-      {children}
-    </LanguageProvider>
+    <html lang={lang} dir={dir} className={poppins.variable} suppressHydrationWarning>
+      <body className={fontClass}>
+        <Providers>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <LanguageProvider lang={lang}>{children}</LanguageProvider>
+          </TooltipProvider>
+        </Providers>
+
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            /* GA4's own "language" is the browser's, which says nothing
+               about which of the three translations was read. The locale
+               is in the address — English at the bare path, Persian and
+               Arabic behind a prefix — so it rides along with every hit
+               as content_language. */
+            var seg = location.pathname.split('/')[1];
+            var contentLanguage = (seg === 'fa' || seg === 'ar') ? seg : 'en';
+            gtag('config', '${GA_MEASUREMENT_ID}', { content_language: contentLanguage });
+          `}
+        </Script>
+      </body>
+    </html>
   );
 }
