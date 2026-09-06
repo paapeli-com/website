@@ -63,7 +63,6 @@ build-panel:
   tags:
     - cd
     - stage
-    - thr02-stg-tb01
   variables:
     GIT_STRATEGY: none
   before_script:
