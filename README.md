@@ -218,3 +218,60 @@ To keep the monorepo healthy and scalable, follow these rules:
 ❌ Apps must NOT import other Apps
 ❌ Packages must NOT depend on Apps
 ```
+---
+
+# 🚢 CI/CD and deployment
+
+Three apps, one monorepo, one pipeline. The rule is the same as the gateway's:
+**CI never talks to Kubernetes.** It builds images and writes to git; Argo CD is
+the only thing that changes the cluster.
+
+| You do | CI does | Result |
+|---|---|---|
+| push to `dev` | build + push `web`, `docs`, `panel` as `:latest`, redeploy on tb-mini | staging updated |
+| push a tag `v1.2.3` | build + push all three as `:v1.2.3`, commit the tag into `paapeli-infra` | Argo CD syncs to Kubernetes |
+| edit `helm/paapeli-client/values.yaml` in `paapeli-infra` | nothing | Argo CD syncs to Kubernetes |
+
+Only `dev` and tags run a pipeline at all — feature branches (`eric`,
+`amirkian`, …) build nothing, which is what the `workflow:` block at the top
+enforces.
+
+## Staging (tb-mini)
+
+Each app has its own `deploy-*` job gated on `needs:` for its own build, so a
+failed `panel` build cannot ship a stale `panel` alongside a fresh `web`.
+
+## Production (Kubernetes, via Argo CD)
+
+```bash
+git tag v1.2.3 && git push origin v1.2.3
+```
+
+`release:k8s` waits for all three builds, then sets `apps.web.tag`,
+`apps.docs.tag` and `apps.panel.tag` in `helm/paapeli-client/values.yaml` and
+pushes to `main`.
+
+**All three move together, deliberately.** They are built from one commit of one
+monorepo and share `packages/`; releasing them independently means a panel
+talking to a `web` build it was never tested against.
+
+`yq` rather than `sed`: that values file has three `tag:` keys and a regex that
+matches the wrong one ships the wrong image.
+
+**Required CI variable:** `INFRA_REPO_TOKEN`, a project access token on
+`paapeli-infra` with `write_repository`. Mask it.
+
+## Chart
+
+`helm/paapeli-client/` in `paapeli-infra`. One chart, one template, three
+Deployments generated from the `apps:` map — adding a fourth front end is an
+entry there, not a new chart. Ports come from the Dockerfiles: `web` 3000
+(Next.js standalone), `panel` 8080 (node server), `docs` 80 (nginx).
+
+`docs` runs a single replica and therefore gets no PodDisruptionBudget — a PDB
+with `maxUnavailable: 1` over one replica blocks node drains forever.
+
+## Rolling back
+
+Revert the release commit in `paapeli-infra`. Argo CD converges. No pipeline
+run, no image rebuild.
