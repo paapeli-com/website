@@ -1,0 +1,61 @@
+# Paapeli front ends.
+#
+# Three apps out of one monorepo and one chart. They share a shape - a stateless
+# HTTP server behind a ClusterIP - so they share a template; only the image,
+# port and replica count differ. Adding a fourth app is an entry in `apps`, not
+# a new chart.
+#
+# As with the gateway, this file IS the deployment: Argo CD reconciles the
+# cluster to whatever is here.
+
+global:
+  registry: registry.paapeli.me
+  pullPolicy: Always
+  pullSecrets: []
+
+defaults:
+  replicaCount: 2
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {memory: 256Mi}
+  podDisruptionBudget: {enabled: true, maxUnavailable: 1}
+
+apps:
+  # Next.js marketing site, standalone output, listens on 3000.
+  web:
+    enabled: true
+    repository: paapeli/web
+    tag: latest
+    port: 3000
+    # `/` is the only path guaranteed to exist on all three; each app serves it.
+    probePath: /
+    # Fixed NodePorts: Caddy is outside the cluster, and its upstreams are
+    # written down in group_vars - an allocated port would silently 502.
+    nodePort: 30300
+
+  # Storybook, built to static HTML and served by nginx on 80.
+  docs:
+    enabled: true
+    repository: paapeli/docs
+    tag: latest
+    port: 80
+    probePath: /
+    replicaCount: 1
+    nodePort: 30880
+
+  # The panel: one Vite build served by a small node server on 8080.
+  panel:
+    enabled: true
+    repository: paapeli/panel
+    tag: latest
+    port: 8080
+    # The panel container exposes a real health endpoint; the others only have
+    # `/`, which returns their shell whether or not the app is actually ready.
+    probePath: /healthz
+    nodePort: 30808
+
+# Applied to every app unless the app overrides it. The front ends talk to the
+# gateway, never to ThingsBoard directly.
+extraEnv:
+  - name: NODE_ENV
+    value: production

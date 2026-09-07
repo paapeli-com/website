@@ -1,0 +1,100 @@
+{{/*
+One Deployment + Service + PDB per entry in .Values.apps.
+
+Written as a loop rather than three near-identical files: the apps differ only
+in image, port and replica count, so three files would be three places to forget
+the same change.
+*/}}
+{{- $root := . -}}
+{{- range $name, $app := .Values.apps }}
+{{- if $app.enabled }}
+{{- $full := printf "%s-%s" (include "client.fullname" $root) $name }}
+{{- $replicas := $app.replicaCount | default $root.Values.defaults.replicaCount }}
+{{- $resources := $app.resources | default $root.Values.defaults.resources }}
+{{- $image := printf "%s/%s:%s" $root.Values.global.registry $app.repository $app.tag }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $full }}
+  labels:
+    {{- include "client.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  replicas: {{ $replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ $root.Release.Name }}
+      app.kubernetes.io/component: {{ $name }}
+  template:
+    metadata:
+      labels:
+        {{- include "client.podLabels" $root | nindent 8 }}
+        app.kubernetes.io/component: {{ $name }}
+      annotations:
+        # Rolls the pods when a moving tag (`latest`) is republished - otherwise
+        # a push to dev changes nothing that Kubernetes can see.
+        paapeli.me/image: {{ $image | quote }}
+    spec:
+      {{- with $root.Values.global.pullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ $name }}
+          image: {{ $image | quote }}
+          imagePullPolicy: {{ $root.Values.global.pullPolicy }}
+          ports:
+            - {name: http, containerPort: {{ $app.port }}, protocol: TCP}
+          {{- with $root.Values.extraEnv }}
+          env: {{- toYaml . | nindent 12 }}
+          {{- end }}
+          readinessProbe:
+            httpGet: {path: {{ $app.probePath | default "/" }}, port: http}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet: {path: {{ $app.probePath | default "/" }}, port: http}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 6
+          resources: {{- toYaml $resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $full }}
+  labels:
+    {{- include "client.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  type: {{ if $app.nodePort }}NodePort{{ else }}ClusterIP{{ end }}
+  selector:
+    app.kubernetes.io/instance: {{ $root.Release.Name }}
+    app.kubernetes.io/component: {{ $name }}
+  ports:
+    - name: http
+      port: {{ $app.port }}
+      targetPort: http
+      protocol: TCP
+      {{- if $app.nodePort }}
+      nodePort: {{ $app.nodePort }}
+      {{- end }}
+{{- $pdb := $app.podDisruptionBudget | default $root.Values.defaults.podDisruptionBudget }}
+{{- if and $pdb.enabled (gt ($replicas | int) 1) }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ $full }}
+  labels:
+    {{- include "client.labels" $root | nindent 4 }}
+spec:
+  maxUnavailable: {{ $pdb.maxUnavailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ $root.Release.Name }}
+      app.kubernetes.io/component: {{ $name }}
+{{- end }}
+{{- end }}
+{{- end }}

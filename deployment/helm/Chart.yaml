@@ -1,0 +1,7 @@
+apiVersion: v2
+name: paapeli-client
+description: Paapeli front ends - marketing web, Storybook docs and the panel SPA
+type: application
+version: 0.1.0
+appVersion: "latest"
+keywords: [paapeli, frontend]
