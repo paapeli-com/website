@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
-import { BLOG_URL, blogHref } from "@/lib/blog-link";
+import { BLOG_URL, localizeDocsUrl } from "@/lib/blog-link";
 import { PANEL_URL } from "@/lib/panel";
 import paapeliLogo from "@/src/assets/paapeli-logo.svg";
 import paapeliLogoOnDark from "@/src/assets/paapeli-logo-on-dark.svg";
@@ -72,10 +72,14 @@ const MENUS: Record<string, MegaMenu> = {
       [
         { id: "developers", href: "https://api.paapeli.com/swagger-ui/index.html" },
         { id: "sdkApis", href: "https://docs.paapeli.com/docs/category/sdks" },
-        { id: "partners", href: "#" },
+        /* Neither has a page of its own yet, and both are conversations
+           rather than self-serve products, so they go to the contact
+           form. The ?from tag says which one asked, the way the rest of
+           the site tags its contact links. */
+        { id: "partners", href: "/contact?from=partners" },
       ],
       [
-        { id: "whiteLabel", href: "#" },
+        { id: "whiteLabel", href: "/contact?from=white-label" },
         { id: "github", href: "https://github.com/paapeli-com" },
       ],
     ],
@@ -85,10 +89,14 @@ const MENUS: Record<string, MegaMenu> = {
       [
         { id: "aiReadiness", href: "/AI-Readiness-Assessment", isNew: true, featured: true },
         { id: "docs", href: "https://docs.paapeli.com/" },
-        { id: "reports", href: "/AI-Readiness-Assessment/report" },
+        /* "Reports & Insights" used to point at
+           /AI-Readiness-Assessment/report, which only renders once a
+           visitor has finished the questionnaire, and which robots.txt
+           disallows for exactly that reason. Arriving there cold shows
+           an empty shell, so the entry is gone rather than repointed. */
       ],
       [
-        /* Locale-dependent: resolved through blogHref() at render time. */
+        /* Like every docs-host link here, localised at render time. */
         { id: "blog", href: BLOG_URL },
         { id: "guides", href: "https://docs.paapeli.com/docs/category/getting-started" },
       ],
@@ -210,17 +218,24 @@ const LANGS = [
 /* Sub-components                                                     */
 /* ------------------------------------------------------------------ */
 
+/* Where a menu entry points, in the reader's language. The docs host
+   keeps a locale prefix of its own, so documentation, the SDK reference,
+   the guides and the blog all need the reader's language rather than the
+   English URL the table carries. */
+function menuItemHref(item: MenuItem, language: string) {
+  return item.href.startsWith("/")
+    ? localePath(language, item.href)
+    : localizeDocsUrl(language, item.href);
+}
+
 function MegaMenuItem({ item }: { item: MenuItem }) {
   const { language } = useLanguage();
-  const localize = (href: string) => (href.startsWith("/") ? localePath(language, href) : href);
   const copy = (MENU_COPY[language] ?? MENU_COPY.en)[item.id];
   const newLabel = (NAV_COPY[language] ?? NAV_COPY.en).newBadge;
   /* Docs, the API reference and GitHub live off-site, so they open beside
      the marketing site instead of replacing it. */
   const external = item.href.startsWith("http");
-  /* The blog is off-site too, but the docs host keeps its own locale
-     prefix, so it needs the reader's language rather than a fixed URL. */
-  const href = item.id === "blog" ? blogHref(language) : localize(item.href);
+  const href = menuItemHref(item, language);
 
   return (
     <Link
@@ -627,26 +642,69 @@ export const LandingNavbar = ({ overlay = false }: { overlay?: boolean }) => {
       {/* Desktop mega menu */}
       <MegaMenuDropdown openMenu={openMenu} />
 
-      {/* Mobile menu */}
-      {mobileOpen && (
-        <div className="absolute inset-x-0 top-full z-50 max-h-[calc(100vh-100%)] overflow-y-auto border-t border-[#e5e7eb] bg-white px-6 py-4 shadow-[0px_10px_15px_-3px_rgba(29,41,61,0.1)] lg:hidden">
-          <nav className="flex flex-col gap-1">
-            {NAV_ITEMS.map((item) => (
+      {/* Mobile menu.
+
+          It stays in the markup and is hidden with a class rather than
+          being mounted on open, and it lists the whole tree rather than
+          the four top-level headings. Two reasons, and both were bugs:
+
+          a reader on a phone used to get five rows, four of which were
+          `href="#"` because those items carry a `menu` instead of an
+          `href` — the entire product and solution catalogue was
+          unreachable below the lg breakpoint;
+
+          and a crawler never saw a single mega-menu link. The desktop
+          panel only mounts the menu you hover, so the served HTML
+          carried none of them, which left nine pages with no inbound
+          link anywhere on the site. A collapsed menu that a reader can
+          open is an ordinary navigation pattern and Google follows it;
+          the trick this replaces (a zero-opacity div nobody could reach)
+          is not. */}
+      <div
+        className={cn(
+          "absolute inset-x-0 top-full z-50 max-h-[calc(100vh-100%)] overflow-y-auto border-t border-[#e5e7eb] bg-white px-6 py-4 shadow-[0px_10px_15px_-3px_rgba(29,41,61,0.1)] lg:hidden",
+          !mobileOpen && "hidden"
+        )}
+      >
+        <nav className="flex flex-col gap-1">
+          {NAV_ITEMS.map((item) =>
+            item.menu ? (
+              <div key={item.id} className="flex flex-col">
+                <p className="px-2 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">
+                  {nav[item.id]}
+                </p>
+                {MENUS[item.menu].columns.flat().map((sub) => {
+                  const external = sub.href.startsWith("http");
+                  return (
+                    <Link
+                      key={sub.id}
+                      href={menuItemHref(sub, language)}
+                      target={external ? "_blank" : undefined}
+                      rel={external ? "noopener noreferrer" : undefined}
+                      onClick={() => setMobileOpen(false)}
+                      className="rounded-lg px-2 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-[#f9fafb] hover:text-foreground"
+                    >
+                      {(MENU_COPY[language] ?? MENU_COPY.en)[sub.id].title}
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
               <Link
                 key={item.id}
-                href={localize(item.href ?? "#")}
+                href={localize(item.href!)}
                 onClick={() => setMobileOpen(false)}
-                className="rounded-lg px-2 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-[#f9fafb] hover:text-foreground"
+                className="mt-3 rounded-lg px-2 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-[#f9fafb] hover:text-foreground"
               >
                 {nav[item.id]}
               </Link>
-            ))}
-            <div className="mt-3 border-t border-[#e5e7eb] pt-3">
-              <LanguageMenu />
-            </div>
-          </nav>
-        </div>
-      )}
+            )
+          )}
+          <div className="mt-3 border-t border-[#e5e7eb] pt-3">
+            <LanguageMenu />
+          </div>
+        </nav>
+      </div>
     </header>
   );
 };

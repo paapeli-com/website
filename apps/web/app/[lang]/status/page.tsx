@@ -3,6 +3,7 @@
 "use client"
 
 import { Navigation } from "@/components/Navigation";
+import { LandingFooter } from "@/components/LandingFooter";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -143,6 +144,13 @@ const Status = () => {
 };
 
 
+/* Older product shell, no footer of its own: see the note on the OTA
+   page. The shared footer is what connects it to the rest of the site. */
 export default function StatusPage() {
-  return <Status />;
+  return (
+    <>
+      <Status />
+      <LandingFooter />
+    </>
+  );
 }

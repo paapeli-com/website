@@ -18,9 +18,18 @@ export const LanguageSwitcher = () => {
   const { language, setLanguage, isRTL } = useLanguage();
   const pathname = usePathname();
 
-  // Remove existing language prefix
+  /* The same page in another language, which means dropping the locale
+     prefix the current path carries and putting the new one on.
+
+     The lookahead matters: without it "/energy-monitoring" starts with
+     "/en" and gets chopped down to "ergy-monitoring". Only a whole path
+     segment is a locale.
+
+     English lives at the bare path. Linking it to "/en/..." would point
+     every page at a 301 to its own bare address, which spends a
+     crawler's budget on a URL that only sends it somewhere else. */
   const getPathForLanguage = (lang: Language) => {
-    const pathWithoutLang = pathname.replace(/^\/(en|ar|fa)/, '');
+    const pathWithoutLang = pathname.replace(/^\/(en|ar|fa)(?=\/|$)/, '');
     return lang === 'en'
       ? pathWithoutLang || '/'
       : `/${lang}${pathWithoutLang || ''}`;
@@ -80,7 +89,7 @@ export const LanguageSwitcher = () => {
           {languages.map((lang) => (
             <Link
               key={lang.code}
-              href={"/"+lang.code}
+              href={getPathForLanguage(lang.code)}
               hrefLang={lang.code}
               onClick={() => handleLanguageChange(lang.code)}
               className={`block w-full px-4 py-2 text-sm hover:bg-accent ${

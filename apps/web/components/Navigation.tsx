@@ -21,7 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { Settings, LogOut } from "lucide-react";
 import paapeliLogo from "@/src/assets/paapeli-logo.svg";
-import { blogHref } from "@/lib/blog-link";
+import { blogHref, docsHref } from "@/lib/blog-link";
 import { cn } from "@/lib/utils";
 import { localePath as localeHref } from "@/lib/seo";
 
@@ -71,56 +71,18 @@ export const Navigation = () => {
     setCurrentL(rect);
   }
 
+  /* There used to be a copy of the whole menu here, in a div parked at
+     opacity 0 behind the page with pointer events off. No visitor could
+     ever reach it; it existed so that a crawler would find the product
+     and use-case pages, which the menu below never puts in the served
+     HTML because its panels only mount once you hover. That is what
+     Google calls hidden links, and it is a Search Essentials violation,
+     so it is gone. Those pages are linked from the site footer instead,
+     which is rendered on every page and which a reader can actually
+     see and click. */
+
   return (
     <>
-      <div style={{position:'fixed',top:1,zIndex:-111,pointerEvents:'none',opacity:0}}>
-        {[
-          ["makers-developers", "makersDevelopers"],
-          ["oil-gas", "oilGas"],
-          ["smart-cities", "smartCities"],
-          ["smart-agriculture", "smartAgriculture"],
-          ["smart-buildings", "smartBuildings"],
-        ].map(([path, titleKey]) => (
-     
-            <Link
-            prefetch
-             key={path + titleKey}
-              dir={isRTL ? "rtl" : "ltr"}
-              href={localePath(language, path)}
-              className="block w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent hover:text-accent-foreground"
-            >
-              {t(titleKey)}
-            </Link>
-      
-        ))}
-
-        {[
-          ["aiot-platform", "aiotPlatform", "aiotPlatformNavDesc"],
-          ["ddos-protection", "ddosProtection", "ddosProtectionNavDesc"],
-          ["edge-computing", "edgeComputing", "edgeComputingNavDesc"],
-          [
-            "intelligence-insight",
-            "intelligenceInsight",
-            "intelligenceInsightNavDesc",
-          ],
-          ["ota", "ota", "otaNavDesc"],
-        ].map(([path, title, desc]) => (
-          <Link
-          prefetch
-          key={path + title}
-            href={localePath(language, path)}
-            className={cn(
-              "block w-full rounded-md p-3 text-left transition-colors",
-              "hover:bg-accent hover:text-accent-foreground"
-            )}
-          >
-            <div className="text-sm font-medium" dir={isRTL ? "rtl" : "ltr"}>
-              {t(title)}
-            </div>
-       
-          </Link>
-        ))}
-      </div>
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border h-[68px]">
         <div className="container mx-auto px-4 h-full">
           <div className="flex justify-between items-center h-full">
@@ -178,7 +140,10 @@ export const Navigation = () => {
                             "intelligenceInsight",
                             "intelligenceInsightNavDesc",
                           ],
-                          ["ota", "ota", "otaNavDesc"],
+                          /* /ota is retired: it said less about OTA than
+                             the feature page does, and two pages on one
+                             subject only split the signal. */
+                          ["features/ota-updates", "ota", "otaNavDesc"],
                         ].map(([path, title, desc]) => (
                           <li key={path} dir="rtl">
                             <NavigationMenuLink asChild>
@@ -249,37 +214,27 @@ export const Navigation = () => {
                       {t("docs")}
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
+                      {/* All three of these used to be the docs home
+                          page, in English, whatever the reader was
+                          reading. They now go to the page each label
+                          names, on the docs site in that language. */}
                       <ul className="grid gap-2 p-4 w-[220px]">
-                        <li>
-                          <NavigationMenuLink asChild>
-                            <a
-                              href="https://docs.paapeli.com/"
-                              className="block px-3 py-2 text-sm rounded-md hover:bg-accent hover:text-accent-foreground"
-                            >
-                              {t("features")}
-                            </a>
-                          </NavigationMenuLink>
-                        </li>
-                        <li>
-                          <NavigationMenuLink asChild>
-                            <a
-                              href="https://docs.paapeli.com/"
-                              className="block px-3 py-2 text-sm rounded-md hover:bg-accent hover:text-accent-foreground"
-                            >
-                              {t("apis")}
-                            </a>
-                          </NavigationMenuLink>
-                        </li>
-                        <li>
-                          <NavigationMenuLink asChild>
-                            <a
-                              href="https://docs.paapeli.com/"
-                              className="block px-3 py-2 text-sm rounded-md hover:bg-accent hover:text-accent-foreground"
-                            >
-                              {t("sdks")}
-                            </a>
-                          </NavigationMenuLink>
-                        </li>
+                        {[
+                          ["/", "features"],
+                          ["/docs/APIs/api", "apis"],
+                          ["/docs/category/sdks", "sdks"],
+                        ].map(([path, labelKey]) => (
+                          <li key={labelKey}>
+                            <NavigationMenuLink asChild>
+                              <a
+                                href={docsHref(language, path)}
+                                className="block px-3 py-2 text-sm rounded-md hover:bg-accent hover:text-accent-foreground"
+                              >
+                                {t(labelKey)}
+                              </a>
+                            </NavigationMenuLink>
+                          </li>
+                        ))}
                       </ul>
                     </NavigationMenuContent>
                   </NavigationMenuItem>

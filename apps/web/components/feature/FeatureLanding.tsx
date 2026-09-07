@@ -44,6 +44,7 @@ import {
   industryHref,
   industryName,
 } from "@/lib/site-links";
+import { localePath } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
 import type { CapabilityIcon, FeatureConfig } from "./types";
@@ -90,7 +91,12 @@ export function FeatureLanding({ config }: { config: FeatureConfig }) {
 
   const copy = config.copy[language] ?? config.copy.en;
   const self = featureHref(config.slug);
-  const localize = (href: string) => "/" + language + href;
+  /* localePath, not "/" + language + href: English lives at the bare
+     path, so the hand-rolled version pointed every in-page link at
+     /en/..., which 301s to the address it should have used in the first
+     place. Google logs those as "page with redirect" and spends a crawl
+     on each one to be told to go somewhere else. */
+  const localize = (href: string) => localePath(language, href);
 
   return (
     <div className="min-h-screen bg-background" dir={isRTL ? "rtl" : "ltr"}>

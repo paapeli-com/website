@@ -16,11 +16,41 @@ import { NextRequest, NextResponse } from "next/server";
 
 const LOCALES = ["en", "ar", "fa"] as const;
 
+/* Pages that have been retired into another page, keyed by the route
+   with no locale on the front. Google has crawled these addresses and
+   visitors have them bookmarked, so they get a permanent redirect to
+   whatever replaced them rather than a 404 that throws away everything
+   the old address had earned.
+
+   /ota was a thin second page about over-the-air updates, saying less
+   than /features/ota-updates said about the same thing. Two pages
+   competing for one subject split the signal between them, so there is
+   now one. */
+const RETIRED: Record<string, string> = {
+  "/ota": "/features/ota-updates",
+};
+
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   const headers = new Headers(req.headers);
   headers.set("x-pathname", pathname);
+
+  /* Retired routes first, and in one hop: matching before the /en rule
+     means "/en/ota" lands on /features/ota-updates directly rather than
+     bouncing through /ota. */
+  const prefix = LOCALES.find(
+    (l) => pathname === `/${l}` || pathname.startsWith(`/${l}/`),
+  );
+  const route = prefix ? pathname.slice(prefix.length + 1) || "/" : pathname;
+  const replacement = RETIRED[route];
+  if (replacement) {
+    const url = req.nextUrl.clone();
+    /* English is canonical at the bare path; the other two keep theirs. */
+    url.pathname =
+      !prefix || prefix === "en" ? replacement : `/${prefix}${replacement}`;
+    return NextResponse.redirect(url, 301);
+  }
 
   /* English is canonical at the bare path, so "/en/pricing" is a second
      address for a page that already has one. Send it to the real one

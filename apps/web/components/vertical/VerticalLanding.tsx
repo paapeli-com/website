@@ -28,12 +28,30 @@ function useLocalize() {
     href.startsWith("/") ? localePath(language, href) : href;
 }
 
-function PrimaryButton({ cta, dark }: { cta: CTA; dark?: boolean }) {
+/* The dashboard is another origin, and "Start Free" points at it, so a
+   button whose href leaves the site is a plain <a> and a full
+   navigation rather than a client-side route. */
+function CtaLink({ href, className, children }: { href: string; className: string; children: ReactNode }) {
   const localize = useLocalize();
+  if (href.startsWith("http")) {
+    return (
+      <a href={href} className={className}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={localize(href)} className={className}>
+      {children}
+    </Link>
+  );
+}
+
+function PrimaryButton({ cta, dark }: { cta: CTA; dark?: boolean }) {
   const { isRTL } = useLanguage();
   return (
-    <Link
-      href={localize(cta.href)}
+    <CtaLink
+      href={cta.href}
       className={cn(
         "inline-flex h-12 items-center justify-center gap-1.5 rounded-xl px-5 py-3 text-base font-medium shadow-[0px_1px_0.25px_rgba(29,41,61,0.02)] transition-colors",
         dark
@@ -43,20 +61,19 @@ function PrimaryButton({ cta, dark }: { cta: CTA; dark?: boolean }) {
     >
       {cta.label}
       <ArrowRight className={cn("size-4", isRTL && "rotate-180")} />
-    </Link>
+    </CtaLink>
   );
 }
 
 function GhostButton({ cta }: { cta: CTA }) {
-  const localize = useLocalize();
   return (
-    <Link
-      href={localize(cta.href)}
+    <CtaLink
+      href={cta.href}
       className="inline-flex h-12 items-center justify-center gap-1.5 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-5 py-3 text-base font-medium text-muted-foreground shadow-[0px_1px_0.25px_rgba(29,41,61,0.02)] transition-colors hover:bg-[#f3f4f6]"
     >
       <Briefcase className="size-4" />
       {cta.label}
-    </Link>
+    </CtaLink>
   );
 }
 
@@ -70,6 +87,37 @@ function SectionHeading({ heading, subtitle, max = "672px" }: { heading: string;
 }
 
 /* ------------------------------- Hero ------------------------------ */
+
+/* The pill above the headline. It is a link only when the config gives
+   it somewhere to go; otherwise it is a label, without the chevron and
+   the hover tint that promise a destination. It used to be a link to
+   "#" on all five solution pages, which is a click that does nothing. */
+function HeroBadge({ config }: { config: VerticalConfig }) {
+  const localize = useLocalize();
+  const shell = "flex items-center gap-2 rounded-full border border-[#ffcda1] bg-[#fff6ef] py-1 pl-1 pr-2";
+
+  const inner = (
+    <>
+      {config.badge && (
+        <span className="rounded-full bg-[#ffe1c4] px-2 py-0.5 text-xs font-medium text-[#9a4a00]">
+          {config.badge}
+        </span>
+      )}
+      <span className="flex items-center gap-0.5 text-sm text-[#9a4a00]">
+        {config.eyebrow}
+        {config.badgeHref && <ChevronRight className="size-4 shrink-0 rtl:rotate-180" />}
+      </span>
+    </>
+  );
+
+  if (!config.badgeHref) return <div className={shell}>{inner}</div>;
+
+  return (
+    <Link href={localize(config.badgeHref)} className={cn(shell, "transition-colors hover:bg-[#ffe9d6]")}>
+      {inner}
+    </Link>
+  );
+}
 
 function Hero({ config }: { config: VerticalConfig }) {
   const localize = useLocalize();
@@ -91,20 +139,7 @@ function Hero({ config }: { config: VerticalConfig }) {
 
       <div className="relative flex w-full max-w-[1280px] flex-col items-center gap-10 px-6 lg:flex-row lg:gap-16">
         <div className="flex flex-col items-start gap-8 lg:max-w-[560px] lg:flex-1">
-          <Link
-            href="#"
-            className="flex items-center gap-2 rounded-full border border-[#ffcda1] bg-[#fff6ef] py-1 pl-1 pr-2 transition-colors hover:bg-[#ffe9d6]"
-          >
-            {config.badge && (
-              <span className="rounded-full bg-[#ffe1c4] px-2 py-0.5 text-xs font-medium text-[#9a4a00]">
-                {config.badge}
-              </span>
-            )}
-            <span className="flex items-center gap-0.5 text-sm text-[#9a4a00]">
-              {config.eyebrow}
-              <ChevronRight className="size-4 shrink-0 rtl:rotate-180" />
-            </span>
-          </Link>
+          <HeroBadge config={config} />
 
           <div className="flex w-full flex-col gap-3">
             <h1 className="flex flex-col text-foreground">
@@ -115,12 +150,12 @@ function Hero({ config }: { config: VerticalConfig }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
-            <Link
-              href={localize(config.primaryCta.href)}
+            <CtaLink
+              href={config.primaryCta.href}
               className="inline-flex h-12 items-center justify-center gap-1.5 rounded-xl bg-primary px-5 py-3 text-base font-medium text-primary-foreground shadow-[0px_1px_0.25px_rgba(29,41,61,0.02)] transition-colors hover:bg-primary/90"
             >
               {config.primaryCta.label}
-            </Link>
+            </CtaLink>
             {config.secondaryCta && <GhostButton cta={config.secondaryCta} />}
           </div>
 

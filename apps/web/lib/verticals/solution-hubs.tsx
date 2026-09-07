@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 
 import { OrbitVisual } from "@/components/vertical/visuals";
+import { PANEL_URL } from "@/lib/panel";
 import type { VerticalConfig } from "@/components/vertical/types";
 
 /* ------------------------------------------------------------------ */
@@ -38,7 +39,7 @@ export const operationsHubConfig: VerticalConfig = {
   titleBottom: "industrial environments",
   subtitle:
     "Monitor every asset, process, and site in real time, with AI-driven insight that turns raw data into operational decisions.",
-  primaryCta: { label: "Start Free", href: "#" },
+  primaryCta: { label: "Start Free", href: PANEL_URL },
   secondaryCta: { label: "Contact Sales", href: CONTACT },
   chips: [
     { icon: Activity, label: "Real-time monitoring" },
@@ -96,7 +97,7 @@ export const operationsHubConfig: VerticalConfig = {
       { icon: TrendingUp, title: "Measurable gains", description: "Reduce downtime and lift efficiency with data-driven decisions." },
       { icon: ShieldCheck, title: "Secure by design", description: "Enterprise-grade access control and auditability built in." },
     ],
-    cta: { label: "Explore Operations Hub", href: "#" },
+    cta: { label: "Explore Operations Hub", href: PANEL_URL },
     visual: <OrbitVisual icon={Gauge} nodes={[Activity, BarChart3, Workflow, TrendingUp]} />,
   },
   stats: [
@@ -117,7 +118,7 @@ export const operationsHubConfig: VerticalConfig = {
   cta: {
     title: "Bring your operations into focus",
     subtitle: "See how Operations Hub helps you monitor, respond, and improve across every site.",
-    primary: { label: "Start Free", href: "#" },
+    primary: { label: "Start Free", href: PANEL_URL },
     secondary: { label: "Contact Sales", href: CONTACT },
   },
 };
@@ -129,7 +130,7 @@ export const edgeHubConfig: VerticalConfig = {
   titleBottom: "at the edge, at scale",
   subtitle:
     "Onboard, monitor, and update industrial assets and edge devices across every site, with support for the protocols your equipment already speaks.",
-  primaryCta: { label: "Start Free", href: "#" },
+  primaryCta: { label: "Start Free", href: PANEL_URL },
   secondaryCta: { label: "Contact Sales", href: CONTACT },
   chips: [
     { icon: Wifi, label: "Device management" },
@@ -187,7 +188,7 @@ export const edgeHubConfig: VerticalConfig = {
       { icon: RefreshCw, title: "Always up to date", description: "Push updates fleet-wide with confidence and easy rollback." },
       { icon: Cpu, title: "Compute where it counts", description: "Keep critical logic running at the edge, even when offline." },
     ],
-    cta: { label: "Explore Edge Hub", href: "#" },
+    cta: { label: "Explore Edge Hub", href: PANEL_URL },
     visual: <OrbitVisual icon={Network} nodes={[Wifi, RefreshCw, Cpu, Server]} />,
   },
   stats: [
@@ -208,7 +209,7 @@ export const edgeHubConfig: VerticalConfig = {
   cta: {
     title: "Bring your edge under control",
     subtitle: "See how Edge Hub connects, monitors, and updates devices at any scale.",
-    primary: { label: "Start Free", href: "#" },
+    primary: { label: "Start Free", href: PANEL_URL },
     secondary: { label: "Contact Sales", href: CONTACT },
   },
 };
@@ -220,7 +221,7 @@ export const intelligenceHubConfig: VerticalConfig = {
   titleBottom: "with industrial AI",
   subtitle:
     "Turn operational data into foresight: predict failures before they happen, detect anomalies in real time, and continuously optimize performance.",
-  primaryCta: { label: "Start Free", href: "#" },
+  primaryCta: { label: "Start Free", href: PANEL_URL },
   secondaryCta: { label: "Contact Sales", href: CONTACT },
   chips: [
     { icon: BrainCircuit, label: "Predictive AI" },
@@ -278,7 +279,7 @@ export const intelligenceHubConfig: VerticalConfig = {
       { icon: Sparkles, title: "Catch it early", description: "Real-time anomaly detection flags issues as they emerge." },
       { icon: LineChart, title: "Always improving", description: "Continuous optimization compounds gains over time." },
     ],
-    cta: { label: "Explore Intelligence Hub", href: "#" },
+    cta: { label: "Explore Intelligence Hub", href: PANEL_URL },
     visual: <OrbitVisual icon={BrainCircuit} nodes={[TrendingUp, Sparkles, LineChart, Workflow]} />,
   },
   stats: [
@@ -299,7 +300,7 @@ export const intelligenceHubConfig: VerticalConfig = {
   cta: {
     title: "Put your data to work",
     subtitle: "See how Intelligence Hub predicts failures, detects anomalies, and optimizes performance.",
-    primary: { label: "Start Free", href: "#" },
+    primary: { label: "Start Free", href: PANEL_URL },
     secondary: { label: "Contact Sales", href: CONTACT },
   },
 };
@@ -311,7 +312,7 @@ export const infrastructureHubConfig: VerticalConfig = {
   titleBottom: "mission-critical infrastructure",
   subtitle:
     "Monitor and manage the systems the world depends on: energy, utilities and critical facilities, with the reliability and security they demand.",
-  primaryCta: { label: "Start Free", href: "#" },
+  primaryCta: { label: "Start Free", href: PANEL_URL },
   secondaryCta: { label: "Contact Sales", href: CONTACT },
   chips: [
     { icon: Zap, label: "Energy & utilities" },
@@ -369,7 +370,7 @@ export const infrastructureHubConfig: VerticalConfig = {
       { icon: RefreshCw, title: "Always available", description: "Edge resilience keeps operations running through outages." },
       { icon: Zap, title: "Efficient at scale", description: "Optimize energy and cost across every connected site." },
     ],
-    cta: { label: "Explore Infrastructure Hub", href: "#" },
+    cta: { label: "Explore Infrastructure Hub", href: PANEL_URL },
     visual: <OrbitVisual icon={Server} nodes={[Zap, Factory, Cloud, ShieldCheck]} />,
   },
   stats: [
@@ -390,7 +391,7 @@ export const infrastructureHubConfig: VerticalConfig = {
   cta: {
     title: "Operate infrastructure with confidence",
     subtitle: "See how Infrastructure Hub keeps mission-critical systems reliable, secure, and efficient.",
-    primary: { label: "Start Free", href: "#" },
+    primary: { label: "Start Free", href: PANEL_URL },
     secondary: { label: "Contact Sales", href: CONTACT },
   },
 };

@@ -3,10 +3,12 @@
 import { Globe, Network, Server, Shield, TrendingDown, Zap, type LucideIcon } from "lucide-react";
 
 import { Navigation } from "@/components/Navigation";
+import { LandingFooter } from "@/components/LandingFooter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { LinkedText } from "@/lib/site-links";
+import { localePath } from "@/lib/seo";
 
 /* ------------------------------------------------------------------ */
 /* The Edge Computing product page. Copy is held per language so the    */
@@ -115,7 +117,10 @@ const COPY: Record<string, Copy> = {
 const EdgeComputing = () => {
   const { isRTL, language } = useLanguage();
   const copy = COPY[language] ?? COPY.en;
-  const localize = (href: string) => "/" + language + href;
+  /* localePath, not "/" + language: English lives at the bare path, so
+     the hand-rolled version linked to /en/..., which 301s straight back
+     to where it should have pointed. */
+  const localize = (href: string) => localePath(language, href);
 
   return (
     <div className="min-h-screen bg-background" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -204,6 +209,13 @@ const EdgeComputing = () => {
   );
 };
 
+/* Older product shell, no footer of its own: see the note on the OTA
+   page. The shared footer is what connects it to the rest of the site. */
 export default function EdgeComputingPage() {
-  return <EdgeComputing />;
+  return (
+    <>
+      <EdgeComputing />
+      <LandingFooter />
+    </>
+  );
 }

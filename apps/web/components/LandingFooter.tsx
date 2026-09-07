@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Github, Linkedin } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
-import { BLOG_URL, blogHref } from "@/lib/blog-link";
+import { BLOG_URL, localizeDocsUrl } from "@/lib/blog-link";
 import paapeliLogo from "@/src/assets/paapeli-logo.svg";
 import { localePath } from "@/lib/seo";
 
@@ -15,12 +15,44 @@ import { localePath } from "@/lib/seo";
 /* ------------------------------------------------------------------ */
 
 /* One href list per column, in the same order as the labels below.
-   Docs, the SDK reference, GitHub and the blog live off-site. */
+   Docs, the SDK reference, GitHub and the blog live off-site.
+
+   This is the only place on the site that links every page from every
+   page, so it doubles as the crawl path. Both navbars build their menus
+   in the browser, on hover or on tap, which means none of those links
+   reach the served HTML: without the footer, a page that no other page
+   mentions in its body is reachable only through the sitemap, and Google
+   reads it, shrugs, and files it under "crawled, currently not indexed".
+   Nine pages were in exactly that state.
+
+   Every entry points at a page that exists. The four "#" placeholders
+   that used to sit here (About, Partners, Careers, Platform Status) were
+   dead ends for readers and gave the crawler nothing. */
 const COLUMN_HREFS: string[][] = [
-  ["/operations-hub", "/edge-hub", "/intelligence-hub", "/gps-tracking", "/features/ota-updates"],
-  ["https://docs.paapeli.com/", "https://docs.paapeli.com/docs/category/sdks", "https://github.com/paapeli-com", "#"],
-  [BLOG_URL, "/AI-Readiness-Assessment", "/contact"],
-  ["#", "#", "#", "/pricing"],
+  [
+    "/aiot-platform",
+    "/operations-hub",
+    "/edge-hub",
+    "/intelligence-hub",
+    "/infrastructure-hub",
+    "/gps-tracking",
+  ],
+  [
+    "/smart-manufacturing",
+    "/smart-cities",
+    "/smart-buildings",
+    "/smart-agriculture",
+    "/oil-gas",
+    "/energy-monitoring",
+  ],
+  [
+    "https://docs.paapeli.com/",
+    "https://docs.paapeli.com/docs/category/sdks",
+    "https://github.com/paapeli-com",
+    "/makers-developers",
+    "/status",
+  ],
+  [BLOG_URL, "/AI-Readiness-Assessment", "/pricing", "/request-demo", "/inotex-2026", "/contact"],
 ];
 
 type Copy = {
@@ -35,10 +67,10 @@ const COPY: Record<string, Copy> = {
       "Paapeli is an AI-powered industrial IoT platform that helps organizations monitor assets, optimize operations, and unlock real-time insights from their data.",
     rights: (year) => `© ${year} Paapeli, Inc. All rights reserved.`,
     columns: [
-      { title: "Platform", labels: ["Operations Hub", "Edge Hub", "Intelligence Hub", "Tracking Hub", "OTA Updates"] },
-      { title: "Developers", labels: ["Documentation", "SDKs", "GitHub", "Platform Status"] },
-      { title: "Resources", labels: ["Blog", "AI Readiness Assessment", "Contact"] },
-      { title: "Company", labels: ["About", "Partners", "Careers", "Pricing"] },
+      { title: "Platform", labels: ["AIoT Platform", "Operations Hub", "Edge Hub", "Intelligence Hub", "Infrastructure Hub", "Tracking Hub"] },
+      { title: "Solutions", labels: ["Smart Manufacturing", "Smart Cities", "Smart Buildings", "Smart Agriculture", "Oil & Gas", "Energy Monitoring"] },
+      { title: "Developers", labels: ["Documentation", "SDKs", "GitHub", "Makers & Developers", "Platform Status"] },
+      { title: "Resources", labels: ["Blog", "AI Readiness Assessment", "Pricing", "Request a Demo", "INOTEX 2026", "Contact"] },
     ],
   },
   fa: {
@@ -46,10 +78,10 @@ const COPY: Record<string, Copy> = {
       "پاپلی یک پلتفرم صنعتی اینترنت اشیا مبتنی بر هوش مصنوعی است که به سازمان‌ها کمک می‌کند دارایی‌ها را پایش کنند، عملیات را بهینه کنند و از داده‌های خود بینش لحظه‌ای بگیرند",
     rights: (year) => `© ${year} پاپلی. تمامی حقوق محفوظ است.`,
     columns: [
-      { title: "پلتفرم", labels: ["هاب عملیات", "هاب لبه", "هاب هوشمندی", "هاب ردیابی", "به‌روزرسانی OTA"] },
-      { title: "توسعه‌دهندگان", labels: ["مستندات", "SDK ها", "گیت‌هاب", "وضعیت پلتفرم"] },
-      { title: "منابع", labels: ["بلاگ", "ارزیابی آمادگی هوش مصنوعی", "تماس با ما"] },
-      { title: "شرکت", labels: ["دربارهٔ ما", "شرکا", "فرصت‌های شغلی", "تعرفه‌ها"] },
+      { title: "پلتفرم", labels: ["پلتفرم AIoT", "هاب عملیات", "هاب لبه", "هاب هوشمندی", "هاب زیرساخت", "هاب ردیابی"] },
+      { title: "راهکارها", labels: ["تولید هوشمند", "شهرهای هوشمند", "ساختمان‌های هوشمند", "کشاورزی هوشمند", "نفت و گاز", "پایش انرژی"] },
+      { title: "توسعه‌دهندگان", labels: ["مستندات", "SDK ها", "گیت‌هاب", "سازندگان و توسعه‌دهندگان", "وضعیت پلتفرم"] },
+      { title: "منابع", labels: ["بلاگ", "ارزیابی آمادگی هوش مصنوعی", "تعرفه‌ها", "درخواست دمو", "اینوتکس ۲۰۲۶", "تماس با ما"] },
     ],
   },
   ar: {
@@ -57,10 +89,10 @@ const COPY: Record<string, Copy> = {
       "بابيلي منصة إنترنت أشياء صناعية مدعومة بالذكاء الاصطناعي تساعد المؤسسات على مراقبة أصولها وتحسين عملياتها واستخلاص رؤى لحظية من بياناتها",
     rights: (year) => `© ${year} بابيلي. جميع الحقوق محفوظة.`,
     columns: [
-      { title: "المنصة", labels: ["مركز العمليات", "مركز الحافة", "مركز الذكاء", "مركز التتبع", "تحديثات OTA"] },
-      { title: "المطورون", labels: ["التوثيق", "حِزم SDK", "GitHub", "حالة المنصة"] },
-      { title: "المصادر", labels: ["المدونة", "تقييم الجاهزية للذكاء الاصطناعي", "اتصل بنا"] },
-      { title: "الشركة", labels: ["من نحن", "الشركاء", "الوظائف", "الأسعار"] },
+      { title: "المنصة", labels: ["منصة AIoT", "مركز العمليات", "مركز الحافة", "مركز الذكاء", "مركز البنية التحتية", "مركز التتبع"] },
+      { title: "الحلول", labels: ["التصنيع الذكي", "المدن الذكية", "المباني الذكية", "الزراعة الذكية", "النفط والغاز", "مراقبة الطاقة"] },
+      { title: "المطورون", labels: ["التوثيق", "حِزم SDK", "GitHub", "الصناع والمطورون", "حالة المنصة"] },
+      { title: "المصادر", labels: ["المدونة", "تقييم الجاهزية للذكاء الاصطناعي", "الأسعار", "اطلب عرضاً توضيحياً", "إينوتكس 2026", "اتصل بنا"] },
     ],
   },
 };
@@ -74,15 +106,12 @@ export const LandingFooter = () => {
   const copy = COPY[language] ?? COPY.en;
   const year = new Date().getFullYear();
 
-  /* Prefix internal routes with the active locale; leave "#" links as-is.
-     The blog is off-site, but the docs host carries a locale prefix of its
-     own, so it follows the language the visitor is reading in. */
+  /* Prefix internal routes with the active locale. Documentation, the
+     SDK reference and the blog are off-site, but the docs host carries a
+     locale prefix of its own, so they follow the language the visitor is
+     reading in too. */
   const localize = (href: string) =>
-    href === BLOG_URL
-      ? blogHref(language)
-      : href.startsWith("/")
-        ? localePath(language, href)
-        : href;
+    href.startsWith("/") ? localePath(language, href) : localizeDocsUrl(language, href);
 
   return (
     <footer dir={isRTL ? "rtl" : "ltr"} className="flex w-full flex-col items-center bg-white">

@@ -32,6 +32,10 @@ export type VerticalConfig = {
   /* Hero */
   badge?: string;
   eyebrow: string;
+  /** Where the badge pill leads. Without it the pill is a plain label,
+      drawn without the chevron so it does not offer a click it cannot
+      honour — it used to be a link to "#" on every solution page. */
+  badgeHref?: string;
   titleTop: string;
   titleBottom: string;
   subtitle: string;
