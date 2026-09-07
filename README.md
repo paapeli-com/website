@@ -253,13 +253,32 @@ branch of this repository.
 **Only `dev` deploys.** A values change on a feature branch, or in an open merge
 request, deploys nothing — Argo CD reads no other ref. The branch is the gate.
 
-One chart, one template, three Deployments generated from the `apps:` map —
+One chart, one template, one Deployment per enabled entry in the `apps:` map —
 adding a fourth front end is an entry there, not a new chart. Ports come from
 the Dockerfiles: `web` 3000 (Next.js standalone), `panel` 8080 (node server),
 `docs` 80 (nginx).
 
-`docs` runs a single replica and therefore gets no PodDisruptionBudget — a PDB
-with `maxUnavailable: 1` over one replica blocks node drains forever.
+### Three apps, two environments
+
+| App | tb-mini (staging) | Kubernetes (production) |
+|---|---|---|
+| `web` | yes | yes — `paapeli.me` |
+| `panel` | yes | yes — `panel.paapeli.me` |
+| `docs` (UI kit) | yes — `uikit-mini.paapeli.me` | **no** |
+
+`docs` is `enabled: false` in the chart. The UI kit is a development aid for the
+people building the front ends, not something a customer opens, so it lives on
+staging where its audience already is. A second production copy meant a second
+thing to keep current and a public surface nobody had asked for.
+
+`enabled: false` renders nothing — no Deployment, no Service, no PDB, no
+NodePort — and Argo CD prunes what it had created. The vhost, DNS record and
+Caddy upstream are gone from the infra repo as well, so `docs.paapeli.me`
+neither resolves nor answers. Re-enabling it is one line here plus the vhost
+back in `group_vars`; nothing is deleted that would need rebuilding.
+
+CI still builds the `docs` image on every push, because tb-mini deploys all
+three.
 
 ## Releasing
 
@@ -268,13 +287,15 @@ git tag v1.2.3 && git push origin v1.2.3     # 1. publish all three images
 # 2. then, on dev, edit deployment/helm/values.yaml:
 #      apps:
 #        web:   { tag: v1.2.3 }      # was: latest
-#        docs:  { tag: v1.2.3 }
 #        panel: { tag: v1.2.3 }
 git commit -am "client: release v1.2.3" && git push origin dev
 ```
 
-**All three move together, deliberately.** They are built from one commit of one
-monorepo and share `packages/`; releasing them independently means a panel
+Only the two production apps have a tag to move; `docs` keeps `latest` because
+it is only ever deployed to staging, which tracks `latest` by design.
+
+**web and panel move together, deliberately.** They are built from one commit of
+one monorepo and share `packages/`; releasing them independently means a panel
 talking to a `web` build it was never tested against.
 
 Argo CD picks it up within ~3 minutes. **Rollback** is the same edit in reverse,

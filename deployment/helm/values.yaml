@@ -34,8 +34,22 @@ apps:
     nodePort: 30300
 
   # Storybook, built to static HTML and served by nginx on 80.
+  #
+  # DISABLED in Kubernetes, deliberately. The UI kit is a development aid for
+  # the people building the front ends, not something a customer opens - so it
+  # is published on staging only, at uikit-mini, where the audience already is.
+  # Running it here bought a second copy to keep current and a public surface
+  # nobody asked for.
+  #
+  # `enabled: false` renders nothing: no Deployment, no Service, no PDB, and no
+  # NodePort 30880. Argo CD prunes what it previously created. Its vhost, DNS
+  # record and Caddy upstream are gone from the infra repo too, so
+  # docs.paapeli.me does not resolve and would not answer if it did.
+  #
+  # The image is still built by CI - tb-mini deploys all three front ends, and
+  # this is the one that only ever runs there.
   docs:
-    enabled: true
+    enabled: false
     repository: paapeli/docs
     tag: v0.1.0
     port: 80
