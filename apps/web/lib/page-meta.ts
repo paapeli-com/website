@@ -280,23 +280,6 @@ export const PAGE_META: Record<string, Partial<Record<Locale, PageMeta>>> = {
         "Monitor and manage the systems the world depends on: energy, utilities and critical facilities, with the reliability and security they demand.",
     },
   },
-  "/inotex-2026": {
-    en: {
-      title: "Paapeli at INOTEX 2026, booth 665",
-      description:
-        "Paapeli is exhibiting at INOTEX 2026 from 2 to 5 September at Pardis Technology Park. Come and meet the team at booth 665.",
-    },
-    fa: {
-      title: "پاپلی در اینوتکس ۲۰۲۶، غرفهٔ ۶۶۵",
-      description:
-        "پاپلی از ۱۱ تا ۱۴ شهریور در اینوتکس ۲۰۲۶ در پارک فناوری پردیس حضور دارد. در غرفهٔ ۶۶۵ به دیدن ما بیایید.",
-    },
-    ar: {
-      title: "بابيلي في إينوتكس 2026، الجناح 665",
-      description:
-        "تشارك بابيلي في معرض إينوتكس 2026 من 2 إلى 5 سبتمبر في حديقة بارديس التقنية. تفضلوا بزيارتنا في الجناح 665.",
-    },
-  },
   "/intelligence-hub": {
     en: {
       title: "Intelligence Hub: predict, detect and optimize",
@@ -319,23 +302,6 @@ export const PAGE_META: Record<string, Partial<Record<Locale, PageMeta>>> = {
       title: "رؤى ذكية: تحليلات الذكاء الاصطناعي لبيانات الأجهزة",
       description:
         "تحويل بيانات القياس عن بُعد إلى اتجاهات وتنبؤات وتوصيات، مع لوحات ومؤشرات تبنيها بنفسك.",
-    },
-  },
-  "/makers-developers": {
-    en: {
-      title: "Paapeli for makers and developers",
-      description:
-        "MQTT and HTTP, SDKs for the languages you already use, and a free tier to get an ESP32 or Arduino reporting in an afternoon.",
-    },
-    fa: {
-      title: "پاپلی برای میکرها و توسعه‌دهندگان",
-      description:
-        "پروتکل‌های MQTT و HTTP، SDK برای زبان‌هایی که استفاده می‌کنید، و یک پلن رایگان تا ESP32 یا آردوینو را در یک بعدازظهر به داده برسانید.",
-    },
-    ar: {
-      title: "بابيلي للمطورين وصناع الأجهزة",
-      description:
-        "بروتوكولا MQTT وHTTP، وحزم تطوير للغات التي تستخدمها، وخطة مجانية لتشغيل ESP32 أو Arduino في وقت قصير.",
     },
   },
   "/oil-gas": {
@@ -428,23 +394,6 @@ export const PAGE_META: Record<string, Partial<Record<Locale, PageMeta>>> = {
       title: "تقنية AIoT للمباني الذكية",
       description:
         "بابيلي مزوّد لتقنية AIoT. يستطيع ملّاك العقارات ومديرو المرافق ومقاولو الأعمال الكهروميكانيكية ومكاملو الأنظمة البناء على بنيتنا السحابية والحوسبة الطرفية وإنترنت الأشياء لتشغيل مبانٍ مريحة وموفّرة.",
-    },
-  },
-  "/smart-cities": {
-    en: {
-      title: "Smart city applications",
-      description:
-        "Transform urban infrastructure with IoT solutions that improve efficiency, sustainability, and quality of life.",
-    },
-    fa: {
-      title: "کاربردهای شهر هوشمند",
-      description:
-        "تحول زیرساخت شهری با راه‌حل‌های اینترنت اشیا که کارایی، پایداری و کیفیت زندگی را بهبود می‌بخشد.",
-    },
-    ar: {
-      title: "تطبيقات المدن الذكية",
-      description:
-        "تحويل البنية التحتية الحضرية باستخدام حلول إنترنت الأشياء التي تحسن الكفاءة والاستدامة ونوعية الحياة.",
     },
   },
   "/smart-manufacturing": {

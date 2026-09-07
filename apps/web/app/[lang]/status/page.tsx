@@ -2,7 +2,7 @@
 
 "use client"
 
-import { Navigation } from "@/components/Navigation";
+import { LandingNavbar } from "@/components/LandingNavbar";
 import { LandingFooter } from "@/components/LandingFooter";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -72,9 +72,11 @@ const Status = () => {
 
   return (
     <div className="min-h-screen bg-background" dir={isRTL ? 'rtl' : 'ltr'}>
-      <Navigation />
-      
-      <div className="pt-24 pb-16">
+      <LandingNavbar />
+
+      {/* The shared navbar is sticky and sits in the flow, so this no
+          longer has to clear a fixed 68px bar the way it used to. */}
+      <div className="pt-12 pb-16">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
@@ -144,8 +146,8 @@ const Status = () => {
 };
 
 
-/* Older product shell, no footer of its own: see the note on the OTA
-   page. The shared footer is what connects it to the rest of the site. */
+/* The page body is still the older one, but the chrome around it is now
+   the shared navbar and footer the rest of the site wears. */
 export default function StatusPage() {
   return (
     <>

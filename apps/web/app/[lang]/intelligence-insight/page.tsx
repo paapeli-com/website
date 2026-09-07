@@ -1,178 +1,260 @@
-'use client';
+"use client";
 
-import { Navigation } from "@/components/Navigation";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  AlertTriangle,
+  ArrowRight,
+  BarChart3,
+  Brain,
+  TrendingUp,
+  type LucideIcon,
+} from "lucide-react";
+
 import { LandingFooter } from "@/components/LandingFooter";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { LandingNavbar } from "@/components/LandingNavbar";
+import { RevealCard } from "@/components/RevealCard";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Brain, TrendingUp, AlertTriangle, LineChart, Sparkles, MessageSquare, Award } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { contactHref } from "@/lib/contact-link";
+import { INSIGHT_COPY, RELATED_FEATURES, type CapabilityIcon } from "@/lib/intelligence-insight";
+import { localePath } from "@/lib/seo";
+import { LinkedText, featureHref, featureName } from "@/lib/site-links";
+import { cn } from "@/lib/utils";
 
-const IntelligenceInsight = () => {
-  const { t, isRTL, language } = useLanguage();
+import img1 from "@/src/assets/Insight-1.jpg";
+import img2 from "@/src/assets/Insight-2.jpg";
+import img3 from "@/src/assets/Insight-3.jpg";
+import hero from "@/src/assets/p-insight-hero.jpg";
+import panel from "@/src/assets/panel-forecast.jpg";
 
-  const isFirstOnline = language === 'fa' || language === 'ar';
+/* ------------------------------------------------------------------ */
+/* The Intelligence & Insight landing, the last of the four products   */
+/* to move onto the shared design: full-bleed hero, three reveal       */
+/* cards, the forecast workspace behind window chrome, a capability    */
+/* grid, two link rails and a closing CTA. Copy lives in               */
+/* lib/intelligence-insight.ts, one block per locale.                  */
+/*                                                                    */
+/* It replaces the older shell, whose header carried the whole menu in */
+/* a zero-opacity div and whose six feature cards were the only thing  */
+/* on the page.                                                        */
+/* ------------------------------------------------------------------ */
 
-  const features = [
-    {
-      icon: Brain,
-      title: "AI-Powered Predictions",
-      titleFa: "پیش‌بینی با هوش مصنوعی",
-      titleAr: "التنبؤات المدعومة بالذكاء الاصطناعي",
-      description: "Predict device failures before they happen",
-      descriptionFa: "پیش‌بینی خرابی دستگاه‌ها قبل از وقوع",
-      descriptionAr: "التنبؤ بأعطال الأجهزة قبل حدوثها"
-    },
-    {
-      icon: TrendingUp,
-      title: "Trend Analysis",
-      titleFa: "تحلیل روندها",
-      titleAr: "تحليل الاتجاهات",
-      description: "Identify patterns and trends in your IoT data",
-      descriptionFa: "شناسایی الگوها و روندها در داده‌های IoT",
-      descriptionAr: "تحديد الأنماط والاتجاهات في بيانات إنترنت الأشياء"
-    },
-    {
-      icon: AlertTriangle,
-      title: "Anomaly Detection",
-      titleFa: "تشخیص ناهنجاری",
-      titleAr: "اكتشاف الشذوذ",
-      description: "Automatically detect unusual behavior and patterns",
-      descriptionFa: "تشخیص خودکار رفتارها و الگوهای غیرعادی",
-      descriptionAr: "اكتشاف تلقائي للسلوك والأنماط غير العادية"
-    },
-    {
-      icon: LineChart,
-      title: "Advanced Analytics",
-      titleFa: "تحلیل پیشرفته",
-      titleAr: "التحليلات المتقدمة",
-      description: "Deep insights with customizable dashboards",
-      descriptionFa: "بینش عمیق با داشبوردهای قابل تنظیم",
-      descriptionAr: "رؤى عميقة مع لوحات معلومات قابلة للتخصيص"
-    },
-    {
-      icon: MessageSquare,
-      title: "AI Assistant for Executives",
-      titleFa: "دستیار هوش مصنوعی برای مدیران",
-      titleAr: "مساعد الذكاء الاصطناعي للمديرين",
-      description: "Natural language interface for business insights",
-      descriptionFa: "رابط زبان طبیعی برای بینش کسب‌وکار",
-      descriptionAr: "واجهة لغة طبيعية لرؤى الأعمال"
-    },
-    {
-      icon: Sparkles,
-      title: "Automated Optimization",
-      titleFa: "بهینه‌سازی خودکار",
-      titleAr: "التحسين التلقائي",
-      description: "AI-driven recommendations for better performance",
-      descriptionFa: "توصیه‌های مبتنی بر هوش مصنوعی برای عملکرد بهتر",
-      descriptionAr: "توصيات مدفوعة بالذكاء الاصطناعي لأداء أفضل"
-    }
-  ];
+const CAPABILITY_ICONS: Record<CapabilityIcon, LucideIcon> = {
+  brain: Brain,
+  alert: AlertTriangle,
+  trending: TrendingUp,
+  chart: BarChart3,
+};
+
+const IMAGES = [img1, img2, img3];
+
+/** This page's own address, so LinkedText does not link it to itself. */
+const SELF = "/intelligence-insight";
+
+export default function IntelligenceInsightPage() {
+  const { isRTL, language } = useLanguage();
+  const router = useRouter();
+  const copy = INSIGHT_COPY[language] ?? INSIGHT_COPY.en;
+
+  const demoHref = contactHref(language, "intelligence-insight");
 
   return (
-    <div className="min-h-screen bg-background" dir={isRTL ? 'rtl' : 'ltr'}>
-      <Navigation />
-      
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 bg-gradient-to-br from-primary/10 to-secondary/10">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            {isFirstOnline && (
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full mb-6">
-                <Award className="h-5 w-5" />
-                <span className="font-semibold">
-                  {language === 'fa' ? 'اولین پلتفرم آنلاین' : 'أول منصة عبر الإنترنت'}
-                </span>
+    <div className="min-h-screen bg-background" dir={isRTL ? "rtl" : "ltr"}>
+      <LandingNavbar overlay />
+
+      <main>
+        {/* ------------------------------- Hero ------------------------------ */}
+        <section className="relative isolate flex min-h-[70vh] items-center overflow-hidden pt-16">
+          <Image src={hero} alt="" fill priority sizes="100vw" className="-z-20 object-cover" />
+          {/* The design darkens the photograph behind the text and lets it come
+              through on the far side, so the gradient flips with the writing. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(8,16,32,0.92)_0%,rgba(8,16,32,0.78)_45%,rgba(8,16,32,0.45)_100%)] rtl:bg-[linear-gradient(270deg,rgba(8,16,32,0.92)_0%,rgba(8,16,32,0.78)_45%,rgba(8,16,32,0.45)_100%)]"
+          />
+
+          <div className="container relative z-10 mx-auto px-4 py-20">
+            <div className="max-w-3xl">
+              <span className="mb-5 inline-block rounded-full border border-primary/50 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
+                {copy.hero.badge}
+              </span>
+              <h1 className="mb-6 text-4xl font-bold leading-tight text-white md:text-6xl rtl:text-3xl rtl:md:text-5xl">
+                {copy.hero.title}
+              </h1>
+              <p className="mb-8 text-lg text-white/80 md:text-xl rtl:text-base rtl:md:text-lg">
+                {copy.hero.description}
+              </p>
+              <div className="flex flex-col gap-4 sm:flex-row">
+                <Button size="lg" className="px-8 py-6 text-lg" onClick={() => router.push(demoHref)}>
+                  {copy.hero.primary}
+                  <ArrowRight className={cn("h-5 w-5", isRTL && "rotate-180")} />
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-white bg-white/10 px-8 py-6 text-lg text-white backdrop-blur-sm hover:bg-white/20 hover:text-white"
+                  onClick={() => router.push(contactHref(language))}
+                >
+                  {copy.hero.secondary}
+                </Button>
               </div>
-            )}
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 text-foreground">
-              {language === 'en' && 'Intelligence Insight'}
-              {language === 'fa' && 'هوش مصنوعی'}
-              {language === 'ar' && 'الذكاء الاصطناعي'}
-            </h1>
-            <p className="text-xl text-muted-foreground mb-8">
-              {language === 'en' && 'Transform your IoT data into actionable insights with AI-powered analytics. Predict failures, detect anomalies, and optimize operations automatically.'}
-              {language === 'fa' && 'داده‌های IoT خود را با تحلیل‌های مبتنی بر هوش مصنوعی به بینش‌های قابل اقدام تبدیل کنید. خرابی‌ها را پیش‌بینی کنید، ناهنجاری‌ها را شناسایی کنید و عملیات را به طور خودکار بهینه کنید.'}
-              {language === 'ar' && 'حوّل بيانات إنترنت الأشياء إلى رؤى قابلة للتنفيذ باستخدام التحليلات المدعومة بالذكاء الاصطناعي. تنبأ بالأعطال، واكتشف الشذوذ، وقم بتحسين العمليات تلقائيًا.'}
-            </p>
-            <div className="flex gap-4 justify-center">
-              <Button size="lg">
-                {language === 'en' && 'Get Started'}
-                {language === 'fa' && 'شروع کنید'}
-                {language === 'ar' && 'ابدأ الآن'}
-              </Button>
-              <Button size="lg" variant="outline">
-                {language === 'en' && 'Watch Demo'}
-                {language === 'fa' && 'مشاهده دمو'}
-                {language === 'ar' && 'شاهد العرض'}
-              </Button>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Features Grid */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-foreground">
-            {language === 'en' && 'AI-Powered Features'}
-            {language === 'fa' && 'قابلیت‌های مبتنی بر هوش مصنوعی'}
-            {language === 'ar' && 'الميزات المدعومة بالذكاء الاصطناعي'}
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <Card key={index} className="p-6 hover:shadow-lg transition-shadow">
-                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                  <feature.icon className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="text-xl font-bold mb-2 text-foreground">
-                  {language === 'en' && feature.title}
-                  {language === 'fa' && feature.titleFa}
-                  {language === 'ar' && feature.titleAr}
-                </h3>
-                <p className="text-muted-foreground">
-                  {language === 'en' && feature.description}
-                  {language === 'fa' && feature.descriptionFa}
-                  {language === 'ar' && feature.descriptionAr}
-                </p>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <Card className="max-w-3xl mx-auto p-12 text-center bg-gradient-to-br from-primary/10 to-secondary/10">
-            <h2 className="text-3xl font-bold mb-4 text-foreground">
-              {language === 'en' && 'Unlock AI-Powered Insights'}
-              {language === 'fa' && 'بینش‌های مبتنی بر هوش مصنوعی را کشف کنید'}
-              {language === 'ar' && 'اكتشف الرؤى المدعومة بالذكاء الاصطناعي'}
+        {/* -------------------------- What it does --------------------------- */}
+        <section className="bg-card py-20">
+          <div className="container mx-auto px-4">
+            <h2 className="mb-3 text-center text-3xl font-bold text-foreground md:text-4xl rtl:text-2xl rtl:md:text-3xl">
+              {copy.offer.heading}
             </h2>
-            <p className="text-xl text-muted-foreground mb-8">
-              {language === 'en' && 'Start leveraging AI to optimize your IoT operations today'}
-              {language === 'fa' && 'همین امروز از هوش مصنوعی برای بهینه‌سازی عملیات IoT خود استفاده کنید'}
-              {language === 'ar' && 'ابدأ في استخدام الذكاء الاصطناعي لتحسين عمليات إنترنت الأشياء اليوم'}
+            <p className="mb-12 text-center text-muted-foreground">{copy.offer.subheading}</p>
+
+            <div className="grid gap-6 md:grid-cols-3">
+              {copy.offer.cards.map((card, i) => (
+                <RevealCard key={card.title} card={card} image={IMAGES[i]} self={SELF} />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* -------------------------- Inside the panel ----------------------- */}
+        <section className="bg-background py-16 md:py-20">
+          <div className="container mx-auto px-4">
+            <div className="mx-auto max-w-4xl text-center">
+              <h2 className="mb-3 text-2xl font-bold text-foreground md:text-3xl rtl:text-xl rtl:md:text-2xl">
+                {copy.panel.heading}
+              </h2>
+              <p className="mb-8 text-muted-foreground">{copy.panel.description}</p>
+            </div>
+
+            <div className="mx-auto max-w-4xl overflow-hidden rounded-2xl border border-border bg-[hsl(215_60%_13%)] p-2 shadow-2xl">
+              {/* Window chrome always reads left to right, like a real title bar. */}
+              <div className="flex items-center gap-1.5 px-3 py-2" dir="ltr">
+                <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
+                <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
+                <span className="h-2.5 w-2.5 rounded-full bg-primary/70" />
+              </div>
+              <div className="relative overflow-hidden rounded-xl">
+                <Image
+                  src={panel}
+                  alt={copy.hero.title}
+                  sizes="(max-width: 896px) 100vw, 896px"
+                  className="w-full animate-panel-pan rounded-xl object-cover motion-reduce:animate-none"
+                />
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 animate-scan-glow bg-gradient-to-b from-transparent via-primary/20 to-transparent motion-reduce:hidden"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* --------------------------- Key capabilities ---------------------- */}
+        <section className="bg-muted/30 py-14 md:py-20">
+          <div className="container mx-auto px-4">
+            <h2 className="mb-3 text-center text-2xl font-bold text-foreground md:text-3xl rtl:text-xl rtl:md:text-2xl">
+              {copy.capabilities.heading}
+            </h2>
+            <p className="mx-auto mb-10 max-w-2xl text-center text-muted-foreground">
+              {copy.capabilities.subheading}
             </p>
-            <Button size="lg">
-              {language === 'en' && 'Start Free Trial'}
-              {language === 'fa' && 'شروع دوره آزمایشی رایگان'}
-              {language === 'ar' && 'ابدأ النسخة التجريبية المجانية'}
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {copy.capabilities.cards.map((card) => {
+                const Icon = CAPABILITY_ICONS[card.icon];
+                return (
+                  <div
+                    key={card.title}
+                    className="rounded-xl border border-border bg-background p-5 transition-shadow duration-300 hover:border-primary/40 hover:shadow-md"
+                  >
+                    <div className="mb-3 flex items-center gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <Icon className="h-5 w-5 text-primary" />
+                      </span>
+                      <h3 className="text-base font-bold text-foreground">{card.title}</h3>
+                    </div>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      <LinkedText text={card.description} self={SELF} />
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* ------------- Related capabilities + the other products ----------- */}
+        <section className="bg-background py-16 md:py-20">
+          <div className="container mx-auto px-4">
+            <div className="grid gap-10 lg:grid-cols-2">
+              <div>
+                <h2 className="mb-5 text-xl font-bold text-foreground md:text-2xl rtl:text-lg rtl:md:text-xl">
+                  {copy.relatedHeading}
+                </h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {RELATED_FEATURES.map((slug) => {
+                    const named = featureName(slug, language);
+                    return (
+                      <Link
+                        key={slug}
+                        href={localePath(language, featureHref(slug))}
+                        className="group rounded-xl border border-border bg-card p-4 text-start transition-colors hover:border-primary/50"
+                      >
+                        <p className="mb-1 text-sm font-semibold text-foreground group-hover:text-primary">
+                          {named.title}
+                        </p>
+                        <p className="text-xs leading-relaxed text-muted-foreground">{named.tagline}</p>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <h2 className="mb-5 text-xl font-bold text-foreground md:text-2xl rtl:text-lg rtl:md:text-xl">
+                  {copy.productsHeading}
+                </h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {copy.products.map((product) => (
+                    <Link
+                      key={product.href}
+                      href={localePath(language, product.href)}
+                      className="group rounded-xl border border-border bg-card p-4 text-start transition-colors hover:border-primary/50"
+                    >
+                      <p className="mb-1 text-sm font-semibold text-foreground group-hover:text-primary">
+                        {product.title}
+                      </p>
+                      <p className="text-xs leading-relaxed text-muted-foreground">{product.tagline}</p>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* -------------------------------- CTA ------------------------------ */}
+        <section className="bg-gradient-to-br from-primary/10 to-secondary/10 py-20">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="mb-4 text-3xl font-bold text-foreground md:text-4xl rtl:text-2xl rtl:md:text-3xl">
+              {copy.cta.heading}
+            </h2>
+            <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground rtl:text-base">
+              {copy.cta.description}
+            </p>
+            <Button size="lg" className="px-8 py-6 text-lg" onClick={() => router.push(demoHref)}>
+              {copy.cta.button}
+              <ArrowRight className={cn("h-5 w-5", isRTL && "rotate-180")} />
             </Button>
-          </Card>
-        </div>
-      </section>
-    </div>
-  );
-};
-/* Older product shell, no footer of its own: see the note on the OTA
-   page. The shared footer is what connects it to the rest of the site. */
-export default function IntelligenceInsightPage() {
-  return (
-    <>
-      <IntelligenceInsight />
+          </div>
+        </section>
+      </main>
+
       <LandingFooter />
-    </>
+    </div>
   );
 }
