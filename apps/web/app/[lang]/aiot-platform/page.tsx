@@ -1,157 +1,257 @@
-'use client';
+"use client";
 
-import { Cloud, Database, Network, Settings, Shield, Zap, type LucideIcon } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  ArrowRight,
+  Cloud,
+  Database,
+  Network,
+  Settings,
+  Shield,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 
-import { Navigation } from "@/components/Navigation";
+import { LandingFooter } from "@/components/LandingFooter";
+import { LandingNavbar } from "@/components/LandingNavbar";
+import { RevealCard } from "@/components/RevealCard";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { LinkedText } from "@/lib/site-links";
+import { PLATFORM_COPY, RELATED_FEATURES, type CapabilityIcon } from "@/lib/aiot-platform";
+import { contactHref } from "@/lib/contact-link";
+import { LinkedText, featureHref, featureName } from "@/lib/site-links";
+import { localePath } from "@/lib/seo";
+import { cn } from "@/lib/utils";
+
+import img1 from "@/src/assets/f-devices-1.jpg";
+import img2 from "@/src/assets/f-monitoring-1.jpg";
+import img3 from "@/src/assets/f-templates-1.jpg";
+import hero from "@/src/assets/p-platform-hero.jpg";
+import panel from "@/src/assets/panel-dashboard.jpg";
 
 /* ------------------------------------------------------------------ */
-/* The AIoT Platform product page. Copy lives in one table per         */
-/* language rather than as hardcoded English with a few translated     */
-/* fragments, which is what left the Persian and Arabic builds showing */
-/* English buttons and a navigation tooltip as the hero paragraph.     */
+/* The AIoT Platform landing.                                          */
+/*                                                                    */
+/* It is the product page the feature and industry landings point back */
+/* at, so it keeps their rhythm rather than inventing a third one: a   */
+/* full-bleed hero, three reveal cards, the panel itself behind window */
+/* chrome, a capability grid, two link rails and a closing CTA. Every  */
+/* string comes from lib/aiot-platform.ts, one block per locale.       */
 /* ------------------------------------------------------------------ */
 
-const ICONS: LucideIcon[] = [Cloud, Shield, Zap, Database, Network, Settings];
-
-type Copy = {
-  title: string;
-  lead: string;
-  primary: string;
-  secondary: string;
-  featuresHeading: string;
-  features: { title: string; description: string }[];
-  ctaHeading: string;
-  ctaLead: string;
-  ctaButton: string;
+const CAPABILITY_ICONS: Record<CapabilityIcon, LucideIcon> = {
+  cloud: Cloud,
+  shield: Shield,
+  zap: Zap,
+  database: Database,
+  network: Network,
+  settings: Settings,
 };
 
-const COPY: Record<string, Copy> = {
-  en: {
-    title: "AIoT Platform",
-    lead: "One cloud platform to connect devices, store their data and act on it. Device management, real-time monitoring, alerts and AI services sit in the same panel, so an operations team works in one place instead of five.",
-    primary: "Request Demo",
-    secondary: "Talk to Sales",
-    featuresHeading: "Platform features",
-    features: [
-      { title: "Cloud-native architecture", description: "Built on scalable cloud infrastructure that grows with your device count and your retention window." },
-      { title: "End-to-end encryption", description: "Strong encryption for all data in transit and at rest, with per-location access control." },
-      { title: "Real-time processing", description: "Ingest and evaluate high-frequency telemetry so rules and dashboards react as values arrive." },
-      { title: "Flexible data storage", description: "Store and query long histories of IoT data efficiently, with retention you set per project." },
-      { title: "Multi-protocol support", description: "MQTT, HTTP, CoAP, LoRaWAN, Modbus, OPC-UA and more, handled by device & gateway management." },
-      { title: "Custom integrations", description: "Open APIs and webhooks connect the platform to the ERP, CMMS and BI tools you already run." },
-    ],
-    ctaHeading: "Ready to build on the platform?",
-    ctaLead: "Bring a handful of devices and we will stand up your first operational dashboard with your team.",
-    ctaButton: "Request Demo",
-  },
+const IMAGES = [img1, img2, img3];
 
-  fa: {
-    title: "پلتفرم AIoT",
-    lead: "یک پلتفرم ابری برای اتصال دستگاه‌ها، نگهداری داده‌شان و اقدام بر پایهٔ آن. مدیریت دستگاه، پایش لحظه‌ای، هشدارها و سرویس‌های هوش مصنوعی در یک پنل قرار دارند، پس تیم عملیات به‌جای پنج ابزار، در یک جا کار می‌کند.",
-    primary: "درخواست دمو",
-    secondary: "تماس با فروش",
-    featuresHeading: "قابلیت‌های پلتفرم",
-    features: [
-      { title: "معماری ابری بومی", description: "بر بستر زیرساخت ابری مقیاس‌پذیر ساخته شده که همراه با تعداد دستگاه و مدت نگهداشت داده رشد می‌کند." },
-      { title: "رمزنگاری سرتاسری", description: "رمزنگاری قوی برای دادهٔ در حال انتقال و ذخیره‌شده، همراه با کنترل دسترسی به تفکیک مکان." },
-      { title: "پردازش لحظه‌ای", description: "تله‌متری پرتناوب را دریافت و ارزیابی می‌کند تا قواعد و داشبوردها همان لحظهٔ رسیدن داده واکنش دهند." },
-      { title: "ذخیره‌سازی منعطف داده", description: "تاریخچه‌های بلند دادهٔ اینترنت اشیا را کارآمد ذخیره و پرس‌وجو کنید، با نگهداشتی که خودتان برای هر پروژه تعیین می‌کنید." },
-      { title: "پشتیبانی از چند پروتکل", description: "MQTT، HTTP، CoAP، LoRaWAN، Modbus، OPC-UA و بیشتر، از طریق مدیریت دستگاه و گیت‌وی." },
-      { title: "یکپارچه‌سازی سفارشی", description: "APIهای باز و وب‌هوک، پلتفرم را به ERP، CMMS و ابزارهای هوش تجاری موجود شما وصل می‌کنند." },
-    ],
-    ctaHeading: "آمادهٔ ساختن روی پلتفرم هستید؟",
-    ctaLead: "چند دستگاه بیاورید تا نخستین داشبورد عملیاتی را با تیم شما راه بیندازیم.",
-    ctaButton: "درخواست دمو",
-  },
-
-  ar: {
-    title: "منصة AIoT",
-    lead: "منصة سحابية واحدة لربط الأجهزة وتخزين بياناتها والتصرف بناءً عليها. إدارة الأجهزة والمراقبة الفورية والتنبيهات وخدمات الذكاء الاصطناعي في اللوحة نفسها، فيعمل فريق العمليات في مكان واحد بدل خمسة.",
-    primary: "طلب عرض توضيحي",
-    secondary: "تحدّث إلى المبيعات",
-    featuresHeading: "ميزات المنصة",
-    features: [
-      { title: "بنية سحابية أصلية", description: "مبنية على بنية سحابية قابلة للتوسع تنمو مع عدد أجهزتك ومدة احتفاظك بالبيانات." },
-      { title: "تشفير من الطرف إلى الطرف", description: "تشفير قوي للبيانات أثناء النقل وفي التخزين، مع تحكم بالوصول حسب الموقع." },
-      { title: "معالجة لحظية", description: "استقبال وتقييم القياسات عالية التردد لتتفاعل القواعد واللوحات مع وصول القيم." },
-      { title: "تخزين مرن للبيانات", description: "خزّن واستعلم سجلات طويلة لبيانات إنترنت الأشياء بكفاءة، بمدة احتفاظ تحددها لكل مشروع." },
-      { title: "دعم بروتوكولات متعددة", description: "MQTT وHTTP وCoAP وLoRaWAN وModbus وOPC-UA وغيرها، عبر إدارة الأجهزة والبوابات." },
-      { title: "تكاملات مخصصة", description: "واجهات API مفتوحة وويب هوك تربط المنصة بأنظمة ERP وCMMS وأدوات ذكاء الأعمال لديك." },
-    ],
-    ctaHeading: "جاهز للبناء على المنصة؟",
-    ctaLead: "أحضر بضعة أجهزة وسنُطلق أول لوحة تشغيلية مع فريقك.",
-    ctaButton: "طلب عرض توضيحي",
-  },
-};
-
-const AIoTPlatform = () => {
-  const { isRTL, language } = useLanguage();
-  const copy = COPY[language] ?? COPY.en;
-  const localize = (href: string) => "/" + language + href;
-
-  return (
-    <div className="min-h-screen bg-background" dir={isRTL ? 'rtl' : 'ltr'}>
-      <Navigation />
-
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 bg-gradient-to-br from-primary/10 to-secondary/10">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 text-foreground">{copy.title}</h1>
-            <p className="text-xl text-muted-foreground mb-8">
-              <LinkedText text={copy.lead} />
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" asChild>
-                <a href={localize("/contact?from=aiot-platform")}>{copy.primary}</a>
-              </Button>
-              <Button size="lg" variant="outline" asChild>
-                <a href={localize("/contact")}>{copy.secondary}</a>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20 bg-card">
-        <div className="container mx-auto px-4">
-          <h2 className="text-4xl font-bold text-center mb-12 text-foreground">{copy.featuresHeading}</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {copy.features.map((feature, index) => {
-              const Icon = ICONS[index];
-              return (
-                <Card key={feature.title} className="p-6 hover:shadow-lg transition-all duration-300 border-border">
-                  <Icon className="h-12 w-12 text-primary mb-4" />
-                  <h3 className="text-xl font-bold mb-3 text-foreground">{feature.title}</h3>
-                  <p className="text-muted-foreground">
-                    <LinkedText text={feature.description} />
-                  </p>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-br from-primary/10 to-secondary/10">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold mb-6 text-foreground">{copy.ctaHeading}</h2>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">{copy.ctaLead}</p>
-          <Button size="lg" asChild>
-            <a href={localize("/contact?from=aiot-platform")}>{copy.ctaButton}</a>
-          </Button>
-        </div>
-      </section>
-    </div>
-  );
-};
+/** This page's own address, so LinkedText does not link it back to itself. */
+const SELF = "/aiot-platform";
 
 export default function AIoTPlatformPage() {
-  return <AIoTPlatform />;
+  const { isRTL, language } = useLanguage();
+  const router = useRouter();
+  const copy = PLATFORM_COPY[language] ?? PLATFORM_COPY.en;
+
+  const demoHref = contactHref(language, "aiot-platform");
+
+  return (
+    <div className="min-h-screen bg-background" dir={isRTL ? "rtl" : "ltr"}>
+      <LandingNavbar overlay />
+
+      <main>
+        {/* ------------------------------- Hero ------------------------------ */}
+        <section className="relative isolate flex min-h-[70vh] items-center overflow-hidden pt-16">
+          <Image src={hero} alt="" fill priority sizes="100vw" className="-z-20 object-cover" />
+          <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-[#081020]/[0.78]" />
+
+          <div className="container relative z-10 mx-auto px-4 py-20">
+            <div className="max-w-3xl">
+              <span className="mb-5 inline-block rounded-full border border-primary/50 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
+                {copy.hero.badge}
+              </span>
+              <h1 className="mb-6 text-4xl font-bold leading-tight text-white md:text-6xl rtl:text-3xl rtl:md:text-5xl">
+                {copy.hero.title}
+              </h1>
+              <p className="mb-8 text-lg text-white/80 md:text-xl rtl:text-base rtl:md:text-lg">
+                {copy.hero.description}
+              </p>
+              <div className="flex flex-col gap-4 sm:flex-row">
+                <Button size="lg" className="px-8 py-6 text-lg" onClick={() => router.push(demoHref)}>
+                  {copy.hero.primary}
+                  <ArrowRight className={cn("h-5 w-5", isRTL && "rotate-180")} />
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-white bg-white/10 px-8 py-6 text-lg text-white backdrop-blur-sm hover:bg-white/20 hover:text-white"
+                  onClick={() => router.push(contactHref(language))}
+                >
+                  {copy.hero.secondary}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* -------------------------- What it does --------------------------- */}
+        <section className="bg-card py-20">
+          <div className="container mx-auto px-4">
+            <h2 className="mb-3 text-center text-3xl font-bold text-foreground md:text-4xl rtl:text-2xl rtl:md:text-3xl">
+              {copy.offer.heading}
+            </h2>
+            <p className="mb-12 text-center text-muted-foreground">{copy.offer.subheading}</p>
+
+            <div className="grid gap-6 md:grid-cols-3">
+              {copy.offer.cards.map((card, i) => (
+                <RevealCard key={card.title} card={card} image={IMAGES[i]} self={SELF} />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* -------------------------- Inside the panel ----------------------- */}
+        <section className="bg-background py-16 md:py-20">
+          <div className="container mx-auto px-4">
+            <div className="mx-auto max-w-4xl text-center">
+              <h2 className="mb-3 text-2xl font-bold text-foreground md:text-3xl rtl:text-xl rtl:md:text-2xl">
+                {copy.panel.heading}
+              </h2>
+              <p className="mb-8 text-muted-foreground">{copy.panel.description}</p>
+            </div>
+
+            <div className="mx-auto max-w-4xl overflow-hidden rounded-2xl border border-border bg-[hsl(215_60%_13%)] p-2 shadow-2xl">
+              {/* Window chrome always reads left to right, like a real title bar. */}
+              <div className="flex items-center gap-1.5 px-3 py-2" dir="ltr">
+                <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
+                <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
+                <span className="h-2.5 w-2.5 rounded-full bg-primary/70" />
+              </div>
+              <div className="relative overflow-hidden rounded-xl">
+                <Image
+                  src={panel}
+                  alt={copy.hero.title}
+                  sizes="(max-width: 896px) 100vw, 896px"
+                  className="w-full animate-panel-pan rounded-xl object-cover motion-reduce:animate-none"
+                />
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 animate-scan-glow bg-gradient-to-b from-transparent via-primary/20 to-transparent motion-reduce:hidden"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* --------------------------- Key capabilities ---------------------- */}
+        <section className="bg-muted/30 py-14 md:py-20">
+          <div className="container mx-auto px-4">
+            <h2 className="mb-3 text-center text-2xl font-bold text-foreground md:text-3xl rtl:text-xl rtl:md:text-2xl">
+              {copy.capabilities.heading}
+            </h2>
+            <p className="mx-auto mb-10 max-w-2xl text-center text-muted-foreground">
+              {copy.capabilities.subheading}
+            </p>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {copy.capabilities.cards.map((card) => {
+                const Icon = CAPABILITY_ICONS[card.icon];
+                return (
+                  <div
+                    key={card.title}
+                    className="rounded-xl border border-border bg-background p-5 transition-shadow duration-300 hover:border-primary/40 hover:shadow-md"
+                  >
+                    <div className="mb-3 flex items-center gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <Icon className="h-5 w-5 text-primary" />
+                      </span>
+                      <h3 className="text-base font-bold text-foreground">{card.title}</h3>
+                    </div>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      <LinkedText text={card.description} self={SELF} />
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* ------------- Related capabilities + the other products ----------- */}
+        <section className="bg-background py-16 md:py-20">
+          <div className="container mx-auto px-4">
+            <div className="grid gap-10 lg:grid-cols-2">
+              <div>
+                <h2 className="mb-5 text-xl font-bold text-foreground md:text-2xl rtl:text-lg rtl:md:text-xl">
+                  {copy.relatedHeading}
+                </h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {RELATED_FEATURES.map((slug) => {
+                    const named = featureName(slug, language);
+                    return (
+                      <Link
+                        key={slug}
+                        href={localePath(language, featureHref(slug))}
+                        className="group rounded-xl border border-border bg-card p-4 text-start transition-colors hover:border-primary/50"
+                      >
+                        <p className="mb-1 text-sm font-semibold text-foreground group-hover:text-primary">
+                          {named.title}
+                        </p>
+                        <p className="text-xs leading-relaxed text-muted-foreground">{named.tagline}</p>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <h2 className="mb-5 text-xl font-bold text-foreground md:text-2xl rtl:text-lg rtl:md:text-xl">
+                  {copy.productsHeading}
+                </h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {copy.products.map((product) => (
+                    <Link
+                      key={product.href}
+                      href={localePath(language, product.href)}
+                      className="group rounded-xl border border-border bg-card p-4 text-start transition-colors hover:border-primary/50"
+                    >
+                      <p className="mb-1 text-sm font-semibold text-foreground group-hover:text-primary">
+                        {product.title}
+                      </p>
+                      <p className="text-xs leading-relaxed text-muted-foreground">{product.tagline}</p>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* -------------------------------- CTA ------------------------------ */}
+        <section className="bg-gradient-to-br from-primary/10 to-secondary/10 py-20">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="mb-4 text-3xl font-bold text-foreground md:text-4xl rtl:text-2xl rtl:md:text-3xl">
+              {copy.cta.heading}
+            </h2>
+            <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground rtl:text-base">
+              {copy.cta.description}
+            </p>
+            <Button size="lg" className="px-8 py-6 text-lg" onClick={() => router.push(demoHref)}>
+              {copy.cta.button}
+              <ArrowRight className={cn("h-5 w-5", isRTL && "rotate-180")} />
+            </Button>
+          </div>
+        </section>
+      </main>
+
+      <LandingFooter />
+    </div>
+  );
 }
