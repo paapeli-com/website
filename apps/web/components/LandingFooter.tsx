@@ -39,7 +39,6 @@ const COLUMN_HREFS: string[][] = [
   ],
   [
     "/smart-manufacturing",
-    "/smart-cities",
     "/smart-buildings",
     "/smart-agriculture",
     "/oil-gas",
@@ -49,10 +48,9 @@ const COLUMN_HREFS: string[][] = [
     "https://docs.paapeli.com/",
     "https://docs.paapeli.com/docs/category/sdks",
     "https://github.com/paapeli-com",
-    "/makers-developers",
     "/status",
   ],
-  [BLOG_URL, "/AI-Readiness-Assessment", "/pricing", "/request-demo", "/inotex-2026", "/contact"],
+  [BLOG_URL, "/AI-Readiness-Assessment", "/pricing", "/request-demo", "/contact"],
 ];
 
 type Copy = {
@@ -68,9 +66,9 @@ const COPY: Record<string, Copy> = {
     rights: (year) => `© ${year} Paapeli, Inc. All rights reserved.`,
     columns: [
       { title: "Platform", labels: ["AIoT Platform", "Operations Hub", "Edge Hub", "Intelligence Hub", "Infrastructure Hub", "Tracking Hub"] },
-      { title: "Solutions", labels: ["Smart Manufacturing", "Smart Cities", "Smart Buildings", "Smart Agriculture", "Oil & Gas", "Energy Monitoring"] },
-      { title: "Developers", labels: ["Documentation", "SDKs", "GitHub", "Makers & Developers", "Platform Status"] },
-      { title: "Resources", labels: ["Blog", "AI Readiness Assessment", "Pricing", "Request a Demo", "INOTEX 2026", "Contact"] },
+      { title: "Solutions", labels: ["Smart Manufacturing", "Smart Buildings", "Smart Agriculture", "Oil & Gas", "Energy Monitoring"] },
+      { title: "Developers", labels: ["Documentation", "SDKs", "GitHub", "Platform Status"] },
+      { title: "Resources", labels: ["Blog", "AI Readiness Assessment", "Pricing", "Request a Demo", "Contact"] },
     ],
   },
   fa: {
@@ -79,9 +77,9 @@ const COPY: Record<string, Copy> = {
     rights: (year) => `© ${year} پاپلی. تمامی حقوق محفوظ است.`,
     columns: [
       { title: "پلتفرم", labels: ["پلتفرم AIoT", "هاب عملیات", "هاب لبه", "هاب هوشمندی", "هاب زیرساخت", "هاب ردیابی"] },
-      { title: "راهکارها", labels: ["تولید هوشمند", "شهرهای هوشمند", "ساختمان‌های هوشمند", "کشاورزی هوشمند", "نفت و گاز", "پایش انرژی"] },
-      { title: "توسعه‌دهندگان", labels: ["مستندات", "SDK ها", "گیت‌هاب", "سازندگان و توسعه‌دهندگان", "وضعیت پلتفرم"] },
-      { title: "منابع", labels: ["بلاگ", "ارزیابی آمادگی هوش مصنوعی", "تعرفه‌ها", "درخواست دمو", "اینوتکس ۲۰۲۶", "تماس با ما"] },
+      { title: "راهکارها", labels: ["تولید هوشمند", "ساختمان‌های هوشمند", "کشاورزی هوشمند", "نفت و گاز", "پایش انرژی"] },
+      { title: "توسعه‌دهندگان", labels: ["مستندات", "SDK ها", "گیت‌هاب", "وضعیت پلتفرم"] },
+      { title: "منابع", labels: ["بلاگ", "ارزیابی آمادگی هوش مصنوعی", "تعرفه‌ها", "درخواست دمو", "تماس با ما"] },
     ],
   },
   ar: {
@@ -90,9 +88,9 @@ const COPY: Record<string, Copy> = {
     rights: (year) => `© ${year} بابيلي. جميع الحقوق محفوظة.`,
     columns: [
       { title: "المنصة", labels: ["منصة AIoT", "مركز العمليات", "مركز الحافة", "مركز الذكاء", "مركز البنية التحتية", "مركز التتبع"] },
-      { title: "الحلول", labels: ["التصنيع الذكي", "المدن الذكية", "المباني الذكية", "الزراعة الذكية", "النفط والغاز", "مراقبة الطاقة"] },
-      { title: "المطورون", labels: ["التوثيق", "حِزم SDK", "GitHub", "الصناع والمطورون", "حالة المنصة"] },
-      { title: "المصادر", labels: ["المدونة", "تقييم الجاهزية للذكاء الاصطناعي", "الأسعار", "اطلب عرضاً توضيحياً", "إينوتكس 2026", "اتصل بنا"] },
+      { title: "الحلول", labels: ["التصنيع الذكي", "المباني الذكية", "الزراعة الذكية", "النفط والغاز", "مراقبة الطاقة"] },
+      { title: "المطورون", labels: ["التوثيق", "حِزم SDK", "GitHub", "حالة المنصة"] },
+      { title: "المصادر", labels: ["المدونة", "تقييم الجاهزية للذكاء الاصطناعي", "الأسعار", "اطلب عرضاً توضيحياً", "اتصل بنا"] },
     ],
   },
 };

@@ -184,9 +184,7 @@ export const Navigation = () => {
                     <NavigationMenuContent>
                       <ul className="grid gap-2 p-4 w-[280px]">
                         {[
-                          ["makers-developers", "makersDevelopers"],
                           ["oil-gas", "oilGas"],
-                          ["smart-cities", "smartCities"],
                           ["smart-agriculture", "smartAgriculture"],
                           ["smart-buildings", "smartBuildings"],
                         ].map(([path, titleKey]) => (
