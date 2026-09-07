@@ -70,7 +70,12 @@ export default function AIoTPlatformPage() {
         {/* ------------------------------- Hero ------------------------------ */}
         <section className="relative isolate flex min-h-[70vh] items-center overflow-hidden pt-16">
           <Image src={hero} alt="" fill priority sizes="100vw" className="-z-20 object-cover" />
-          <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-[#081020]/[0.78]" />
+          {/* The design darkens the photograph behind the text and lets it come
+              through on the far side, so the gradient flips with the writing. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(8,16,32,0.92)_0%,rgba(8,16,32,0.78)_45%,rgba(8,16,32,0.45)_100%)] rtl:bg-[linear-gradient(270deg,rgba(8,16,32,0.92)_0%,rgba(8,16,32,0.78)_45%,rgba(8,16,32,0.45)_100%)]"
+          />
 
           <div className="container relative z-10 mx-auto px-4 py-20">
             <div className="max-w-3xl">
