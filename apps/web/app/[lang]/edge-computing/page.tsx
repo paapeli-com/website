@@ -16,9 +16,9 @@ import { localePath } from "@/lib/seo";
 import { LinkedText, featureHref, featureName } from "@/lib/site-links";
 import { cn } from "@/lib/utils";
 
-import img1 from "@/src/assets/f-deploy-1.jpg";
-import img2 from "@/src/assets/f-deploy-2.jpg";
-import img3 from "@/src/assets/f-deploy-3.jpg";
+import img1 from "@/src/assets/p-edge-1.jpg";
+import img2 from "@/src/assets/p-edge-2.jpg";
+import img3 from "@/src/assets/p-edge-3.jpg";
 import hero from "@/src/assets/p-edge-hero.jpg";
 import panel from "@/src/assets/panel-devices.jpg";
 
@@ -40,7 +40,11 @@ const CAPABILITY_ICONS: Record<CapabilityIcon, LucideIcon> = {
   shieldCheck: ShieldCheck,
 };
 
-const IMAGES = [img1, img2, img3];
+/* Ordered to the cards rather than to the filenames: the wall-mounted
+   gateway is what "local processing" means, the racks and their cabling
+   are where buffered data ends up, and the locked corridor is the site
+   nobody has to drive to when it is managed remotely. */
+const IMAGES = [img2, img1, img3];
 
 /** This page's own address, so LinkedText does not link it to itself. */
 const SELF = "/edge-computing";
