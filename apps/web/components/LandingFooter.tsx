@@ -101,6 +101,23 @@ const SOCIALS = [
   { label: "LinkedIn", href: "https://www.linkedin.com/company/paapeli/", icon: Linkedin },
 ];
 
+/* ------------------------------------------------------------------ */
+/* The e-Namad trust seal.                                             */
+/*                                                                     */
+/* e-Namad issues this markup per site and checks that the page serves
+   it unaltered, so it is injected exactly as they gave it rather than
+   transcribed into JSX: the id and the code appear in both the link and
+   the image, and their crawler matches on them. Do not reformat it, do
+   not add attributes to it, and do not size the image from the inside.
+
+   It is a constant in this file, never anything a visitor supplies, so
+   there is nothing here for dangerouslySetInnerHTML to be dangerous
+   with. Its wrapper scales it down from the outside instead, because
+   the seal ships at a size that would tower over the footer column.  */
+/* ------------------------------------------------------------------ */
+const ENAMAD_SEAL =
+  "<a referrerpolicy='origin' target='_blank' href='https://trustseal.enamad.ir/?id=7625246&Code=DkFd7cma8GcgSc8O9bPaq4RlrWrCX0Ls'><img referrerpolicy='origin' src='https://trustseal.enamad.ir/logo.aspx?id=7625246&Code=DkFd7cma8GcgSc8O9bPaq4RlrWrCX0Ls' alt='' style='cursor:pointer' code='DkFd7cma8GcgSc8O9bPaq4RlrWrCX0Ls'></a>";
+
 export const LandingFooter = () => {
   const { isRTL, language } = useLanguage();
   const copy = COPY[language] ?? COPY.en;
@@ -139,6 +156,18 @@ export const LandingFooter = () => {
                 </Link>
               ))}
             </div>
+
+            {/* e-Namad certifies the business to Iranian visitors, so it
+                belongs on the Persian footer and nowhere else. The
+                height is set here, on the outside; width follows it so
+                the seal keeps its own proportions whatever size
+                e-Namad serves it at. */}
+            {language === "fa" && (
+              <div
+                className="[&_img]:h-[88px] [&_img]:w-auto"
+                dangerouslySetInnerHTML={{ __html: ENAMAD_SEAL }}
+              />
+            )}
           </div>
 
           {/* Nav columns */}
