@@ -223,14 +223,17 @@ To keep the monorepo healthy and scalable, follow these rules:
 # 🚢 CI/CD and deployment
 
 Three apps, one monorepo, one pipeline. The rule is the same as the gateway's:
-**CI never talks to Kubernetes.** It builds images and writes to git; Argo CD is
-the only thing that changes the cluster.
+**CI never talks to Kubernetes, and never writes to git.** It builds images. A
+human commit deploys.
 
 | You do | CI does | Result |
 |---|---|---|
-| push to `dev` | build + push `web`, `docs`, `panel` as `:latest`, redeploy on tb-mini | staging updated |
-| push a tag `v1.2.3` | build + push all three as `:v1.2.3`, commit the tag into `paapeli-infra` | Argo CD syncs to Kubernetes |
-| edit `helm/paapeli-client/values.yaml` in `paapeli-infra` | nothing | Argo CD syncs to Kubernetes |
+| push to `dev` | build + push `web`, `docs`, `panel` as `:latest`, redeploy on tb-mini | staging updated, Kubernetes untouched |
+| push a tag `v1.2.3` | build + push all three as `:v1.2.3`, then stop | images published, nothing deployed |
+| edit `deployment/helm/values.yaml` on `dev` | nothing | Argo CD deploys within ~3 min |
+
+The last row is the deployment. There is no deploy pipeline for Kubernetes — and
+therefore no pipeline holding cluster or git-write credentials.
 
 Only `dev` and tags run a pipeline at all — feature branches (`eric`,
 `amirkian`, …) build nothing, which is what the `workflow:` block at the top
@@ -241,37 +244,59 @@ enforces.
 Each app has its own `deploy-*` job gated on `needs:` for its own build, so a
 failed `panel` build cannot ship a stale `panel` alongside a fresh `web`.
 
-## Production (Kubernetes, via Argo CD)
+## The chart lives here
+
+`deployment/helm/` — next to the code it ships, so one commit changes the code
+and the manifest that deploys it. Argo CD reads this path from the **`dev`**
+branch of this repository.
+
+**Only `dev` deploys.** A values change on a feature branch, or in an open merge
+request, deploys nothing — Argo CD reads no other ref. The branch is the gate.
+
+One chart, one template, three Deployments generated from the `apps:` map —
+adding a fourth front end is an entry there, not a new chart. Ports come from
+the Dockerfiles: `web` 3000 (Next.js standalone), `panel` 8080 (node server),
+`docs` 80 (nginx).
+
+`docs` runs a single replica and therefore gets no PodDisruptionBudget — a PDB
+with `maxUnavailable: 1` over one replica blocks node drains forever.
+
+## Releasing
 
 ```bash
-git tag v1.2.3 && git push origin v1.2.3
+git tag v1.2.3 && git push origin v1.2.3     # 1. publish all three images
+# 2. then, on dev, edit deployment/helm/values.yaml:
+#      apps:
+#        web:   { tag: v1.2.3 }      # was: latest
+#        docs:  { tag: v1.2.3 }
+#        panel: { tag: v1.2.3 }
+git commit -am "client: release v1.2.3" && git push origin dev
 ```
-
-`release:k8s` waits for all three builds, then sets `apps.web.tag`,
-`apps.docs.tag` and `apps.panel.tag` in `helm/paapeli-client/values.yaml` and
-pushes to `main`.
 
 **All three move together, deliberately.** They are built from one commit of one
 monorepo and share `packages/`; releasing them independently means a panel
 talking to a `web` build it was never tested against.
 
-`yq` rather than `sed`: that values file has three `tag:` keys and a regex that
-matches the wrong one ships the wrong image.
+Argo CD picks it up within ~3 minutes. **Rollback** is the same edit in reverse,
+or `git revert` — no rebuild, no pipeline.
 
-**Required CI variable:** `INFRA_REPO_TOKEN`, a project access token on
-`paapeli-infra` with `write_repository`. Mask it.
+Staging uses the moving `:latest` tag and Kubernetes uses immutable ones on
+purpose: with `:latest`, git and the cluster can agree while the running image
+is stale, and Argo CD has no way to notice.
 
-## Chart
+## Runner tags
 
-`helm/paapeli-client/` in `paapeli-infra`. One chart, one template, three
-Deployments generated from the `apps:` map — adding a fourth front end is an
-entry there, not a new chart. Ports come from the Dockerfiles: `web` 3000
-(Next.js standalone), `panel` 8080 (node server), `docs` 80 (nginx).
+GitLab matches tags **exactly and completely** — a job asking for one tag a
+runner lacks queues forever as "no matching runners", which does not read as a
+tag problem.
 
-`docs` runs a single replica and therefore gets no PodDisruptionBudget — a PDB
-with `maxUnavailable: 1` over one replica blocks node drains forever.
+| Job | Tags | Runner |
+|---|---|---|
+| `build-web` / `build-docs` / `build-panel` | `ci`, `docker` | git01 (`ci, docker, build`) |
+| `deploy-web` / `deploy-docs` / `deploy-panel` | `cd`, `mini` | tb-mini01 (`cd, stage, deploy, mini`) |
 
-## Rolling back
+Separate runners because tb-mini01 runs `concurrent: 1` — one runner doing both
+would queue every build behind a deploy.
 
-Revert the release commit in `paapeli-infra`. Argo CD converges. No pipeline
-run, no image rebuild.
+Full GitOps explanation, components and token map:
+`paapeli/infra` → `ansible/docs/gitops.md`.
