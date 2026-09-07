@@ -122,7 +122,6 @@ export const ROUTES: readonly string[] = [
   "/makers-developers",
   "/oil-gas",
   "/operations-hub",
-  "/ota",
   "/pricing",
   "/request-demo",
   "/smart-agriculture",

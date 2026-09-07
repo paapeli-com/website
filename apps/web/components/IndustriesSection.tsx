@@ -6,6 +6,7 @@ import Link from "next/link";
 import { CircleCheck } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
+import { localePath } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import industryManufacturing from "@/src/assets/industry-manufacturing.jpg";
 import industryOilGas from "@/src/assets/industry-oil-gas.jpg";
@@ -26,6 +27,17 @@ const TAB_IMAGES: StaticImageData[] = [
   industrySmartInfrastructure,
   industryFleetTracking,
   industrySmartAgriculture,
+];
+
+/* Where "Learn More" goes, per tab, in the same order again. Each tab
+   already has a page arguing its case; the button used to be href="#",
+   so five industry pitches ended in a button that did nothing. */
+const TAB_HREFS: string[] = [
+  "/smart-manufacturing",
+  "/oil-gas",
+  "/infrastructure-hub",
+  "/fleet-tracking",
+  "/smart-agriculture",
 ];
 
 type Industry = {
@@ -265,7 +277,7 @@ export const IndustriesSection = () => {
               <p className="text-base text-muted-foreground rtl:text-sm">{active.description}</p>
             </div>
             <Link
-              href="#"
+              href={localePath(language, TAB_HREFS[activeTab] ?? TAB_HREFS[0])}
               className="inline-flex h-12 items-center justify-center gap-1.5 rounded-xl bg-primary px-5 py-3 text-base font-medium text-primary-foreground shadow-[0px_1px_0.25px_rgba(29,41,61,0.02)] transition-colors hover:bg-primary/90"
             >
               {copy.learnMore}

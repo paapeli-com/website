@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { LiveMapVisual } from "@/components/vertical/visuals";
+import { PANEL_URL } from "@/lib/panel";
 import type { VerticalConfig } from "@/components/vertical/types";
 
 /* Tracking Hub: consumer GPS tracking for pets, kids and vehicles.   */
@@ -26,7 +27,7 @@ export const gpsTrackingConfig: VerticalConfig = {
   titleBottom: "everything you love",
   subtitle:
     "One app to locate your pets, kids, and vehicles in real time, with geofencing, instant alerts, and full location history. Powered by Paapeli’s AIoT platform.",
-  primaryCta: { label: "Start Free", href: "#" },
+  primaryCta: { label: "Start Free", href: PANEL_URL },
   secondaryCta: { label: "Contact Sales", href: "/contact" },
   chips: [
     { icon: Dog, label: "Pets" },
@@ -117,7 +118,7 @@ export const gpsTrackingConfig: VerticalConfig = {
       { icon: Radar, title: "Safe zones that just work", description: "Set it once and let automatic geofencing do the watching for you." },
       { icon: Bell, title: "Alerts you can trust", description: "Get the right notification at the right moment, without the noise." },
     ],
-    cta: { label: "Explore the app", href: "#" },
+    cta: { label: "Explore the app", href: PANEL_URL },
     visual: <LiveMapVisual className="max-w-[560px]" />,
   },
 
@@ -152,7 +153,7 @@ export const gpsTrackingConfig: VerticalConfig = {
   cta: {
     title: "Start tracking what matters today",
     subtitle: "Set up your first tracker in minutes and keep your pets, kids, and vehicles safe, all from one app.",
-    primary: { label: "Start Free", href: "#" },
+    primary: { label: "Start Free", href: PANEL_URL },
     secondary: { label: "Contact Sales", href: "/contact" },
   },
 };

@@ -1,6 +1,7 @@
 'use client';
 
 import { Navigation } from "@/components/Navigation";
+import { LandingFooter } from "@/components/LandingFooter";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -165,6 +166,13 @@ const IntelligenceInsight = () => {
     </div>
   );
 };
+/* Older product shell, no footer of its own: see the note on the OTA
+   page. The shared footer is what connects it to the rest of the site. */
 export default function IntelligenceInsightPage() {
-  return <IntelligenceInsight />;
+  return (
+    <>
+      <IntelligenceInsight />
+      <LandingFooter />
+    </>
+  );
 }

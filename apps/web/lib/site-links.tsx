@@ -4,6 +4,7 @@ import { Fragment, useMemo, type ReactNode } from "react";
 import Link from "next/link";
 
 import { useLanguage } from "@/contexts/LanguageContext";
+import { localePath } from "@/lib/seo";
 
 /* ------------------------------------------------------------------ */
 /* One registry for every page that other pages are allowed to name.  */
@@ -301,8 +302,10 @@ export function LinkedText({
       if (m.start > cursor) {
         out.push(<Fragment key={"t" + i}>{text.slice(cursor, m.start)}</Fragment>);
       }
+      /* localePath, not "/" + language: English has no prefix, and
+         "/en/..." only 301s back to the address this should have been. */
       out.push(
-        <Link key={"l" + i} href={"/" + language + m.href} className={linkClass}>
+        <Link key={"l" + i} href={localePath(language, m.href)} className={linkClass}>
           {text.slice(m.start, m.end)}
         </Link>,
       );

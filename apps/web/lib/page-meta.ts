@@ -362,23 +362,6 @@ export const PAGE_META: Record<string, Partial<Record<Locale, PageMeta>>> = {
         "Monitor every asset, process, and site in real time, with AI-driven insight that turns raw data into operational decisions.",
     },
   },
-  "/ota": {
-    en: {
-      title: "Over-the-air updates on Paapeli",
-      description:
-        "Sign firmware, roll it out in waves, and watch success and failure counts per device, without sending anyone to site.",
-    },
-    fa: {
-      title: "به‌روزرسانی از راه دور (OTA) در پاپلی",
-      description:
-        "امضای فریمور، انتشار مرحله‌ای و مشاهدهٔ نتیجهٔ هر دستگاه، بدون اعزام نیرو به محل.",
-    },
-    ar: {
-      title: "التحديثات عن بُعد (OTA) في بابيلي",
-      description:
-        "توقيع البرامج الثابتة وطرحها على دفعات ومتابعة نتائج كل جهاز، دون إرسال فنيين إلى الموقع.",
-    },
-  },
   "/pricing": {
     en: {
       title: "Pricing",

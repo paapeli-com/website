@@ -143,7 +143,7 @@ export const PLATFORM_COPY: Record<string, PlatformCopy> = {
         tagline: "Process data next to the machine — low latency, low bandwidth cost.",
       },
       {
-        href: "/ota",
+        href: "/features/ota-updates",
         title: "OTA Updates",
         tagline: "Ship firmware to distributed fleets without a site visit.",
       },
@@ -252,7 +252,7 @@ export const PLATFORM_COPY: Record<string, PlatformCopy> = {
         tagline: "پردازش داده کنار ماشین، با تأخیر کم و هزینهٔ پهنای باند کم.",
       },
       {
-        href: "/ota",
+        href: "/features/ota-updates",
         title: "به‌روزرسانی OTA",
         tagline: "ارسال فرم‌ور به ناوگان‌های پراکنده بدون مراجعهٔ حضوری.",
       },
@@ -361,7 +361,7 @@ export const PLATFORM_COPY: Record<string, PlatformCopy> = {
         tagline: "معالجة البيانات بجانب الآلة، بزمن استجابة أقل وكلفة نطاق أقل.",
       },
       {
-        href: "/ota",
+        href: "/features/ota-updates",
         title: "تحديثات OTA",
         tagline: "إرسال البرامج الثابتة إلى الأساطيل الموزعة دون زيارة ميدانية.",
       },
