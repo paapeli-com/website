@@ -45,14 +45,17 @@ export interface EditDeviceResponse {
 export interface CreateDeviceRequest {
     /** Display label of the device. */
     label?: string;
-    /** Device type, e.g. "default". */
+    /**
+     * Device-type key from the product's device-type catalog, e.g. "zx909" —
+     * see `productDeviceTypesService.getProductDeviceTypes`. The catalog entry
+     * carries the provisioning profile, so there is no profile field here.
+     */
     type: string;
-    /** Unique device name. */
+    /** Unique device name, such as the tracker IMEI. */
     name: string;
     description?: string;
     /** Whether this device acts as a gateway. */
     isGateway?: boolean;
-    profileId?: string;
     credentialType: DeviceCredentialType;
     /**
      * Required for X509_CERTIFICATE, MQTT_BASIC, LWM2M_CREDENTIALS.

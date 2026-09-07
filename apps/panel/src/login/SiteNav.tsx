@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Blocks, Boxes, ChevronDown, ChevronRight, LayoutTemplate, Menu, Sparkles, X, type LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
+import { APP_LANGUAGES, setAppLanguage, useAppLanguage } from "@/shared/i18n/appLanguage";
+import { useCopy, type LoginCopy } from "./copy";
 
 /* The marketing site's header, ported from apps/web's LandingNavbar for the
    login page — same five nav items, same mega menus with their promo panel,
@@ -8,14 +10,18 @@ import { cn } from "@/shared/lib/utils";
 
    Deliberately NOT an import from apps/web: that component is a Next.js client
    component (next/link, next/image) wired to that app's LanguageContext. The
-   panel is Vite, and the login page has no router or language context — the
-   whole point of the page is that you are not signed in yet. So the markup is
-   reproduced here with plain <a> tags to the marketing site.
+   panel is Vite, so the markup is reproduced here with plain <a> tags to the
+   marketing site.
 
    The parts that do not apply are dropped rather than faked: the transparent
    over-a-dark-hero variant (there is no hero here — this header is always
    solid) and the locale-prefixed internal routes (every destination is
-   absolute, on another origin). Copy stays English, matching the page. */
+   absolute, on another origin).
+
+   Nav labels and the language control are translated; the mega-menu entries
+   are not. Those are marketing copy for English pages on another origin —
+   translating the link text while the page it opens stays English would be a
+   worse lie than leaving it. */
 
 const SITE = "https://paapeli.com";
 const PANEL_URL = "/";
@@ -102,19 +108,13 @@ const PROMO: Record<MenuKey, { title: string; description: string; cta: string; 
   },
 };
 
-const NAV_ITEMS: Array<{ label: string; menu?: MenuKey; href?: string }> = [
-  { label: "Products", menu: "Products" },
-  { label: "Solution", menu: "Solution" },
-  { label: "Ecosystem", menu: "Ecosystem" },
-  { label: "Resources", menu: "Resources" },
-  { label: "Pricing", href: `${SITE}/pricing` },
+const NAV_ITEMS: Array<{ key: keyof LoginCopy; menu?: MenuKey; href?: string }> = [
+  { key: "navProducts", menu: "Products" },
+  { key: "navSolution", menu: "Solution" },
+  { key: "navEcosystem", menu: "Ecosystem" },
+  { key: "navResources", menu: "Resources" },
+  { key: "navPricing", href: `${SITE}/pricing` },
 ];
-
-const LANGS = [
-  { code: "en", label: "English (US)" },
-  { code: "ar", label: "العربية" },
-  { code: "fa", label: "فارسی" },
-] as const;
 
 const PaapeliMark = () => (
   <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -218,32 +218,36 @@ function MegaMenuDropdown({ openMenu }: { openMenu: MenuKey | null }) {
   );
 }
 
-/* Presentational only. The landing page switches its own locale through
-   LanguageContext; this page has none, so the control shows the current
-   choice and links to the localized marketing site rather than pretending
-   to re-render the login form in another language. */
+/* The switcher writes the panel-wide language store, which is what actually
+   re-renders this page and flips <html lang dir>. It used to be presentational
+   — three links to `paapeli.com/<code>` — so picking a language navigated off
+   the login page to the marketing site instead of translating anything. */
 function LanguageMenu() {
+  const language = useAppLanguage();
+  const current = APP_LANGUAGES.find((l) => l.code === language) ?? APP_LANGUAGES[0];
+
   return (
     <div className="group relative">
       <button
         type="button"
         className="flex items-center gap-1.5 rounded-lg px-1 py-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
-        <span className="whitespace-nowrap">{LANGS[0].label}</span>
+        <span className="whitespace-nowrap">{current.label}</span>
         <ChevronDown className="size-[18px] transition-transform group-hover:rotate-180" />
       </button>
       <div className="invisible absolute end-0 top-full z-50 mt-2 w-44 rounded-lg border border-[#e5e7eb] bg-white py-1 opacity-0 shadow-lg transition-all group-hover:visible group-hover:opacity-100">
-        {LANGS.map((lang, i) => (
-          <a
+        {APP_LANGUAGES.map((lang) => (
+          <button
             key={lang.code}
-            href={`${SITE}/${lang.code}`}
+            type="button"
+            onClick={() => setAppLanguage(lang.code)}
             className={cn(
-              "flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-[#f9fafb]",
-              i === 0 ? "font-medium text-primary" : "text-muted-foreground",
+              "flex w-full items-center gap-2 px-4 py-2 text-start text-sm transition-colors hover:bg-[#f9fafb]",
+              lang.code === language ? "font-medium text-primary" : "text-muted-foreground",
             )}
           >
             {lang.label}
-          </a>
+          </button>
         ))}
       </div>
     </div>
@@ -251,6 +255,7 @@ function LanguageMenu() {
 }
 
 export function SiteNav() {
+  const copy = useCopy();
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -269,24 +274,24 @@ export function SiteNav() {
           {NAV_ITEMS.map((item) =>
             item.menu ? (
               <button
-                key={item.label}
+                key={item.key}
                 type="button"
                 onMouseEnter={() => setOpenMenu(item.menu!)}
                 className="flex items-center gap-1.5 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
-                {item.label}
+                {copy[item.key]}
                 <ChevronDown
                   className={cn("size-[18px] transition-transform", openMenu === item.menu && "rotate-180")}
                 />
               </button>
             ) : (
               <a
-                key={item.label}
+                key={item.key}
                 href={item.href}
                 onMouseEnter={() => setOpenMenu(null)}
                 className="rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
-                {item.label}
+                {copy[item.key]}
               </a>
             ),
           )}
@@ -300,7 +305,7 @@ export function SiteNav() {
             href={PANEL_URL}
             className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-[0px_1px_0.25px_rgba(29,41,61,0.02)] transition-colors hover:bg-primary/90"
           >
-            Dashboard
+            {copy.dashboard}
           </a>
 
           <div className="hidden h-5 w-px bg-[#e5e7eb] lg:block" />
@@ -310,7 +315,7 @@ export function SiteNav() {
 
           <button
             type="button"
-            aria-label="Toggle menu"
+            aria-label={copy.toggleMenu}
             onClick={() => setMobileOpen((o) => !o)}
             className="inline-flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-[#f9fafb] lg:hidden"
           >
@@ -326,12 +331,12 @@ export function SiteNav() {
           <nav className="flex flex-col gap-1">
             {NAV_ITEMS.map((item) => (
               <a
-                key={item.label}
+                key={item.key}
                 href={item.href ?? `${SITE}`}
                 onClick={() => setMobileOpen(false)}
                 className="rounded-lg px-2 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-[#f9fafb] hover:text-foreground"
               >
-                {item.label}
+                {copy[item.key]}
               </a>
             ))}
             <div className="mt-3 border-t border-[#e5e7eb] pt-3">

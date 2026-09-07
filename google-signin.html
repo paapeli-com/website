@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Paapeli Google sign-in</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    body { font-family: sans-serif; max-width: 720px; margin: 48px auto; padding: 0 16px; }
+    pre { background: #111; color: #eee; padding: 12px; overflow: auto; white-space: pre-wrap; }
+    .ok { color: #0a7; }
+    .err { color: #c33; }
+  </style>
+</head>
+<body>
+  <h1>Paapeli Google sign-in</h1>
+  <p>Serve this file from <code>http://localhost:5173</code>. Do not open it as <code>file://</code>.</p>
+  <div id="google-btn"></div>
+  <p id="status"></p>
+  <pre id="out"></pre>
+
+  <script>
+    const CLIENT_ID = "1071216349974-sjdfgo4cru8ln56c9mge19la4rj86n8l.apps.googleusercontent.com";
+    const GATEWAY = "http://localhost:8081/api/v1/aiot/auth/google";
+
+    function show(status, body, ok) {
+      document.getElementById("status").textContent = status;
+      document.getElementById("status").className = ok ? "ok" : "err";
+      document.getElementById("out").textContent =
+          typeof body === "string" ? body : JSON.stringify(body, null, 2);
+    }
+
+    window.onload = function () {
+      google.accounts.id.initialize({
+        client_id: CLIENT_ID,
+        callback: async function (response) {
+          show("Google ID token received, calling gateway...", response.credential, true);
+          try {
+            const res = await fetch(GATEWAY, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ idToken: response.credential })
+            });
+            const text = await res.text();
+            let payload;
+            try { payload = JSON.parse(text); } catch { payload = text; }
+            if (!res.ok) {
+              show("Gateway " + res.status, payload, false);
+              return;
+            }
+            show("Paapeli token issued", payload, true);
+          } catch (error) {
+            show("Request failed", String(error), false);
+          }
+        }
+      });
+      google.accounts.id.renderButton(document.getElementById("google-btn"), {
+        theme: "outline",
+        size: "large",
+        text: "signin_with"
+      });
+    };
+  </script>
+</body>
+</html>

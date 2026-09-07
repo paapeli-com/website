@@ -67,7 +67,8 @@ import {
   useGetDeviceByIdQuery,
   useGetDeviceCredentialsQuery,
   useEditDeviceMutation,
-  useSendDeviceRpcMutation,
+  useSendDeviceCommandMutation,
+  useGetProductDeviceCommandsQuery,
   useGetDeviceAlarmsQuery,
   useAckAlarmMutation,
   useClearAlarmMutation,
@@ -1654,32 +1655,67 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
 };
 
 
-/* The command types this dialog offers, mapped onto the RPC body. `params` is
-   an object the device's own firmware interprets — the endpoint just forwards
-   it (its example uses {"temperature": 72.5, "unit": "C"}). Restart and reset
-   are fire-and-forget, so they go one-way and queue if the device is offline;
-   the others wait for a reply, matching the endpoint's two example shapes. */
-const RPC_PRESETS: Record<string, { action: string; isOneWay: boolean; queue: boolean }> = {
-  restart: { action: "restart", isOneWay: true, queue: true },
-  reset: { action: "reset", isOneWay: true, queue: true },
-  threshold: { action: "setThreshold", isOneWay: false, queue: false },
+/* Commands are catalog-backed: a device accepts whatever its device type
+   declares in the product command catalog, and each entry carries a JSON
+   Schema for its parameters. Turn that schema's properties into a skeleton
+   body so the operator edits values instead of guessing field names. */
+const paramSkeleton = (schema?: Record<string, unknown>): string => {
+  const props = (schema?.properties ?? {}) as Record<string, any>;
+  const keys = Object.keys(props);
+  if (keys.length === 0) return "";
+  const body: Record<string, unknown> = {};
+  for (const key of keys) {
+    const prop = props[key] ?? {};
+    body[key] =
+      prop.default ??
+      prop.example ??
+      (prop.type === "number" || prop.type === "integer"
+        ? 0
+        : prop.type === "boolean"
+          ? false
+          : "");
+  }
+  return JSON.stringify(body, null, 2);
 };
+
+const schemaProperties = (schema?: Record<string, unknown>) =>
+  Object.keys((schema?.properties ?? {}) as Record<string, unknown>);
 
 /** Activity types the gateway records for a command's lifecycle. */
 const COMMAND_ACTIVITY_TYPES = new Set(["COMMAND_SENT", "COMMAND_SUCCEEDED", "COMMAND_FAILED"]);
 
 export const SendCommandDialog = ({ open, onOpenChange, device }: any) => {
   const { isRTL, t, formatNumber } = useLanguage();
-  const [cmd, setCmd] = useState("restart");
-  const [threshold, setThreshold] = useState("85");
-  const [custom, setCustom] = useState('{"action":"ping"}');
+  const [cmd, setCmd] = useState("");
+  const [params, setParams] = useState("");
   const { toast } = useToast();
   const workspaceId = useWorkspaceId();
-  const sendRpc = useSendDeviceRpcMutation();
+  const sendCommand = useSendDeviceCommandMutation();
 
-  /* There is no "list commands" endpoint. The gateway records each command in
-     the device's activity feed instead ("record their command lifecycle"), so
-     the history is that feed filtered to the COMMAND_* types. */
+  /* The picker is the device type's command catalog, not a fixed list: the
+     gateway rejects any key the catalog does not define. */
+  const { data: catalog, isLoading: catalogLoading } = useGetProductDeviceCommandsQuery(
+    PRODUCT_KEY, device?.type ?? "", open,
+  );
+  const commands = (catalog ?? []).filter((c) => c.enabled);
+  const selected = commands.find((c) => c.commandKey === cmd);
+  const takesParams = schemaProperties(selected?.parameterSchema).length > 0;
+
+  // Re-select whenever the sheet opens on a device or the catalog lands, so
+  // the selection always names a command this device actually has.
+  useEffect(() => {
+    if (!open) return;
+    setCmd(commands[0]?.commandKey ?? "");
+  }, [open, device?.id, catalog]);
+
+  useEffect(() => {
+    setParams(paramSkeleton(selected?.parameterSchema));
+  }, [cmd, catalog]);
+
+  /* The catalog above lists what can be sent, not what was: nothing returns a
+     device's sent commands. The gateway records each one in the device's
+     activity feed, so the history is that feed filtered to the COMMAND_*
+     types. */
   const { data: activityPage, isLoading: historyLoading } = useGetDeviceActivitiesQuery(
     workspaceId ?? "", PRODUCT_KEY, device?.id ?? "", 0, ACTIVITY_PAGE_SIZE, open,
   );
@@ -1690,56 +1726,39 @@ export const SendCommandDialog = ({ open, onOpenChange, device }: any) => {
       toast({ title: t("error"), description: t("noWorkspaceSelected"), variant: "destructive" });
       return;
     }
+    if (!selected) {
+      toast({ title: t("error"), description: t("noCommandsAvailable"), variant: "destructive" });
+      return;
+    }
 
-    let action: string;
-    let params: Record<string, unknown> = {};
-    let isOneWay = false;
-    let queue = false;
-
-    if (cmd === "custom") {
-      // The textarea is the RPC body itself: {"action": "...", "params": {...}}.
-      let parsed: any;
+    // The textarea holds the command's parameters — the object the catalog's
+    // parameterSchema describes, not the whole request body.
+    let parsedParams: Record<string, unknown> = {};
+    const raw = params.trim();
+    if (raw) {
       try {
-        parsed = JSON.parse(custom);
+        parsedParams = JSON.parse(raw);
       } catch {
         toast({ title: t("error"), description: t("invalidJsonPayload"), variant: "destructive" });
         return;
       }
-      if (!parsed?.action) {
-        toast({ title: t("error"), description: t("payloadNeedsAction"), variant: "destructive" });
-        return;
-      }
-      action = parsed.action;
-      params = parsed.params ?? {};
-      isOneWay = !!parsed.isOneWay;
-      queue = !!parsed.queue;
-    } else {
-      const preset = RPC_PRESETS[cmd];
-      action = preset.action;
-      isOneWay = preset.isOneWay;
-      queue = preset.queue;
-      if (cmd === "threshold") {
-        const value = Number(threshold);
-        if (!Number.isFinite(value)) {
-          toast({ title: t("error"), description: t("thresholdMustBeNumber"), variant: "destructive" });
-          return;
-        }
-        params = { threshold: value };
-      }
     }
 
     try {
-      await sendRpc.mutateAsync({
+      const result = await sendCommand.mutateAsync({
         workspaceId,
         productKey: PRODUCT_KEY,
-        action,
         deviceId: device.id,
-        deviceName: device.name,
-        params,
-        isOneWay,
-        queue,
+        command: selected.commandKey,
+        params: parsedParams,
       });
-      toast({ title: t("commandQueued"), description: action });
+      // A 200 only means dispatch was accepted; `success` is the dispatch
+      // result itself, and still says nothing about the device executing it.
+      if (!result.success) {
+        toast({ title: t("error"), description: t("commandFailed"), variant: "destructive" });
+        return;
+      }
+      toast({ title: t("commandQueued"), description: selected.label });
       onOpenChange(false);
     } catch (error) {
       toast({
@@ -1762,26 +1781,24 @@ export const SendCommandDialog = ({ open, onOpenChange, device }: any) => {
         <div className="space-y-4 py-4 flex-1 overflow-auto">
           <div>
             <Label>{t("commandType")}</Label>
-            <Select value={cmd} onValueChange={setCmd}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+            <Select value={cmd} onValueChange={setCmd} disabled={catalogLoading || commands.length === 0}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder={catalogLoading ? t("loading") : t("noCommandsAvailable")} />
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="restart">{t("restart")}</SelectItem>
-                <SelectItem value="reset">{t("reset")}</SelectItem>
-                <SelectItem value="threshold">{t("changeThreshold")}</SelectItem>
-                <SelectItem value="custom">{t("customCommand")}</SelectItem>
+                {commands.map((c) => (
+                  <SelectItem key={c.commandKey} value={c.commandKey}>{c.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            {selected?.description && (
+              <p className="mt-1 text-xs text-muted-foreground">{selected.description}</p>
+            )}
           </div>
-          {cmd === "threshold" && (
-            <div>
-              <Label>{t("thresholdValue")}</Label>
-              <Input value={threshold} onChange={e => setThreshold(e.target.value)} className="mt-1" />
-            </div>
-          )}
-          {cmd === "custom" && (
+          {takesParams && (
             <div>
               <Label>{t("payloadJson")}</Label>
-              <Textarea value={custom} onChange={e => setCustom(e.target.value)} rows={4} className="mt-1 font-mono text-xs" dir="ltr" />
+              <Textarea value={params} onChange={e => setParams(e.target.value)} rows={4} className="mt-1 font-mono text-xs" dir="ltr" />
             </div>
           )}
           <div>
@@ -1818,7 +1835,7 @@ export const SendCommandDialog = ({ open, onOpenChange, device }: any) => {
         </div>
         <SheetFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("cancel")}</Button>
-          <Button onClick={handleSend} disabled={sendRpc.isPending}>
+          <Button onClick={handleSend} disabled={sendCommand.isPending || !selected}>
             {t("sendCommand")}
           </Button>
         </SheetFooter>

@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "http://gateway.paapeli.me",
+      "url": "http://gateway-mini.paapeli.me",
       "description": "Generated server url"
     }
   ],
@@ -21,7 +21,6 @@
       "name": "Workspaces",
       "description": "Workspace membership, invitations, and product subscriptions"
     },
-    { "name": "Products", "description": "Global Paapeli product definitions" },
     {
       "name": "Alarms",
       "description": "Device alarm queries and alarm-rule management"
@@ -30,14 +29,27 @@
       "name": "Device credentials",
       "description": "Read and replace device authentication credentials"
     },
+    {
+      "name": "Product device types",
+      "description": "Product-wide device-type catalog used when registering\nand operating devices\n"
+    },
+    {
+      "name": "Device commands",
+      "description": "Send catalog-backed commands to devices"
+    },
+    { "name": "Products", "description": "Global Paapeli product definitions" },
+    {
+      "name": "Product device commands",
+      "description": "Command catalog associated with product device types\n"
+    },
     { "name": "Time series", "description": "Device telemetry history" },
     {
       "name": "Assets",
       "description": "Lazy-loaded workspace product asset trees"
     },
     {
-      "name": "Device RPC",
-      "description": "Send commands to devices and record their command lifecycle"
+      "name": "Device zones",
+      "description": "Configure a geographic zone for supported devices"
     },
     {
       "name": "Product asset types",
@@ -49,6 +61,321 @@
     }
   ],
   "paths": {
+    "/api/v1/aiot/products/{productKey}/device-types/{deviceType}": {
+      "put": {
+        "tags": ["Product device types"],
+        "summary": "Update a device type",
+        "description": "Updates the label, description, provisioning profile,\nand enabled state. The deviceType path key is\nimmutable. Profile changes affect future device\nregistrations only. Platform-administrator access\nis required.\n",
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "productKey",
+            "in": "path",
+            "description": "Product key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "aiot"
+          },
+          {
+            "name": "deviceType",
+            "in": "path",
+            "description": "Immutable device-type key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "zx909"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductDeviceTypeRequest"
+              },
+              "example": {
+                "label": "ZX909/C09 GPS tracker",
+                "description": "GPS tracker using the ZX909/C09 protocol family",
+                "enabled": true
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Device type updated",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductDeviceType"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid device-type definition",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductDeviceType"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication or platform-administrator\naccess required\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductDeviceType"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device type not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductDeviceType"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Product device types"],
+        "summary": "Delete a device type",
+        "description": "Deletes an unused device-type definition. Deletion\nis rejected while the type is referenced by another\ndomain entity. Platform-administrator access is\nrequired.\n",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "productKey",
+            "in": "path",
+            "description": "Product key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "aiot"
+          },
+          {
+            "name": "deviceType",
+            "in": "path",
+            "description": "Device-type key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "zx909"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Device type deleted",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication or platform-administrator\naccess required\n",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "404": {
+            "description": "Device type not found",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "409": {
+            "description": "Device type is in use",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/products/{productKey}/device-types/{deviceType}/commands/{commandKey}": {
+      "put": {
+        "tags": ["Product device commands"],
+        "summary": "Update a device command",
+        "description": "Updates command metadata, parameter schema, internal\ndispatch configuration, and enabled state. The command\nkey is immutable. Changes apply to future command\nrequests only. Platform-administrator access is\nrequired.\n",
+        "operationId": "update_1",
+        "parameters": [
+          {
+            "name": "productKey",
+            "in": "path",
+            "description": "Product key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "aiot"
+          },
+          {
+            "name": "deviceType",
+            "in": "path",
+            "description": "Device-type key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "zx909"
+          },
+          {
+            "name": "commandKey",
+            "in": "path",
+            "description": "Immutable command key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "setLocationInterval"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductDeviceCommandRequest"
+              },
+              "example": {
+                "label": "Set tracker location interval",
+                "description": "Changes the tracker location reporting interval",
+                "dispatchMethod": "setLocationInterval",
+                "parameterSchema": {
+                  "type": "object",
+                  "properties": {
+                    "seconds": {
+                      "type": "integer",
+                      "minimum": 30,
+                      "maximum": 86400
+                    }
+                  },
+                  "required": ["seconds"],
+                  "additionalProperties": false
+                },
+                "oneWay": false,
+                "queueIfOffline": false,
+                "timeoutMs": 10000,
+                "retries": 3,
+                "enabled": true
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Command updated",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductDeviceCommand"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid command definition",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductDeviceCommand"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication or platform-administrator\naccess required\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductDeviceCommand"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Command not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductDeviceCommand"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Product device commands"],
+        "summary": "Delete a device command",
+        "description": "Deletes an unused command definition. Platform-\nadministrator access is required.\n",
+        "operationId": "delete_1",
+        "parameters": [
+          {
+            "name": "productKey",
+            "in": "path",
+            "description": "Product key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "aiot"
+          },
+          {
+            "name": "deviceType",
+            "in": "path",
+            "description": "Device-type key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "zx909"
+          },
+          {
+            "name": "commandKey",
+            "in": "path",
+            "description": "Command key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "setLocationInterval"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Command deleted",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication or platform-administrator\naccess required\n",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "404": {
+            "description": "Command not found",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "409": {
+            "description": "Command is in use",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/aiot/products/{productKey}/asset-types/{parentAssetType}/allowed-children/{childAssetType}": {
       "put": {
         "tags": ["Product asset types"],
@@ -180,7 +507,7 @@
         "tags": ["Product asset types"],
         "summary": "Update an asset type",
         "description": "Updates the human-readable label and description. The\nassetType path key is immutable. ROOT cannot be changed.\nPlatform-administrator access is required.\n",
-        "operationId": "update",
+        "operationId": "update_2",
         "parameters": [
           {
             "name": "productKey",
@@ -270,7 +597,7 @@
         "tags": ["Product asset types"],
         "summary": "Delete an asset type",
         "description": "Deletes an unused catalog entry. Deletion is rejected while\nthe type is used by a workspace asset or any allowed-child\nrule. ROOT cannot be deleted. Platform-administrator access\nis required.\n",
-        "operationId": "delete",
+        "operationId": "delete_2",
         "parameters": [
           {
             "name": "productKey",
@@ -403,7 +730,7 @@
       "post": {
         "tags": ["Devices"],
         "summary": "Create a device",
-        "description": "Creates a device and assigns it to an active Paapeli asset in\nthe authorized workspace product. If profileId is omitted,\nthe product's default device profile is used. For ACCESS_TOKEN\ncredentials, credentialValue may be omitted and an identifier\nis generated. The response intentionally contains Paapeli's\ndevice representation, not an upstream entity payload.\n",
+        "description": "Creates a device and assigns it to an active Paapeli asset\nin the authorized workspace product. The supplied type must\nbe an enabled entry in the product device-type catalog.\nPaapeli selects the provisioning profile internally; callers\ncannot supply a ThingsBoard profile identifier. For\nACCESS_TOKEN credentials, credentialValue may be omitted and\nan identifier is generated.\n",
         "operationId": "createDevice",
         "requestBody": {
           "content": {
@@ -415,12 +742,11 @@
                 "Access token device": {
                   "description": "Access token device",
                   "value": {
-                    "label": "Boiler temperature sensor",
-                    "type": "temperature_sensor",
-                    "name": "boiler-temp-01",
-                    "description": "Temperature sensor for boiler 1",
+                    "label": "Pet tracker",
+                    "type": "zx909",
+                    "name": "861971080061529",
+                    "description": "Tracker assigned to Bella",
                     "isGateway": false,
-                    "profileId": null,
                     "credentialType": "ACCESS_TOKEN",
                     "credentialValue": null,
                     "assetId": "e75b06a5-a437-467a-b40b-2d31f0746056"
@@ -471,7 +797,7 @@
             }
           },
           "409": {
-            "description": "The target asset is not active",
+            "description": "Device type is disabled or the target asset is not active",
             "content": {
               "*/*": {
                 "schema": {
@@ -481,12 +807,162 @@
             }
           },
           "500": {
-            "description": "Device creation or assignment failed",
+            "description": "The configured provisioning profile is unavailable",
             "content": {
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/PaapeliCreateDeviceResponse"
                 }
+              }
+            }
+          },
+          "404": {
+            "description": "Device type does not exist for the product",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliCreateDeviceResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/devices/{workspaceId}/{productKey}/device/{deviceId}/zone": {
+      "get": {
+        "tags": ["Device zones"],
+        "summary": "Get a device zone",
+        "description": "Returns the currently configured device zone.",
+        "operationId": "getZone",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "description": "Paapeli device ID",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Zone returned",
+            "content": {
+              "*/*": { "schema": { "$ref": "#/components/schemas/Zone" } }
+            }
+          },
+          "403": {
+            "description": "READ product access required",
+            "content": {
+              "*/*": { "schema": { "$ref": "#/components/schemas/Zone" } }
+            }
+          },
+          "404": {
+            "description": "No zone is configured",
+            "content": {
+              "*/*": { "schema": { "$ref": "#/components/schemas/Zone" } }
+            }
+          },
+          "409": {
+            "description": "The device type does not support zones",
+            "content": {
+              "*/*": { "schema": { "$ref": "#/components/schemas/Zone" } }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Device zones"],
+        "summary": "Create or replace a device zone",
+        "description": "Configures one circle, rectangle, or polygon for a\nzone-capable device. Replaces the existing zone when one\nis already configured.\n",
+        "operationId": "saveZone",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "description": "Paapeli device ID",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Zone" },
+              "example": {
+                "type": "CIRCLE",
+                "area": {
+                  "center": { "latitude": 35.6892, "longitude": 51.389 },
+                  "radiusMeters": 100
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Zone saved",
+            "content": {
+              "*/*": { "schema": { "$ref": "#/components/schemas/Zone" } }
+            }
+          },
+          "400": {
+            "description": "The zone geometry is invalid",
+            "content": {
+              "*/*": { "schema": { "$ref": "#/components/schemas/Zone" } }
+            }
+          },
+          "403": {
+            "description": "OPERATE product access required",
+            "content": {
+              "*/*": { "schema": { "$ref": "#/components/schemas/Zone" } }
+            }
+          },
+          "409": {
+            "description": "The device type does not support zones",
+            "content": {
+              "*/*": { "schema": { "$ref": "#/components/schemas/Zone" } }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Device zones"],
+        "summary": "Delete a device zone",
+        "description": "Removes the configured zone from the device.",
+        "operationId": "deleteZone",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "description": "Paapeli device ID",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Zone deleted",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "403": {
+            "description": "OPERATE product access required",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
+              }
+            }
+          },
+          "409": {
+            "description": "The device type does not support zones",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
               }
             }
           }
@@ -1207,38 +1683,20 @@
         }
       }
     },
-    "/api/v1/aiot/rpc/{workspaceId}/{productKey}": {
+    "/api/v1/aiot/user/reset-password": {
       "post": {
-        "tags": ["Device RPC"],
-        "summary": "Send a device command",
-        "description": "Sends an RPC command to a device in the authorized workspace\nproduct and records COMMAND_SENT followed by COMMAND_SUCCEEDED\nor COMMAND_FAILED. OPERATE access is required. isOneWay\ndefaults to true when omitted; queue defaults to false.\ndeviceName is informational—the server resolves the canonical\ndevice name from its projection.\n",
-        "operationId": "sendRPC",
+        "tags": ["Authentication"],
+        "summary": "Reset a password",
+        "description": "Replaces the password associated with a valid, unexpired,\none-time reset code. Submitting a code consumes it before the\npassword update is attempted, so a failed attempt requires a\nnew code. A successful reset also revokes previously issued\nPaapeli access tokens for the account.\n",
+        "operationId": "resetPassword",
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/PaapeliDeviceRPC" },
-              "examples": {
-                "Immediate two-way command": {
-                  "description": "Immediate two-way command",
-                  "value": {
-                    "action": "setTemperature",
-                    "deviceId": "2ce7b35c-e5dc-47f7-8f17-626501507503",
-                    "deviceName": "boiler-temp-01",
-                    "params": { "temperature": 72.5, "unit": "C" },
-                    "isOneWay": false,
-                    "queue": false
-                  }
-                },
-                "Queued one-way command": {
-                  "description": "Queued one-way command",
-                  "value": {
-                    "action": "restart",
-                    "deviceId": "2ce7b35c-e5dc-47f7-8f17-626501507503",
-                    "params": {},
-                    "isOneWay": true,
-                    "queue": true
-                  }
-                }
+              "schema": { "$ref": "#/components/schemas/ResetPasswordRequest" },
+              "example": {
+                "code": "V6pM_4nJCqjZm0z0YVqV4gFb0fRuXpAN0mYREKmpaE8",
+                "password": "correct horse battery staple",
+                "passwordConfirm": "correct horse battery staple"
               }
             }
           },
@@ -1246,31 +1704,62 @@
         },
         "responses": {
           "200": {
-            "description": "Command dispatched successfully",
+            "description": "Password changed and previous access tokens revoked",
             "content": {
               "application/json": {
-                "example": { "message": "RPC sent successfully" }
+                "example": { "message": "Password reset successful" }
               }
             }
           },
           "400": {
-            "description": "Invalid action, device ID, or parameters",
+            "description": "Validation failed, passwords differ, or the code expired",
             "content": {
               "*/*": {
                 "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
               }
             }
           },
-          "403": {
-            "description": "OPERATE access required or the device is outside this workspace product",
+          "404": {
+            "description": "The reset code is invalid or has already been used",
             "content": {
               "*/*": {
                 "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/user/request-reset-password": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Request a password reset",
+        "description": "Requests a one-time password reset code for an active account.\nThe response is deliberately identical when the account does\nnot exist, is inactive, or the request is throttled. Repeated\nrequests for the same normalized email are limited by the\nconfigured reset-request cooldown.\n",
+        "operationId": "requestChangePassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordGenerateCodeRequest"
+              },
+              "example": { "email": "operator@example.com" }
+            }
           },
-          "500": {
-            "description": "The command failed or timed out",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Generic response returned for every valid email-shaped request",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "If the account exists, a password reset email will be sent"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body contains a malformed email",
             "content": {
               "*/*": {
                 "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
@@ -1291,7 +1780,13 @@
             "description": "Products returned",
             "content": {
               "application/json": {
-                "example": [{ "productKey": "aiot", "name": "Industrial IoT" }]
+                "example": [
+                  {
+                    "productKey": "gps-tracking",
+                    "name": "GPS Tracking",
+                    "tbProvisioningTemplate": "GPS_TRACKING_V1"
+                  }
+                ]
               }
             }
           },
@@ -1317,7 +1812,11 @@
           "content": {
             "application/json": {
               "schema": { "$ref": "#/components/schemas/ProductDTO" },
-              "example": { "productKey": "aiot", "name": "Industrial IoT" }
+              "example": {
+                "productKey": "gps-tracking",
+                "name": "GPS Tracking",
+                "tbProvisioningTemplate": "GPS_TRACKING_V1"
+              }
             }
           },
           "required": true
@@ -1330,7 +1829,7 @@
             }
           },
           "400": {
-            "description": "Invalid product key or name",
+            "description": "Invalid product definition",
             "content": {
               "*/*": { "schema": { "$ref": "#/components/schemas/ProductDTO" } }
             }
@@ -1350,12 +1849,284 @@
         }
       }
     },
+    "/api/v1/aiot/products/{productKey}/device-types": {
+      "get": {
+        "tags": ["Product device types"],
+        "summary": "List device types",
+        "description": "Lists the product's device-type catalog. Disabled\nentries remain visible but cannot be selected when\nregistering new devices.\n",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "productKey",
+            "in": "path",
+            "description": "Product key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "aiot"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Device types returned",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliListResponsePaapeliProductDeviceType"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliListResponsePaapeliProductDeviceType"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Product device types"],
+        "summary": "Create a device type",
+        "description": "Adds an immutable device-type key to the product\ncatalog. Its label, description, provisioning\nprofile, and enabled state may be changed later.\nPlatform-administrator access is required.\n",
+        "operationId": "create_1",
+        "parameters": [
+          {
+            "name": "productKey",
+            "in": "path",
+            "description": "Product key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "aiot"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductDeviceTypeRequest"
+              },
+              "example": {
+                "deviceType": "zx909",
+                "label": "ZX909 GPS tracker",
+                "description": "GPS tracker using the ZX909 protocol family",
+                "deviceProfileName": "pet-tracker",
+                "enabled": true
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Device type created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductDeviceType"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid device-type definition",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductDeviceType"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication or platform-administrator\naccess required\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductDeviceType"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Device type already exists",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductDeviceType"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/products/{productKey}/device-types/{deviceType}/commands": {
+      "get": {
+        "tags": ["Product device commands"],
+        "summary": "List commands for a device type",
+        "description": "Lists the command catalog for the supplied product\ndevice type. Disabled definitions remain visible but\ncannot be selected for new command dispatches.\nInternal dispatch configuration is not returned.\n",
+        "operationId": "list_1",
+        "parameters": [
+          {
+            "name": "productKey",
+            "in": "path",
+            "description": "Product key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "aiot"
+          },
+          {
+            "name": "deviceType",
+            "in": "path",
+            "description": "Device-type key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "zx909"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Commands returned",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliListResponsePaapeliProductDeviceCommand"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device type not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliListResponsePaapeliProductDeviceCommand"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Product device commands"],
+        "summary": "Create a device command",
+        "description": "Adds a command definition to a product device type.\nThe command key is immutable. Dispatch configuration\nis used internally and is not included in the public\ncommand representation. Platform-administrator access\nis required.\n",
+        "operationId": "create_2",
+        "parameters": [
+          {
+            "name": "productKey",
+            "in": "path",
+            "description": "Product key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "aiot"
+          },
+          {
+            "name": "deviceType",
+            "in": "path",
+            "description": "Device-type key",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "zx909"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductDeviceCommandRequest"
+              },
+              "example": {
+                "commandKey": "setLocationInterval",
+                "label": "Set location interval",
+                "description": "Changes how frequently the tracker reports its location",
+                "dispatchMethod": "setLocationInterval",
+                "parameterSchema": {
+                  "type": "object",
+                  "properties": {
+                    "seconds": {
+                      "type": "integer",
+                      "minimum": 10,
+                      "maximum": 86400
+                    }
+                  },
+                  "required": ["seconds"],
+                  "additionalProperties": false
+                },
+                "oneWay": false,
+                "queueIfOffline": false,
+                "timeoutMs": 10000,
+                "retries": 3,
+                "enabled": true
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Command created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductDeviceCommand"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid command definition",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductDeviceCommand"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication or platform-administrator\naccess required\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductDeviceCommand"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device type not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductDeviceCommand"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Command already exists",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliProductDeviceCommand"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/aiot/products/{productKey}/asset-types": {
       "get": {
         "tags": ["Product asset types"],
         "summary": "List asset types",
         "description": "Lists the product's complete asset-type catalog, including\nthe system ROOT type. This endpoint lists definitions; use\nthe allowed-children endpoint to discover topology rules.\n",
-        "operationId": "list",
+        "operationId": "list_2",
         "parameters": [
           {
             "name": "productKey",
@@ -1406,7 +2177,7 @@
         "tags": ["Product asset types"],
         "summary": "Create an asset type",
         "description": "Adds an immutable asset-type key to the product catalog.\nThe label and description may be changed later. ROOT is\nsystem-managed and cannot be created through this endpoint.\nPlatform-administrator access is required.\n",
-        "operationId": "create_1",
+        "operationId": "create_3",
         "parameters": [
           {
             "name": "productKey",
@@ -1476,6 +2247,44 @@
         }
       }
     },
+    "/api/v1/aiot/devices/{workspaceId}/{productKey}/{deviceId}/commands": {
+      "post": {
+        "tags": ["Device commands"],
+        "summary": "Send a command to a device",
+        "description": "Sends an enabled command from the device's command\ncatalog. Dispatch behavior is controlled by the\nplatform and cannot be overridden by callers.\n\nA successful result confirms successful dispatch.\nIt does not necessarily confirm execution by the\nphysical device.\n",
+        "operationId": "sendCommand",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendDeviceCommandRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceCommandResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/aiot/auth/login": {
       "post": {
         "tags": ["Authentication"],
@@ -1528,6 +2337,66 @@
           }
         },
         "security": []
+      }
+    },
+    "/api/v1/aiot/auth/google": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Sign in with Google",
+        "description": "Verifies a Google ID token and returns a Paapeli bearer token.\nA new active account is created when the verified Google email\nis unknown. An existing password account with the same verified\nemail is linked to that Google identity.\n",
+        "operationId": "loginWithGoogle",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/GoogleSignInRequest" },
+              "example": { "idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij..." }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication succeeded",
+            "content": {
+              "application/json": {
+                "example": {
+                  "token": "eyJhbGciOiJIUzI1NiJ9...",
+                  "tokenType": "Bearer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing ID token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAuthenticationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Google token is invalid or the account is not active",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAuthenticationResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Google sign-in is not configured",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAuthenticationResponse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/aiot/assets/{workspaceId}/{productKey}/{parentAssetId}/children": {
@@ -1811,7 +2680,7 @@
       "get": {
         "tags": ["Alarms"],
         "summary": "List device alarm rules",
-        "description": "Returns alarm rules configured for a device in the authorized workspace\nproduct, ordered by creation time descending. Page numbers are one-based.\nThe requested page size is clamped to the range 1-100. Clear conditions\nare intentionally not included in this list representation.\n",
+        "description": "Returns the local alarm-rule projection for a device in the authorized\nworkspace product, including provisioning and failed rules. Page numbers\nare one-based and the requested page size is clamped to 1-100. The ID in\neach item is the stable Paapeli alarm-rule ID accepted by the delete API.\n",
         "operationId": "getRules",
         "parameters": [
           {
@@ -1885,7 +2754,7 @@
         "tags": ["Alarms"],
         "summary": "Create a device alarm rule",
         "description": "Creates an alarm rule for a device in the authorized workspace product.\nEach create rule is keyed by alarm severity. SIMPLE rules fire as soon as\ntheir expression is true; DURATION rules require a positive duration and\ntime unit; REPEATING rules require a positive consecutive-event count.\nExpressions may combine leaf rules with AND or OR. Literal values must use\nthe JSON type declared by valueType. An optional clearRule automatically\nclears an active alarm when its expression becomes true.\n",
-        "operationId": "create_2",
+        "operationId": "create_4",
         "parameters": [
           {
             "name": "deviceId",
@@ -1987,8 +2856,8 @@
           "required": true
         },
         "responses": {
-          "201": {
-            "description": "Alarm rule created",
+          "202": {
+            "description": "Alarm-rule provisioning accepted",
             "content": {
               "application/json": {
                 "schema": {
@@ -1996,6 +2865,8 @@
                 },
                 "example": {
                   "id": "44c630f8-62be-4b42-8a8f-579e2f67bfe8",
+                  "provisioningState": "PROVISIONING",
+                  "workflowId": "alarm-rule/provision/966c55e1-025e-4ad4-930b-d7a2c70e66e2/44c630f8-62be-4b42-8a8f-579e2f67bfe8",
                   "createdAt": "2026-08-12T17:30:00Z"
                 }
               }
@@ -2697,6 +3568,46 @@
         }
       }
     },
+    "/api/v1/aiot/alarms/{workspaceId}/{productKey}/rule": {
+      "get": {
+        "tags": ["Alarms"],
+        "summary": "List workspace-product alarm rules",
+        "description": "Returns the local alarm-rule projection for the authorized\nworkspace product. Results include rules that are still\nprovisioning or have failed, and can optionally be filtered\nby device.\n",
+        "operationId": "getWorkspaceProductRules",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseAlarmRuleItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/aiot/alarms/{workspaceId}/{productKey}/device/{deviceId}": {
       "get": {
         "tags": ["Alarms"],
@@ -2809,12 +3720,12 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Alarm rule deleted",
+          "202": {
+            "description": "Alarm-rule deletion accepted",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/PaapeliMessage" },
-                "example": { "message": "Alarm rule deleted" }
+                "example": { "message": "Alarm rule deletion accepted" }
               }
             }
           },
@@ -2840,6 +3751,215 @@
   },
   "components": {
     "schemas": {
+      "UpdateProductDeviceTypeRequest": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Human-readable device-type label",
+            "example": "ZX909/C09 GPS tracker",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional device-type description",
+            "example": "GPS tracker using the ZX909/C09 protocol family",
+            "maxLength": 500,
+            "minLength": 0
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether this type may be selected for new devices\n",
+            "example": true
+          }
+        },
+        "required": ["enabled", "label"]
+      },
+      "PaapeliProductDeviceType": {
+        "type": "object",
+        "description": "Device-type definition for a product",
+        "properties": {
+          "productKey": {
+            "type": "string",
+            "description": "Product key this device type belongs to",
+            "example": "aiot"
+          },
+          "deviceType": {
+            "type": "string",
+            "description": "Stable device-type key used when creating devices\n",
+            "example": "zx909"
+          },
+          "label": {
+            "type": "string",
+            "description": "Human-readable device-type label",
+            "example": "ZX909 GPS tracker"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional device-type description",
+            "example": "GPS tracker using the ZX909 protocol family"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether this type may be selected for new devices\n",
+            "example": true
+          }
+        },
+        "required": ["deviceType", "enabled", "label", "productKey"]
+      },
+      "JsonNode": {
+        "type": "object",
+        "properties": {
+          "empty": { "type": "boolean" },
+          "array": { "type": "boolean" },
+          "null": { "type": "boolean" },
+          "object": { "type": "boolean" },
+          "float": { "type": "boolean" },
+          "nodeType": {
+            "type": "string",
+            "enum": [
+              "ARRAY",
+              "BINARY",
+              "BOOLEAN",
+              "MISSING",
+              "NULL",
+              "NUMBER",
+              "OBJECT",
+              "POJO",
+              "STRING"
+            ]
+          },
+          "string": { "type": "boolean" },
+          "integralNumber": { "type": "boolean" },
+          "floatingPointNumber": { "type": "boolean" },
+          "missingNode": { "type": "boolean" },
+          "valueNode": { "type": "boolean" },
+          "container": { "type": "boolean" },
+          "pojo": { "type": "boolean" },
+          "short": { "type": "boolean" },
+          "int": { "type": "boolean" },
+          "long": { "type": "boolean" },
+          "double": { "type": "boolean" },
+          "bigDecimal": { "type": "boolean" },
+          "bigInteger": { "type": "boolean" },
+          "textual": { "type": "boolean", "deprecated": true },
+          "boolean": { "type": "boolean" },
+          "binary": { "type": "boolean" },
+          "number": { "type": "boolean" },
+          "embeddedValue": { "type": "boolean" }
+        }
+      },
+      "UpdateProductDeviceCommandRequest": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Human-readable command label",
+            "example": "Set tracker location interval",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional command description",
+            "maxLength": 500,
+            "minLength": 0
+          },
+          "dispatchMethod": {
+            "type": "string",
+            "description": "Internal method used by the device transport\n",
+            "example": "setLocationInterval",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "parameterSchema": {
+            "$ref": "#/components/schemas/JsonNode",
+            "description": "JSON Schema describing the command parameters\n"
+          },
+          "oneWay": {
+            "type": "boolean",
+            "description": "Whether the transport operation is one-way\n"
+          },
+          "queueIfOffline": {
+            "type": "boolean",
+            "description": "Whether delivery may be queued while the device is\nunavailable\n"
+          },
+          "timeoutMs": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Dispatch timeout in milliseconds",
+            "maximum": 300000,
+            "minimum": 1
+          },
+          "retries": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Maximum dispatch retries",
+            "maximum": 10,
+            "minimum": 0
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the command may be selected for new\ndispatches\n"
+          }
+        },
+        "required": [
+          "dispatchMethod",
+          "enabled",
+          "label",
+          "oneWay",
+          "parameterSchema",
+          "queueIfOffline",
+          "retries",
+          "timeoutMs"
+        ]
+      },
+      "PaapeliProductDeviceCommand": {
+        "type": "object",
+        "description": "Command supported by a product device type\n",
+        "properties": {
+          "productKey": {
+            "type": "string",
+            "description": "Product key",
+            "example": "aiot"
+          },
+          "deviceType": {
+            "type": "string",
+            "description": "Device-type key",
+            "example": "zx909"
+          },
+          "commandKey": {
+            "type": "string",
+            "description": "Stable command key",
+            "example": "setLocationInterval"
+          },
+          "label": {
+            "type": "string",
+            "description": "Human-readable command label",
+            "example": "Set location interval"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional command description"
+          },
+          "parameterSchema": {
+            "$ref": "#/components/schemas/JsonNode",
+            "description": "JSON Schema describing the accepted parameters\n"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the command may currently be dispatched\n"
+          }
+        },
+        "required": [
+          "commandKey",
+          "deviceType",
+          "enabled",
+          "label",
+          "productKey"
+        ]
+      },
       "PaapeliMessage": {
         "type": "object",
         "description": "Simple success message response",
@@ -2905,6 +4025,85 @@
           "type": { "type": "string" },
           "description": { "type": "string" }
         }
+      },
+      "Circle": {
+        "allOf": [
+          { "$ref": "#/components/schemas/GeometricShape" },
+          {
+            "type": "object",
+            "properties": {
+              "center": { "$ref": "#/components/schemas/Coordinate" },
+              "radiusMeters": { "type": "integer", "format": "int32" }
+            }
+          }
+        ],
+        "required": ["center"]
+      },
+      "Coordinate": {
+        "type": "object",
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "format": "double",
+            "maximum": 90.0,
+            "minimum": -90.0
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double",
+            "maximum": 180.0,
+            "minimum": -180.0
+          }
+        },
+        "required": ["latitude", "longitude"]
+      },
+      "GeometricShape": {},
+      "Polygon": {
+        "allOf": [
+          { "$ref": "#/components/schemas/GeometricShape" },
+          {
+            "type": "object",
+            "properties": {
+              "vertices": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/Coordinate" },
+                "maxItems": 1000,
+                "minItems": 3
+              }
+            }
+          }
+        ],
+        "required": ["vertices"]
+      },
+      "Rectangle": {
+        "allOf": [
+          { "$ref": "#/components/schemas/GeometricShape" },
+          {
+            "type": "object",
+            "properties": {
+              "corner1": { "$ref": "#/components/schemas/Coordinate" },
+              "corner2": { "$ref": "#/components/schemas/Coordinate" }
+            }
+          }
+        ],
+        "required": ["corner1", "corner2"]
+      },
+      "Zone": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["CIRCLE", "POLYGON", "RECTANGLE"]
+          },
+          "area": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/Circle" },
+              { "$ref": "#/components/schemas/Polygon" },
+              { "$ref": "#/components/schemas/Rectangle" }
+            ]
+          }
+        },
+        "required": ["area", "type"]
       },
       "PaapeliCredentialUpdateRequest": {
         "type": "object",
@@ -3132,58 +4331,154 @@
           }
         }
       },
-      "PaapeliDeviceRPC": {
+      "ResetPasswordRequest": {
         "type": "object",
-        "description": "Device RPC (Remote Procedure Call) command",
         "properties": {
-          "action": {
+          "code": { "type": "string", "minLength": 1 },
+          "password": { "type": "string", "minLength": 1 },
+          "passwordConfirm": { "type": "string", "minLength": 1 }
+        },
+        "required": ["code", "password", "passwordConfirm"]
+      },
+      "ResetPasswordGenerateCodeRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
             "type": "string",
-            "description": "Action / method name that the device should execute",
-            "example": "setTemperature",
-            "maxLength": 255,
+            "format": "email",
+            "maxLength": 254,
             "minLength": 0
-          },
-          "deviceId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Target device ID",
-            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-          },
-          "deviceName": {
-            "type": "string",
-            "description": "Device name",
-            "example": "living-room-sensor",
-            "maxLength": 255,
-            "minLength": 0
-          },
-          "params": {
-            "type": "object",
-            "additionalProperties": {},
-            "description": "Parameters for the action (can be null or empty)",
-            "example": { "temperature": 23.5, "unit": "C" }
-          },
-          "isOneWay": {
-            "type": "boolean",
-            "default": false,
-            "description": "One-way RPC (fire and forget). Default: false",
-            "example": false
-          },
-          "queue": {
-            "type": "boolean",
-            "default": false,
-            "description": "Queue the RPC if device is offline. Default: false",
-            "example": false
           }
         },
-        "required": ["action", "deviceId"]
+        "required": ["email"]
       },
       "ProductDTO": {
         "type": "object",
         "properties": {
           "productKey": { "type": "string", "maxLength": 64, "minLength": 0 },
-          "name": { "type": "string", "maxLength": 255, "minLength": 0 }
+          "name": { "type": "string", "maxLength": 255, "minLength": 0 },
+          "tbProvisioningTemplate": {
+            "type": "string",
+            "default": "NONE",
+            "description": "Product-specific ThingsBoard resources to provision",
+            "enum": ["NONE", "GPS_TRACKING_V1"]
+          }
         },
         "required": ["name", "productKey"]
+      },
+      "CreateProductDeviceTypeRequest": {
+        "type": "object",
+        "properties": {
+          "deviceType": {
+            "type": "string",
+            "description": "Stable device-type key",
+            "example": "zx909",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "label": {
+            "type": "string",
+            "description": "Human-readable device-type label",
+            "example": "ZX909 GPS tracker",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional device-type description",
+            "example": "GPS tracker using the ZX909 protocol family",
+            "maxLength": 500,
+            "minLength": 0
+          },
+          "deviceProfileName": {
+            "type": "string",
+            "description": "Internal provisioning profile used when registering\ndevices of this type\n",
+            "example": "pet-tracker",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether this type may be selected for new devices.\nDefaults to true\n",
+            "example": true
+          }
+        },
+        "required": ["deviceProfileName", "deviceType", "label"]
+      },
+      "CreateProductDeviceCommandRequest": {
+        "type": "object",
+        "properties": {
+          "commandKey": {
+            "type": "string",
+            "description": "Stable public command key selected by API clients\n",
+            "example": "setLocationInterval",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "label": {
+            "type": "string",
+            "description": "Human-readable command label",
+            "example": "Set location interval",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional command description",
+            "example": "Changes how frequently the tracker reports its\nlocation",
+            "maxLength": 500,
+            "minLength": 0
+          },
+          "dispatchMethod": {
+            "type": "string",
+            "description": "Internal method used by the device transport\n",
+            "example": "setLocationInterval",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "parameterSchema": {
+            "$ref": "#/components/schemas/JsonNode",
+            "description": "JSON Schema describing the command parameters\n"
+          },
+          "oneWay": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether the transport operation is one-way.\nDefaults to true\n",
+            "example": false
+          },
+          "queueIfOffline": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether delivery may be queued while the device is\nunavailable. Defaults to false\n",
+            "example": false
+          },
+          "timeoutMs": {
+            "type": "integer",
+            "format": "int32",
+            "default": 10000,
+            "description": "Dispatch timeout in milliseconds",
+            "example": 10000,
+            "maximum": 300000,
+            "minimum": 1
+          },
+          "retries": {
+            "type": "integer",
+            "format": "int32",
+            "default": 3,
+            "description": "Maximum dispatch retries",
+            "example": 3,
+            "maximum": 10,
+            "minimum": 0
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether the command may be selected for new\ndispatches. Defaults to true\n",
+            "example": true
+          }
+        },
+        "required": ["commandKey", "dispatchMethod", "label", "parameterSchema"]
       },
       "CreateProductAssetTypeRequest": {
         "type": "object",
@@ -3205,14 +4500,15 @@
           },
           "type": {
             "type": "string",
-            "description": "Device type",
-            "example": "default",
+            "description": "Device-type key from the product device-type catalog\n",
+            "example": "zx909",
             "maxLength": 255,
             "minLength": 0
           },
           "name": {
             "type": "string",
-            "description": "Unique device name",
+            "description": "Unique device name, such as the tracker IMEI",
+            "example": "861971080061529",
             "maxLength": 255,
             "minLength": 0
           },
@@ -3225,12 +4521,6 @@
           "isGateway": {
             "type": "boolean",
             "description": "Whether this device acts as a gateway"
-          },
-          "profileId": {
-            "type": "string",
-            "description": "Device profile ID",
-            "maxLength": 36,
-            "minLength": 0
           },
           "credentialType": {
             "type": "string",
@@ -3255,7 +4545,7 @@
             "minLength": 0
           }
         },
-        "required": ["assetId", "credentialType", "name"]
+        "required": ["assetId", "credentialType", "name", "type"]
       },
       "PaapeliCreateDeviceResponse": {
         "type": "object",
@@ -3272,6 +4562,36 @@
               "MQTT_BASIC",
               "LWM2M_CREDENTIALS"
             ]
+          }
+        }
+      },
+      "SendDeviceCommandRequest": {
+        "type": "object",
+        "description": "A catalog-backed command sent to a device",
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "Public command key from the device command catalog",
+            "example": "setLocationInterval",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "params": {
+            "$ref": "#/components/schemas/JsonNode",
+            "description": "Parameters defined by the command's parameter schema",
+            "example": { "seconds": 60 }
+          }
+        },
+        "required": ["command"]
+      },
+      "DeviceCommandResponse": {
+        "type": "object",
+        "description": "Device command dispatch result",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether command dispatch completed successfully.\nThis does not necessarily mean that the physical\ndevice executed the command.\n",
+            "example": true
           }
         }
       },
@@ -3294,6 +4614,17 @@
         },
         "required": ["password", "username"]
       },
+      "GoogleSignInRequest": {
+        "type": "object",
+        "properties": {
+          "idToken": {
+            "type": "string",
+            "description": "Google ID token from Google Identity Services",
+            "minLength": 1
+          }
+        },
+        "required": ["idToken"]
+      },
       "CreateWorkspaceProductAssetRequest": {
         "type": "object",
         "properties": {
@@ -3308,6 +4639,8 @@
         "type": "object",
         "properties": {
           "id": { "type": "string", "format": "uuid" },
+          "provisioningState": { "type": "string" },
+          "workflowId": { "type": "string" },
           "createdAt": { "type": "string", "format": "date-time" }
         }
       },
@@ -3440,6 +4773,26 @@
           "value": { "type": "string" }
         }
       },
+      "PaapeliListResponsePaapeliProductDeviceType": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PaapeliProductDeviceType" }
+          }
+        }
+      },
+      "PaapeliListResponsePaapeliProductDeviceCommand": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaapeliProductDeviceCommand"
+            }
+          }
+        }
+      },
       "PaapeliListResponsePaapeliProductAssetType": {
         "type": "object",
         "properties": {
@@ -3540,6 +4893,8 @@
         "type": "object",
         "properties": {
           "id": { "type": "string", "format": "uuid" },
+          "thingsBoardId": { "type": "string", "format": "uuid" },
+          "deviceId": { "type": "string", "format": "uuid" },
           "name": { "type": "string" },
           "description": { "type": "string" },
           "arguments": { "type": "array", "items": { "type": "string" } },
@@ -3549,6 +4904,12 @@
               "$ref": "#/components/schemas/SeverityRule"
             }
           },
+          "provisioningState": {
+            "type": "string",
+            "enum": ["PROVISIONING", "ACTIVE", "FAILED", "DELETING"]
+          },
+          "workflowId": { "type": "string" },
+          "lastError": { "type": "string" },
           "createdAt": { "type": "string", "format": "date-time" }
         }
       },

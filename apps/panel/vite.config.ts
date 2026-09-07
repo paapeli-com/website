@@ -68,7 +68,7 @@ export default defineConfig({
        and the status is readable. */
     proxy: {
       "/api": {
-        target: "https://gateway.paapeli.me",
+        target: "https://gateway-mini.paapeli.me",
         changeOrigin: true,
       },
     },

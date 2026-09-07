@@ -1,16 +1,26 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { deviceRpcService, DeviceRpcRequest } from './deviceRpc';
+import { deviceCommandsService, SendDeviceCommandRequest } from './deviceCommands';
 
-export function useSendDeviceRpcMutation() {
+export function useSendDeviceCommandMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationKey: ['sendDeviceRpc'],
+        mutationKey: ['sendDeviceCommand'],
         mutationFn: ({
             workspaceId,
             productKey,
+            deviceId,
             ...req
-        }: DeviceRpcRequest & { workspaceId: string; productKey: string }) =>
-            deviceRpcService.send(workspaceId, productKey, req),
+        }: SendDeviceCommandRequest & {
+            workspaceId: string;
+            productKey: string;
+            deviceId: string;
+        }) =>
+            deviceCommandsService.sendCommand(
+                workspaceId,
+                productKey,
+                deviceId,
+                req,
+            ),
         onSuccess: (_data, { workspaceId, productKey, deviceId }) => {
             // The gateway records each command in the device's activity feed
             // (COMMAND_SENT / COMMAND_SUCCEEDED / COMMAND_FAILED), which is

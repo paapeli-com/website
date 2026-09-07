@@ -229,7 +229,6 @@ const Login = () => {
                   <Input
                     id="code"
                     type="text"
-                    placeholder={language === 'en' ? 'Enter 6-digit code' : language === 'ar' ? 'أدخل الرمز المكون من 6 أرقام' : 'کد ۶ رقمی را وارد کنید'}
                     value={verificationCode}
                     onChange={(e) => setVerificationCode(e.target.value)}
                     className="mt-1 bg-white border-gray-300"
@@ -289,7 +288,6 @@ const Login = () => {
                 <Input
                   id="email"
                   type="text"
-                  placeholder={language === 'en' ? 'name@host.com' : language === 'ar' ? 'الاسم@المضيف.com' : 'نام@هاست.com'}
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="mt-1 bg-white border-gray-300"
@@ -304,7 +302,6 @@ const Login = () => {
                 <Input
                   id="password"
                   type="password"
-                  placeholder={language === 'en' ? 'Password' : language === 'ar' ? 'كلمة المرور' : 'رمز عبور'}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="mt-1 bg-white border-gray-300"
