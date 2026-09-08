@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Building2, ChevronRight, Info, KeyRound, LogOut, Map, Palette, Plus, ShieldCheck } from "lucide-react";
-import { CURRENT_USER } from "@paapeli/brand/config";
+import { getCurrentUser } from "@paapeli/brand/session";
 import { signOut as endSession } from "@paapeli/brand/session";
 import { useWorkspace } from "@/features/track/contexts/WorkspaceContext";
 import { useLanguage } from "@/features/track/i18n/LanguageContext";
@@ -32,7 +32,7 @@ function LinkRow({ icon: Icon, label, onClick }: any) {
 }
 
 export default function Settings() {
-  const user = { email: CURRENT_USER.email };
+  const user = { email: getCurrentUser()?.email ?? "" };
   const { t, language, setLanguage } = useLanguage();
   const { dark, toggle } = useTheme();
   const { brand, setTenant } = useBrand();

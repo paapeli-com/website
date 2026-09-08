@@ -13,104 +13,16 @@ export interface ForecastAsset {
   recommendedActions: string[];
 }
 
-export const FORECAST_ASSETS: ForecastAsset[] = [
-  {
-    id: "Pump P101",
-    devId: "DEV-101",
-    type: "Pump",
-    location: "Qazvin > Factory A > Sulfonation > Line 1",
-    health: 43,
-    risk: "Critical",
-    date: "Jun 14, 2026",
-    rulDays: 3,
-    cause: "Bearing vibration",
-    recommendedActions: ["Inspect bearing", "Lubricate shaft", "Schedule maintenance window"],
-  },
-  {
-    id: "Boiler Pump BP-2",
-    devId: "DEV-810",
-    type: "Pump",
-    location: "Qazvin > Factory A > Boiler > Line 1",
-    health: 48,
-    risk: "Critical",
-    date: "Jun 15, 2026",
-    rulDays: 4,
-    cause: "Cavitation",
-    recommendedActions: ["Check suction pressure", "Inspect impeller", "Reduce throughput"],
-  },
-  {
-    id: "Compressor C3",
-    devId: "DEV-205",
-    type: "Compressor",
-    location: "Qazvin > Factory A > Sulfonation > Line 2",
-    health: 56,
-    risk: "High",
-    date: "Jun 17, 2026",
-    rulDays: 6,
-    cause: "Vibration anomaly",
-    recommendedActions: ["Lubricate shaft", "Re-balance rotor", "Schedule inspection"],
-  },
-  {
-    id: "Motor M12",
-    devId: "DEV-322",
-    type: "Motor",
-    location: "Qazvin > Factory B > Processing > Line 1",
-    health: 61,
-    risk: "High",
-    date: "Jun 20, 2026",
-    rulDays: 9,
-    cause: "Temperature rise",
-    recommendedActions: ["Inspect cooling system", "Verify load", "Schedule thermal check"],
-  },
-  {
-    id: "Heat Exchanger HX-7",
-    devId: "DEV-705",
-    type: "Heat Exchanger",
-    location: "Qazvin > Factory B > Processing > Line 2",
-    health: 65,
-    risk: "High",
-    date: "Jun 28, 2026",
-    rulDays: 14,
-    cause: "Fouling",
-    recommendedActions: ["Plan chemical cleaning", "Inspect tube bundle", "Monitor pressure drop"],
-  },
-  {
-    id: "Furnace Fan F2",
-    devId: "DEV-411",
-    type: "Fan",
-    location: "Qazvin > Factory A > Furnace > Line 3",
-    health: 72,
-    risk: "Medium",
-    date: "Jul 1, 2026",
-    rulDays: 18,
-    cause: "Current instability",
-    recommendedActions: ["Inspect electrical supply", "Check winding insulation"],
-  },
-  {
-    id: "Conveyor CV-04",
-    devId: "DEV-508",
-    type: "Conveyor",
-    location: "Qazvin > Factory B > Packaging > Line 2",
-    health: 75,
-    risk: "Medium",
-    date: "Jul 7, 2026",
-    rulDays: 24,
-    cause: "Belt wear",
-    recommendedActions: ["Inspect belt", "Adjust tensioner"],
-  },
-  {
-    id: "Valve V-21",
-    devId: "DEV-612",
-    type: "Valve",
-    location: "Qazvin > Factory A > Sulfonation > Line 1",
-    health: 81,
-    risk: "Low",
-    date: "Aug 12, 2026",
-    rulDays: 60,
-    cause: "Seal degradation",
-    recommendedActions: ["Plan seal replacement"],
-  },
-];
+/* Empty until there is an endpoint behind it.
+
+   This array used to hold invented failure forecasts, written by hand and rendered by
+   the AI pages exactly as a model's output would be — health scores, remaining
+   useful life, confidence percentages, named assets at named plants. Nothing
+   on screen distinguished that from a real prediction, so the pages now show
+   "no data" instead. Point this at the query when the service lands; the
+   consumers already work off whatever length this has.
+*/
+export const FORECAST_ASSETS: ForecastAsset[] = [];
 
 export const RISK_BADGE: Record<ForecastRisk, string> = {
   Critical: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",

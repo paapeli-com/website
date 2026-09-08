@@ -4,8 +4,8 @@ import { Button } from "@/features/factory/components/ui/button";
 import { Card, CardContent } from "@/features/factory/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/features/factory/components/ui/tooltip";
 import { Plus, Copy } from "lucide-react";
-import { mockAlertTemplates } from "@/features/factory/data/mockAlertData";
-import type { AlertSeverity } from "@/features/factory/types/alerts";
+import { NoData } from "@/features/factory/components/NoData";
+import type { AlertSeverity, AlertTemplate } from "@/features/factory/types/alerts";
 
 const severityColors: Record<AlertSeverity, string> = {
   critical: "bg-destructive text-destructive-foreground",
@@ -41,6 +41,11 @@ export const AlertTemplates = ({ onUseTemplate }: AlertTemplatesProps) => {
   const { t, isRTL } = useLanguage();
   const tt = t as (k: string) => string;
 
+  /* The four ATPL-* templates that used to render here were invented, and
+     "Use template" never carried the choice into the rule form anyway — it
+     just navigates. Nothing serves templates yet, so the tab says so. */
+  const templates: AlertTemplate[] = [];
+
   return (
     <div className="space-y-4" dir={isRTL ? "rtl" : "ltr"}>
       <div className="flex justify-between items-center">
@@ -58,8 +63,10 @@ export const AlertTemplates = ({ onUseTemplate }: AlertTemplatesProps) => {
         </Tooltip>
       </div>
 
+      {templates.length === 0 && <NoData />}
+
       <div className="grid sm:grid-cols-2 gap-4">
-        {mockAlertTemplates.map(template => {
+        {templates.map(template => {
           const k = tplI18n[template.id];
           const name = k ? tt(k.name) : template.name;
           const desc = k ? tt(k.desc) : template.description;

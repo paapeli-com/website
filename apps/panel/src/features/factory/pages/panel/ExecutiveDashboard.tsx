@@ -27,6 +27,7 @@ import {
   Lightbulb,
 } from "lucide-react";
 import { OPPORTUNITIES } from "@/features/factory/data/trends";
+import { NoData, NoDataValue } from "@/features/factory/components/NoData";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 
@@ -152,12 +153,23 @@ const ExecutiveDashboard = () => {
   const tr = (k: keyof typeof DICT) => DICT[k][language as Lang] ?? DICT[k].en;
   const fmt = (n: number | string) => formatNumber(n);
 
-  const kpis = [
-    { label: tr("plantHealth"), value: "92", suffix: "%", deltaNum: "2%", trend: "up" as const, icon: Heart, tone: "success", sparkColor: "#10b981", spark: [40, 38, 42, 45, 44, 48, 50, 52, 55, 58, 60, 62] },
-    { label: tr("criticalAlarms"), value: "3", deltaNum: "1", trend: "down" as const, icon: BellRing, tone: "danger", sparkColor: "#ef4444", spark: [60, 55, 58, 50, 48, 52, 45, 42, 40, 38, 35, 32] },
-    { label: tr("assetsAtRisk"), value: "8", deltaNum: "2", trend: "up" as const, icon: AlertTriangle, tone: "warning", sparkColor: "#f59e0b", spark: [30, 35, 32, 38, 40, 36, 42, 45, 43, 48, 50, 52] },
-    { label: tr("systemAvailability"), value: "99.8", suffix: "%", deltaNum: "0.3%", trend: "up" as const, icon: ShieldCheck, tone: "info", sparkColor: "#3b82f6", spark: [80, 82, 81, 83, 85, 84, 86, 88, 87, 89, 90, 92] },
-    { label: tr("openWorkOrders"), value: "5", deltaNum: "1", trend: "down" as const, icon: ClipboardList, tone: "purple", sparkColor: "#8b5cf6", spark: [50, 48, 52, 50, 54, 52, 56, 54, 58, 56, 60, 58] },
+  /* Hand-written, never computed: five KPI tiles with their own invented
+     12-point sparklines ("92% plant health", "99.8% availability"), three
+     named failure predictions with confidence percentages, an all-green
+     service list, four model cards, a three-horizon failure forecast, a
+     recent-activity feed with "2 min ago" timestamps and an asset-health
+     donut. Each panel keeps its heading and reports that it has no source.
+
+     aiFeatures below stays — those are navigation tiles, not data. */
+  const kpis: {
+    label: string; value: string | null; suffix?: string; deltaNum: string;
+    trend: "up" | "down"; icon: typeof Heart; tone: string; sparkColor: string; spark: number[];
+  }[] = [
+    { label: tr("plantHealth"), value: null, suffix: "%", deltaNum: "", trend: "up", icon: Heart, tone: "success", sparkColor: "#10b981", spark: [] },
+    { label: tr("criticalAlarms"), value: null, deltaNum: "", trend: "down", icon: BellRing, tone: "danger", sparkColor: "#ef4444", spark: [] },
+    { label: tr("assetsAtRisk"), value: null, deltaNum: "", trend: "up", icon: AlertTriangle, tone: "warning", sparkColor: "#f59e0b", spark: [] },
+    { label: tr("systemAvailability"), value: null, suffix: "%", deltaNum: "", trend: "up", icon: ShieldCheck, tone: "info", sparkColor: "#3b82f6", spark: [] },
+    { label: tr("openWorkOrders"), value: null, deltaNum: "", trend: "down", icon: ClipboardList, tone: "purple", sparkColor: "#8b5cf6", spark: [] },
   ];
 
   const aiFeatures = [
@@ -168,40 +180,11 @@ const ExecutiveDashboard = () => {
     { label: tr("coPilot"), desc: tr("coPilotDesc"), icon: Bot, color: "text-violet-600 bg-violet-50", path: "/aiot/co-pilot" },
   ];
 
-  const aiInsights = [
-    { id: "f1", devId: "DEV-101", risk: tr("highRisk"), riskTone: "danger" as const, confidence: 90, asset: "Pump P101", days: 3, cause: tr("bearingWear"), impact: tr("productionStop") },
-    { id: "f2", devId: "DEV-322", risk: tr("mediumRisk"), riskTone: "warning" as const, confidence: 78, asset: "Motor M12", days: 7, cause: tr("vibrationAnomaly"), impact: tr("efficiencyLoss") },
-    { id: "f3", devId: "DEV-205", risk: tr("mediumRisk"), riskTone: "warning" as const, confidence: 72, asset: "Compressor C3", days: 10, cause: tr("suctionPressure"), impact: tr("highEnergy") },
-  ];
-
-  const systemStatus = [
-    { label: tr("mqttBroker") },
-    { label: tr("ruleEngine") },
-    { label: tr("aiEngine") },
-    { label: tr("database") },
-    { label: tr("storage") },
-  ];
-
-  const aiServices = [
-    { label: tr("failurePredictionModel"), icon: AlertTriangle },
-    { label: tr("anomalyDetection"), icon: Sparkles },
-    { label: tr("rulPredictionModel"), icon: TrendingUp },
-    { label: tr("classificationModel"), icon: LayoutGrid },
-  ];
-
-  const forecast = [
-    { label: tr("next7Days"), count: 8, pct: 25, color: "bg-red-500" },
-    { label: tr("next30Days"), count: 16, pct: 55, color: "bg-orange-500" },
-    { label: tr("next90Days"), count: 24, pct: 80, color: "bg-yellow-500" },
-  ];
-
-
-  const recentActivity = [
-    { icon: Bell, color: "text-red-500 bg-red-50", title: tr("newAlarm"), sub: "Compressor C3", time: `2 ${tr("minAgo")}` },
-    { icon: Sparkles, color: "text-emerald-500 bg-emerald-50", title: tr("aiRecCreated"), sub: "Pump P101", time: `15 ${tr("minAgo")}` },
-    { icon: ClipboardList, color: "text-blue-500 bg-blue-50", title: tr("workOrderCompleted"), sub: "Motor M12", time: `1 ${tr("hourAgo")}` },
-    { icon: HardDrive, color: "text-orange-500 bg-orange-50", title: tr("newDeviceAdded"), sub: "Temperature Sensor T12", time: `3 ${tr("hoursAgo")}` },
-  ];
+  const aiInsights: { id: string; devId: string; risk: string; riskTone: "danger" | "warning"; confidence: number; asset: string; days: number; cause: string; impact: string }[] = [];
+  const systemStatus: { label: string }[] = [];
+  const aiServices: { label: string; icon: typeof AlertTriangle }[] = [];
+  const forecast: { label: string; count: number; pct: number; color: string }[] = [];
+  const recentActivity: { icon: typeof Bell; color: string; title: string; sub: string; time: string }[] = [];
 
   const toneBg = (tone: string) => {
     switch (tone) {
@@ -229,12 +212,7 @@ const ExecutiveDashboard = () => {
     );
   };
 
-  const donutSegments = [
-    { label: tr("healthy"), value: 112, pct: 78, color: "#10b981" },
-    { label: tr("warning"), value: 14, pct: 10, color: "#f59e0b" },
-    { label: tr("critical"), value: 8, pct: 6, color: "#ef4444" },
-    { label: tr("unknown"), value: 9, pct: 6, color: "#9ca3af" },
-  ];
+  const donutSegments: { label: string; value: number; pct: number; color: string }[] = [];
 
   const Donut = () => {
     const radius = 38;
@@ -294,16 +272,24 @@ const ExecutiveDashboard = () => {
                   </div>
                   <div className="text-xs text-muted-foreground mb-1">{kpi.label}</div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold">{fmt(kpi.value)}</span>
-                    {kpi.suffix && <span className="text-sm text-muted-foreground">{kpi.suffix}</span>}
+                    {kpi.value === null ? <NoDataValue /> : (
+                      <>
+                        <span className="text-2xl font-bold">{fmt(kpi.value)}</span>
+                        {kpi.suffix && <span className="text-sm text-muted-foreground">{kpi.suffix}</span>}
+                      </>
+                    )}
                   </div>
-                  <div className={`flex items-center gap-1 text-[11px] mt-1 ${kpi.trend === "up" ? "text-emerald-600" : "text-red-600"}`}>
-                    {kpi.trend === "up" ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                    <span className="text-muted-foreground">{fmt(kpi.deltaNum)} {tr("vsYesterday")}</span>
-                  </div>
-                  <div className="mt-2">
-                    <Sparkline data={kpi.spark} color={kpi.sparkColor} />
-                  </div>
+                  {kpi.deltaNum && (
+                    <div className={`flex items-center gap-1 text-[11px] mt-1 ${kpi.trend === "up" ? "text-emerald-600" : "text-red-600"}`}>
+                      {kpi.trend === "up" ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                      <span className="text-muted-foreground">{fmt(kpi.deltaNum)} {tr("vsYesterday")}</span>
+                    </div>
+                  )}
+                  {kpi.spark.length > 0 && (
+                    <div className="mt-2">
+                      <Sparkline data={kpi.spark} color={kpi.sparkColor} />
+                    </div>
+                  )}
                 </Card>
               ))}
             </div>
@@ -327,6 +313,7 @@ const ExecutiveDashboard = () => {
                 </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {aiInsights.length === 0 && <NoData size="sm" />}
                 {aiInsights.map((ins) => (
                   <div key={ins.id} className="border border-border rounded-lg p-3 bg-muted/20">
                     <div className="flex items-center justify-between mb-2">
@@ -375,7 +362,7 @@ const ExecutiveDashboard = () => {
               <Card className="p-4">
                 <h3 className="font-semibold text-sm mb-1">{tr("assetHealthDistribution")}</h3>
                 <div className="flex items-center gap-3 mt-3">
-                  <Donut />
+                  {donutSegments.length === 0 ? <NoData size="sm" className="w-full" /> : <Donut />}
                   <div className="flex-1 space-y-1.5 text-xs">
                     {donutSegments.map((s, i) => (
                       <div key={i} className="flex items-center justify-between">
@@ -402,6 +389,7 @@ const ExecutiveDashboard = () => {
                 <h3 className="font-semibold text-sm">{tr("failureForecast")}</h3>
                 <p className="text-xs text-muted-foreground mb-3">{tr("upcomingFailures")}</p>
                 <div className="space-y-3">
+                  {forecast.length === 0 && <NoData size="sm" />}
                   {forecast.map((f, i) => (
                     <div key={i}>
                       <div className="flex items-center justify-between text-xs mb-1">
@@ -428,6 +416,7 @@ const ExecutiveDashboard = () => {
                 <h3 className="font-semibold text-sm">{tr("aiRecommendations")}</h3>
                 <p className="text-xs text-muted-foreground mb-3">{tr("aiRecommendationsDesc")}</p>
                 <div className="space-y-2">
+                  {OPPORTUNITIES.length === 0 && <NoData size="sm" />}
                   {OPPORTUNITIES.slice(0, 3).map((o) => (
                     <button
                       key={o.id}
@@ -467,6 +456,7 @@ const ExecutiveDashboard = () => {
                 {tr("recentActivity")}
               </button>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                {recentActivity.length === 0 && <NoData size="sm" />}
                 {recentActivity.map((a, i) => (
                   <div key={i} className="flex items-start gap-2">
                     <div className={`h-8 w-8 rounded-md flex items-center justify-center shrink-0 ${a.color}`}>
@@ -495,6 +485,7 @@ const ExecutiveDashboard = () => {
             <Card className="p-4">
               <h3 className="font-semibold text-sm mb-3">{tr("systemStatus")}</h3>
               <div className="space-y-2">
+                {systemStatus.length === 0 && <NoData size="sm" />}
                 {systemStatus.map((s, i) => (
                   <div key={i} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
@@ -511,6 +502,7 @@ const ExecutiveDashboard = () => {
             <Card className="p-4">
               <h3 className="font-semibold text-sm mb-3">{tr("aiServices")}</h3>
               <div className="space-y-2">
+                {aiServices.length === 0 && <NoData size="sm" />}
                 {aiServices.map((s, i) => (
                   <div key={i} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">

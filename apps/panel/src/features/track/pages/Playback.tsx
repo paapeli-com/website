@@ -6,6 +6,7 @@ import { useLanguage } from "@/features/track/i18n/LanguageContext";
 import { LeafletMap } from "@/features/track/components/map/LeafletMap";
 import { TypeAvatar } from "@/features/track/components/DeviceBits";
 import { Button } from "@/features/track/components/ui/button";
+import { NoData } from "@/features/track/components/NoData";
 import { cn } from "@/shared/lib/utils";
 
 const SPEEDS = [1, 2, 4];
@@ -13,7 +14,7 @@ const SPEEDS = [1, 2, 4];
 export default function Playback() {
   const { devices, selectedId, setSelectedId, selected } = useDevices();
   const { t, num } = useLanguage();
-  const trail = useMemo(() => getTrack(selected), [selected.id]);
+  const trail = useMemo(() => (selected ? getTrack(selected) : []), [selected?.id]);
   const [head, setHead] = useState(trail.length - 1);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -23,7 +24,7 @@ export default function Playback() {
   useEffect(() => {
     setHead(trail.length - 1);
     setPlaying(false);
-  }, [selected.id, trail.length]);
+  }, [selected?.id, trail.length]);
 
   useEffect(() => {
     if (!playing) return;
@@ -39,14 +40,29 @@ export default function Playback() {
   }, [playing, speed, trail.length]);
 
   const point = trail[head];
-  const geofences = GEOFENCES.filter((g) => g.deviceIds.includes(selected.id));
+  const geofences = selected ? GEOFENCES.filter((g) => g.deviceIds.includes(selected.id)) : [];
+
+  /* Every hook above runs first so the order stays stable; only the render
+     branches. There is nothing to play back without a device to play. */
+  const header = (
+    <div className="mb-5">
+      <h1 className="text-xl font-bold">{t("playback")}</h1>
+      <p className="text-sm text-muted-foreground">{t("playbackDesc")}</p>
+    </div>
+  );
+
+  if (!selected) {
+    return (
+      <div className="mx-auto max-w-6xl p-4 lg:p-6">
+        {header}
+        <NoData size="lg" className="rounded-2xl border border-border bg-card" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl p-4 lg:p-6">
-      <div className="mb-5">
-        <h1 className="text-xl font-bold">{t("playback")}</h1>
-        <p className="text-sm text-muted-foreground">{t("playbackDesc")}</p>
-      </div>
+      {header}
 
       {/* Device chips */}
       <div className="mb-4 flex flex-wrap gap-2">

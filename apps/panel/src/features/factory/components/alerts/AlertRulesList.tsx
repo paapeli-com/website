@@ -9,7 +9,7 @@ import {
   Edit, Trash2, Plus, Zap, Wifi, Brain, Activity, Clock, Layers,
   Download, Pencil, Archive,
 } from "lucide-react";
-import { mockAlertRules } from "@/features/factory/data/mockAlertData";
+import { NoData } from "@/features/factory/components/NoData";
 import type { AlertRule, RuleType, AlertSeverity } from "@/features/factory/types/alerts";
 import { ListToolbar, type ActionItem, type FilterField, type SortOption } from "@/features/factory/components/panel/ListToolbar";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
@@ -51,10 +51,10 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
   const { t, isRTL } = useLanguage();
   const tt = t as (k: string) => string;
 
-  const { items: userRules } = useAlertRulesStore();
-  const [mockRules, setMockRules] = useState<AlertRule[]>(mockAlertRules);
-  const rules = useMemo(() => [...userRules, ...mockRules], [userRules, mockRules]);
-  const setRules = (updater: (prev: AlertRule[]) => AlertRule[]) => setMockRules(updater);
+  /* Only what the user actually created (localStorage-backed). The seeded
+     ALR-* rules that used to be concatenated here were invented — there is no
+     rules endpoint yet, so an empty store means no data. */
+  const { items: rules } = useAlertRulesStore();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -70,8 +70,12 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
-  const toggleRule = (ruleId: string) => {
-    setRules((prev) => prev.map((r) => (r.id === ruleId ? { ...r, enabled: !r.enabled } : r)));
+  /* The switch was never persisted for the seeded rules either; this keeps it
+     responsive without claiming a write the store cannot make. */
+  const [enabledOverrides, setEnabledOverrides] = useState<Record<string, boolean>>({});
+  const isEnabled = (rule: AlertRule) => enabledOverrides[rule.id] ?? rule.enabled;
+  const toggleRule = (ruleId: string, current: boolean) => {
+    setEnabledOverrides((prev) => ({ ...prev, [ruleId]: !current }));
   };
 
   const filtered = useMemo(() => {
@@ -204,6 +208,19 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
             </TableRow>
           </TableHeader>
           <TableBody>
+            {paged.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="p-0">
+                  {/* Nothing stored at all is "no data"; nothing matching the
+                      current search/filters is an empty result set. */}
+                  {rules.length === 0 ? (
+                    <NoData />
+                  ) : (
+                    <p className="text-center text-sm text-muted-foreground py-10">{tt("noResults") || "No results"}</p>
+                  )}
+                </TableCell>
+              </TableRow>
+            )}
             {paged.map((rule) => {
               const TypeIcon = ruleTypeIcons[rule.ruleType];
               return (
@@ -230,7 +247,7 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
                     {rule.deviceIds.length > 0 ? tt("devicesCount").replace("{n}", String(rule.deviceIds.length)) : rule.locationId || tt("all")}
                   </TableCell>
                   <TableCell>
-                    <Switch checked={rule.enabled} onCheckedChange={() => toggleRule(rule.id)} />
+                    <Switch checked={isEnabled(rule)} onCheckedChange={() => toggleRule(rule.id, isEnabled(rule))} />
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">

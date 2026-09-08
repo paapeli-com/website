@@ -10,8 +10,8 @@ import { Textarea } from "@/features/factory/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/features/factory/components/ui/sheet";
 import { Plus, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import type { AlertRuleWizardStep, ConditionOperator, AlertSeverity, RuleType, LogicOperator } from "@/features/factory/types/alerts";
-import { mockEscalationPolicies, mockNotificationChannels } from "@/features/factory/data/mockAlertData";
-import { useAlertRulesStore } from "@/features/factory/hooks/useAlertStore";
+import { NoData } from "@/features/factory/components/NoData";
+import { useAlertRulesStore, useChannelsStore, useEscalationsStore } from "@/features/factory/hooks/useAlertStore";
 import { useToast } from "@/features/factory/hooks/use-toast";
 
 const severityColors: Record<string, string> = {
@@ -57,6 +57,11 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
   const { t, isRTL } = useLanguage();
   const { toast } = useToast();
   const { create: createRule } = useAlertRulesStore();
+  /* Steps 4 and 5 pick from what the user has actually created. They used to
+     offer the seeded ESC and CH entries, so a rule could be saved pointing at
+     an escalation policy and channels that existed nowhere but this array. */
+  const { items: escalationPolicies } = useEscalationsStore();
+  const { items: notificationChannels } = useChannelsStore();
   const [currentStep, setCurrentStep] = useState(0);
 
   // Step 1: Scope
@@ -394,7 +399,8 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
             <div className="space-y-4">
               <Label>{t("alertSelectEscalation")}</Label>
               <div className="space-y-3">
-                {mockEscalationPolicies.map(policy => (
+                {escalationPolicies.length === 0 && <NoData />}
+                {escalationPolicies.map(policy => (
                   <button
                     key={policy.id}
                     onClick={() => setEscalationPolicyId(policy.id)}
@@ -423,7 +429,8 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
             <div className="space-y-4">
               <Label>{t("alertSelectChannels")}</Label>
               <div className="space-y-2">
-                {mockNotificationChannels.map(channel => (
+                {notificationChannels.length === 0 && <NoData />}
+                {notificationChannels.map(channel => (
                   <label key={channel.id} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/30">
                     <Checkbox
                       checked={selectedChannels.includes(channel.id)}

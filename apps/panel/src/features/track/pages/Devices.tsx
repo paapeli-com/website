@@ -7,6 +7,7 @@ import { useLanguage } from "@/features/track/i18n/LanguageContext";
 import { AssetType } from "@/features/track/data/types";
 import { ASSET_META, Battery, Signal, StatusPill, TypeAvatar } from "@/features/track/components/DeviceBits";
 import { Button } from "@/features/track/components/ui/button";
+import { NoData } from "@/features/track/components/NoData";
 import {
   DevicesToolbar,
   PosFilter,
@@ -113,6 +114,8 @@ export default function Devices() {
             <span className="text-xs text-muted-foreground">({num(list.length)})</span>
           </button>
 
+          {isOpen("root") && shownGroups.length === 0 && <NoData size="sm" />}
+
           {isOpen("root") &&
             shownGroups.map((g) => {
               const meta = ASSET_META[g.key];
@@ -165,7 +168,7 @@ export default function Devices() {
             <span className="w-8" />
           </div>
           {list.length === 0 ? (
-            <div className="p-10 text-center text-sm text-muted-foreground">—</div>
+            <NoData />
           ) : (
             list.map((d) => (
               <button

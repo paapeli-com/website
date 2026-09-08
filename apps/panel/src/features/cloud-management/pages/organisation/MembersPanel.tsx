@@ -7,16 +7,14 @@ import { Avatar, Badge, Button, Card, Input, Label, Table } from "@/features/clo
 
 const ROLES: WorkspaceRole[] = ["ADMIN", "MEMBER", "VIEWER"];
 
-/* Member roster below is illustrative placeholder data — there's no
-   list-members endpoint yet. Once one exists, replace this with a real
-   query the same way the invite form beside it already talks to the API. */
-const MOCK_ROSTER: { name: string; email: string; role: string; lastActive: string; status: "ok" | "info" }[] = [
-  { name: "Sina Ahmadi", email: "sina@company.com", role: "Owner", lastActive: "5 min ago", status: "ok" },
-  { name: "Maryam Rahimi", email: "maryam@company.com", role: "Billing admin", lastActive: "2 h ago", status: "ok" },
-  { name: "Hossein Karimi", email: "hossein@company.com", role: "Cloud admin", lastActive: "Yesterday", status: "ok" },
-  { name: "Nasim Fallah", email: "nasim@company.com", role: "Operator", lastActive: "3 days ago", status: "ok" },
-  { name: "Ali Tavakoli", email: "ali@contractor.com", role: "Viewer", lastActive: "—", status: "info" },
-];
+/* There's no list-members endpoint yet.
+
+   The roster listed five named people with email addresses, roles and "last
+   active" times — a membership list is an access-control record, and an
+   invented one shows colleagues who cannot actually reach the workspace.
+   Once an endpoint exists, replace this with a real query the same way the
+   invite form beside it already talks to the API. */
+const MOCK_ROSTER: { name: string; email: string; role: string; lastActive: string; status: "ok" | "info" }[] = [];
 
 export default function MembersPanel() {
   const { selected } = useWorkspaceSelection();
@@ -45,7 +43,6 @@ export default function MembersPanel() {
         head={
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-bold text-foreground">{MOCK_ROSTER.length} members</h2>
-            <Badge tone="gray">Preview data</Badge>
           </div>
         }
         rows={MOCK_ROSTER.map((m, i) => [
@@ -101,7 +98,7 @@ export default function MembersPanel() {
           Send invitation
         </Button>
         <p className="text-xs text-muted-foreground">
-          Sending is real and hits the API — the roster on the left is placeholder until a list-members endpoint exists.
+          Sending is real and hits the API. The roster on the left stays empty until a list-members endpoint exists.
         </p>
       </Card>
     </div>

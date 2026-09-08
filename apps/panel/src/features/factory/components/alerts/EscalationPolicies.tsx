@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/features/factory/components/ui/card";
 import { Badge } from "@/features/factory/components/ui/badge";
@@ -6,7 +6,7 @@ import { Button } from "@/features/factory/components/ui/button";
 import { Switch } from "@/features/factory/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/features/factory/components/ui/tooltip";
 import { Plus, Edit, Clock, Users, ArrowRight } from "lucide-react";
-import { mockEscalationPolicies } from "@/features/factory/data/mockAlertData";
+import { NoData } from "@/features/factory/components/NoData";
 import { useEscalationsStore } from "@/features/factory/hooks/useAlertStore";
 
 const policyI18n: Record<string, { name: string; desc: string }> = {
@@ -27,12 +27,17 @@ interface EscalationPoliciesProps {
 export const EscalationPolicies = ({ onCreateClick }: EscalationPoliciesProps) => {
   const { t, isRTL } = useLanguage();
   const tt = t as (k: string) => string;
-  const { items: userPolicies } = useEscalationsStore();
-  const [mockPolicies, setMockPolicies] = useState(mockEscalationPolicies);
-  const policies = useMemo(() => [...userPolicies, ...mockPolicies], [userPolicies, mockPolicies]);
+  /* Only what the user actually created (localStorage-backed). The two seeded
+     ESC-001/ESC-002 policies that used to be concatenated here were invented —
+     there is no escalation endpoint yet, so an empty store means no data. */
+  const { items: policies } = useEscalationsStore();
 
-  const togglePolicy = (id: string) => {
-    setMockPolicies(prev => prev.map(p => p.id === id ? { ...p, enabled: !p.enabled } : p));
+  /* The switch was never persisted for the seeded policies either; this keeps
+     it responsive without claiming a write the store cannot make. */
+  const [enabledOverrides, setEnabledOverrides] = useState<Record<string, boolean>>({});
+  const isEnabled = (id: string, fallback: boolean) => enabledOverrides[id] ?? fallback;
+  const togglePolicy = (id: string, current: boolean) => {
+    setEnabledOverrides(prev => ({ ...prev, [id]: !current }));
   };
 
   return (
@@ -48,6 +53,8 @@ export const EscalationPolicies = ({ onCreateClick }: EscalationPoliciesProps) =
       </div>
 
 
+      {policies.length === 0 && <NoData />}
+
       <div className="grid gap-4">
         {policies.map(policy => {
           const k = policyI18n[policy.id];
@@ -59,7 +66,10 @@ export const EscalationPolicies = ({ onCreateClick }: EscalationPoliciesProps) =
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">{name}</CardTitle>
                 <div className="flex items-center gap-2">
-                  <Switch checked={policy.enabled} onCheckedChange={() => togglePolicy(policy.id)} />
+                  <Switch
+                    checked={isEnabled(policy.id, policy.enabled)}
+                    onCheckedChange={() => togglePolicy(policy.id, isEnabled(policy.id, policy.enabled))}
+                  />
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button variant="ghost" size="icon" disabled>

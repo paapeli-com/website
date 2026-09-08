@@ -1,33 +1,26 @@
 import { useNavigate } from "react-router-dom";
 import { Cpu, FileText, Gauge, Package, Users } from "lucide-react";
 import { useWorkspaceSelection } from "@/features/cloud-management/contexts/WorkspaceContext";
-import { Badge, Card, IconTile, PageHeader, ProgressBar, Table } from "@/features/cloud-management/ui";
+import { Card, IconTile, NoData, NoDataValue, PageHeader, Table } from "@/features/cloud-management/ui";
 
-/* Spend, invoices and platform-status widgets below are placeholder data —
-   see RemoteApp.tsx for which sections of this design have a real backend
-   today. Product/workspace identity (name, subscribed products) is real. */
-const RECENT_INVOICES = [
-  { id: "INV-2026-07", period: "Jul 2026", amount: "﷼ 89,600,000" },
-  { id: "INV-2026-06", period: "Jun 2026", amount: "﷼ 91,200,000" },
-  { id: "INV-2026-05", period: "May 2026", amount: "﷼ 88,400,000" },
-];
+/* Nothing on this page except workspace identity has a backend.
+
+   The invoice rows, the "needs your attention" items and the platform-status
+   list were all written by hand, as were the figures on the product and spend
+   cards — three months of invoices down to the rial, a card expiring in 21
+   days, every service green but one. Read together they describe a specific
+   account in a specific state, which is exactly what a reader assumes they
+   are. Each keeps its heading and reports no data instead.
+
+   The workspace name in the page description is real and stays. */
+const RECENT_INVOICES: { id: string; period: string; amount: string }[] = [];
 
 /* `to` targets here (and in the onClick handlers below) are ROUTE-RELATIVE
    — see RemoteApp.tsx for why: they resolve correctly whether this remote
    is mounted under the host's "/CloudManagement/*" or run standalone. */
-const ATTENTION = [
-  { text: "Card ending 4417 expires in 21 days", cta: "Update payment method", to: "payment-methods" },
-  { text: "Message quota at 82% of plan limit", cta: "Review usage", to: "usage" },
-  { text: "2 invited members have not accepted", cta: "Resend invites", to: "organisation" },
-];
+const ATTENTION: { text: string; cta: string; to: string }[] = [];
 
-const PLATFORM_STATUS: { name: string; ok: boolean }[] = [
-  { name: "AIoT ingestion", ok: true },
-  { name: "Rule engine", ok: true },
-  { name: "AI engine", ok: true },
-  { name: "Object store", ok: false },
-  { name: "Portal & API", ok: true },
-];
+const PLATFORM_STATUS: { name: string; ok: boolean }[] = [];
 
 export default function Overview() {
   const navigate = useNavigate();
@@ -52,25 +45,17 @@ export default function Overview() {
           <div className="flex flex-1 flex-col gap-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-lg font-bold text-foreground">AIoT</h2>
-              <Badge tone="ok">Active</Badge>
-              <Badge tone="brand">Business plan</Badge>
             </div>
             <p className="text-[13.5px] text-muted-foreground">
-              Assets, alarms, AI analytics, OTA and operations for 8 connected assets across 3 locations.
+              Assets, alarms, AI analytics, OTA and operations.
             </p>
             <div className="mt-1 flex flex-wrap gap-6">
-              <div>
-                <div className="text-xs text-muted-foreground">Assets</div>
-                <div className="text-sm font-semibold text-foreground">8 / 25</div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Messages this month</div>
-                <div className="text-sm font-semibold text-foreground">4.1M</div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Renews</div>
-                <div className="text-sm font-semibold text-foreground">1 Sep 2026</div>
-              </div>
+              {["Assets", "Messages this month", "Renews"].map((label) => (
+                <div key={label}>
+                  <div className="text-xs text-muted-foreground">{label}</div>
+                  <div className="text-sm font-semibold text-foreground"><NoDataValue /></div>
+                </div>
+              ))}
             </div>
           </div>
         </Card>
@@ -78,15 +63,12 @@ export default function Overview() {
         <Card className="flex flex-col gap-3">
           <h2 className="text-sm font-bold text-foreground">This month</h2>
           <div className="flex items-baseline gap-2">
-            <span className="text-[28px] font-bold leading-none text-foreground">﷼ 84,200,000</span>
-            <span className="text-xs text-emerald-600">−6% vs last month</span>
+            <span className="text-[28px] font-bold leading-none text-foreground"><NoDataValue /></span>
           </div>
-          <ProgressBar pct={58} />
-          <p className="text-xs text-muted-foreground">Forecast ﷼ 121,000,000 · budget ﷼ 145,000,000</p>
           <div className="h-px bg-border" />
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Wallet balance</span>
-            <span className="font-semibold text-foreground">﷼ 32,500,000</span>
+            <span className="font-semibold text-foreground"><NoDataValue /></span>
           </div>
         </Card>
       </div>
@@ -126,6 +108,7 @@ export default function Overview() {
 
         <Card className="flex flex-col gap-4">
           <h2 className="text-sm font-bold text-foreground">Needs your attention</h2>
+          {ATTENTION.length === 0 && <NoData />}
           {ATTENTION.map((a) => (
             <div key={a.text} className="flex items-start gap-3">
               <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" />
@@ -141,6 +124,7 @@ export default function Overview() {
 
         <Card className="flex flex-col gap-3">
           <h2 className="text-sm font-bold text-foreground">Platform status</h2>
+          {PLATFORM_STATUS.length === 0 && <NoData />}
           {PLATFORM_STATUS.map((s) => (
             <div key={s.name} className="flex items-center justify-between">
               <div className="flex items-center gap-2.5 text-[13.5px] text-foreground">

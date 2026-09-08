@@ -1,32 +1,30 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Check } from "lucide-react";
-import { Badge, Button, Card, Field, PageHeader, Table } from "@/features/cloud-management/ui";
+import { Badge, Button, Card, Field, NoDataValue, PageHeader, Table } from "@/features/cloud-management/ui";
 import { cn } from "@/shared/lib/utils";
 
-/* Placeholder data — @paapeli/api has no API-key/service-account module
-   yet. The "Create API key" form below is not wired to anything. */
-const API_KEYS: [string, string, string, string, string, "ok" | "bad"][] = [
-  ["Production ingest", "pk_live_••••••••3f9a", "AIoT · write", "12 Mar 2026", "2 min ago", "ok"],
-  ["Grafana read-only", "pk_live_••••••••b71c", "AIoT · read", "4 Apr 2026", "1 h ago", "ok"],
-  ["Billing export", "pk_live_••••••••28de", "Cloud · billing read", "19 May 2026", "Yesterday", "ok"],
-  ["Staging sandbox", "pk_test_••••••••90aa", "AIoT · full", "2 Jun 2026", "6 days ago", "ok"],
-  ["Legacy gateway", "pk_live_••••••••55c1", "AIoT · write", "8 Nov 2025", "3 months ago", "bad"],
-];
+/* @paapeli/api has no API-key/service-account module yet, and the "Create API
+   key" form below is not wired to anything.
 
-const ACCESS_EVENTS = [
-  ["API key created — Billing export", "Maryam Rahimi", "5.63.12.44", "19 May 2026, 10:22"],
-  ["Key revoked — Legacy gateway", "Hossein Karimi", "5.63.12.44", "2 May 2026, 16:03"],
-  ["Sign-in from new device", "Sina Ahmadi", "91.98.7.210", "1 May 2026, 08:47"],
-  ["Payment method updated", "Maryam Rahimi", "5.63.12.44", "28 Apr 2026, 13:15"],
-];
+   Five live-looking keys with prefixes, scopes and "last used 2 min ago", plus
+   an access log naming four people and the IP addresses they acted from. A
+   security page is the last place to invent records: someone reading it would
+   reasonably revoke a key or investigate a sign-in that never happened. */
+const API_KEYS: [string, string, string, string, string, "ok" | "bad"][] = [];
 
+const ACCESS_EVENTS: string[][] = [];
+
+/* Scopes are the product's permission model — a fixed set the form offers,
+   not account data — so they stay. */
 const SCOPES = ["AIoT — read", "AIoT — write", "Cloud — billing read", "Cloud — organisation admin"];
 
-const ENDPOINTS = [
+/* Service addresses are product constants and real; the webhook signing
+   secret is per-account and was invented, so it has no value to show. */
+const ENDPOINTS: [string, string | null][] = [
   ["REST API", "https://api.paapeli.cloud/v1"],
   ["MQTT broker", "mqtts://mqtt.paapeli.cloud:8883"],
-  ["Webhook signature", "whsec_••••••••4c2b"],
+  ["Webhook signature", null],
 ];
 
 export default function AccessApiKeys() {
@@ -44,7 +42,7 @@ export default function AccessApiKeys() {
     <div className="flex flex-col gap-6 p-6">
       <PageHeader
         title="Access & API keys"
-        description="Programmatic access to the Paapeli cloud API — preview data, no key-management backend yet."
+        description="Programmatic access to the Paapeli cloud API."
         actions={<Button variant="ghost">API documentation</Button>}
       />
 
@@ -126,7 +124,9 @@ export default function AccessApiKeys() {
             {ENDPOINTS.map(([l, v]) => (
               <div key={l} className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">{l}</span>
-                <span className="rounded-lg border border-border bg-background px-2.5 py-1.5 font-mono text-xs text-foreground">{v}</span>
+                <span className="rounded-lg border border-border bg-background px-2.5 py-1.5 font-mono text-xs text-foreground">
+                  {v ?? <NoDataValue className="font-sans text-xs" />}
+                </span>
               </div>
             ))}
           </Card>

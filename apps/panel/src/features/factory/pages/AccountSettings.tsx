@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
-import { CURRENT_USER } from "@paapeli/brand/config";
+import { getCurrentUser } from "@paapeli/brand/session";
 import { signOut as endSession } from "@paapeli/brand/session";
 import { useAuth } from "@/features/factory/store/authStore";
 import { useWorkspace } from "@/features/factory/store/workspaceStore";
@@ -39,16 +39,22 @@ const AccountSettings = () => {
 
   // Identity from the shared session user (not Cognito — gating is now the
   // shared session, so the Cognito user is null here).
-  const username = CURRENT_USER.email.split("@")[0];
+  const currentUser = getCurrentUser();
+  const username = (currentUser?.email ?? "").split("@")[0];
   const isSina = username === "sina";
-  const displayName = CURRENT_USER.name;
-  const email = CURRENT_USER.email;
+  /* Two different things: what the header/avatar block shows when the account
+     has no display name, and what the editable field below is seeded with. The
+     field must stay empty — seeding it with the placeholder would let "فاقد
+     دیتا" be saved as the account's actual name. */
+  const accountName = currentUser?.name ?? "";
+  const displayName = accountName || t("noData");
+  const email = currentUser?.email ?? "";
   const lp = (p: string) => localizedPath(p, language);
 
   // Avatar: per-user, persisted in localStorage. Default Sina to uploaded picture.
   const storageKey = AVATAR_STORAGE_KEY + (username || "anon");
   const [avatar, setAvatar] = useState<string | null>(null);
-  const [displayNameInput, setDisplayNameInput] = useState(displayName);
+  const [displayNameInput, setDisplayNameInput] = useState(accountName);
   const [newWs, setNewWs] = useState("");
 
   useEffect(() => {
@@ -148,8 +154,7 @@ const AccountSettings = () => {
             <div className="min-w-0">
               <div
                 className="text-base font-semibold truncate"
-                dir={isSina ? "rtl" : "ltr"}
-                style={{ fontFamily: isSina ? "'Vazirmatn', sans-serif" : undefined }}
+                dir="auto"
               >
                 {displayName}
               </div>
@@ -176,9 +181,9 @@ const AccountSettings = () => {
               <Input
                 id="displayName"
                 value={displayNameInput}
+                placeholder={t("noData")}
                 onChange={(e) => setDisplayNameInput(e.target.value)}
-                dir={isSina ? "rtl" : "ltr"}
-                style={{ fontFamily: isSina ? "'Vazirmatn', sans-serif" : undefined }}
+                dir="auto"
               />
             </div>
             <div className="space-y-2">

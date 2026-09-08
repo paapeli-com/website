@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Check, ChevronDown, LayoutGrid, LogOut, Plus, Settings, SlidersHorizontal } from "lucide-react";
 import { useListActiveWorkspacesQuery } from "@paapeli/api";
-import { CURRENT_USER } from "@paapeli/brand/config";
-import { signOut as endSession } from "@paapeli/brand/session";
+import { getCurrentUser, signOut as endSession } from "@paapeli/brand/session";
 import { setActiveWorkspaceId, useActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { cn } from "@/shared/lib/utils";
 import { useShellT } from "@/shared/i18n/shell";
@@ -14,8 +13,12 @@ export function AccountMenu() {
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const t = useShellT();
-  const displayName = CURRENT_USER.name;
-  const initial = CURRENT_USER.initial;
+  /* The signed-in account, not a hardcoded placeholder person. Nothing serves
+     a display name yet (only signup returns one), so it usually has none —
+     the email and the avatar letter are real either way. */
+  const user = getCurrentUser();
+  const displayName = user?.name || t("No data");
+  const initial = user?.initial ?? "";
 
   const { data, isLoading } = useListActiveWorkspacesQuery();
   const workspaces = useMemo(() => data ?? [], [data]);
@@ -60,7 +63,7 @@ export function AccountMenu() {
         <div className="absolute z-50 mt-2 w-72 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-border bg-popover py-3 shadow-lg ltr:right-0 rtl:left-0">
           <div className="px-4 pb-3">
             <p className="truncate text-base font-bold text-foreground">{displayName}</p>
-            <p className="truncate text-sm text-muted-foreground">{CURRENT_USER.email}</p>
+            <p className="truncate text-sm text-muted-foreground">{user?.email}</p>
           </div>
 
           <div className="px-4 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">

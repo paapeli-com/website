@@ -17,202 +17,16 @@ export interface Trend {
   recommendations: string[];
 }
 
-export const TRENDS: Trend[] = [
-  {
-    id: "trend-bearing-temp-p101",
-    name: "Bearing Temperature",
-    asset: "Pump P101",
-    devId: "DEV-101",
-    assetType: "Pump",
-    location: "Qazvin > Factory A > Sulfonation > Line 1",
-    metric: "Temperature",
-    direction: "Increasing",
-    changePct: 18,
-    confidence: 95,
-    timeRange: "Last 30 days",
-    interpretation: [
-      "Bearing temperature has increased steadily over the last 21 days.",
-      "Current increase rate is 2.4% per week.",
-      "Expected threshold may be reached within 37 days.",
-    ],
-    factors: [
-      { label: "Ambient Temperature", weight: 78 },
-      { label: "Load Increase", weight: 64 },
-      { label: "Operating Hours", weight: 52 },
-      { label: "Flow Instability", weight: 35 },
-    ],
-    recommendations: [
-      "Inspect bearing housing",
-      "Reduce sustained load",
-      "Optimize duty schedule",
-      "Review preventive maintenance plan",
-    ],
-  },
-  {
-    id: "trend-energy-factory-a",
-    name: "Energy Consumption",
-    asset: "Factory A",
-    devId: "FAC-A",
-    assetType: "Factory",
-    location: "Qazvin > Factory A",
-    metric: "Energy",
-    direction: "Increasing",
-    changePct: 12,
-    confidence: 92,
-    timeRange: "Last 90 days",
-    interpretation: [
-      "Energy consumption is increasing faster than production output.",
-      "Average kWh per ton has grown by 6% in the last 60 days.",
-      "Largest contribution comes from Sulfonation Line 1.",
-    ],
-    factors: [
-      { label: "Sulfonation Line 1", weight: 72 },
-      { label: "Compressor Load", weight: 58 },
-      { label: "HVAC Cycles", weight: 41 },
-    ],
-    recommendations: [
-      "Audit Sulfonation Line 1 energy profile",
-      "Stagger compressor startups",
-      "Review HVAC setpoints overnight",
-    ],
-  },
-  {
-    id: "trend-steam-pressure-boiler",
-    name: "Steam Pressure",
-    asset: "Boiler B-2",
-    devId: "DEV-810",
-    assetType: "Boiler",
-    location: "Qazvin > Factory A > Boiler > Line 1",
-    metric: "Pressure",
-    direction: "Increasing",
-    changePct: 9,
-    confidence: 87,
-    timeRange: "Last 30 days",
-    interpretation: [
-      "Average steam pressure is trending above the historical band.",
-      "Increase correlates with valve V-21 cycling pattern change.",
-    ],
-    factors: [
-      { label: "Valve Cycling", weight: 66 },
-      { label: "Feed Water Temperature", weight: 41 },
-    ],
-    recommendations: ["Inspect valve V-21", "Tune PID loop"],
-  },
-  {
-    id: "trend-flow-rate-line2",
-    name: "Flow Rate",
-    asset: "Line 2",
-    devId: "LINE-2",
-    assetType: "Line",
-    location: "Qazvin > Factory A > Sulfonation > Line 2",
-    metric: "Flow",
-    direction: "Increasing",
-    changePct: 8,
-    confidence: 84,
-    timeRange: "Last 30 days",
-    interpretation: ["Flow rate trending upward with production ramp."],
-    factors: [{ label: "Production Schedule", weight: 70 }],
-    recommendations: ["Verify capacity headroom"],
-  },
-  {
-    id: "trend-pump-eff-p101",
-    name: "Pump Efficiency",
-    asset: "Pump P101",
-    devId: "DEV-101",
-    assetType: "Pump",
-    location: "Qazvin > Factory A > Sulfonation > Line 1",
-    metric: "Efficiency",
-    direction: "Decreasing",
-    changePct: -9,
-    confidence: 90,
-    timeRange: "Last 60 days",
-    interpretation: [
-      "Pump efficiency has declined gradually over the last 8 weeks.",
-      "Likely correlated with bearing temperature trend.",
-    ],
-    factors: [
-      { label: "Bearing Wear", weight: 72 },
-      { label: "Suction Pressure", weight: 48 },
-    ],
-    recommendations: ["Plan bearing replacement", "Recalibrate suction"],
-  },
-  {
-    id: "trend-flow-stability-line2",
-    name: "Flow Stability",
-    asset: "Line 2",
-    devId: "LINE-2",
-    assetType: "Line",
-    location: "Qazvin > Factory A > Sulfonation > Line 2",
-    metric: "Flow",
-    direction: "Decreasing",
-    changePct: -14,
-    confidence: 88,
-    timeRange: "Last 45 days",
-    interpretation: [
-      "Flow stability has degraded by 14% across Line 2.",
-      "Oscillation amplitude doubled compared to baseline.",
-    ],
-    factors: [
-      { label: "Valve Wear", weight: 65 },
-      { label: "Air Leak", weight: 40 },
-    ],
-    recommendations: ["Inspect intake valve", "Leak test"],
-  },
-  {
-    id: "trend-cooling-perf-hx7",
-    name: "Cooling Performance",
-    asset: "Heat Exchanger HX-7",
-    devId: "DEV-705",
-    assetType: "Heat Exchanger",
-    location: "Qazvin > Factory B > Processing > Line 2",
-    metric: "Efficiency",
-    direction: "Decreasing",
-    changePct: -7,
-    confidence: 82,
-    timeRange: "Last 30 days",
-    interpretation: ["Cooling performance slowly degrading due to fouling."],
-    factors: [{ label: "Fouling", weight: 70 }],
-    recommendations: ["Plan chemical cleaning"],
-  },
-  {
-    id: "trend-compressor-util-factory-b",
-    name: "Compressor Utilization",
-    asset: "Factory B",
-    devId: "FAC-B",
-    assetType: "Factory",
-    location: "Qazvin > Factory B",
-    metric: "Utilization",
-    direction: "Decreasing",
-    changePct: -11,
-    confidence: 86,
-    timeRange: "Last 60 days",
-    interpretation: [
-      "Pump utilization is decreasing across Factory B.",
-      "Most compressors operate below 70% of rated load.",
-    ],
-    factors: [
-      { label: "Demand Drop", weight: 60 },
-      { label: "Schedule Drift", weight: 45 },
-    ],
-    recommendations: ["Consolidate compressor schedule"],
-  },
-  {
-    id: "trend-conveyor-cv04",
-    name: "Conveyor Throughput",
-    asset: "Conveyor CV-04",
-    devId: "DEV-508",
-    assetType: "Conveyor",
-    location: "Qazvin > Factory B > Packaging > Line 2",
-    metric: "Throughput",
-    direction: "Stable",
-    changePct: 1,
-    confidence: 79,
-    timeRange: "Last 30 days",
-    interpretation: ["Throughput is stable around its long-term mean."],
-    factors: [{ label: "Operating Schedule", weight: 90 }],
-    recommendations: ["No action required"],
-  },
-];
+/* Empty until there is an endpoint behind it.
+
+   This array used to hold invented telemetry trends, written by hand and rendered by
+   the AI pages exactly as a model's output would be — health scores, remaining
+   useful life, confidence percentages, named assets at named plants. Nothing
+   on screen distinguished that from a real prediction, so the pages now show
+   "no data" instead. Point this at the query when the service lands; the
+   consumers already work off whatever length this has.
+*/
+export const TRENDS: Trend[] = [];
 
 export type OpportunityCategory =
   | "Energy"
@@ -236,102 +50,16 @@ export interface Opportunity {
   implementationSteps: string[];
 }
 
-export const OPPORTUNITIES: Opportunity[] = [
-  {
-    id: "opp-energy-opt",
-    title: "Energy Optimization",
-    description:
-      "Stagger compressor startups and align HVAC setpoints with production windows to reduce peak load.",
-    category: "Energy",
-    impactLabel: "Potential Saving",
-    impactValue: "11%",
-    impactPct: 11,
-    confidence: 88,
-    affectedAssets: ["Compressor C3", "HVAC Zone A", "Sulfonation Line 1"],
-    estimatedSavings: "≈ 24,000 kWh / month",
-    explanation:
-      "Peak demand events frequently overlap with compressor startup and HVAC ramp. Shifting startups by 10–15 minutes is forecasted to cut peak demand by 11%.",
-    recommendedActions: [
-      "Reschedule compressor startup window",
-      "Adjust HVAC ramp profile",
-      "Enable peak-shaving rule",
-    ],
-    implementationSteps: [
-      "Review current startup schedule and demand curve",
-      "Draft new staggered schedule",
-      "Pilot on a single shift for 7 days",
-      "Roll out to all shifts and monitor",
-    ],
-  },
-  {
-    id: "opp-pump-schedule",
-    title: "Pump Scheduling Optimization",
-    description:
-      "Consolidate low-utilization pump cycles to reduce wear and energy use without affecting throughput.",
-    category: "Efficiency",
-    impactLabel: "Potential Efficiency Gain",
-    impactValue: "8%",
-    impactPct: 8,
-    confidence: 84,
-    affectedAssets: ["Pump P101", "Pump P104", "Boiler Pump BP-2"],
-    estimatedSavings: "≈ 6% reduction in pump operating hours",
-    explanation:
-      "Multiple pumps run in parallel below rated load. Consolidation maintains throughput while cutting hours.",
-    recommendedActions: [
-      "Group pumps by duty profile",
-      "Define rotation schedule",
-      "Enable lead/lag controller",
-    ],
-    implementationSteps: [
-      "Cluster pumps by duty profile",
-      "Draft rotation schedule",
-      "Update PLC sequencing",
-      "Validate against KPIs",
-    ],
-  },
-  {
-    id: "opp-compressor-util",
-    title: "Compressor Utilization Improvement",
-    description:
-      "Shift load from underutilized compressors and decommission redundant capacity during off-peak hours.",
-    category: "Utilization",
-    impactLabel: "Potential Gain",
-    impactValue: "14%",
-    impactPct: 14,
-    confidence: 81,
-    affectedAssets: ["Compressor C3", "Compressor C5"],
-    estimatedSavings: "≈ 18,000 kWh / month",
-    explanation:
-      "Two compressors operate at <60% rated load 18 hours/day. Rebalancing recovers efficiency at full-load points.",
-    recommendedActions: ["Rebalance compressor load", "Disable redundant unit off-peak"],
-    implementationSteps: [
-      "Profile load curve per compressor",
-      "Identify off-peak windows",
-      "Update master control logic",
-    ],
-  },
-  {
-    id: "opp-cooling",
-    title: "Cooling System Optimization",
-    description:
-      "Plan chemical cleaning of HX-7 fouled tubes to restore heat transfer efficiency.",
-    category: "Maintenance",
-    impactLabel: "Potential Saving",
-    impactValue: "6%",
-    impactPct: 6,
-    confidence: 86,
-    affectedAssets: ["Heat Exchanger HX-7"],
-    estimatedSavings: "≈ 5% energy + reduced downtime risk",
-    explanation:
-      "Heat transfer efficiency has dropped 7% over 30 days due to fouling. Cleaning typically restores baseline within 24 hours.",
-    recommendedActions: ["Schedule chemical cleaning", "Inspect tube bundle"],
-    implementationSteps: [
-      "Plan window during scheduled stop",
-      "Coordinate with maintenance",
-      "Cleaning + post-clean baseline run",
-    ],
-  },
-];
+/* Empty until there is an endpoint behind it.
+
+   This array used to hold invented savings opportunities, written by hand and rendered by
+   the AI pages exactly as a model's output would be — health scores, remaining
+   useful life, confidence percentages, named assets at named plants. Nothing
+   on screen distinguished that from a real prediction, so the pages now show
+   "no data" instead. Point this at the query when the service lands; the
+   consumers already work off whatever length this has.
+*/
+export const OPPORTUNITIES: Opportunity[] = [];
 
 export const DIRECTION_BADGE: Record<TrendDirection, string> = {
   Increasing: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",

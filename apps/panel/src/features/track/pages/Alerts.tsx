@@ -6,6 +6,7 @@ import { useLanguage } from "@/features/track/i18n/LanguageContext";
 import { TranslationKey } from "@/features/track/i18n/translations";
 import { TypeAvatar } from "@/features/track/components/DeviceBits";
 import { Button } from "@/features/track/components/ui/button";
+import { NoData } from "@/features/track/components/NoData";
 import { cn } from "@/shared/lib/utils";
 
 const ALERT_META: Record<AlertType, { icon: LucideIcon; label: TranslationKey; tone: string }> = {
@@ -21,7 +22,9 @@ export default function Alerts() {
   const [alerts, setAlerts] = useState<Alert[]>(ALERTS);
   const unread = alerts.filter((a) => !a.read).length;
 
-  const device = (id: string) => DEVICES.find((d) => d.id === id)!;
+  /* A device the alert points at may not be in the list; the non-null
+     assertion here used to crash the page rather than skip the row. */
+  const device = (id: string) => DEVICES.find((d) => d.id === id) ?? null;
 
   return (
     <div className="mx-auto max-w-3xl p-4 lg:p-6">
@@ -39,9 +42,11 @@ export default function Alerts() {
       </div>
 
       <div className="flex flex-col gap-2">
+        {alerts.length === 0 && <NoData size="lg" className="rounded-2xl border border-border bg-card" />}
         {alerts.map((a) => {
           const m = ALERT_META[a.type];
           const d = device(a.deviceId);
+          if (!d) return null;
           return (
             <div
               key={a.id}

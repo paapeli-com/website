@@ -1,6 +1,7 @@
 import { useId, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
+import { useShellT } from "@/shared/i18n/shell";
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
   return (
@@ -64,6 +65,29 @@ export function Badge({ children, tone = "gray" }: { children: ReactNode; tone?:
   );
 }
 
+/* Cloud Management has no translation table of its own — its copy is written
+   inline in English. The shell's table is keyed by English source string and
+   reads the same global language store, so it is what translates this one
+   string into "فاقد دیتا" / "لا توجد بيانات". */
+
+/**
+ * The placeholder for a surface with no backend behind it — distinct from
+ * EmptyState below, which reports that a real, wired-up list came back empty
+ * ("No workspaces yet", "No pending invitations").
+ */
+export function NoData({ className }: { className?: string }) {
+  const t = useShellT();
+  return (
+    <p className={cn("py-8 text-center text-sm text-muted-foreground", className)}>{t("No data")}</p>
+  );
+}
+
+/** The same message inline, where a single fabricated figure used to sit. */
+export function NoDataValue({ className }: { className?: string }) {
+  const t = useShellT();
+  return <span className={cn("text-sm font-normal text-muted-foreground", className)}>{t("No data")}</span>;
+}
+
 export function EmptyState({ title, description }: { title: ReactNode; description?: string }) {
   return (
     <div className="flex flex-col items-center gap-1 rounded-2xl border border-dashed border-border py-12 text-center">
@@ -104,8 +128,8 @@ export function Table({ columns, rows, head, className }: { columns: ReactNode[]
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                  No rows yet.
+                <td colSpan={columns.length} className="px-4">
+                  <NoData />
                 </td>
               </tr>
             ) : (

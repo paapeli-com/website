@@ -3,22 +3,19 @@ import { toast } from "sonner";
 import { AlertTriangle, Search } from "lucide-react";
 import { useShellT } from "@/shared/i18n/shell";
 
-/* Mock result set — no real search backend yet. Shown for any non-empty
-   query so the interaction/design can be reviewed before wiring it up. */
-const RESULT_GROUPS = [
-  {
-    group: "Alarms",
-    items: [{ title: "High Temperature Alarm", subtitle: "Active · Critical" }],
-  },
-  {
-    group: "AI Assets",
-    items: [{ title: "Pump P101 — failure predicted", subtitle: "RUL 3 days" }],
-  },
-  {
-    group: "Devices",
-    items: [{ title: "Temp Sensor TS-04", subtitle: "Smart Factory · online" }],
-  },
-];
+/* No search backend yet.
+
+   This used to answer every query with the same three invented hits — a
+   critical alarm, a pump with 3 days of remaining life, an online sensor —
+   regardless of what was typed. The dropdown now says it has no data instead
+   of naming assets that don't exist. Fill RESULT_GROUPS from the query when
+   there is one; the rendering below already works off whatever it holds. */
+type ResultGroup = {
+  group: string;
+  items: { title: string; subtitle: string }[];
+};
+
+const RESULT_GROUPS: ResultGroup[] = [];
 
 export function HeaderSearch() {
   const [query, setQuery] = useState("");
@@ -46,6 +43,9 @@ export function HeaderSearch() {
 
       {open && (
         <div className="absolute z-50 mt-2 w-[420px] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-border bg-popover py-2 shadow-lg ltr:left-0 rtl:right-0">
+          {RESULT_GROUPS.length === 0 && (
+            <p className="px-4 py-8 text-center text-sm text-muted-foreground">{t("No data")}</p>
+          )}
           {RESULT_GROUPS.map((g) => (
             <div key={g.group}>
               <div className="px-4 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground first:pt-2">

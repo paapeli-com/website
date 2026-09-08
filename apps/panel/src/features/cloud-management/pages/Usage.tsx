@@ -1,31 +1,22 @@
-import { AreaChart, Badge, Button, Card, PageHeader, ProgressBar, Table, Toggle } from "@/features/cloud-management/ui";
+import { Badge, Button, Card, NoData, PageHeader, ProgressBar, Table, Toggle } from "@/features/cloud-management/ui";
 
-/* Placeholder data — @paapeli/api has no usage/metering module yet. */
-const METERS: { label: string; used: string; limit: string; pct: number }[] = [
-  { label: "Messages", used: "4.1M", limit: "5M / month", pct: 82 },
-  { label: "Connected assets", used: "8", limit: "25 assets", pct: 32 },
-  { label: "Time-series storage", used: "620 GB", limit: "1 TB", pct: 62 },
-  { label: "API calls", used: "1.9M", limit: "10M / month", pct: 19 },
-  { label: "Team seats", used: "9", limit: "20 seats", pct: 45 },
-];
+/* @paapeli/api has no usage/metering module yet.
 
-const MESSAGE_TREND = [42, 46, 44, 52, 49, 58, 55, 63, 60, 68, 65, 72];
-const TREND_LABELS = ["11 Jul", "16 Jul", "21 Jul", "26 Jul", "31 Jul", "5 Aug", "9 Aug"];
+   Every figure here was invented: five meters with percentages against plan
+   limits (messages at 82% of quota), a thirty-day message-volume curve with
+   its own date axis, and a per-resource table down to an overage charge of
+   ﷼ 3,400,000. A quota meter is read as a measurement of your account, so
+   these report no data until something meters them. */
+const METERS: { label: string; used: string; limit: string; pct: number }[] = [];
 
-const USAGE_BY_RESOURCE: [string, string, string, string, string][] = [
-  ["Messages", "5M", "4.1M", "—", "﷼ 0"],
-  ["Time-series storage", "1 TB", "620 GB", "—", "﷼ 0"],
-  ["API calls", "10M", "1.9M", "—", "﷼ 0"],
-  ["AI analysis runs", "2,000", "2,340", "340 runs", "﷼ 3,400,000"],
-  ["OTA bandwidth", "200 GB", "86 GB", "—", "﷼ 0"],
-];
+const USAGE_BY_RESOURCE: [string, string, string, string, string][] = [];
 
 export default function Usage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <PageHeader
         title="Usage & quotas"
-        description="Consumption against plan limits for the current billing period — preview data, no usage backend yet."
+        description="Consumption against plan limits for the current billing period."
         actions={
           <>
             <Button variant="ghost">Period: This month</Button>
@@ -34,6 +25,7 @@ export default function Usage() {
         }
       />
 
+      {METERS.length === 0 && <Card><NoData /></Card>}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {METERS.map((m) => (
           <Card key={m.label} className="flex flex-col gap-2.5 p-4">
@@ -53,13 +45,8 @@ export default function Usage() {
           <h2 className="text-sm font-bold text-foreground">Message volume — last 30 days</h2>
           <Badge tone="gray">Messages</Badge>
         </div>
-        <div className="h-40">
-          <AreaChart points={MESSAGE_TREND} />
-        </div>
-        <div className="flex justify-between text-[11.5px] text-muted-foreground">
-          {TREND_LABELS.map((d) => (
-            <span key={d}>{d}</span>
-          ))}
+        <div className="flex h-40 items-center justify-center">
+          <NoData />
         </div>
       </Card>
 

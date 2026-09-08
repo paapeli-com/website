@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/features/factory/components/PageHeader";
+import { NoData, NoDataValue } from "@/features/factory/components/NoData";
 import { LocationCell } from "@/features/factory/components/panel/LocationCell";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
@@ -106,12 +107,9 @@ const AIoTAnalyzeTrends = () => {
     (a, b) => a.changePct - b.changePct,
   );
 
-  const insights: { id: string; title: string; text: string }[] = [
-    { id: "trend-energy-factory-a", title: tt("insightEnergyTitle"), text: tt("insightEnergyText") },
-    { id: "trend-flow-stability-line2", title: tt("insightLine2Title"), text: tt("insightLine2Text") },
-    { id: "trend-cooling-perf-hx7", title: tt("insightCoolingTitle"), text: tt("insightCoolingText") },
-    { id: "trend-compressor-util-factory-b", title: tt("insightCompressorTitle"), text: tt("insightCompressorText") },
-  ];
+  /* The four "AI insights" were four fixed sentences, translated but never
+     computed, each deep-linking to a trend id that had to exist in TRENDS. */
+  const insights: { id: string; title: string; text: string }[] = [];
 
   // ---------- Overview ----------
   const Overview = (
@@ -168,9 +166,11 @@ const AIoTAnalyzeTrends = () => {
               </div>
               <div className="mt-1 flex items-baseline gap-2">
                 <span className="text-xl font-bold text-foreground leading-none">
-                  {formatNumber(k.value)}
+                  {TRENDS.length === 0 ? <NoDataValue /> : formatNumber(k.value)}
                 </span>
-                <span className="text-[11px] text-muted-foreground">{tt("trendsWord")}</span>
+                {TRENDS.length > 0 && (
+                  <span className="text-[11px] text-muted-foreground">{tt("trendsWord")}</span>
+                )}
               </div>
             </button>
           );
@@ -223,9 +223,11 @@ const AIoTAnalyzeTrends = () => {
                 </button>
               ))}
               {increasing.length === 0 && (
-                <div className="px-3 py-6 text-center text-xs text-muted-foreground">
-                  {tt("noIncreasingTrends")}
-                </div>
+                TRENDS.length === 0 ? <NoData size="sm" /> : (
+                  <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                    {tt("noIncreasingTrends")}
+                  </div>
+                )
               )}
             </div>
           </CardContent>
@@ -272,9 +274,11 @@ const AIoTAnalyzeTrends = () => {
                 </button>
               ))}
               {decreasing.length === 0 && (
-                <div className="px-3 py-6 text-center text-xs text-muted-foreground">
-                  {tt("noDecreasingTrends")}
-                </div>
+                TRENDS.length === 0 ? <NoData size="sm" /> : (
+                  <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                    {tt("noDecreasingTrends")}
+                  </div>
+                )
               )}
             </div>
           </CardContent>
@@ -290,6 +294,7 @@ const AIoTAnalyzeTrends = () => {
             <h3 className="font-semibold text-sm">{tt("aiTrendInsightsTitle")}</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {insights.length === 0 && <div className="md:col-span-2"><NoData size="sm" /></div>}
             {insights.map((ins) => (
               <button
                 key={ins.id}
@@ -480,8 +485,12 @@ const AIoTAnalyzeTrends = () => {
               {slice.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-3 py-12 text-center">
-                    <p className="font-medium">{tt("noTrendsFound")}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{tt("tryAdjustingFilters")}</p>
+                    {TRENDS.length === 0 ? <NoData /> : (
+                      <>
+                        <p className="font-medium">{tt("noTrendsFound")}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{tt("tryAdjustingFilters")}</p>
+                      </>
+                    )}
                   </td>
                 </tr>
               )}
@@ -599,6 +608,7 @@ const AIoTAnalyzeTrends = () => {
   // ---------- Opportunities ----------
   const OpportunitiesTab = (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {OPPORTUNITIES.length === 0 && <NoData />}
       {OPPORTUNITIES.map((o) => (
         <Card key={o.id} className="hover:shadow-sm transition-shadow">
           <CardContent className="p-4 flex flex-col gap-3 h-full">
@@ -646,7 +656,8 @@ const AIoTAnalyzeTrends = () => {
 
   return (
     <>
-      <PageHeader title={tt("analyzeTrendsLabel")} count={TRENDS.length} countLabel={tt("trendsWord")} />
+      {/* No count while nothing is served — "0 trends" reads as a measurement. */}
+      <PageHeader title={tt("analyzeTrendsLabel")} count={TRENDS.length || null} countLabel={tt("trendsWord")} />
 
 
       <Tabs

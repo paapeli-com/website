@@ -7,6 +7,7 @@ import { useLanguage } from "@/features/track/i18n/LanguageContext";
 import { LeafletMap } from "@/features/track/components/map/LeafletMap";
 import { Switch } from "@/features/track/components/ui/switch";
 import { Button } from "@/features/track/components/ui/button";
+import { NoData } from "@/features/track/components/NoData";
 
 export default function Geofences() {
   const { t, num } = useLanguage();
@@ -32,6 +33,7 @@ export default function Geofences() {
         <LeafletMap devices={DEVICES} geofences={zones} className="aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border" />
 
         <div className="flex flex-col gap-3">
+          {zones.length === 0 && <NoData className="rounded-2xl border border-border bg-card" />}
           {zones.map((z) => (
             <div key={z.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
               <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">

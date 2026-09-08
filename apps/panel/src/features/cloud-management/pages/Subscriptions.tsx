@@ -6,7 +6,7 @@ import {
   useSubscribeWorkspaceProductMutation,
 } from "@paapeli/api";
 import { useWorkspaceSelection } from "@/features/cloud-management/contexts/WorkspaceContext";
-import { Badge, Button, Card, EmptyState, PageHeader, ProgressBar, Table, Toggle } from "@/features/cloud-management/ui";
+import { Badge, Button, Card, EmptyState, NoData, NoDataValue, PageHeader, ProgressBar, Table, Toggle } from "@/features/cloud-management/ui";
 
 /* The PLAN/BILLING data below is placeholder — @paapeli/api has no
    subscriptions or billing module, so plans, entitlements, add-ons and
@@ -20,33 +20,14 @@ import { Badge, Button, Card, EmptyState, PageHeader, ProgressBar, Table, Toggle
     rather than GET /api/v1/aiot/products — the panel only routes to the
     solutions it actually ships, and this keeps the page to one request. */
 const SUBSCRIBABLE = PRODUCTS.flatMap((p) => p.solutions ?? []);
-const ENTITLEMENTS = [
-  { label: "Connected assets", used: 8, limit: 25, text: "8 of 25" },
-  { label: "Messages / month", used: 4.1, limit: 5, text: "4.1M of 5M" },
-  { label: "Data retention", used: 12, limit: 24, text: "12 of 24 months" },
-  { label: "Team members", used: 9, limit: 20, text: "9 of 20 seats" },
-];
-
-const PLAN_FACTS = [
-  ["Base fee", "﷼ 42,000,000 / mo"],
-  ["Committed assets", "25 assets"],
-  ["Renewal", "1 Sep 2026"],
-  ["Billing cycle", "Monthly, in arrears"],
-];
-
-const ADDONS = [
-  ["Extra assets pack", "2 × 5 assets", "﷼ 6,000,000", "﷼ 12,000,000"],
-  ["AI analytics — advanced", "1 workspace", "﷼ 18,000,000", "﷼ 18,000,000"],
-  ["Extended retention (24 mo)", "—", "﷼ 9,000,000", "﷼ 9,000,000"],
-  ["Priority support", "—", "﷼ 3,200,000", "﷼ 3,200,000"],
-];
-
-const NEXT_INVOICE = [
-  ["Base fee", "﷼ 42,000,000"],
-  ["Add-ons", "﷼ 42,200,000"],
-  ["Overage", "﷼ 0"],
-  ["VAT (9%)", "included"],
-];
+/* A named plan tier, a subscription id, a base fee, four entitlement meters,
+   four priced add-ons and a next-invoice estimate — all invented, and all of
+   it describes a commercial agreement. Empty until a subscriptions module
+   exists. The product-subscription card above stays: it is real. */
+const ENTITLEMENTS: { label: string; used: number; limit: number; text: string }[] = [];
+const PLAN_FACTS: [string, string][] = [];
+const ADDONS: string[][] = [];
+const NEXT_INVOICE: [string, string][] = [];
 
 function ProductSubscriptions() {
   const { selectedId, selected, isLoading: workspacesLoading } = useWorkspaceSelection();
@@ -145,7 +126,7 @@ export default function Subscriptions() {
     <div className="flex flex-col gap-6 p-6">
       <PageHeader
         title="Subscriptions"
-        description="Product subscriptions are live. Plan, entitlements, add-ons and renewal are preview data — there is no billing backend yet."
+        description="Product subscriptions are live. Plan, entitlements, add-ons and renewal have no billing backend yet."
         actions={
           <>
             <Button variant="ghost">Compare plans</Button>
@@ -165,12 +146,9 @@ export default function Subscriptions() {
               </span>
               <div className="flex flex-1 flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-base font-bold text-foreground">AIoT — Business</h2>
-                  <Badge tone="ok">Active</Badge>
+                  <h2 className="text-base font-bold text-foreground">AIoT</h2>
                 </div>
-                <p className="text-[13px] text-muted-foreground">
-                  Subscription ID SUB-4471-AIOT · started 1 Sep 2025 · annual, auto-renew on
-                </p>
+                <p className="text-[13px] text-muted-foreground"><NoDataValue /></p>
               </div>
               <div className="flex gap-2">
                 <Button variant="ghost">Change plan</Button>
@@ -178,6 +156,7 @@ export default function Subscriptions() {
               </div>
             </div>
 
+            {PLAN_FACTS.length === 0 && <NoData />}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {PLAN_FACTS.map(([l, v]) => (
                 <div key={l} className="rounded-xl bg-muted/40 px-3.5 py-3">
@@ -189,6 +168,7 @@ export default function Subscriptions() {
 
             <div className="flex flex-col gap-3">
               <h3 className="text-[13px] font-semibold text-foreground">Plan entitlements</h3>
+              {ENTITLEMENTS.length === 0 && <NoData />}
               {ENTITLEMENTS.map((e) => (
                 <div key={e.label} className="flex flex-col gap-1.5">
                   <div className="flex justify-between text-[13px]">
@@ -216,8 +196,7 @@ export default function Subscriptions() {
         <div className="flex flex-col gap-6">
           <Card className="flex flex-col gap-3">
             <h2 className="text-sm font-bold text-foreground">Estimated next invoice</h2>
-            <div className="text-2xl font-bold text-foreground">﷼ 84,200,000</div>
-            <p className="text-xs text-muted-foreground">Issued 1 Sep 2026 · due in 14 days</p>
+            <div className="text-2xl font-bold text-foreground"><NoDataValue /></div>
             <div className="h-px bg-border" />
             {NEXT_INVOICE.map(([l, v]) => (
               <div key={l} className="flex justify-between text-[13px]">

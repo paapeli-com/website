@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/features/factory/components/PageHeader";
+import { NoData, NoDataValue } from "@/features/factory/components/NoData";
 import { LocationCell } from "@/features/factory/components/panel/LocationCell";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
@@ -184,8 +185,10 @@ const AIoTDetectAnomalies = () => {
               <AlertTriangle className={`h-3.5 w-3.5 shrink-0 ${k.accent}`} />
             </div>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-xl font-bold text-foreground leading-none">{formatNumber(k.value)}</span>
-              <span className="text-[11px] text-muted-foreground">{t("anomaliesWord")}</span>
+              <span className="text-xl font-bold text-foreground leading-none">
+                {items.length === 0 ? <NoDataValue /> : formatNumber(k.value)}
+              </span>
+              {items.length > 0 && <span className="text-[11px] text-muted-foreground">{t("anomaliesWord")}</span>}
             </div>
           </button>
         ))}
@@ -236,9 +239,11 @@ const AIoTDetectAnomalies = () => {
                   </button>
                 ))}
               {active.filter((a) => a.severity === "Critical" || a.severity === "High").length === 0 && (
-                <div className="px-3 py-6 text-center text-xs text-muted-foreground">
-                  {t("noHighSeverityNow")}
-                </div>
+                items.length === 0 ? <NoData size="sm" /> : (
+                  <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                    {t("noHighSeverityNow")}
+                  </div>
+                )
               )}
             </div>
           </CardContent>
@@ -292,21 +297,23 @@ const AIoTDetectAnomalies = () => {
             <h3 className="font-semibold text-sm">{t("aiMonitoringSummary")}</h3>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { label: t("devicesAnalyzed"), value: 312 },
-              { label: t("anomaliesDetectedLabel"), value: items.length },
+            {([
+              // "312 devices analyzed" was a bare constant, not a count of anything.
+              { label: t("devicesAnalyzed"), value: null },
+              { label: t("anomaliesDetectedLabel"), value: items.length || null },
               {
                 label: t("averageConfidence"),
                 value: items.length
                   ? `${formatNumber(Math.round(items.reduce((s, a) => s + a.confidence, 0) / items.length))}%`
-                  : "—",
+                  : null,
               },
-              { label: t("criticalAssetsLabel"), value: counts.critical },
-            ].map((s, i) => (
+              { label: t("criticalAssetsLabel"), value: items.length ? counts.critical : null },
+            ] as { label: string; value: number | string | null }[]).map((s, i) => (
               <div key={i} className="border rounded-md p-3">
                 <div className="text-xs text-muted-foreground">{s.label}</div>
                 <div className="text-xl font-bold mt-1">
-                  {typeof s.value === "number" ? formatNumber(s.value) : s.value}
+                  {s.value === null ? <NoDataValue />
+                    : typeof s.value === "number" ? formatNumber(s.value) : s.value}
                 </div>
               </div>
             ))}
@@ -484,9 +491,13 @@ const AIoTDetectAnomalies = () => {
             <tbody>
               {slice.length === 0 && (
                 <tr>
-                  <td colSpan={isInvestigated ? 8 : 8} className="px-3 py-12 text-center">
-                    <p className="font-medium">{t("noAnomaliesFound")}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{t("tryAdjustingFilters")}</p>
+                  <td colSpan={8} className="px-3 py-12 text-center">
+                    {items.length === 0 ? <NoData /> : (
+                      <>
+                        <p className="font-medium">{t("noAnomaliesFound")}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{t("tryAdjustingFilters")}</p>
+                      </>
+                    )}
                   </td>
                 </tr>
               )}
@@ -616,7 +627,7 @@ const AIoTDetectAnomalies = () => {
     <>
       <PageHeader
         title={t("detectAnomalies")}
-        count={items.length}
+        count={items.length || null}
         countLabel={t("anomaliesWord")}
       />
 

@@ -9,7 +9,6 @@ import { EscalationPolicies } from "@/features/factory/components/alerts/Escalat
 import { NotificationChannels } from "@/features/factory/components/alerts/NotificationChannels";
 import { AlertTemplates } from "@/features/factory/components/alerts/AlertTemplates";
 import { PageHeader } from "@/features/factory/components/PageHeader";
-import { mockAlerts } from "@/features/factory/data/mockAlertData";
 import { FileText } from "lucide-react";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 
@@ -32,9 +31,10 @@ const Alarms = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  const activeAlarmCount = mockAlerts.filter(
-    (a) => a.status === "active" || a.status === "escalated"
-  ).length;
+  /* No alarms endpoint yet — the header used to count a fixed set of invented
+     alarms. PageHeader hides the count entirely when it is null, and the "All"
+     tab below says "no data" in its place. */
+  const activeAlarmCount = null;
 
   const goCreateRule = () => navigate(lp("/alarms/rules/new"));
   const goCreateEscalation = () => navigate(lp("/alarms/escalation/new"));

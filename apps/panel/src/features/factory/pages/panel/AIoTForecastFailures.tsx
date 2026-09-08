@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LocationCell } from "@/features/factory/components/panel/LocationCell";
 import { PageHeader } from "@/features/factory/components/PageHeader";
+import { NoData, NoDataValue } from "@/features/factory/components/NoData";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/features/factory/components/ui/tabs";
 import { Card, CardContent } from "@/features/factory/components/ui/card";
@@ -58,14 +59,9 @@ interface Recommendation {
   location: string;
 }
 
-const RECOMMENDATIONS: Recommendation[] = [
-  { asset: "Pump P101", devId: "DEV-101", action: "Inspect bearing — abnormal vibration signature detected", priority: "Critical", impact: "Reduce failure risk by 45%", location: "Factory A > Sulfonation > Line 1" },
-  { asset: "Boiler Pump BP-2", devId: "DEV-810", action: "Check suction pressure to prevent cavitation damage", priority: "Critical", impact: "Avoid 12h unplanned downtime", location: "Factory A > Boiler > Line 1" },
-  { asset: "Compressor C3", devId: "DEV-205", action: "Lubricate shaft and re-balance rotor", priority: "High", impact: "Reduce vibration by 25%", location: "Factory A > Sulfonation > Line 2" },
-  { asset: "Motor M12", devId: "DEV-322", action: "Schedule cooling system inspection", priority: "High", impact: "Stabilize operating temperature", location: "Factory B > Processing > Line 1" },
-  { asset: "Heat Exchanger HX-7", devId: "DEV-705", action: "Plan chemical cleaning cycle for fouled tubes", priority: "High", impact: "Restore 8% efficiency", location: "Factory B > Processing > Line 2" },
-  { asset: "Furnace Fan F2", devId: "DEV-411", action: "Inspect electrical supply for current spikes", priority: "Medium", impact: "Prevent winding damage", location: "Factory A > Furnace > Line 3" },
-];
+/* Six hand-written maintenance actions ("Reduce failure risk by 45%") against
+   named assets, presented as model output. Empty until something computes them. */
+const RECOMMENDATIONS: Recommendation[] = [];
 
 const toSource = (r: ForecastAsset): WorkOrderSource => ({
   id: r.devId,
@@ -186,8 +182,10 @@ const AIoTForecastFailures = () => {
                 <Icon className={`h-3.5 w-3.5 shrink-0 ${k.accent}`} />
               </div>
               <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-xl font-bold text-foreground leading-none">{formatNumber(k.value)}</span>
-                <span className="text-[11px] text-muted-foreground">{tt("assetsWord")}</span>
+                <span className="text-xl font-bold text-foreground leading-none">
+                  {ROWS.length === 0 ? <NoDataValue /> : formatNumber(k.value)}
+                </span>
+                {ROWS.length > 0 && <span className="text-[11px] text-muted-foreground">{tt("assetsWord")}</span>}
               </div>
             </button>
           );
@@ -207,6 +205,7 @@ const AIoTForecastFailures = () => {
               <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setTab("assets")}>{tt("viewAll")}</Button>
             </div>
             <div className="divide-y border rounded-md">
+              {ROWS.length === 0 && <NoData size="sm" />}
               {ROWS.filter((r) => r.risk === "Critical" || r.risk === "High").slice(0, 5).map((r) => (
                 <button
                   key={r.devId}
@@ -244,6 +243,7 @@ const AIoTForecastFailures = () => {
               <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setTab("recommendations")}>{tt("viewAll")}</Button>
             </div>
             <div className="space-y-2">
+              {RECOMMENDATIONS.length === 0 && <NoData size="sm" />}
               {RECOMMENDATIONS.slice(0, 4).map((r, i) => (
                 <div key={i} className="border rounded-md p-2.5">
                   <div className="flex items-center justify-between mb-1">
@@ -387,8 +387,12 @@ const AIoTForecastFailures = () => {
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={9} className="px-3 py-12 text-center">
-                  <p className="font-medium">{tt("noPredictedFailures")}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{tt("tryAdjustingFilters")}</p>
+                  {ROWS.length === 0 ? <NoData /> : (
+                    <>
+                      <p className="font-medium">{tt("noPredictedFailures")}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{tt("tryAdjustingFilters")}</p>
+                    </>
+                  )}
                 </td>
               </tr>
             )}
@@ -465,6 +469,7 @@ const AIoTForecastFailures = () => {
     <div className="space-y-3">
       <div className="text-sm text-muted-foreground">{tt("aiGeneratedActions")}</div>
       <div className="border rounded-md bg-card divide-y">
+        {RECOMMENDATIONS.length === 0 && <NoData />}
         {RECOMMENDATIONS.map((r, i) => {
           const asset = ROWS.find((a) => a.devId === r.devId);
           return (
@@ -511,7 +516,7 @@ const AIoTForecastFailures = () => {
     <>
       <PageHeader
         title={tt("forecastTitle")}
-        count={ROWS.length}
+        count={ROWS.length || null}
         countLabel={tt("assetsAtRiskLabel")}
       />
 

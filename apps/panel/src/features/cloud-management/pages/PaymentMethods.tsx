@@ -1,20 +1,17 @@
-import { AlertCircle, MoreHorizontal, Wallet } from "lucide-react";
-import { Badge, Button, Card, PageHeader, Table, Toggle } from "@/features/cloud-management/ui";
+import { MoreHorizontal } from "lucide-react";
+import { Badge, Button, Card, NoData, NoDataValue, PageHeader, Table, Toggle } from "@/features/cloud-management/ui";
 import { cn } from "@/shared/lib/utils";
 
-/* Placeholder data — @paapeli/api has no payments module yet. */
-const CARDS: { brand: string; last4: string; expiry: string; primary?: boolean }[] = [
-  { brand: "SAMAN", last4: "4417", expiry: "09 / 2026", primary: true },
-  { brand: "MELLAT", last4: "8823", expiry: "04 / 2029" },
-];
+/* @paapeli/api has no payments module yet.
 
-const PAYMENT_HISTORY: [string, string, string, string, string][] = [
-  ["3 Aug 2026", "Invoice INV-2026-07", "Card •••• 4417", "﷼ 89,600,000", "Succeeded"],
-  ["21 Jul 2026", "Wallet top-up", "Bank transfer", "﷼ 50,000,000", "Succeeded"],
-  ["2 Jul 2026", "Invoice INV-2026-06", "Wallet", "﷼ 91,200,000", "Succeeded"],
-  ["1 Jul 2026", "Invoice INV-2026-06 (retry)", "Card •••• 8823", "﷼ 91,200,000", "Failed"],
-  ["3 Jun 2026", "Invoice INV-2026-05", "Card •••• 4417", "﷼ 88,400,000", "Succeeded"],
-];
+   Two saved cards with issuer, last four digits and expiry, a bank account
+   with a partial IBAN, five payment attempts (one of them failed), a wallet
+   balance and a banner warning that a specific card expires next month. These
+   name financial instruments the account does not have, and the expiry banner
+   asks the user to act on one. Empty until there is a payments backend. */
+const CARDS: { brand: string; last4: string; expiry: string; primary?: boolean }[] = [];
+
+const PAYMENT_HISTORY: [string, string, string, string, string][] = [];
 
 function PaymentCard({ brand, last4, expiry, primary }: { brand: string; last4: string; expiry: string; primary?: boolean }) {
   return (
@@ -39,7 +36,7 @@ export default function PaymentMethods() {
     <div className="flex flex-col gap-6 p-6">
       <PageHeader
         title="Payment methods & wallet"
-        description="Cards, bank accounts and prepaid balance — preview data, no payments backend yet."
+        description="Cards, bank accounts and prepaid balance."
         actions={
           <>
             <Button variant="ghost">Top up wallet</Button>
@@ -52,19 +49,10 @@ export default function PaymentMethods() {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-3">
             <h2 className="text-sm font-bold text-foreground">Saved methods</h2>
+            {CARDS.length === 0 && <Card><NoData /></Card>}
             {CARDS.map((c) => (
               <PaymentCard key={c.last4} {...c} />
             ))}
-            <Card className="flex items-center gap-4 p-4">
-              <span className="flex h-8 w-11 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                <Wallet className="size-[18px]" />
-              </span>
-              <div className="flex flex-1 flex-col gap-0.5">
-                <span className="text-sm font-semibold text-foreground">Bank transfer — Bank Melli</span>
-                <span className="text-xs text-muted-foreground">IR•• •••• •••• •••• 7712 · for invoices over ﷼ 100M</span>
-              </div>
-              <MoreHorizontal className="size-[18px] text-muted-foreground" />
-            </Card>
           </div>
 
           <Table
@@ -90,8 +78,7 @@ export default function PaymentMethods() {
         <div className="flex flex-col gap-6">
           <Card className="flex flex-col gap-3">
             <h2 className="text-sm font-bold text-foreground">Wallet balance</h2>
-            <span className="text-2xl font-bold text-foreground">﷼ 32,500,000</span>
-            <p className="text-xs text-muted-foreground">Covers roughly 11 days at your current burn rate.</p>
+            <span className="text-2xl font-bold text-foreground"><NoDataValue /></span>
             <div className="flex gap-2">
               <Button>Top up</Button>
               <Button variant="ghost">Auto top-up</Button>
@@ -118,18 +105,10 @@ export default function PaymentMethods() {
             </div>
           </Card>
 
-          <Card className="flex gap-3 border-primary/30 bg-primary/5">
-            <AlertCircle className="size-[18px] shrink-0 text-primary" />
-            <div className="flex flex-col gap-1">
-              <h2 className="text-sm font-bold text-foreground">Card expiring soon</h2>
-              <p className="text-[13px] leading-relaxed text-muted-foreground">
-                SAMAN •••• 4417 expires 09/2026. Update it before the next invoice to avoid a failed charge.
-              </p>
-              <button type="button" className="mt-1 w-fit text-[13px] font-semibold text-primary hover:underline">
-                Update card
-              </button>
-            </div>
-          </Card>
+          {/* The "card expiring soon" banner named SAMAN 4417 and asked the
+              user to replace it before the next invoice — an action prompt
+              about a card that does not exist. It returns with the data. */}
+
         </div>
       </div>
     </div>

@@ -9,6 +9,7 @@ import { TypeFilter, TypeFilterValue } from "@/features/track/components/TypeFil
 import { CommandDrawer } from "@/features/track/components/CommandDrawer";
 import { Battery, Signal, StatusPill, TypeAvatar } from "@/features/track/components/DeviceBits";
 import { Button } from "@/features/track/components/ui/button";
+import { NoData } from "@/features/track/components/NoData";
 import { cn } from "@/shared/lib/utils";
 
 export default function LiveMap() {
@@ -39,6 +40,7 @@ export default function LiveMap() {
         <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-card">
           <div className="border-b border-border px-4 py-3 text-sm font-semibold">{t("devices")}</div>
           <div className="min-h-0 flex-1 overflow-y-auto p-2">
+            {list.length === 0 && <NoData size="sm" />}
             {list.map((d) => (
               <button
                 key={d.id}
@@ -73,6 +75,7 @@ export default function LiveMap() {
           />
 
           {/* Selected-device card (floating over the map) */}
+          {selected && (
           <div className="absolute bottom-3 z-[1000] w-72 rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur ltr:left-3 rtl:right-3">
 
             <div className="flex items-center gap-3">
@@ -124,10 +127,20 @@ export default function LiveMap() {
               </Button>
             </div>
           </div>
+          )}
+
+          {/* Nothing to plot: say so over the empty map rather than leaving it blank. */}
+          {devices.length === 0 && (
+            <div className="pointer-events-none absolute inset-0 z-[1000] flex items-center justify-center">
+              <div className="pointer-events-auto rounded-2xl border border-border bg-card/95 px-6 shadow-xl backdrop-blur">
+                <NoData />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      <CommandDrawer open={cmdOpen} onClose={() => setCmdOpen(false)} device={selected} />
+      {selected && <CommandDrawer open={cmdOpen} onClose={() => setCmdOpen(false)} device={selected} />}
     </div>
   );
 }

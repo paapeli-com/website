@@ -21,6 +21,7 @@ import { Label } from "@/features/factory/components/ui/label";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useDashboards, AI_MANAGERS_DASHBOARD_ID } from "@/features/factory/hooks/useDashboards";
 import { OPPORTUNITIES } from "@/features/factory/data/trends";
+import { NoData, NoDataValue } from "@/features/factory/components/NoData";
 import { DATA_SOURCES, findDataSource, getKPI, getSeries, getBreakdown, getTable } from "@/features/factory/lib/dashboardData";
 import {
   ArrowLeft, Maximize2, Minimize2, RefreshCw, Pencil, Calendar,
@@ -343,49 +344,33 @@ const ManagersDashboard = () => {
   }, [tick, lastUpdated, lang]);
 
   // ----- Data -----
-  const kpis = [
-    { icon: ShieldAlert, label: t("assetsAtRisk"), value: "8", delta: `+2 ${t("todayLabel")}`, deltaTone: "danger" as const, sub: t("vsYesterday"), tone: "red" },
-    { icon: AlertTriangle, label: t("activeAnomalies"), value: "12", delta: `3 ${t("critical")}`, deltaTone: "danger" as const, sub: t("vsYesterday"), tone: "orange" },
-    { icon: DollarSign, label: t("potentialSavings"), value: "$18,400", delta: t("thisMonth"), deltaTone: "success" as const, sub: `${t("vsLastMonth")} ↑ 8%`, tone: "emerald" },
-    { icon: Sparkles, label: t("aiConfidence"), value: "91%", delta: t("modelsHealthy"), deltaTone: "info" as const, sub: `${t("vsYesterday")} ↑ 2%`, tone: "blue" },
-    { icon: Lightbulb, label: t("openRecs"), value: "16", delta: t("needReview"), deltaTone: "warning" as const, sub: `${t("vsYesterday")} ↓ 3`, tone: "violet" },
-    { icon: ClipboardList, label: t("workOrders"), value: "7", delta: `2 ${t("pending")}`, deltaTone: "neutral" as const, sub: `${t("vsYesterday")} ↑ 1`, tone: "slate" },
+  /* Every panel on this dashboard was hand-written: six KPI tiles ("8 assets
+     at risk", "$18,400 potential savings", "91% AI confidence"), five named
+     at-risk assets, a four-item executive feed with "5 min ago" timestamps, a
+     failure-forecast donut, four model health scores and three recommended
+     actions. None of it was computed and none of it changed between visits.
+
+     They are empty until something feeds them; each panel keeps its heading
+     and says it has no data. The KPI tile shapes stay so the drag-and-drop
+     ordering (order.kpi / kpiMap) keeps working. */
+  const kpis: {
+    icon: typeof ShieldAlert; label: string; value: string | null;
+    delta: string; deltaTone: "danger" | "warning" | "success" | "info" | "neutral";
+    sub: string; tone: string;
+  }[] = [
+    { icon: ShieldAlert, label: t("assetsAtRisk"), value: null, delta: "", deltaTone: "neutral", sub: "", tone: "red" },
+    { icon: AlertTriangle, label: t("activeAnomalies"), value: null, delta: "", deltaTone: "neutral", sub: "", tone: "orange" },
+    { icon: DollarSign, label: t("potentialSavings"), value: null, delta: "", deltaTone: "neutral", sub: "", tone: "emerald" },
+    { icon: Sparkles, label: t("aiConfidence"), value: null, delta: "", deltaTone: "neutral", sub: "", tone: "blue" },
+    { icon: Lightbulb, label: t("openRecs"), value: null, delta: "", deltaTone: "neutral", sub: "", tone: "violet" },
+    { icon: ClipboardList, label: t("workOrders"), value: null, delta: "", deltaTone: "neutral", sub: "", tone: "slate" },
   ];
 
-  const riskAssets = [
-    { name: "Pump P101", line: "Line 1 - Sulfonation", level: t("critical"), levelTone: "danger", rul: "3d", pct: 43 },
-    { name: "Boiler Pump BP-2", line: "Boiler - Line 1", level: t("critical"), levelTone: "danger", rul: "4d", pct: 48 },
-    { name: "Compressor C3", line: "Line 2 - Sulfonation", level: t("high"), levelTone: "warning", rul: "6d", pct: 56 },
-    { name: "Motor M12", line: "Factory B - Processing", level: t("high"), levelTone: "warning", rul: "9d", pct: 62 },
-    { name: "Heat Exchanger HX-7", line: "Factory B - Processing", level: t("high"), levelTone: "warning", rul: "14d", pct: 65 },
-  ];
-
-  const feed = [
-    { tone: "danger", text: lang === "en" ? "Bearing vibration increased 18% in last 7 days. Expected failure probability: 97%" : lang === "fa" ? "ارتعاش بلبرینگ ۱۸٪ افزایش یافته. احتمال خرابی: ۹۷٪" : "زيادة الاهتزاز 18% خلال 7 أيام. احتمال العطل: 97%", time: `5 ${lang === "en" ? "min ago" : lang === "fa" ? "دقیقه پیش" : "د"}` },
-    { tone: "warning", text: lang === "en" ? "Energy consumption is increasing faster than production output." : lang === "fa" ? "مصرف انرژی سریع‌تر از خروجی تولید رشد می‌کند." : "استهلاك الطاقة يزيد أسرع من الإنتاج.", time: `18 ${lang === "en" ? "min ago" : lang === "fa" ? "دقیقه پیش" : "د"}` },
-    { tone: "info", text: lang === "en" ? "Compressor utilization dropped 14%." : lang === "fa" ? "بهره‌برداری کمپرسور ۱۴٪ کاهش یافت." : "انخفض استخدام الضاغط 14%.", time: `25 ${lang === "en" ? "min ago" : lang === "fa" ? "دقیقه پیش" : "د"}` },
-    { tone: "success", text: lang === "en" ? "Potential saving: 11% if scheduling optimized." : lang === "fa" ? "صرفه‌جویی احتمالی: ۱۱٪ با بهینه‌سازی زمان‌بندی." : "وفر محتمل: 11% بتحسين الجدولة.", time: `42 ${lang === "en" ? "min ago" : lang === "fa" ? "دقیقه پیش" : "د"}` },
-  ];
-
-  const forecastSegments = [
-    { label: t("critical"), value: 2, pct: 13, color: "#ef4444" },
-    { label: t("high"), value: 3, pct: 19, color: "#f59e0b" },
-    { label: t("medium"), value: 6, pct: 38, color: "#eab308" },
-    { label: t("low"), value: 5, pct: 30, color: "#10b981" },
-  ];
-
-  const models = [
-    { name: lang === "en" ? "Forecast Model" : lang === "fa" ? "مدل پیش‌بینی" : "نموذج التوقع", pct: 94 },
-    { name: lang === "en" ? "Anomaly Detection Model" : lang === "fa" ? "مدل تشخیص ناهنجاری" : "نموذج اكتشاف الشذوذ", pct: 92 },
-    { name: lang === "en" ? "Trend Analysis Model" : lang === "fa" ? "مدل تحلیل روند" : "نموذج تحليل الاتجاهات", pct: 91 },
-    { name: lang === "en" ? "NLP & Insights Model" : lang === "fa" ? "مدل NLP و بینش" : "نموذج NLP والرؤى", pct: 89 },
-  ];
-
-  const actions = [
-    { level: t("critical"), levelTone: "danger", asset: "Pump P101", action: t("inspectBearing"), impact: t("avoidDowntime"), primary: true },
-    { level: t("high"), levelTone: "warning", asset: "Boiler Pump BP-2", action: t("checkSuction"), impact: t("avoidCavitation"), primary: true },
-    { level: t("medium"), levelTone: "info", asset: "Compressor C3", action: t("lubricateShaft"), impact: t("reduceVibration"), primary: false },
-  ];
+  const riskAssets: { name: string; line: string; level: string; levelTone: string; rul: string; pct: number }[] = [];
+  const feed: { tone: string; text: string; time: string }[] = [];
+  const forecastSegments: { label: string; value: number; pct: number; color: string }[] = [];
+  const models: { name: string; pct: number }[] = [];
+  const actions: { level: string; levelTone: string; asset: string; action: string; impact: string; primary: boolean }[] = [];
 
   // ----- Visuals -----
   const Donut = () => {
@@ -406,8 +391,12 @@ const ManagersDashboard = () => {
     );
   };
 
+  /* The anomaly trend was a fixed fifteen-point series, drawn as a filled area
+     chart and captioned with the selected time range — so changing the range
+     redrew the same invented curve. */
   const TrendChart = () => {
-    const data = [12, 18, 14, 22, 19, 25, 20, 24, 28, 23, 27, 26, 30, 28, 32];
+    const data: number[] = [];
+    if (data.length === 0) return <NoData size="sm" />;
     const max = Math.max(...data);
     const w = 600, h = 120, step = w / (data.length - 1);
     const pts = data.map((v, i) => `${i * step},${h - (v / max) * h}`).join(" ");
@@ -783,14 +772,18 @@ const ManagersDashboard = () => {
                       <span className="text-xs text-muted-foreground truncate flex-1">{k.label}</span>
                       <DragHandle />
                     </div>
-                    <div className="text-2xl font-bold leading-tight">{k.value}</div>
-                    <div className={`text-[11px] mt-1 ${
-                      k.deltaTone === "danger" ? "text-red-600" :
-                      k.deltaTone === "warning" ? "text-orange-600" :
-                      k.deltaTone === "success" ? "text-emerald-600" :
-                      k.deltaTone === "info" ? "text-blue-600" : "text-muted-foreground"
-                    }`}>{k.delta}</div>
-                    <div className="text-[10px] text-muted-foreground mt-1">{k.sub}</div>
+                    <div className="text-2xl font-bold leading-tight">
+                      {k.value === null ? <NoDataValue /> : k.value}
+                    </div>
+                    {k.delta && (
+                      <div className={`text-[11px] mt-1 ${
+                        k.deltaTone === "danger" ? "text-red-600" :
+                        k.deltaTone === "warning" ? "text-orange-600" :
+                        k.deltaTone === "success" ? "text-emerald-600" :
+                        k.deltaTone === "info" ? "text-blue-600" : "text-muted-foreground"
+                      }`}>{k.delta}</div>
+                    )}
+                    {k.sub && <div className="text-[10px] text-muted-foreground mt-1">{k.sub}</div>}
                   </Card>
                 );
               })}
@@ -808,6 +801,7 @@ const ManagersDashboard = () => {
                   <DragHandle />
                 </div>
                 <div className="space-y-2">
+                  {riskAssets.length === 0 && <NoData size="sm" />}
                   {riskAssets.map((a) => (
                     <div key={a.name} className="flex items-center gap-2 py-1.5 border-b border-border last:border-0">
                       <Wrench className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -838,6 +832,7 @@ const ManagersDashboard = () => {
                   <DragHandle />
                 </div>
                 <div className="space-y-3">
+                  {feed.length === 0 && <NoData size="sm" />}
                   {feed.map((f, i) => (
                     <div key={i} className="flex items-start gap-2">
                       <span className={`mt-1 h-2 w-2 rounded-full shrink-0 ${
@@ -866,10 +861,14 @@ const ManagersDashboard = () => {
                   <DragHandle />
                 </div>
                 <div className="flex items-center gap-4">
+                  {forecastSegments.length === 0 ? <NoData size="sm" className="w-full" /> : (
+                  <>
                   <div className="relative">
                     <Donut />
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-2xl font-bold">{fmt(16)}</span>
+                      <span className="text-2xl font-bold">
+                        {fmt(forecastSegments.reduce((n, seg) => n + seg.value, 0))}
+                      </span>
                       <span className="text-[10px] text-muted-foreground">{t("totalAssets")}</span>
                     </div>
                   </div>
@@ -884,6 +883,8 @@ const ManagersDashboard = () => {
                       </div>
                     ))}
                   </div>
+                  </>
+                  )}
                 </div>
               </Card>
             ),
@@ -917,6 +918,7 @@ const ManagersDashboard = () => {
                   <DragHandle />
                 </div>
                 <div className="space-y-2">
+                  {OPPORTUNITIES.length === 0 && <NoData size="sm" />}
                   {OPPORTUNITIES.slice(0, 3).map((o) => (
                     <button key={o.id} onClick={() => navigate(lp(`/aiot/analyze-trends/opportunities/${o.id}`))}
                       className="w-full text-start flex items-center gap-2 p-2 rounded-md hover:bg-muted/40 border border-transparent hover:border-border">
@@ -948,6 +950,7 @@ const ManagersDashboard = () => {
                   <DragHandle />
                 </div>
                 <div className="space-y-2">
+                  {models.length === 0 && <NoData size="sm" />}
                   {models.map((m) => (
                     <div key={m.name} className="flex items-center gap-2 py-1.5 border-b border-border last:border-0">
                       <span className="text-xs flex-1 truncate">{m.name}</span>
@@ -983,6 +986,7 @@ const ManagersDashboard = () => {
                     <DragHandle />
                   </div>
                   <div className="space-y-2">
+                    {actions.length === 0 && <NoData size="sm" />}
                     {actions.map((a, i) => (
                       <div key={i} className="flex flex-wrap items-center gap-2 py-2 border-b border-border last:border-0">
                         <Badge variant="outline" className={`${levelBadge(a.levelTone)} text-[10px] h-5`}>{a.level}</Badge>

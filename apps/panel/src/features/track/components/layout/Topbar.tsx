@@ -4,7 +4,7 @@ import { Bell, Building2, Check, LogOut, Menu, Moon, Plus, Search, Settings as S
 import paapeliLogo from "@paapeli/brand/logo.svg";
 import paapeliLogoDark from "@paapeli/brand/logo-dark.svg";
 import { useLanguage } from "@/features/track/i18n/LanguageContext";
-import { CURRENT_USER } from "@paapeli/brand/config";
+import { getCurrentUser } from "@paapeli/brand/session";
 import { signOut as endSession } from "@paapeli/brand/session";
 import { useWorkspace } from "@/features/track/contexts/WorkspaceContext";
 import { useBrand } from "@/shell/BrandProvider";
@@ -24,8 +24,9 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
   const { dark, toggle } = useTheme();
   const navigate = useNavigate();
   const unread = ALERTS.filter((a) => !a.read).length;
-  const displayName = CURRENT_USER.name;
-  const initial = CURRENT_USER.initial;
+  const currentUser = getCurrentUser();
+  const displayName = currentUser?.name || t("noData");
+  const initial = currentUser?.initial ?? "";
 
   return (
     <header className="z-40 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-background/95 px-3 backdrop-blur lg:px-4">
@@ -82,13 +83,13 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
             <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
               {initial}
             </span>
-            <span dir="rtl" style={{ fontFamily: "'Vazirmatn', sans-serif" }} className="hidden max-w-[180px] truncate text-sm font-medium md:inline">{displayName}</span>
+            <span dir="auto" className="hidden max-w-[180px] truncate text-sm font-medium md:inline">{displayName}</span>
           </button>
           <div className="invisible absolute z-50 mt-1 w-64 rounded-lg border border-border bg-popover py-1 opacity-0 shadow-lg transition-all group-hover:visible group-hover:opacity-100 ltr:right-0 rtl:left-0">
             {/* Account header */}
             <div className="px-3 py-2">
-              <p dir="rtl" style={{ fontFamily: "'Vazirmatn', sans-serif" }} className="truncate text-sm font-medium">{displayName}</p>
-              <p className="truncate text-xs text-muted-foreground">{CURRENT_USER.email}</p>
+              <p dir="auto" className="truncate text-sm font-medium">{displayName}</p>
+              <p className="truncate text-xs text-muted-foreground">{currentUser?.email}</p>
             </div>
             <div className="h-px bg-border" />
 

@@ -46,7 +46,7 @@ import {
   DropdownMenuTrigger,
 } from "@/features/factory/components/ui/dropdown-menu";
 import { useWorkspace } from "@/features/factory/store/workspaceStore";
-import { CURRENT_USER } from "@paapeli/brand/config";
+import { getCurrentUser } from "@paapeli/brand/session";
 import { signOut as endSession, startIdleWatch } from "@paapeli/brand/session";
 import {
   Tooltip,
@@ -144,10 +144,11 @@ export const PanelLayout = ({ children }: PanelLayoutProps) => {
   const { workspaces, activeId: activeWs, setActive: setActiveWs } = useWorkspace();
   // Identity comes from the shared session user (not Cognito, which is no
   // longer used for gating). Keeps the avatar/profile working.
-  const username = CURRENT_USER.email.split("@")[0];
+  const currentUser = getCurrentUser();
+  const username = (currentUser?.email ?? "").split("@")[0];
   const isSina = username === "sina";
-  const accountDisplayName = CURRENT_USER.name;
-  const avatarInitial = CURRENT_USER.initial;
+  const accountDisplayName = currentUser?.name || t("noData");
+  const avatarInitial = currentUser?.initial ?? "";
   const [customAvatar, setCustomAvatar] = useState<string | null>(null);
   useEffect(() => {
     try {

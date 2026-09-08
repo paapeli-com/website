@@ -16,13 +16,13 @@ interface Notification {
   time: string;
 }
 
-/* Mock data — no notifications feed wired up yet. */
-const NOTIFICATIONS: Notification[] = [
-  { id: 1, category: "alarm", tone: "critical", title: "High Temperature Alarm — Line 2", source: "Smart Factory", time: "4 minutes ago" },
-  { id: 2, category: "alarm", tone: "warning", title: "Pump P101 failure predicted", source: "AI Analytics", time: "40 minutes ago" },
-  { id: 3, category: "billing", tone: "warning", title: "Wallet balance below 5,000,000 IRR", source: "Billing", time: "2 hours ago" },
-  { id: 4, category: "billing", tone: "info", title: "Invoice INV-2026-07 paid", source: "Billing", time: "3 Aug 2026" },
-];
+/* No notifications feed yet.
+
+   These four were invented — a critical alarm on Line 2, a predicted pump
+   failure, a low wallet balance and a paid invoice — with fixed "4 minutes
+   ago" timestamps that never advanced, and they lit the unread dot on the
+   bell every time the panel loaded. Empty until there is a feed. */
+const NOTIFICATIONS: Notification[] = [];
 
 const TONE_STYLES: Record<Tone, string> = {
   critical: "bg-destructive/10 text-destructive",
@@ -43,7 +43,7 @@ const iconBtn =
 export function NotificationsMenu() {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("all");
-  const [hasUnread, setHasUnread] = useState(true);
+  const [readAll, setReadAll] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const t = useShellT();
 
@@ -58,8 +58,10 @@ export function NotificationsMenu() {
 
   const items = tab === "all" ? NOTIFICATIONS : NOTIFICATIONS.filter((n) => n.category === tab);
 
+  const hasUnread = NOTIFICATIONS.length > 0 && !readAll;
+
   const handleMarkAllRead = () => {
-    setHasUnread(false);
+    setReadAll(true);
     toast.success(t("All notifications marked as read."));
   };
 
@@ -96,7 +98,9 @@ export function NotificationsMenu() {
 
           <div className="max-h-96 overflow-y-auto">
             {items.length === 0 ? (
-              <p className="px-4 py-8 text-center text-sm text-muted-foreground">{t("Nothing here yet.")}</p>
+              <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+                {t(NOTIFICATIONS.length === 0 ? "No data" : "Nothing here yet.")}
+              </p>
             ) : (
               items.map((n) => (
                 <div key={n.id} className="flex items-start gap-3 border-b border-border px-4 py-3 last:border-b-0">

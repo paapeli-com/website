@@ -55,16 +55,10 @@ export function solutionPath(solutionId: string) {
   return `/${PRODUCT_BASE}/${solutionId}`;
 }
 
-/* Current user shown in the top toolbar. Single source of truth for     */
-/* every solution's header (name, email, initial). Mock for now; later    */
-/* replaced by a fetch from the gateway / auth API — same shape.          */
-export type CurrentUser = { name: string; email: string; initial: string };
-
-export const CURRENT_USER: CurrentUser = {
-  name: "هلدینگ هوشمند سینا",
-  email: "sina@paapeli.com",
-  initial: "س",
-};
+/* The signed-in account is no longer a constant here. It was a single
+   hardcoded person — name, email and initial — rendered in every solution's
+   header, so the panel showed the same identity whoever had logged in. Read
+   it from the session instead: getCurrentUser() in ./session. */
 
 export type BrandConfig = {
   tenantId: string;

@@ -16,7 +16,7 @@ import {
   CircleDot, ListFilter, Download, Pencil, UserPlus, Trash2,
 } from "lucide-react";
 import { ListToolbar, type ActionItem, type FilterField, type SortOption } from "@/features/factory/components/panel/ListToolbar";
-import { mockAlerts } from "@/features/factory/data/mockAlertData";
+import { NoData } from "@/features/factory/components/NoData";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import type { Alert, AlertSeverity, AlertStatus } from "@/features/factory/types/alerts";
 import { cn } from "@/shared/lib/utils";
@@ -70,6 +70,13 @@ export const AlertList = () => {
   const { t, isRTL } = useLanguage();
   const tt = t as (k: string) => string;
 
+  /* No alarms endpoint yet. This used to render a fixed set of invented
+     alarms — severities, assignees, durations and all — which is
+     indistinguishable from live plant data to anyone looking at the screen.
+     Point this at the query once it exists; every filter, KPI and export
+     below already works off this one array. */
+  const alerts: Alert[] = [];
+
   const [activeKpi, setActiveKpi] = useState<"active" | "unacknowledged" | "critical" | "escalated">("active");
   const [statusChip, setStatusChip] = useState<StatusChip | "all">("all");
   const [search, setSearch] = useState("");
@@ -94,7 +101,7 @@ export const AlertList = () => {
 
   // Counts for KPIs and chips
   const counts = useMemo(() => {
-    const all = mockAlerts;
+    const all = alerts;
     return {
       active: all.filter(a => a.status === "active").length,
       unacknowledged: all.filter(a => a.status === "active" || a.status === "escalated").length,
@@ -105,13 +112,13 @@ export const AlertList = () => {
     };
   }, []);
 
-  const locations = useMemo(() => Array.from(new Set(mockAlerts.map(a => a.locationId))), []);
-  const devices = useMemo(() => Array.from(new Set(mockAlerts.map(a => a.deviceId))), []);
-  const assignees = useMemo(() => Array.from(new Set(mockAlerts.map(a => a.assignedTo).filter(Boolean))) as string[], []);
+  const locations = useMemo(() => Array.from(new Set(alerts.map(a => a.locationId))), []);
+  const devices = useMemo(() => Array.from(new Set(alerts.map(a => a.deviceId))), []);
+  const assignees = useMemo(() => Array.from(new Set(alerts.map(a => a.assignedTo).filter(Boolean))) as string[], []);
 
   const filtered = useMemo(() => {
     const sevRank: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
-    return mockAlerts.filter(a => {
+    return alerts.filter(a => {
       if (activeKpi === "active" && a.status !== "active") return false;
       if (activeKpi === "unacknowledged" && a.status !== "active" && a.status !== "escalated") return false;
       if (activeKpi === "critical" && a.severity !== "critical") return false;
@@ -157,7 +164,7 @@ export const AlertList = () => {
     setSelected(prev => checked ? [...prev, id] : prev.filter(x => x !== id));
   };
 
-  const opened = openId ? mockAlerts.find(a => a.id === openId) || null : null;
+  const opened = openId ? alerts.find(a => a.id === openId) || null : null;
 
   const clearFilters = () => {
     setActiveKpi("active"); setStatusChip("all"); setSearch("");
@@ -238,7 +245,7 @@ export const AlertList = () => {
             onChange: (v) => { setLocation(v); setPage(1); },
             options: [
               { value: "all", label: tt("all") },
-              ...locations.map(l => ({ value: l, label: mockAlerts.find(a => a.locationId === l)?.locationName || l })),
+              ...locations.map(l => ({ value: l, label: alerts.find(a => a.locationId === l)?.locationName || l })),
             ],
           },
           {
@@ -326,16 +333,22 @@ export const AlertList = () => {
             {paged.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={10}>
-                  <div className="py-12 text-center">
-                    <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                      <Bell className="h-6 w-6 text-muted-foreground" />
+                  {/* Nothing to show at all is "no data"; nothing matching the
+                      current filters keeps the clearable empty state. */}
+                  {alerts.length === 0 ? (
+                    <NoData size="lg" />
+                  ) : (
+                    <div className="py-12 text-center">
+                      <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                        <Bell className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <div className="font-medium text-foreground">{tt("alertNoAlarmsTitle")}</div>
+                      <div className="text-sm text-muted-foreground mt-1">{tt("alertNoAlarmsDesc")}</div>
+                      <Button variant="outline" size="sm" className="mt-4" onClick={clearFilters}>
+                        {tt("alertClearFilters")}
+                      </Button>
                     </div>
-                    <div className="font-medium text-foreground">{tt("alertNoAlarmsTitle")}</div>
-                    <div className="text-sm text-muted-foreground mt-1">{tt("alertNoAlarmsDesc")}</div>
-                    <Button variant="outline" size="sm" className="mt-4" onClick={clearFilters}>
-                      {tt("alertClearFilters")}
-                    </Button>
-                  </div>
+                  )}
                 </TableCell>
               </TableRow>
             ) : paged.map(a => {

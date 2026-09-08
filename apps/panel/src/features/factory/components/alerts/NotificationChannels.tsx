@@ -9,8 +9,8 @@ import {
   Plus, Edit, Trash2, Mail, MessageSquare, Globe, Bell, Radio,
   Download, Pencil, Archive,
 } from "lucide-react";
-import { mockNotificationChannels } from "@/features/factory/data/mockAlertData";
 import type { NotificationChannelType } from "@/features/factory/types/alerts";
+import { NoData } from "@/features/factory/components/NoData";
 import { ListToolbar, type ActionItem, type FilterField, type SortOption } from "@/features/factory/components/panel/ListToolbar";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import { useChannelsStore } from "@/features/factory/hooks/useAlertStore";
@@ -40,10 +40,11 @@ interface NotificationChannelsProps {
 export const NotificationChannels = ({ onCreateClick }: NotificationChannelsProps) => {
   const { t, isRTL } = useLanguage();
   const tt = t as (k: string) => string;
-  const { items: userChannels } = useChannelsStore();
-  const [mockChannels, setMockChannels] = useState(mockNotificationChannels);
-  const channels = useMemo(() => [...userChannels, ...mockChannels], [userChannels, mockChannels]);
-  const setChannels = (updater: (prev: typeof mockNotificationChannels) => typeof mockNotificationChannels) => setMockChannels(updater);
+  /* Only what the user actually created (localStorage-backed). The seeded
+     email/SMS/webhook channels that used to be concatenated here were
+     invented — there is no channels endpoint yet, so an empty store means
+     no data rather than an empty result set. */
+  const { items: storedChannels } = useChannelsStore();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -57,9 +58,18 @@ export const NotificationChannels = ({ onCreateClick }: NotificationChannelsProp
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
-  const toggleChannel = (id: string) => {
-    setChannels((prev) => prev.map((c) => (c.id === id ? { ...c, enabled: !c.enabled } : c)));
+  /* The switch was never persisted for the seeded channels either; this keeps
+     it responsive without claiming a write the store cannot make. */
+  const [enabledOverrides, setEnabledOverrides] = useState<Record<string, boolean>>({});
+  const isEnabled = (id: string, fallback: boolean) => enabledOverrides[id] ?? fallback;
+  const toggleChannel = (id: string, current: boolean) => {
+    setEnabledOverrides((prev) => ({ ...prev, [id]: !current }));
   };
+
+  const channels = useMemo(
+    () => storedChannels.map((c) => ({ ...c, enabled: isEnabled(c.id, c.enabled) })),
+    [storedChannels, enabledOverrides],
+  );
 
   const filtered = useMemo(() => {
     return channels
@@ -199,7 +209,7 @@ export const NotificationChannels = ({ onCreateClick }: NotificationChannelsProp
                     }).join(", ") || "—"}
                   </TableCell>
                   <TableCell>
-                    <Switch checked={channel.enabled} onCheckedChange={() => toggleChannel(channel.id)} />
+                    <Switch checked={channel.enabled} onCheckedChange={() => toggleChannel(channel.id, channel.enabled)} />
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">
@@ -226,8 +236,14 @@ export const NotificationChannels = ({ onCreateClick }: NotificationChannelsProp
             })}
             {paged.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-10">
-                  {tt("noResults") || "No results"}
+                <TableCell colSpan={5} className="p-0">
+                  {/* Nothing stored at all is "no data"; nothing matching the
+                      current search/filters is an empty result set. */}
+                  {channels.length === 0 ? (
+                    <NoData />
+                  ) : (
+                    <p className="text-center text-sm text-muted-foreground py-10">{tt("noResults") || "No results"}</p>
+                  )}
                 </TableCell>
               </TableRow>
             )}

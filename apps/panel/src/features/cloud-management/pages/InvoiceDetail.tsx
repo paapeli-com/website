@@ -1,39 +1,20 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, FileText } from "lucide-react";
 import { useWorkspaceSelection } from "@/features/cloud-management/contexts/WorkspaceContext";
-import { Badge, Button, Card, PageHeader, Table } from "@/features/cloud-management/ui";
+import { Button, Card, NoData, NoDataValue, PageHeader, Table } from "@/features/cloud-management/ui";
 
-/* Placeholder data — @paapeli/api has no billing module yet. Every invoice
-   id shows the same sample line items; a real detail endpoint would key
+/* @paapeli/api has no billing module yet.
+
+   This was the worst of the placeholder pages: whatever invoice id you opened
+   rendered the same document — six line items, a VAT calculation, a payment
+   timeline down to the minute, national ID and VAT registration numbers, and
+   downloadable PDFs that do not exist. It reads as a tax document for the
+   signed-in company. All of it reports no data until a detail endpoint keys
    off `invoiceId` from the route. */
-const LINE_ITEMS: [string, string, string, string][] = [
-  ["AIoT Business — base fee", "1 month", "﷼ 42,000,000", "﷼ 42,000,000"],
-  ["Extra assets pack", "2 × 5 assets", "﷼ 6,000,000", "﷼ 12,000,000"],
-  ["AI analytics — advanced", "1 workspace", "﷼ 18,000,000", "﷼ 18,000,000"],
-  ["Extended retention (24 months)", "1", "﷼ 9,000,000", "﷼ 9,000,000"],
-  ["Priority support", "1", "﷼ 3,200,000", "﷼ 3,200,000"],
-  ["Message overage", "0.4M messages", "﷼ 13.5 / 1k", "﷼ 5,400,000"],
-];
-
-const SUMMARY = [
-  ["Subtotal", "﷼ 89,600,000"],
-  ["Discount (annual commit)", "− ﷼ 8,000,000"],
-  ["Wallet credit applied", "− ﷼ 0"],
-  ["VAT 9%", "﷼ 8,064,000"],
-];
-
-const TIMELINE = [
-  ["Invoice issued", "1 Aug 2026, 00:05"],
-  ["Reminder sent", "2 Aug 2026, 09:00"],
-  ["Payment received", "3 Aug 2026, 11:42"],
-  ["Tax document filed", "4 Aug 2026, 08:10"],
-];
-
-const DOCUMENTS = [
-  ["Invoice PDF", "214 KB"],
-  ["Official tax invoice", "188 KB"],
-  ["Usage report (CSV)", "1.2 MB"],
-];
+const LINE_ITEMS: [string, string, string, string][] = [];
+const SUMMARY: [string, string][] = [];
+const TIMELINE: [string, string][] = [];
+const DOCUMENTS: [string, string][] = [];
 
 export default function InvoiceDetail() {
   const { invoiceId = "" } = useParams<{ invoiceId: string }>();
@@ -53,7 +34,7 @@ export default function InvoiceDetail() {
 
       <PageHeader
         title={`Invoice ${invoiceId}`}
-        description="Issued 1 Aug 2026 · period 1–31 Jul 2026 · paid on 3 Aug 2026 — preview data, no billing backend yet."
+        description="Line items, payment timeline and documents for this invoice."
         actions={
           <>
             <Button variant="ghost">Send by email</Button>
@@ -68,25 +49,16 @@ export default function InvoiceDetail() {
             <div className="flex flex-col gap-1.5">
               <span className="text-xs text-muted-foreground">Billed to</span>
               <span className="text-sm font-semibold text-foreground">{selected?.workspaceName ?? "Your workspace"}</span>
-              <span className="text-[13px] leading-relaxed text-muted-foreground">
-                National ID 10861234567
-                <br />
-                VAT 411223344
-              </span>
+              {/* Registration and VAT numbers are legal identifiers — never invent them. */}
+              <span className="text-[13px] leading-relaxed text-muted-foreground"><NoDataValue /></span>
             </div>
             <div className="flex flex-col gap-1.5">
               <span className="text-xs text-muted-foreground">Issued by</span>
               <span className="text-sm font-semibold text-foreground">Paapeli Cloud</span>
-              <span className="text-[13px] leading-relaxed text-muted-foreground">
-                Registration 14009988776
-                <br />
-                billing@paapeli.cloud
-              </span>
+              <span className="text-[13px] leading-relaxed text-muted-foreground"><NoDataValue /></span>
             </div>
             <div className="flex flex-col items-end gap-1.5">
-              <Badge tone="ok">Paid</Badge>
-              <span className="text-2xl font-bold text-foreground">﷼ 89,600,000</span>
-              <span className="text-xs text-muted-foreground">Paid via card •••• 4417</span>
+              <span className="text-2xl font-bold text-foreground"><NoDataValue /></span>
             </div>
           </Card>
 
@@ -95,7 +67,9 @@ export default function InvoiceDetail() {
             head={
               <>
                 <h2 className="text-sm font-bold text-foreground">Line items</h2>
-                <span className="text-xs text-muted-foreground">{LINE_ITEMS.length} items</span>
+                <span className="text-xs text-muted-foreground">
+                  {LINE_ITEMS.length > 0 ? `${LINE_ITEMS.length} items` : null}
+                </span>
               </>
             }
             rows={LINE_ITEMS}
@@ -105,6 +79,7 @@ export default function InvoiceDetail() {
         <div className="flex flex-col gap-6">
           <Card className="flex flex-col gap-2.5">
             <h2 className="text-sm font-bold text-foreground">Summary</h2>
+            {SUMMARY.length === 0 && <NoData />}
             {SUMMARY.map(([l, v]) => (
               <div key={l} className="flex justify-between text-[13px]">
                 <span className="text-muted-foreground">{l}</span>
@@ -114,12 +89,13 @@ export default function InvoiceDetail() {
             <div className="h-px bg-border" />
             <div className="flex items-baseline justify-between">
               <span className="text-sm font-bold text-foreground">Total paid</span>
-              <span className="text-xl font-bold text-foreground">﷼ 89,600,000</span>
+              <span className="text-xl font-bold text-foreground"><NoDataValue /></span>
             </div>
           </Card>
 
           <Card className="flex flex-col gap-1">
             <h2 className="mb-2 text-sm font-bold text-foreground">Timeline</h2>
+            {TIMELINE.length === 0 && <NoData />}
             {TIMELINE.map(([t, d], i) => (
               <div key={t} className="flex gap-3">
                 <div className="flex flex-col items-center">
@@ -136,6 +112,7 @@ export default function InvoiceDetail() {
 
           <Card className="flex flex-col gap-3">
             <h2 className="text-sm font-bold text-foreground">Documents</h2>
+            {DOCUMENTS.length === 0 && <NoData />}
             {DOCUMENTS.map(([n, s]) => (
               <div key={n} className="flex items-center gap-2.5">
                 <FileText className="size-4 shrink-0 text-muted-foreground" />
