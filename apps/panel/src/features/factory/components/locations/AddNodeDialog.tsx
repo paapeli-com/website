@@ -20,6 +20,7 @@ import {
 import { useCreateAssetChildMutation } from "@paapeli/api";
 import { useAllowedChildTypes } from "@/features/factory/hooks/useAllowedChildTypes";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 
 interface AddNodeDialogProps {
   open: boolean;
@@ -79,8 +80,8 @@ export const AddNodeDialog = ({ open, onOpenChange, workspaceId, productKey, par
           setLabel("");
           onOpenChange(false);
         },
-        onError: () => {
-          toast.error("Failed to create asset");
+        onError: (error) => {
+          toast.error(apiErrorMessage(error, "Failed to create asset"));
         },
       }
     );

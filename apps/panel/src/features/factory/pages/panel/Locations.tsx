@@ -37,6 +37,7 @@ import {
   useGetAssetDevicesQuery,
 } from "@paapeli/api";
 import { useGetProductAssetTreeQuery, type ProductAssetTreeNode } from "@/features/factory/hooks/useProductAssetTree";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 
 
 // The API returns free-form `type` strings (the product's own asset types) that
@@ -360,11 +361,17 @@ const Locations = () => {
     if (provisionRoot.isPending) return;
     if (!workspaceId) return void toast.error(t("noWorkspaceSelected"));
     provisionRoot.mutate({ workspaceId, productKey: PRODUCT_KEY }, {
-      onSuccess: () => {
+      onSuccess: async () => {
+        /* The mutation invalidates ['assetRoot', ...] — a different query from
+           the one this page reads (['productAssetTree', ...], defined in
+           hooks/useProductAssetTree). Nothing was refetching, so the panel sat
+           on the cached ASSET_TREE_NOT_FOUND error and the button looked dead.
+           Refetch explicitly, the way handleAdd and handleRefresh do. */
+        await refetchTree();
         toast.success(t("success"));
       },
-      onError: () => {
-        toast.error(t("failedToProvisionRoot"));
+      onError: (error) => {
+        toast.error(apiErrorMessage(error, t("failedToProvisionRoot")));
       },
     });
   };

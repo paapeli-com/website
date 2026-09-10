@@ -485,7 +485,7 @@ const DeviceDetails = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
           <StatCard icon={Wifi} label={t("status")} value={statusLabel} tone={status === "online" ? "emerald" : "rose"} />
           <StatCard icon={Clock} label={t("lastUpdate")} value={formatRelativeTime(device.lastActivity || device.createdAt, t, formatNumber)} tone="blue" />
-          <StatCard icon={Network} label={t("gateway")} value={device.gateway || "—"} tone="violet" />
+          <StatCard icon={Network} label={t("gateway")} value={device.gateway || t("noData")} tone="violet" />
           <StatCard
             icon={Bell}
             label={t("activeAlarms")}
@@ -526,7 +526,7 @@ const DeviceDetails = () => {
                   <InfoRow label={t("deviceId")} value={device.deviceId} />
                   <InfoRow label={t("type")} value={profileLabelT(profile, t)} />
                   <InfoRow label={t("protocol")} value={device.protocol} />
-                  <InfoRow label={t("gateway")} value={device.gateway || "—"} />
+                  <InfoRow label={t("gateway")} value={device.gateway || t("noData")} />
                   <InfoRow label={t("location")} value={<LocationCell path={device.location || "Qazvin > Factory A > Sulfonation > Line 1"} />} />
                   <InfoRow label={t("created")} value={new Date(device.createdAt).toLocaleDateString()} />
                   <div className="flex items-start gap-3">
@@ -539,7 +539,7 @@ const DeviceDetails = () => {
                         ))}
                     </div>
                   </div>
-                  <InfoRow label={t("description")} value={device.description || "—"} className={fa(device.description || "")} />
+                  <InfoRow label={t("description")} value={device.description || t("noData")} className={fa(device.description || "")} />
                 </CardContent>
               </Card>
 
@@ -721,17 +721,17 @@ const DeviceDetails = () => {
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <InfoRow label={t("name")} value={device.name} />
-                <InfoRow label={t("description")} value={device.description || "—"} />
+                <InfoRow label={t("description")} value={device.description || t("noData")} />
                 <InfoRow label={t("tags")} value={
                   <div className="flex flex-wrap gap-1">
-                    {(deviceTags.length ? deviceTags : ["—"]).map((tg, i) =>
-                      tg === "—" ? <span key={i} className="text-muted-foreground">—</span> :
+                    {(deviceTags.length ? deviceTags : [t("noData")]).map((tg, i) =>
+                      tg === t("noData") ? <span key={i} className="text-muted-foreground">{tg}</span> :
                       <Badge key={i} variant="secondary" className={fa(tg)}>{tg.trim()}</Badge>
                     )}
                   </div>
                 } />
                 <InfoRow label={t("location")} value={<LocationCell path={device.location || "Qazvin > Factory A > Sulfonation > Line 1"} />} />
-                <InfoRow label={t("gateway")} value={device.gateway || "—"} />
+                <InfoRow label={t("gateway")} value={device.gateway || t("noData")} />
                 <div className="flex gap-2 pt-2">
                   <Button variant="outline" size="sm" onClick={() => setMoveOpen(true)}><MapPin className="h-4 w-4 me-2" /> {t("moveLocation")}</Button>
                 </div>

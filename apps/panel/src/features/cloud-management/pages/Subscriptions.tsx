@@ -7,6 +7,7 @@ import {
 } from "@paapeli/api";
 import { useWorkspaceSelection } from "@/features/cloud-management/contexts/WorkspaceContext";
 import { Badge, Button, Card, EmptyState, NoData, NoDataValue, PageHeader, ProgressBar, Table, Toggle } from "@/features/cloud-management/ui";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 
 /* The PLAN/BILLING data below is placeholder — @paapeli/api has no
    subscriptions or billing module, so plans, entitlements, add-ons and
@@ -48,7 +49,7 @@ function ProductSubscriptions() {
       { workspaceId: selectedId, productKey },
       {
         onSuccess: () => toast.success(`Subscribed to ${nameFor(productKey)}`),
-        onError: () => toast.error(`Could not subscribe to ${nameFor(productKey)}`),
+        onError: (error) => toast.error(apiErrorMessage(error, `Could not subscribe to ${nameFor(productKey)}`)),
       },
     );
   };

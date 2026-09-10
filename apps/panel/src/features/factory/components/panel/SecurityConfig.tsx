@@ -25,6 +25,11 @@ export const emptySecurity = (): SecurityValue => ({
   sslCert: "",
 });
 
+/* Each method is one of the API's credential types — see credentialsFor() in
+   DeviceForm: accessToken → ACCESS_TOKEN, basic → MQTT_BASIC, ssl →
+   X509_CERTIFICATE. The `basic` key is historical; it has always sent
+   MQTT_BASIC (client id, username, password), which is why it is labelled
+   "MQTT Basic". LWM2M_CREDENTIALS is the one type with no card here. */
 const METHOD_META: Record<AuthMethod, { icon: any; labelKey: string; descKey: string }> = {
   accessToken: { icon: KeyRound, labelKey: "authAccessToken", descKey: "authAccessTokenDesc" },
   basic: { icon: Lock, labelKey: "authBasic", descKey: "authBasicDesc" },

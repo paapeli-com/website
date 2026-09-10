@@ -12,6 +12,7 @@ import { Input } from "@/features/factory/components/ui/input";
 import { Label } from "@/features/factory/components/ui/label";
 import { useUpdateAssetMutation } from "@paapeli/api";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 
 interface EditLabelDialogProps {
   open: boolean;
@@ -72,8 +73,8 @@ export const EditLabelDialog = ({
           onSave(next);
           onOpenChange(false);
         },
-        onError: () => {
-          toast.error(t("failedToUpdateLabel"));
+        onError: (error) => {
+          toast.error(apiErrorMessage(error, t("failedToUpdateLabel")));
         },
       }
     );

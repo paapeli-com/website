@@ -6,6 +6,7 @@ import {
   useRejectWorkspaceInvitationMutation,
 } from "@paapeli/api";
 import { Badge, Button, Card, EmptyState } from "@/features/cloud-management/ui";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 
 export default function InvitationsPanel() {
   const { data, isLoading, refetch } = useListWorkspaceInvitationsQuery();
@@ -20,7 +21,7 @@ export default function InvitationsPanel() {
         toast.success(`Joined ${name}`);
         refetch();
       },
-      onError: () => toast.error("Failed to accept invitation"),
+      onError: (error) => toast.error(apiErrorMessage(error, "Failed to accept invitation")),
     });
   };
 
@@ -30,7 +31,7 @@ export default function InvitationsPanel() {
         toast.success(`Declined invitation to ${name}`);
         refetch();
       },
-      onError: () => toast.error("Failed to decline invitation"),
+      onError: (error) => toast.error(apiErrorMessage(error, "Failed to decline invitation")),
     });
   };
 

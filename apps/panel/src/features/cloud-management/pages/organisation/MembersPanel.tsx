@@ -4,6 +4,7 @@ import { Loader2, MoreHorizontal, UserPlus } from "lucide-react";
 import { useInviteWorkspaceMemberMutation, type WorkspaceRole } from "@paapeli/api";
 import { useWorkspaceSelection } from "@/features/cloud-management/contexts/WorkspaceContext";
 import { Avatar, Badge, Button, Card, Input, Label, Table } from "@/features/cloud-management/ui";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 
 const ROLES: WorkspaceRole[] = ["ADMIN", "MEMBER", "VIEWER"];
 
@@ -31,7 +32,7 @@ export default function MembersPanel() {
           toast.success(`Invitation sent to ${email.trim()}`);
           setEmail("");
         },
-        onError: () => toast.error("Failed to send invitation"),
+        onError: (error) => toast.error(apiErrorMessage(error, "Failed to send invitation")),
       },
     );
   };

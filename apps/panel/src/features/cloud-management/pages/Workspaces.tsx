@@ -5,6 +5,7 @@ import { useCreateWorkspaceMutation, useListWorkspaceProductsQuery } from "@paap
 import { useWorkspaceSelection } from "@/features/cloud-management/contexts/WorkspaceContext";
 import { Badge, Button, Card, EmptyState, Input, Label, PageHeader } from "@/features/cloud-management/ui";
 import { cn } from "@/shared/lib/utils";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 
 /* Which workspace is active, and what's subscribed to it — the one page in
    this remote backed entirely by @paapeli/api's workspaces endpoints (no
@@ -28,7 +29,7 @@ export default function Workspaces() {
           setNewName("");
           setSelectedId(ws.id);
         },
-        onError: () => toast.error("Failed to create workspace"),
+        onError: (error) => toast.error(apiErrorMessage(error, "Failed to create workspace")),
       },
     );
   };

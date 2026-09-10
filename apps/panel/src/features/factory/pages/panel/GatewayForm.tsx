@@ -47,6 +47,7 @@ import { TemplatePicker } from "@/features/factory/components/panel/TemplatePick
 import { GATEWAY_TEMPLATES } from "@/features/factory/lib/formOptions";
 import { getLocationOptions, getDefaultLocationPath } from "@/features/factory/lib/locations";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 
 const PROTOCOLS = [
   { value: "MQTT", icon: Radio },
@@ -191,8 +192,8 @@ const GatewayForm = () => {
       toast({ title: t("success") || "Success", description: `${created.name} created` });
       // Open the new gateway directly so the user lands in the onboarding flow.
       navigate(lp(`/devices/gateways/${created.gatewayId}?created=1`));
-    } catch {
-      toast({ title: t("error"), description: "Failed to create gateway", variant: "destructive" });
+    } catch (error) {
+      toast({ title: t("error"), description: apiErrorMessage(error, "Failed to create gateway"), variant: "destructive" });
     } finally {
       setIsLoading(false);
     }

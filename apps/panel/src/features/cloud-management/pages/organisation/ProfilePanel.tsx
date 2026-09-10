@@ -5,6 +5,7 @@ import { useCreateWorkspaceMutation, useListWorkspaceProductsQuery } from "@paap
 import { useWorkspaceSelection } from "@/features/cloud-management/contexts/WorkspaceContext";
 import { Badge, Button, Card, EmptyState, Field, Input, Label } from "@/features/cloud-management/ui";
 import { cn } from "@/shared/lib/utils";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 
 export default function ProfilePanel() {
   const { workspaces, isLoading, selectedId, selected, setSelectedId } = useWorkspaceSelection();
@@ -23,7 +24,7 @@ export default function ProfilePanel() {
           setNewName("");
           setSelectedId(ws.id);
         },
-        onError: () => toast.error("Failed to create workspace"),
+        onError: (error) => toast.error(apiErrorMessage(error, "Failed to create workspace")),
       },
     );
   };

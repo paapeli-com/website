@@ -54,6 +54,8 @@ import {
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
 import { Wifi, WifiOff, AlertTriangle } from "lucide-react";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
+import { NoDataValue } from "@/features/factory/components/NoData";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 
 
 interface Device {
@@ -96,55 +98,28 @@ interface DeviceCredentials {
   password?: string;
 }
 
-// -------- Helpers for list view (mock-derived display metadata) --------
-const SENSOR_TYPES = ["temperature", "vibration", "pressure", "humidity", "voltage", "flow"] as const;
-const STATUSES = ["online", "online", "online", "online", "error", "offline"] as const;
-const LOCATIONS = [
-  "Qazvin > Factory A > Sulfonation > Line 1",
-  "Qazvin > Factory A > Sulfonation > Line 2",
-  "Qazvin > Factory A > Packaging > Line 3",
-  "Qazvin > Factory A > Utilities > Boiler Room",
-  "Tehran > Factory B > Packaging > Line 1",
-  "Tehran > Factory B > Filling > Line 2",
-  "Tehran > Factory B > Utilities > Compressor Hall",
-  "Isfahan > Factory C > WTP > Inlet",
-];
-const GATEWAYS = ["GW-North-01", "GW-East-02", "GW-South-03", "GW-West-04"];
+/* -------- Display metadata for the list --------
+   These columns used to be derived from a hash of the device's name and id:
+   a sensor type, an online/offline/error status, a plant location, a gateway
+   and a live reading like "24.3°C". They were stable per device, so they
+   looked like real telemetry — a device you had just created appeared to be
+   online in Qazvin reporting a temperature. Only what the API actually
+   returns is shown now; the rest reads "no data" until there is a source. */
 const hasPersianText = (value: string) => /[\u0600-\u06FF]/.test(value);
 const persianTextClass = (value: string) => hasPersianText(value) ? "font-vazirmatn" : "";
 
-const hashStr = (s: string) => {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return h;
-};
-
 const getDeviceMeta = (device: Device, t: (k: any) => string) => {
-  const key = (device.name || '') + (device.id || device._id || device.deviceId || '');
-  const h = hashStr(key);
-  const sensorKey = SENSOR_TYPES[h % SENSOR_TYPES.length];
-  const status = STATUSES[(h >> 3) % STATUSES.length];
-  const location = device.location || LOCATIONS[(h >> 5) % LOCATIONS.length];
-  const isUserDevice = Boolean(device.id?.startsWith("dev-") || device.id?.startsWith("seed-dev-") || device.createdAt);
-  const gateway = isUserDevice ? '' : GATEWAYS[(h >> 7) % GATEWAYS.length];
-  const value = (() => {
-    switch (sensorKey) {
-      case 'temperature': return `${(20 + (h % 100) / 10).toFixed(1)}°C`;
-      case 'vibration': return `${((h % 200) / 100).toFixed(2)} mm/s`;
-      case 'pressure': return `${(10 + (h % 50) / 10).toFixed(1)} L/s`;
-      case 'humidity': return `${40 + (h % 50)}%`;
-      case 'voltage': return `${(1 + (h % 50) / 10).toFixed(1)} kWh`;
-      case 'flow': return `${(h % 300) / 10} L/min`;
-    }
-  })();
+  const noData = t("noData");
   return {
-    sensorType: t(sensorKey),
-    statusLabel: status === 'online' ? t('online') : status === 'offline' ? t('offline') : t('errorStatus'),
-    statusColor: status === 'online' ? 'bg-green-500' : status === 'offline' ? 'bg-muted-foreground/50' : 'bg-red-500',
-    location,
-    gateway: device.gateway || gateway,
-    lastValue: value as string,
-    deviceType: t('singleSensorDevice'),
+    // No telemetry endpoint, so no sensor type, status or last reading.
+    sensorType: noData,
+    statusLabel: noData,
+    statusColor: "bg-muted-foreground/40",
+    lastValue: noData,
+    location: device.location || noData,
+    gateway: device.gateway || noData,
+    // The device-type key the device was created with (see DeviceForm step 1).
+    deviceType: (device as any).type || noData,
     tags: device.tags ? device.tags.split(',').map((tag) => tag.trim()).filter(Boolean) : [],
     description: device.description || '',
     externalId: device.externalId || '',
@@ -153,9 +128,9 @@ const getDeviceMeta = (device: Device, t: (k: any) => string) => {
 
 
 const formatRelative = (iso: string | undefined, t: (k: any) => string, fmt?: (n: number | string) => string) => {
-  if (!iso) return '—';
+  if (!iso) return t('noData');
   const d = new Date(iso).getTime();
-  if (!d) return '—';
+  if (!d) return t('noData');
   const diff = Math.max(0, Date.now() - d);
   const s = Math.floor(diff / 1000);
   const num = (n: number) => (fmt ? fmt(n) : String(n));
@@ -368,7 +343,7 @@ const Devices = () => {
       console.error("Device registration error:", error);
       toast({
         title: t("error"),
-        description: error instanceof Error ? error.message : t("failedToAddDevice"),
+        description: apiErrorMessage(error, t("failedToAddDevice")),
         variant: "destructive",
       });
     } finally {
@@ -377,12 +352,10 @@ const Devices = () => {
   };
 
   const getDeviceLocation = (d: Device) => d.location || (d as any).label || '';
-  const getDeviceStatus = (d: Device) => {
-    const explicit = String((d as any).status || (d as any).state || '').toLowerCase();
-    if (explicit) return explicit;
-    const key = (d.name || '') + (d.id || d._id || d.deviceId || '');
-    return STATUSES[(hashStr(key) >> 3) % STATUSES.length];
-  };
+  /* Only a status the API actually reports; there is no fallback any more, so
+     an unknown status matches nothing but the "all" filter. */
+  const getDeviceStatus = (d: Device) =>
+    String((d as any).status || (d as any).state || '').toLowerCase();
 
   const getDeviceTypeStr = (d: Device) => String((d as any).deviceType || (d as any).sensorType || (d as any).type || '');
 
@@ -618,17 +591,22 @@ const Devices = () => {
                 />
 
                 {(() => {
-                  const colors = mergedDevices.map((d) => getDeviceMeta(d, t).statusColor);
+                  /* Total is a real count of what the API returned. Online,
+                     offline and errors used to be tallied from the hashed
+                     status above, so they added up to the device count and
+                     read as a live fleet summary — they have no source. */
                   const total = mergedDevices.length;
-                  const online = colors.filter((c) => c === 'bg-green-500').length;
-                  const offline = colors.filter((c) => c === 'bg-muted-foreground/50').length;
-                  const errors = colors.filter((c) => c === 'bg-red-500').length;
+                  const statuses = mergedDevices.map((d) => getDeviceStatus(d));
+                  const countOf = (name: string) => {
+                    const n = statuses.filter((v) => v === name).length;
+                    return statuses.some(Boolean) ? n : null;
+                  };
 
-                  const kpis = [
+                  const kpis: { label: string; value: number | null; icon: typeof Box; accent: string; bg: string; filter: string }[] = [
                     { label: t('totalDevices') || 'Total Devices', value: total, icon: Box, accent: 'text-primary', bg: 'from-primary/10 to-transparent', filter: 'all' },
-                    { label: t('online') || 'Online', value: online, icon: Wifi, accent: 'text-emerald-500', bg: 'from-emerald-50 to-transparent dark:from-emerald-500/10', filter: 'online' },
-                    { label: t('offline') || 'Offline', value: offline, icon: WifiOff, accent: 'text-muted-foreground', bg: 'from-muted/40 to-transparent', filter: 'offline' },
-                    { label: t('errorStatus') || 'Errors', value: errors, icon: AlertTriangle, accent: 'text-red-500', bg: 'from-red-50 to-transparent dark:from-red-500/10', filter: 'error' },
+                    { label: t('online') || 'Online', value: countOf('online'), icon: Wifi, accent: 'text-emerald-500', bg: 'from-emerald-50 to-transparent dark:from-emerald-500/10', filter: 'online' },
+                    { label: t('offline') || 'Offline', value: countOf('offline'), icon: WifiOff, accent: 'text-muted-foreground', bg: 'from-muted/40 to-transparent', filter: 'offline' },
+                    { label: t('errorStatus') || 'Errors', value: countOf('error'), icon: AlertTriangle, accent: 'text-red-500', bg: 'from-red-50 to-transparent dark:from-red-500/10', filter: 'error' },
                   ];
                   return (
                     <KpiSection storageKey="devices" className="mb-4">
@@ -647,8 +625,14 @@ const Devices = () => {
                                 <Icon className={`h-3.5 w-3.5 shrink-0 ${k.accent}`} />
                               </div>
                               <div className="mt-1 flex items-baseline gap-2">
-                                <span className="text-xl font-bold text-foreground leading-none">{k.value}</span>
-                                <span className="text-[11px] text-muted-foreground">{t('devicesUnit') || 'devices'}</span>
+                                {k.value === null ? (
+                                  <NoDataValue />
+                                ) : (
+                                  <>
+                                    <span className="text-xl font-bold text-foreground leading-none">{k.value}</span>
+                                    <span className="text-[11px] text-muted-foreground">{t('devicesUnit') || 'devices'}</span>
+                                  </>
+                                )}
                               </div>
                             </button>
                           );
@@ -806,9 +790,9 @@ const Devices = () => {
                               <TableRow key={`${rowKey}-expand`} className="bg-muted/20 hover:bg-muted/20">
                                 <TableCell colSpan={9} className="p-4">
                                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                                    <ExpandField label={t("deviceId")} value={deviceId || '—'} />
+                                    <ExpandField label={t("deviceId")} value={deviceId || t('noData')} />
                                     <ExpandField label={t("deviceTypeLabel")} value={meta.deviceType} />
-                                    <ExpandField label={t("gateway")} value={meta.gateway || '—'} />
+                                    <ExpandField label={t("gateway")} value={meta.gateway} />
                                     <ExpandField label={t("channels")} value={meta.sensorType} />
                                   </div>
                                   <div className="mt-3">
@@ -928,7 +912,7 @@ const Devices = () => {
                 <>
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">{t("clientId")}</Label>
-                    <Input value={newDeviceCredentials.clientId || "—"} readOnly className="font-mono text-sm h-9" dir="ltr" />
+                    <Input value={newDeviceCredentials.clientId || t('noData')} readOnly className="font-mono text-sm h-9" dir="ltr" />
                   </div>
                   {newDeviceCredentials.username ? (
                     <div className="space-y-1.5">

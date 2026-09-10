@@ -11,6 +11,7 @@ import {
 } from "@/features/factory/components/ui/alert-dialog";
 import { useDeleteAssetMutation } from "@paapeli/api";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 
 interface DeleteNodeDialogProps {
   open: boolean;
@@ -37,8 +38,8 @@ export const DeleteNodeDialog = ({ open, onOpenChange, workspaceId, productKey, 
           onConfirm();
           onOpenChange(false);
         },
-        onError: () => {
-          toast.error(t("failedToDeleteNode"));
+        onError: (error) => {
+          toast.error(apiErrorMessage(error, t("failedToDeleteNode")));
         },
       }
     );

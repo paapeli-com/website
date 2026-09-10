@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useToast } from "@/features/factory/hooks/use-toast";
@@ -25,7 +25,6 @@ import {
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
 import {
-  Smartphone,
   Info,
   Radio,
   Cpu,
@@ -48,10 +47,16 @@ import { SensorPicker } from "@/features/factory/components/panel/SensorPicker";
 import { TemplatePicker } from "@/features/factory/components/panel/TemplatePicker";
 import { DEVICE_TEMPLATES, POPULAR_SENSORS } from "@/features/factory/lib/formOptions";
 import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
-import { useCreateDeviceMutation, deviceCredentialsService, type DeviceCredentialType } from "@paapeli/api";
+import {
+  useCreateDeviceMutation,
+  useGetProductDeviceTypesQuery,
+  deviceCredentialsService,
+  type DeviceCredentialType,
+} from "@paapeli/api";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 
 const PROTOCOLS = [
   { value: "MQTT", icon: Radio },
@@ -183,7 +188,18 @@ const DeviceForm = () => {
   // credentials read-back are both scoped to /{workspaceId}/{productKey}.
   const workspaceId = useWorkspaceId();
 
-  const [deviceType, setDeviceType] = useState("blank");
+  /* The product's device-type catalog (GET .../products/{key}/device-types).
+     Its entries carry the provisioning profile, so the key selected here is
+     exactly what the create-device call sends as `type`. */
+  const { data: catalogTypes, isLoading: deviceTypesLoading } = useGetProductDeviceTypesQuery(PRODUCT_KEY);
+  const deviceTypeOptions = useMemo(
+    () => (catalogTypes ?? []).filter((dt) => dt.enabled),
+    [catalogTypes],
+  );
+
+  /* Holds a catalog key ("zx909") or one of the two picker modes below.
+     Empty until the catalog resolves — the first type is selected then. */
+  const [deviceType, setDeviceType] = useState("");
   const [selectedSensors, setSelectedSensors] = useState<string[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [deviceName, setDeviceName] = useState("");
@@ -226,18 +242,25 @@ const DeviceForm = () => {
     if (!assetId && locationOptions.length) setAssetId(locationOptions[0].id);
   }, [locationOptions, assetId]);
 
+  // Preselect the first device type once the catalog arrives.
+  useEffect(() => {
+    if (!deviceType && deviceTypeOptions.length) setDeviceType(deviceTypeOptions[0].deviceType);
+  }, [deviceTypeOptions, deviceType]);
+
   const locationPath = locationOptions.find((l) => l.id === assetId)?.path || "";
 
-  /* Step 1's picker is what the API's `type` means — "temperature_sensor" in
-     the endpoint's own example. It used to always send the catch-all, so a
-     device created as a Vibration sensor came back typed "default". A blank
-     device genuinely has no profile, so that alone falls back. */
+  /* Step 1's picker is what the API's `type` means. It is now a key from the
+     product's device-type catalog, so it maps straight through. BLANK_DEVICE_TYPE
+     remains the fallback for the two picker modes and for the moment before the
+     catalog has loaded — the create call requires a type either way. */
   const apiDeviceType =
     deviceType === "popular"
       ? selectedSensors[0] || BLANK_DEVICE_TYPE
       : deviceType === "templates"
         ? selectedTemplate || BLANK_DEVICE_TYPE
-        : BLANK_DEVICE_TYPE;
+        : deviceType || BLANK_DEVICE_TYPE; // a catalog key, sent through as-is
+
+  const selectedCatalogType = deviceTypeOptions.find((dt) => dt.deviceType === deviceType);
 
   /* The Gateway template is the only thing on this form that creates a
      gateway — the endpoint's second example ("MQTT basic device") is exactly
@@ -314,7 +337,7 @@ const DeviceForm = () => {
     } catch (error) {
       toast({
         title: t("error"),
-        description: error instanceof Error ? error.message : t("failedToAddDevice"),
+        description: apiErrorMessage(error, t("failedToAddDevice")),
         variant: "destructive",
       });
     }
@@ -356,12 +379,18 @@ const DeviceForm = () => {
                 onValueChange={(v) => { setDeviceType(v); if (v !== "popular") setSelectedSensors([]); if (v !== "templates") setSelectedTemplate(""); }}
               >
                 <SelectTrigger className="h-11">
-                  <SelectValue />
+                  <SelectValue placeholder={deviceTypesLoading ? t("loading") : t("deviceTypeSection")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="blank">
-                    <div className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> {t("blankDevice")}</div>
-                  </SelectItem>
+                  {/* The product's own device types. */}
+                  {deviceTypesLoading && (
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground">{t("loading")}</div>
+                  )}
+                  {deviceTypeOptions.map((dt) => (
+                    <SelectItem key={dt.deviceType} value={dt.deviceType}>
+                      <div className="flex items-center gap-2"><Cpu className="h-4 w-4" /> {dt.label || dt.deviceType}</div>
+                    </SelectItem>
+                  ))}
                   {/* Not wired to the API yet — selectable again once they are. */}
                   <SelectItem value="popular" disabled>
                     <div className="flex items-center gap-2"><Sparkles className="h-4 w-4" /> {t("popularSensors")}</div>
@@ -372,25 +401,30 @@ const DeviceForm = () => {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-2">
-                {deviceType === "blank" ? t("customDeviceFromScratch")
+                {selectedCatalogType ? (selectedCatalogType.description || selectedCatalogType.label)
                   : deviceType === "popular" ? t("popularSensorsHint")
-                  : t("deviceTemplatesHint")}
+                  : deviceType === "templates" ? t("deviceTemplatesHint")
+                  : ""}
               </p>
             </div>
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex gap-3 items-start">
               <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center shrink-0">
                 {deviceType === "popular" ? <Sparkles className="h-5 w-5 text-primary-foreground" />
                   : deviceType === "templates" ? <LayoutGrid className="h-5 w-5 text-primary-foreground" />
-                  : <Smartphone className="h-5 w-5 text-primary-foreground" />}
+                  : <Cpu className="h-5 w-5 text-primary-foreground" />}
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-foreground">
-                  {deviceType === "blank" ? t("blankDevice") : deviceType === "popular" ? t("popularSensors") : t("deviceTemplates")}
+                  {selectedCatalogType ? (selectedCatalogType.label || selectedCatalogType.deviceType)
+                    : deviceType === "popular" ? t("popularSensors")
+                    : deviceType === "templates" ? t("deviceTemplates")
+                    : ""}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {deviceType === "blank" ? t("customDeviceNoPredefined")
+                  {selectedCatalogType ? (selectedCatalogType.description || selectedCatalogType.deviceType)
                     : deviceType === "popular" ? t("popularSensorsDesc")
-                    : t("deviceTemplatesDesc")}
+                    : deviceType === "templates" ? t("deviceTemplatesDesc")
+                    : ""}
                 </p>
               </div>
             </div>
