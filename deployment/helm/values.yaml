@@ -68,8 +68,11 @@ apps:
     probePath: /healthz
     nodePort: 30808
 
+
 # Applied to every app unless the app overrides it. The front ends talk to the
 # gateway, never to ThingsBoard directly.
 extraEnv:
   - name: NODE_ENV
     value: production
+  - name: PAAPELI_API_BASE_URL
+    value: https://gateway.paapeli.me
