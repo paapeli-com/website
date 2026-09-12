@@ -11,6 +11,7 @@ import { Battery, Signal, StatusPill, TypeAvatar } from "@/features/track/compon
 import { Button } from "@/features/track/components/ui/button";
 import { NoData } from "@/features/track/components/NoData";
 import { cn } from "@/shared/lib/utils";
+import { trackPath } from "@/features/track/lib/trackPath";
 
 export default function LiveMap() {
   const { devices, selectedId, setSelectedId, selected } = useDevices();
@@ -121,7 +122,7 @@ export default function LiveMap() {
                 <Send className="size-4" />
                 {t("commands")}
               </Button>
-              <Button size="sm" variant="outline" onClick={() => navigate(`/devices/${selected.id}`)}>
+              <Button size="sm" variant="outline" onClick={() => navigate(trackPath(`/devices/${selected.id}`))}>
                 {t("viewDetails")}
                 <ChevronRight className="size-4 rtl:rotate-180" />
               </Button>

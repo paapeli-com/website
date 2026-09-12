@@ -4,20 +4,21 @@ import { useLanguage } from "@/features/track/i18n/LanguageContext";
 import { TranslationKey } from "@/features/track/i18n/translations";
 import { ALERTS } from "@/features/track/data/mockData";
 import { cn } from "@/shared/lib/utils";
+import { trackPath } from "@/features/track/lib/trackPath";
 
 /* Sidebar styled to match the panel: bg-card, 15rem wide, leaf rows    */
 /* with an orange active bar. Only the menu items differ per product.   */
 
 const MAIN: { to: string; key: TranslationKey; icon: LucideIcon; end?: boolean }[] = [
-  { to: "/", key: "liveMap", icon: MapPin, end: true },
-  { to: "/devices", key: "devices", icon: Smartphone },
-  { to: "/geofences", key: "geofences", icon: Radar },
-  { to: "/playback", key: "playback", icon: History },
-  { to: "/alerts", key: "alerts", icon: Bell },
+  { to: trackPath("/"), key: "liveMap", icon: MapPin, end: true },
+  { to: trackPath("/devices"), key: "devices", icon: Smartphone },
+  { to: trackPath("/geofences"), key: "geofences", icon: Radar },
+  { to: trackPath("/playback"), key: "playback", icon: History },
+  { to: trackPath("/alerts"), key: "alerts", icon: Bell },
 ];
 
 const SECONDARY: { to: string; key: TranslationKey; icon: LucideIcon }[] = [
-  { to: "/settings", key: "settings", icon: Settings },
+  { to: trackPath("/settings"), key: "settings", icon: Settings },
 ];
 
 function Item({

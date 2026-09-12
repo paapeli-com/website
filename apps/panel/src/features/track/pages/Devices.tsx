@@ -18,6 +18,7 @@ import {
 } from "@/features/track/components/DevicesToolbar";
 import { TranslationKey } from "@/features/track/i18n/translations";
 import { cn } from "@/shared/lib/utils";
+import { trackPath } from "@/features/track/lib/trackPath";
 
 export default function Devices() {
   const { devices } = useDevices();
@@ -78,7 +79,7 @@ export default function Devices() {
           <h1 className="text-xl font-bold">{t("devices")}</h1>
           <p className="text-sm text-muted-foreground">{num(list.length)} {t("deviceCountUnit")}</p>
         </div>
-        <Button size="sm" onClick={() => toast.success(t("addDevice"), { description: t("comingSoon") })}>
+        <Button size="sm" onClick={() => navigate(trackPath("/devices/new"))}>
           <Plus className="size-4" />
           {t("addDevice")}
         </Button>
@@ -137,7 +138,7 @@ export default function Devices() {
                       {g.items.map((d) => (
                         <button
                           key={d.id}
-                          onClick={() => navigate(`/devices/${d.id}`)}
+                          onClick={() => navigate(trackPath(`/devices/${d.id}`))}
                           className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-start transition-colors hover:bg-muted"
                         >
                           <TypeAvatar type={d.type} size={28} />
@@ -173,7 +174,7 @@ export default function Devices() {
             list.map((d) => (
               <button
                 key={d.id}
-                onClick={() => navigate(`/devices/${d.id}`)}
+                onClick={() => navigate(trackPath(`/devices/${d.id}`))}
                 className="flex w-full flex-col gap-3 border-b border-border p-4 text-start transition-colors last:border-0 hover:bg-muted lg:grid lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] lg:items-center lg:gap-4 lg:px-5"
               >
                 <div className="flex items-center gap-3">

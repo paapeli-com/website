@@ -13,6 +13,7 @@ import { Button } from "@/features/track/components/ui/button";
 import { LanguageMenu } from "./LanguageMenu";
 import { ProductSwitcher } from "./ProductSwitcher";
 import { ALERTS } from "@/features/track/data/mockData";
+import { trackPath } from "@/features/track/lib/trackPath";
 
 const iconBtn =
   "inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
@@ -36,7 +37,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
       </button>
 
       {/* Logo */}
-      <button onClick={() => navigate("/")} className="flex shrink-0 items-center gap-2">
+      <button onClick={() => navigate(trackPath("/"))} className="flex shrink-0 items-center gap-2">
         <img src={paapeliLogo} alt="Paapeli" className="block h-7 w-auto dark:hidden" />
         <img src={paapeliLogoDark} alt="Paapeli" className="hidden h-7 w-auto dark:block" />
         <span className="hidden text-lg font-bold leading-none text-primary sm:inline">{brand.appName}</span>
@@ -73,7 +74,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
 
         <LanguageMenu />
 
-        <button onClick={() => navigate("/alerts")} className={`relative ${iconBtn}`} aria-label={t("alerts")}>
+        <button onClick={() => navigate(trackPath("/alerts"))} className={`relative ${iconBtn}`} aria-label={t("alerts")}>
           <Bell className="h-5 w-5" />
           {unread > 0 && <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-destructive" />}
         </button>
@@ -114,7 +115,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
 
             <div className="my-1 h-px bg-border" />
             <button
-              onClick={() => navigate("/settings")}
+              onClick={() => navigate(trackPath("/settings"))}
               className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-muted"
             >
               <SettingsIcon className="size-4" />

@@ -1,5 +1,15 @@
 /// <reference types="vite/client" />
 
+/* The PAAPELI_*-prefixed vars vite.config.ts exposes to client code. Optional
+   because a build with no .env is supported — src/shared/config.ts falls back. */
+interface ImportMetaEnv {
+  readonly PAAPELI_API_BASE_URL?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
 declare module "factory/FactoryApp" {
   const FactoryApp: React.ComponentType;
   export default FactoryApp;

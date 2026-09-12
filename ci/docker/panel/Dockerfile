@@ -7,6 +7,12 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/panel apps/panel
 COPY packages packages
 RUN pnpm install --frozen-lockfile
+# The API origin the bundle talks to. Vite inlines it at build time, so it has
+# to be set here and not on the runtime container; left unset, the panel falls
+# back to the shared gateway (see apps/panel/src/shared/config.ts).
+#   docker build --build-arg PAAPELI_API_BASE_URL=https://gateway.example.com .
+ARG PAAPELI_API_BASE_URL
+ENV PAAPELI_API_BASE_URL=$PAAPELI_API_BASE_URL
 # ONE Vite build. This used to be five independent builds whose outputs were
 # stitched together at runtime via Module Federation; features are now
 # build-time lazy chunks of this single build (see apps/panel/vite.config.ts).

@@ -6,6 +6,7 @@ import { DeviceProvider } from "./contexts/DeviceContext";
 import { AppShell } from "./components/layout/AppShell";
 import LiveMap from "./pages/LiveMap";
 import Devices from "./pages/Devices";
+import DeviceForm from "./pages/DeviceForm";
 import DeviceDetail from "./pages/DeviceDetail";
 import Geofences from "./pages/Geofences";
 import Playback from "./pages/Playback";
@@ -35,6 +36,8 @@ export default function TrackRoutes() {
               <Route path="/" element={<AppShell />}>
                 <Route index element={<LiveMap />} />
                 <Route path="devices" element={<Devices />} />
+                {/* Before ":id" so "new" is not read as a device id. */}
+                <Route path="devices/new" element={<DeviceForm />} />
                 <Route path="devices/:id" element={<DeviceDetail />} />
                 <Route path="geofences" element={<Geofences />} />
                 <Route path="playback" element={<Playback />} />

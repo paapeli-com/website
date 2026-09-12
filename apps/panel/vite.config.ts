@@ -54,18 +54,28 @@ const loginEntry = (): Plugin => {
  */
 export default defineConfig({
   base: "/",
+  /* Expose PAAPELI_*, not just Vite's default VITE_*, so the env var that sets
+     the API origin can be named after the constant it feeds
+     (PAAPELI_API_BASE_URL — see src/shared/config.ts and .env.example). Only
+     these prefixes reach client code; everything else in the environment stays
+     out of the bundle. Read at BUILD time and inlined, so a deployed image
+     carries whatever value was set when it was built (see the build arg in
+     ci/docker/panel/Dockerfile), not whatever the container has at runtime. */
+  envPrefix: ["VITE_", "PAAPELI_"],
   server: {
     host: "::",
     port: 8080,
-    /* Proxy the gateway in dev so API calls are same-origin.
-       Not a convenience: the gateway omits Access-Control-Allow-Origin on its
-       401 responses (it sends them on preflight and on a 400, but the auth
-       entry point short-circuits before the CORS filter). Cross-origin, the
-       browser then withholds the whole response from JS — axios sees an opaque
-       network error with no `response`, so the 401 interceptor in
-       @paapeli/api never recognises it and the app never signs out, even
-       though DevTools shows a clear 401. Same-origin, there is no CORS check
-       and the status is readable. */
+    /* Idle by default: src/shared/config.ts points the API client straight at
+       the gateway's origin, so nothing is requested from this dev server under
+       /api. Setting PAAPELI_API_BASE_URL="" in .env switches the client back to
+       same-origin and brings this proxy into play — the only arrangement in
+       which the gateway's 401s are readable to JS. It omits
+       Access-Control-Allow-Origin on them (it sends them on preflight and on a
+       400, but the auth entry point short-circuits before the CORS filter), so
+       cross-origin the browser withholds the whole response — axios sees an
+       opaque network error with no `response`, and the 401 interceptor in
+       @paapeli/api never recognises the expiry. Same-origin, there is no CORS
+       check and the status is readable. */
     proxy: {
       "/api": {
         target: "https://gateway-mini.paapeli.me",
