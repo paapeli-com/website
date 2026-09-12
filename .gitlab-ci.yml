@@ -39,7 +39,17 @@ default:
       unset DOCKER_AUTH_CONFIG
       TAG="${CI_COMMIT_TAG:-latest}"
       IMAGE="${REGISTRY_URL}/paapeli/${APP}"
-      docker build --platform "$DOCKER_PLATFORM" -f "ci/docker/${APP}/Dockerfile" -t "${IMAGE}:${TAG}" .
+      # A front end's API origin has to be a BUILD arg, not runtime container
+      # env: Vite inlines it into the bundle, so by the time the image runs the
+      # value is already frozen in the JS. Passed only when the job defines it,
+      # so web/docs builds are untouched. Never pass it empty — an empty origin
+      # makes the panel call its own domain, where the SPA fallback answers with
+      # the HTML shell and every API query resolves to markup.
+      BUILD_ARGS=""
+      if [ -n "$PAAPELI_API_BASE_URL" ]; then
+        BUILD_ARGS="--build-arg PAAPELI_API_BASE_URL=$PAAPELI_API_BASE_URL"
+      fi
+      docker build --platform "$DOCKER_PLATFORM" $BUILD_ARGS -f "ci/docker/${APP}/Dockerfile" -t "${IMAGE}:${TAG}" .
       docker push "${IMAGE}:${TAG}"
   after_script:
     - docker rmi "${REGISTRY_URL}/paapeli/${APP}:${CI_COMMIT_TAG:-latest}" || true
@@ -59,6 +69,11 @@ build-panel:
   extends: .build-push
   variables:
     APP: panel
+    # Baked into the bundle by the build above. Set here rather than in
+    # deployment/helm/values.yaml, where it would have no effect at all: the
+    # panel is static files by the time the container starts. Override it with a
+    # CI/CD variable of the same name to point a build at another gateway.
+    PAAPELI_API_BASE_URL: https://gateway.paapeli.me
 
 .deploy:
   stage: deploy

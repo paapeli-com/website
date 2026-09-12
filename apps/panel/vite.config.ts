@@ -65,23 +65,6 @@ export default defineConfig({
   server: {
     host: "::",
     port: 8080,
-    /* Idle by default: src/shared/config.ts points the API client straight at
-       the gateway's origin, so nothing is requested from this dev server under
-       /api. Setting PAAPELI_API_BASE_URL="" in .env switches the client back to
-       same-origin and brings this proxy into play — the only arrangement in
-       which the gateway's 401s are readable to JS. It omits
-       Access-Control-Allow-Origin on them (it sends them on preflight and on a
-       400, but the auth entry point short-circuits before the CORS filter), so
-       cross-origin the browser withholds the whole response — axios sees an
-       opaque network error with no `response`, and the 401 interceptor in
-       @paapeli/api never recognises the expiry. Same-origin, there is no CORS
-       check and the status is readable. */
-    proxy: {
-      "/api": {
-        target: "https://gateway-mini.paapeli.me",
-        changeOrigin: true,
-      },
-    },
   },
   preview: {
     port: 8080,

@@ -8,10 +8,14 @@ COPY apps/panel apps/panel
 COPY packages packages
 RUN pnpm install --frozen-lockfile
 # The API origin the bundle talks to. Vite inlines it at build time, so it has
-# to be set here and not on the runtime container; left unset, the panel falls
-# back to the shared gateway (see apps/panel/src/shared/config.ts).
+# to be set here and not on the runtime container.
 #   docker build --build-arg PAAPELI_API_BASE_URL=https://gateway.example.com .
-ARG PAAPELI_API_BASE_URL
+# The default is spelled out rather than left bare: a bare `ARG` expands to an
+# EMPTY string when no --build-arg is passed, and an empty API origin makes the
+# panel call its own domain, where server.mjs's SPA fallback returns the HTML
+# shell with a 200 and every query resolves to markup. config.ts also treats
+# blank as unset, so both ends have to fail before that can ship again.
+ARG PAAPELI_API_BASE_URL=https://gateway-mini.paapeli.me
 ENV PAAPELI_API_BASE_URL=$PAAPELI_API_BASE_URL
 # ONE Vite build. This used to be five independent builds whose outputs were
 # stitched together at runtime via Module Federation; features are now

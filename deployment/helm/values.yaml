@@ -71,8 +71,12 @@ apps:
 
 # Applied to every app unless the app overrides it. The front ends talk to the
 # gateway, never to ThingsBoard directly.
+#
+# PAAPELI_API_BASE_URL does NOT belong here, which is why it is absent: all
+# three apps are static bundles by the time a container starts, and Vite has
+# already inlined the API origin into the JS at build time. A value set here
+# would be visible to server.mjs and ignored by the code that matters. It is set
+# on the build-panel job in .gitlab-ci.yml instead.
 extraEnv:
   - name: NODE_ENV
     value: production
-  - name: PAAPELI_API_BASE_URL
-    value: https://gateway.paapeli.me
