@@ -6,7 +6,7 @@ import {
   useSubscribeWorkspaceProductMutation,
 } from "@paapeli/api";
 import { useWorkspaceSelection } from "@/features/cloud-management/contexts/WorkspaceContext";
-import { Badge, Button, Card, EmptyState, NoData, NoDataValue, PageHeader, ProgressBar, Table, Toggle } from "@/features/cloud-management/ui";
+import { Badge, Button, Card, EmptyState, NoData, NoDataValue, PageHeader, ProgressBar, SkeletonList, Table, Toggle } from "@/features/cloud-management/ui";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 
 /* The PLAN/BILLING data below is placeholder — @paapeli/api has no
@@ -66,10 +66,7 @@ function ProductSubscriptions() {
       </div>
 
       {workspacesLoading || (selectedId && isLoading) ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" />
-          Loading products…
-        </div>
+        <SkeletonList rows={3} />
       ) : !selectedId ? (
         <p className="text-sm text-muted-foreground">Select a workspace on the Workspaces page first.</p>
       ) : (subscribed ?? []).length === 0 ? (

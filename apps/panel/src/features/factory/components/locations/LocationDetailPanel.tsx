@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import type { TreeNode } from "./LocationTreeNode";
 import { useState, useMemo } from "react";
-import { localizedNodeName, localizedKindLabel } from "@/features/factory/lib/locationLabels";
+import { nodeDisplayName, localizedKindLabel } from "@/features/factory/lib/locationLabels";
 import { formatRelativeTime } from "@/features/factory/lib/relativeTime";
 
 export interface AssetPreview {
@@ -87,14 +87,15 @@ export const LocationDetailPanel = ({
   onEditLabel,
 }: LocationDetailPanelProps) => {
   const { t, isRTL, formatNumber } = useLanguage();
-  const [tab, setTab] = useState<"all" | "device" | "gateway" | "other">("all");
+  /* Devices is the landing tab now that "All Assets" is gone. The total it
+     replaced is still shown, as the Total assets context card above. */
+  const [tab, setTab] = useState<"device" | "gateway" | "other">("device");
 
   const counts = useMemo(() => {
-    const c = { all: assets.length, device: 0, gateway: 0, other: 0 };
+    const c = { device: 0, gateway: 0, other: 0 };
     assets.forEach((a) => { c[a.kind]++; });
-    c.all = totalAssetCount;
     return c;
-  }, [assets, totalAssetCount]);
+  }, [assets]);
 
   if (!node) {
     return (
@@ -105,7 +106,7 @@ export const LocationDetailPanel = ({
     );
   }
 
-  const filtered = tab === "all" ? assets : assets.filter((a) => a.kind === tab);
+  const filtered = assets.filter((a) => a.kind === tab);
 
   const statusDot = (s: AssetPreview["status"]) => {
     const color = s === "online" ? "bg-green-500" : s === "error" ? "bg-red-500" : "bg-muted-foreground/50";
@@ -128,13 +129,13 @@ export const LocationDetailPanel = ({
               <span key={n.id} className="flex items-center gap-1.5">
                 <BreadcrumbItem>
                   {i === ancestry.length - 1 ? (
-                    <BreadcrumbPage className="font-medium">{localizedNodeName(n.id, n.name, t)}</BreadcrumbPage>
+                    <BreadcrumbPage className="font-medium">{nodeDisplayName(n, t)}</BreadcrumbPage>
                   ) : (
                     <BreadcrumbLink
                       className="cursor-pointer"
                       onClick={() => onSelectAncestor(n)}
                     >
-                      {localizedNodeName(n.id, n.name, t)}
+                      {nodeDisplayName(n, t)}
                     </BreadcrumbLink>
                   )}
                 </BreadcrumbItem>
@@ -148,8 +149,8 @@ export const LocationDetailPanel = ({
       {/* Context cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <ContextCard label={t("locationType")} value={fmtType(t, node.type)} />
-        <ContextCard label={t("parentLocation")} value={parentNode ? localizedNodeName(parentNode.id, parentNode.name, t) : t("rootOrganization")} />
-        {node.type !== "asset" && <ContextCard label={t("totalAssets")} value={formatNumber(totalAssetCount)} />}
+        <ContextCard label={t("parentLocation")} value={parentNode ? nodeDisplayName(parentNode, t) : t("rootOrganization")} />
+        <ContextCard label={t("totalAssets")} value={formatNumber(totalAssetCount)} />
         <ContextCard label={t("lastUpdated")} value={"—"} />
         <LabelCard
           label={node.label}
@@ -158,21 +159,14 @@ export const LocationDetailPanel = ({
         />
       </div>
 
-      {/* Assets list — containers only (an asset node has no child assets) */}
-      {node.type !== "asset" && (
+      {/* Assets list. Shown for every node, including ones canonicalized to
+          "asset": devices are assigned per asset id and that query works the
+          same at any depth, so a node this deep still has a real (often empty)
+          list rather than nothing to show. */}
       <div className="rounded-lg border bg-card">
         <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b">
           <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
             <TabsList className="bg-transparent p-0 h-auto gap-4">
-              <TabsTrigger
-                value="all"
-                className="px-0 pb-2 rounded-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none"
-              >
-                <span dir={isRTL ? "rtl" : "ltr"} className="inline-flex items-center gap-1.5">
-                  <span>{t("allAssets")}</span>
-                  <span className="text-xs text-muted-foreground tabular-nums">{formatNumber(counts.all)}</span>
-                </span>
-              </TabsTrigger>
               <TabsTrigger
                 value="device"
                 className="px-0 pb-2 rounded-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none"
@@ -209,11 +203,9 @@ export const LocationDetailPanel = ({
           <div className="px-6 py-10 text-center space-y-3">
             <Box className="h-10 w-10 mx-auto text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">{t("noAssetsInLocation")}</p>
-            {(node.type === "location" || node.type === "area") && (
-              <Button size="sm" onClick={onAddAsset} className="mt-1">
-                <Plus className="h-4 w-4" /> {t("addAsset")}
-              </Button>
-            )}
+            <Button size="sm" onClick={onAddAsset} className="mt-1">
+              <Plus className="h-4 w-4" /> {t("addAsset")}
+            </Button>
           </div>
         ) : (
           <>
@@ -265,7 +257,6 @@ export const LocationDetailPanel = ({
           </>
         )}
       </div>
-      )}
     </div>
   );
 };

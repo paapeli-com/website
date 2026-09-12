@@ -1,5 +1,5 @@
 import { useId, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from "react";
-import type { LucideIcon } from "lucide-react";
+import { Loader2, type LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { useShellT } from "@/shared/i18n/shell";
 
@@ -75,6 +75,65 @@ export function Badge({ children, tone = "gray" }: { children: ReactNode; tone?:
  * EmptyState below, which reports that a real, wired-up list came back empty
  * ("No workspaces yet", "No pending invitations").
  */
+export function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-md bg-muted", className)} />;
+}
+
+/**
+ * Loading placeholder for this feature's lists. The structure of what is
+ * loading, with a spinner kept on top — the same convention the factory
+ * feature's ListPageSkeleton follows, so the "it's loading" signal survives
+ * alongside the skeleton rather than being replaced by it.
+ *
+ * `variant` picks the row shape: "tile" for the workspace pickers (avatar
+ * tile, two lines of text, status badge), "row" for the bordered product and
+ * invitation rows.
+ */
+export function SkeletonList({
+  rows = 3,
+  variant = "row",
+  className,
+}: {
+  rows?: number;
+  variant?: "row" | "tile";
+  className?: string;
+}) {
+  return (
+    <div className={cn("relative", className)}>
+      <div className="flex flex-col gap-2" aria-hidden="true">
+        {Array.from({ length: rows }).map((_, i) =>
+          variant === "tile" ? (
+            <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+              <Skeleton className="size-9 shrink-0 rounded-lg" />
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <Skeleton className="h-3.5 w-32" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </div>
+          ) : (
+            <div
+              key={i}
+              className="flex items-center justify-between rounded-xl border border-border px-3 py-2.5"
+            >
+              <span className="flex items-center gap-2">
+                <Skeleton className="size-4 shrink-0 rounded-sm" />
+                <Skeleton className="h-3.5 w-28" />
+              </span>
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </div>
+          ),
+        )}
+      </div>
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <span className="rounded-full bg-background/70 p-2 shadow-sm backdrop-blur-sm">
+          <Loader2 className="size-4 animate-spin text-muted-foreground" />
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function NoData({ className }: { className?: string }) {
   const t = useShellT();
   return (

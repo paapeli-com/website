@@ -29,7 +29,10 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrandProvider>
         <BrowserRouter>
-          <Toaster richColors position="top-center" />
+          {/* Bottom-right, which is also where the factory feature's own
+              shadcn toaster sits (sm:bottom-0 sm:right-0), so the two
+              systems no longer pop up at opposite ends of the screen. */}
+          <Toaster richColors position="bottom-right" />
           <Routes>
             <Route
               path="/"

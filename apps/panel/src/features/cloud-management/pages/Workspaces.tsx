@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Building2, Check, Loader2, Plus } from "lucide-react";
 import { useCreateWorkspaceMutation, useListWorkspaceProductsQuery } from "@paapeli/api";
 import { useWorkspaceSelection } from "@/features/cloud-management/contexts/WorkspaceContext";
-import { Badge, Button, Card, EmptyState, Input, Label, PageHeader } from "@/features/cloud-management/ui";
+import { Badge, Button, Card, EmptyState, Input, Label, PageHeader, SkeletonList } from "@/features/cloud-management/ui";
 import { cn } from "@/shared/lib/utils";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 
@@ -47,10 +47,7 @@ export default function Workspaces() {
         <div className="flex flex-col gap-4">
           <Card className="flex flex-col gap-1 p-2">
             {isLoading ? (
-              <div className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" />
-                Loading workspaces…
-              </div>
+              <SkeletonList rows={4} variant="tile" />
             ) : workspaces.length === 0 ? (
               <EmptyState title="No workspaces yet" description="Create your first workspace to get started." />
             ) : (
@@ -94,10 +91,7 @@ export default function Workspaces() {
             {!selectedId ? (
               <p className="text-sm text-muted-foreground">Select a workspace to see its subscribed products.</p>
             ) : productsLoading ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" />
-                Loading products…
-              </div>
+              <SkeletonList rows={2} />
             ) : (workspaceProducts ?? []).length === 0 ? (
               <EmptyState title="No products subscribed" description="Subscribe a product below to get started." />
             ) : (

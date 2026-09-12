@@ -36,6 +36,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/features/factory/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/features/factory/components/ui/table";
+import {
+  DetailPageSkeleton,
+  TableRowsSkeleton,
+} from "@/features/factory/components/panel/DetailPageSkeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/features/factory/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/features/factory/components/ui/tooltip";
 import { LineChart, Line, Area, AreaChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, Legend } from "recharts";
@@ -283,11 +287,7 @@ const DeviceDetails = () => {
   if (!device) {
     // Don't call it missing until the fetch has actually come back.
     if (deviceLoading) {
-      return (
-        <div className="flex items-center justify-center py-24">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-current border-t-transparent text-muted-foreground" />
-        </div>
-      );
+      return <DetailPageSkeleton />;
     }
     return (
       <>
@@ -690,9 +690,7 @@ const DeviceDetails = () => {
                   </TableHeader>
                   <TableBody>
                     {activitiesLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-center text-muted-foreground">{t("loading")}</TableCell>
-                      </TableRow>
+                      <TableRowsSkeleton rows={4} columns={3} />
                     ) : events.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={3} className="text-center text-muted-foreground">{t("noActivityYet")}</TableCell>
@@ -1518,9 +1516,7 @@ const DeviceAlarms = ({ device }: { device: UserDevice }) => {
                 </TableCell>
               </TableRow>
             ))}
-            {isLoading && (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">{t("loading")}</TableCell></TableRow>
-            )}
+            {isLoading && <TableRowsSkeleton rows={4} columns={5} />}
             {!isLoading && filtered.length === 0 && (
               <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">{t("noAlarms")}</TableCell></TableRow>
             )}
@@ -1810,7 +1806,7 @@ export const SendCommandDialog = ({ open, onOpenChange, device }: any) => {
                 </TableHeader>
                 <TableBody>
                   {historyLoading ? (
-                    <TableRow><TableCell colSpan={3} className="text-center text-xs text-muted-foreground">{t("loading")}</TableCell></TableRow>
+                    <TableRowsSkeleton rows={3} columns={3} />
                   ) : commandHistory.length === 0 ? (
                     <TableRow><TableCell colSpan={3} className="text-center text-xs text-muted-foreground">{t("noCommandsYet")}</TableCell></TableRow>
                   ) : commandHistory.map((c) => (

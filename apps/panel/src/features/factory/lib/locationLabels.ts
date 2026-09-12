@@ -2,8 +2,11 @@
 // and detail panel show localized names in FA/AR while preserving English.
 
 const NODE_NAME_KEYS: Record<string, string> = {
-  // Root uses its own editable name (default "Root Directory"), so it is not
-  // mapped to a fixed translation — the user can rename it.
+  // The root is deliberately unmapped, but no longer for the reason this note
+  // used to give ("its own editable name, the user can rename it") — that was
+  // true of the old seed data. The live API assigns the ROOT asset's name and
+  // refuses to change it: POST .../root takes no body and PUT .../{assetId}
+  // rejects the ROOT node. Renaming it needs a gateway change first.
   "loc-qazvin": "locQazvin",
   "loc-factory-a": "locFactoryAName",
   "loc-factory-b": "locFactoryBName",
@@ -25,6 +28,28 @@ export const localizedNodeName = (
   const v = t(key);
   // If the key is missing the framework returns the key itself.
   return v && v !== key ? v : fallback;
+};
+
+/**
+ * What to show for a node, for display only — nothing here is ever sent back.
+ *
+ * The tree root is the one node whose name the panel overrides. The server
+ * assigns the ROOT asset's name (it comes back as the product key, e.g.
+ * "smartFactory") and refuses to change it — POST .../root takes no body and
+ * PUT .../{assetId} rejects the ROOT node — so a friendly name can only exist
+ * on this side. The real name stays on the node, so any request that carries a
+ * name still carries the server's.
+ */
+export const nodeDisplayName = (
+  node: { id: string; name: string; type: string },
+  t: (k: any) => string,
+): string => {
+  if (node.type === "organization") {
+    const v = t("mainDirectory");
+    // A missing key comes back as the key itself.
+    return v && v !== "mainDirectory" ? v : "Main Directory";
+  }
+  return localizedNodeName(node.id, node.name, t);
 };
 
 export const localizedKindLabel = (

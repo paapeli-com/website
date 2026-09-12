@@ -25,15 +25,21 @@ import { AddNodeDialog } from "@/features/factory/components/locations/AddNodeDi
 import { RenameNodeDialog } from "@/features/factory/components/locations/RenameNodeDialog";
 import { DeleteNodeDialog } from "@/features/factory/components/locations/DeleteNodeDialog";
 import { EditLabelDialog } from "@/features/factory/components/locations/EditLabelDialog";
+import {
+  LocationTreeSkeleton,
+  LocationDetailSkeleton,
+} from "@/features/factory/components/locations/LocationsSkeleton";
 import { toast } from "sonner";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { DataState } from "@/features/factory/components/DataState";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
+import { nodeDisplayName } from "@/features/factory/lib/locationLabels";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import {
   useProvisionAssetRootMutation,
   useCreateProductAssetTypeMutation,
+  useCreateAssetChildMutation,
   useGetAssetDevicesQuery,
 } from "@paapeli/api";
 import { useGetProductAssetTreeQuery, type ProductAssetTreeNode } from "@/features/factory/hooks/useProductAssetTree";
@@ -149,8 +155,6 @@ const computeAssetCounts = (root: TreeNode): Map<string, number> => {
 /** One page of devices is all the detail panel previews. */
 const ASSET_DEVICE_PAGE_SIZE = 100;
 
-let nextId = 1;
-
 const Locations = () => {
   const { t, isRTL, language } = useLanguage();
   const navigate = useNavigate();
@@ -167,7 +171,13 @@ const Locations = () => {
   // yet — that's an empty state, not a failure, so don't show an error.
   const treeNotFound = (treeErrorObj as any)?.response?.data?.code === "ASSET_TREE_NOT_FOUND";
 
+  /* No workspace yet means the query is still disabled rather than empty, so
+     it counts as loading — otherwise the panel would flash its empty state
+     before the host has picked a workspace. */
+  const treeIsLoading = treeLoading || !workspaceId;
+
   const provisionRoot = useProvisionAssetRootMutation();
+  const createAssetChild = useCreateAssetChildMutation();
 
   // Register the default asset type for this product once per mount. Safe to
   // no-op/409 on repeat visits — we don't surface that to the user.
@@ -185,11 +195,23 @@ const Locations = () => {
 
   const [tree, setTree] = useState<TreeNode>(EMPTY_TREE);
 
+  /* Nodes this page has already auto-expanded. Expansion is "open by default"
+     rather than "always open": every node is expanded the first time it is
+     seen, but a node the user has since collapsed by hand is not re-opened by
+     the next refetch (add, rename, duplicate and refresh all trigger one). */
+  const autoExpanded = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     if (!apiTree) return;
     const mapped = mapApiTreeNode(apiTree);
     setTree(mapped);
-    setExpandedNodes((prev) => new Set([...prev, mapped.id]));
+
+    const ids = new Set<string>();
+    collectIds(mapped, ids);
+    const unseen = [...ids].filter((id) => !autoExpanded.current.has(id));
+    if (unseen.length === 0) return;
+    unseen.forEach((id) => autoExpanded.current.add(id));
+    setExpandedNodes((prev) => new Set([...prev, ...unseen]));
   }, [apiTree]);
 
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
@@ -210,6 +232,9 @@ const Locations = () => {
 
   const [labelDialogOpen, setLabelDialogOpen] = useState(false);
   const [labelTarget, setLabelTarget] = useState<TreeNode | null>(null);
+
+  /** Node whose subtree is mid-copy, so a second Duplicate can't interleave. */
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
 
   // Select the root node once the tree has loaded
   useEffect(() => {
@@ -328,35 +353,84 @@ const Locations = () => {
     toast.success(t("deleted"));
   };
 
-  const handleDuplicate = (node: TreeNode) => {
-    const clone = JSON.parse(JSON.stringify(node)) as TreeNode;
-    const rekey = (n: TreeNode) => {
-      n.id = `node-${Date.now()}-${nextId++}`;
-      if (n.children) n.children.forEach(rekey);
-    };
-    rekey(clone);
-    clone.name = `${clone.name} (copy)`;
-    setTree((prev) => {
-      const updated = JSON.parse(JSON.stringify(prev)) as TreeNode;
-      const parent = findParent(updated, node.id);
-      const parentNode = parent ? findNode(updated, parent.id) : updated;
-      if (parentNode) {
-        if (!parentNode.children) parentNode.children = [];
-        parentNode.children.push(clone);
-      }
-      return updated;
-    });
-    toast.success(t("success"));
+  /* Copy a subtree on the server rather than in local state, which is what
+     this used to do — it invented `node-<timestamp>` ids that existed only in
+     the browser, so the copy vanished on the next refetch and any action taken
+     on it in the meantime failed against an id the backend had never issued.
+
+     There is no server-side copy endpoint, so the subtree is recreated one
+     POST at a time, depth-first, each child parented to the copy its own
+     parent just produced. Sequential on purpose: a child cannot be created
+     until its parent's real id comes back. */
+  const handleDuplicate = async (node: TreeNode) => {
+    if (duplicatingId) return;
+    if (!workspaceId) return void toast.error(t("noWorkspaceSelected"));
+
+    const parent = findParent(tree, node.id);
+    if (!parent) return void toast.error(t("cannotDuplicateRoot"));
+
+    setDuplicatingId(node.id);
+    try {
+      const copySubtree = async (parentAssetId: string, src: TreeNode, name: string) => {
+        const created = await createAssetChild.mutateAsync({
+          workspaceId,
+          productKey: PRODUCT_KEY,
+          parentAssetId,
+          name,
+          // The raw server-side asset type, not the canonical UI kind — the
+          // backend validates it against the product's asset-type graph.
+          type: src.assetType ?? src.type,
+          label: src.label,
+        });
+        for (const child of src.children ?? []) {
+          await copySubtree(created.id, child, child.name);
+        }
+      };
+
+      // Only the top of the copy is renamed; descendants keep their names,
+      // which stay unique because they land under a fresh parent.
+      await copySubtree(parent.id, node, `${node.name} (copy)`);
+      await refetchTree();
+      toast.success(t("success"));
+    } catch (error) {
+      toast.error(apiErrorMessage(error, t("failedToDuplicate")));
+      // Part of the subtree may have been created before the failure, so pull
+      // the real shape back rather than leaving a half-copy on screen.
+      await refetchTree();
+    } finally {
+      setDuplicatingId(null);
+    }
   };
 
-  const handleMove = (_node: TreeNode) => {
-    toast.info(t("comingSoon") || "Coming soon");
-  };
+  /* A workspace with no root asset gets one automatically, so a freshly
+     registered user lands on a usable tree instead of an empty panel with a
+     button to press.
+
+     This lives here rather than in the sign-up flow because POST .../root
+     requires the product subscription to already be active, and at sign-up it
+     is not: the workspace is seconds old and ProductGate is what subscribes
+     the product when the feature first loads. By the time this page renders,
+     that has happened — so this is the earliest point the call can succeed.
+
+     Guarded by a ref rather than the mutation's own pending flag: a failure
+     must not become a retry loop against a workspace whose subscription is
+     genuinely missing, so it is attempted once per workspace per mount and the
+     manual button below stays as the fallback. */
+  const autoProvisionedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!treeNotFound || !workspaceId) return;
+    if (autoProvisionedFor.current === workspaceId) return;
+    autoProvisionedFor.current = workspaceId;
+    provisionRoot.mutate(
+      { workspaceId, productKey: PRODUCT_KEY },
+      { onSuccess: () => void refetchTree() },
+    );
+  }, [treeNotFound, workspaceId]); // eslint-disable-line
 
   // ----- UI handlers -----
-  // Footer button: provisions the single root asset for the product. Only
-  // relevant while no tree exists yet — children are added via each node's
-  // "..." menu once the root is there.
+  // Footer button: provisions the single root asset for the product. Still
+  // reachable when the automatic attempt above failed — children are added via
+  // each node's "..." menu once the root is there.
   const handleProvisionRoot = () => {
     if (provisionRoot.isPending) return;
     if (!workspaceId) return void toast.error(t("noWorkspaceSelected"));
@@ -450,10 +524,13 @@ const Locations = () => {
             </div>
           </CardHeader>
           <ScrollArea className="flex-1 px-2 pb-2">
-            {/* No workspace yet means the query is still disabled, not empty —
-                keep showing the spinner until the host has picked one. */}
-            {treeLoading || !workspaceId || (treeError && !treeNotFound) ? (
-              <DataState loading={treeLoading || !workspaceId} error={treeError && !treeNotFound} onRetry={() => refetchTree()} size="sm" />
+            {/* Loading gets the tree-shaped skeleton (spinner included, see
+                LocationsSkeleton); DataState still owns the error case. The
+                no-workspace-yet case is folded into treeIsLoading above. */}
+            {treeIsLoading ? (
+              <LocationTreeSkeleton />
+            ) : treeError && !treeNotFound ? (
+              <DataState error onRetry={() => refetchTree()} size="sm" />
             ) : treeNotFound ? (
               <div className="py-10 text-center text-sm text-muted-foreground">{t("noLocationTree")}</div>
             ) : (
@@ -470,7 +547,6 @@ const Locations = () => {
                 onRename={(n) => { setRenameTarget(n); setRenameDialogOpen(true); }}
                 onEditLabel={openLabelDialog}
                 onAddChild={handleAddChild}
-                onMove={handleMove}
                 onDuplicate={handleDuplicate}
                 onDelete={(n) => { setDeleteTarget(n); setDeleteDialogOpen(true); }}
               />
@@ -496,6 +572,9 @@ const Locations = () => {
         {/* Right: Details */}
         <Card className="flex-1 overflow-hidden">
           <ScrollArea className="h-full">
+            {treeIsLoading ? (
+              <LocationDetailSkeleton />
+            ) : (
             <LocationDetailPanel
               node={selectedNode}
               ancestry={ancestry}
@@ -508,6 +587,7 @@ const Locations = () => {
               onSelectAncestor={(n) => setSelectedNode(n)}
               onEditLabel={() => selectedNode && openLabelDialog(selectedNode)}
             />
+            )}
           </ScrollArea>
         </Card>
       </div>
@@ -519,7 +599,10 @@ const Locations = () => {
         workspaceId={workspaceId ?? ""}
         productKey={PRODUCT_KEY}
         parentId={addParentId}
-        parentName={addParentId ? findNode(tree, addParentId)?.name : undefined}
+        parentName={(() => {
+          const parent = addParentId ? findNode(tree, addParentId) : null;
+          return parent ? nodeDisplayName(parent, t) : undefined;
+        })()}
         parentAssetType={addParentId ? findNode(tree, addParentId)?.assetType : undefined}
         defaultType={addDefaultType}
         onAdd={handleAdd}

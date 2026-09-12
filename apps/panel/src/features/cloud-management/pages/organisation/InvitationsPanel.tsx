@@ -1,11 +1,11 @@
 import { toast } from "sonner";
-import { Check, Loader2, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import {
   useAcceptWorkspaceInvitationMutation,
   useListWorkspaceInvitationsQuery,
   useRejectWorkspaceInvitationMutation,
 } from "@paapeli/api";
-import { Badge, Button, Card, EmptyState } from "@/features/cloud-management/ui";
+import { Badge, Button, Card, EmptyState, SkeletonList } from "@/features/cloud-management/ui";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 
 export default function InvitationsPanel() {
@@ -36,12 +36,7 @@ export default function InvitationsPanel() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="size-4 animate-spin" />
-        Loading invitations…
-      </div>
-    );
+    return <SkeletonList rows={2} className="max-w-2xl" />;
   }
 
   if (invitations.length === 0) {
