@@ -88,6 +88,7 @@ import {
 import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
+import { toNumber } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 /** One page of a device's activity is all either table on this page shows. */
@@ -1006,10 +1007,14 @@ const PREVIEW_ALARMS = [
   { sev: "bg-rose-500", msg: "Pressure critical", time: "1h ago" },
   { sev: "bg-sky-500", msg: "Device reconnected", time: "3h ago" },
 ];
-const numVal = (rows: { key: string; value: string }[], k: string) => {
-  const n = parseFloat(rows.find((x) => x.key === k)?.value ?? "");
-  return Number.isNaN(n) ? null : n;
-};
+/** One telemetry point as the Latest Data tab lists it. */
+type PreviewRow = { key: string; value: string; updatedAt: number };
+
+/** The newest point for a key. */
+const latestRow = (rows: PreviewRow[], k: string) =>
+  rows.reduce<PreviewRow | undefined>((best, r) => (r.key === k && (!best || r.updatedAt > best.updatedAt) ? r : best), undefined);
+
+const numVal = (rows: PreviewRow[], k: string) => toNumber(latestRow(rows, k)?.value);
 
 function TeleGauge({ label, pct, value }: { label: string; pct: number; value: string }) {
   const C = Math.PI * 40;
@@ -1030,20 +1035,26 @@ function TeleGauge({ label, pct, value }: { label: string; pct: number; value: s
 
 /* Preview shown in the "Add to Widget" dialog — switches on the chosen
    widget bundle (Tables / Charts / Cards / Analogue gauges / Alarm widgets). */
-function TeleWidgetPreview({ type, keys, rows, timestampLabel }: { type: string; keys: string[]; rows: { key: string; value: string }[]; timestampLabel: string }) {
-  const numericKeys = keys.filter((k) => numVal(rows, k) !== null);
-  const series = useMemo(
-    () => Array.from({ length: 24 }, (_, i) => {
-      const row: Record<string, number> = { t: i };
-      numericKeys.forEach((k, idx) => {
-        const base = numVal(rows, k) ?? 50;
-        row[k] = Math.max(0, base + Math.sin((i + idx) / 3) * base * 0.14 + (Math.random() - 0.5) * base * 0.08);
-      });
-      return row;
-    }),
+function TeleWidgetPreview({ type, keys, rows, timestampLabel }: { type: string; keys: string[]; rows: PreviewRow[]; timestampLabel: string }) {
+  const numericKeys = keys.filter((k) => rows.some((r) => r.key === k && toNumber(r.value) !== null));
+  // The real points of the selected keys, merged on timestamp, oldest first.
+  const series = useMemo(() => {
+    const byTs = new Map<number, Record<string, number>>();
+    rows.forEach((r) => {
+      if (!numericKeys.includes(r.key)) return;
+      const y = toNumber(r.value);
+      if (y === null) return;
+      const point = byTs.get(r.updatedAt) ?? { t: r.updatedAt };
+      point[r.key] = y;
+      byTs.set(r.updatedAt, point);
+    });
+    return [...byTs.values()].sort((a, b) => a.t - b.t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [type, keys.join(",")],
-  );
+  }, [rows, keys.join(",")]);
+  // Distinct timestamps of the selected keys, newest first, for the table preview.
+  const tableTimes = [...new Set(rows.filter((r) => keys.includes(r.key)).map((r) => r.updatedAt))]
+    .sort((a, b) => b - a)
+    .slice(0, 50);
 
   if (type === "Charts") {
     return (
@@ -1061,9 +1072,9 @@ function TeleWidgetPreview({ type, keys, rows, timestampLabel }: { type: string;
             <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
             <XAxis dataKey="t" hide />
             <YAxis width={32} tick={{ fontSize: 11 }} />
-            <RTooltip />
+            <RTooltip labelFormatter={(ts) => fmtDateTime(Number(ts))} />
             {numericKeys.map((k, i) => (
-              <Area key={k} type="monotone" dataKey={k} stroke={WIDGET_COLORS[i % WIDGET_COLORS.length]} strokeWidth={2} fill={`url(#tg-${i})`} isAnimationActive animationDuration={900} />
+              <Area key={k} type="monotone" dataKey={k} connectNulls stroke={WIDGET_COLORS[i % WIDGET_COLORS.length]} strokeWidth={2} fill={`url(#tg-${i})`} isAnimationActive animationDuration={900} />
             ))}
           </AreaChart>
         </ResponsiveContainer>
@@ -1077,7 +1088,7 @@ function TeleWidgetPreview({ type, keys, rows, timestampLabel }: { type: string;
         {keys.map((k, i) => (
           <div key={k} className="rounded-xl border border-border p-4">
             <p className="truncate text-xs text-muted-foreground">{k}</p>
-            <p className="mt-1 text-2xl font-bold text-primary">{rows.find((x) => x.key === k)?.value ?? "—"}</p>
+            <p className="mt-1 text-2xl font-bold text-primary">{latestRow(rows, k)?.value ?? "—"}</p>
             <div className="mt-2 h-8">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={series}>
@@ -1098,7 +1109,7 @@ function TeleWidgetPreview({ type, keys, rows, timestampLabel }: { type: string;
         {gk.map((k) => {
           const base = numVal(rows, k) ?? 60;
           const pct = Math.max(4, Math.min(100, base > 100 ? base % 100 : base));
-          return <TeleGauge key={k} label={k} pct={pct} value={rows.find((x) => x.key === k)?.value ?? "—"} />;
+          return <TeleGauge key={k} label={k} pct={pct} value={latestRow(rows, k)?.value ?? "—"} />;
         })}
       </div>
     );
@@ -1129,15 +1140,12 @@ function TeleWidgetPreview({ type, keys, rows, timestampLabel }: { type: string;
           </TableRow>
         </TableHeader>
         <TableBody>
-          {Array.from({ length: 6 }, (_, i) => {
-            const time = Date.now() - i * 5 * 60_000;
-            return (
-              <TableRow key={i}>
-                <TableCell className="whitespace-nowrap text-muted-foreground">{fmtDateTime(time)}</TableCell>
-                {keys.map((k) => <TableCell key={k}>{rows.find((x) => x.key === k)?.value ?? "—"}</TableCell>)}
-              </TableRow>
-            );
-          })}
+          {tableTimes.map((ts) => (
+            <TableRow key={ts}>
+              <TableCell className="whitespace-nowrap text-muted-foreground">{fmtDateTime(ts)}</TableCell>
+              {keys.map((k) => <TableCell key={k}>{rows.find((x) => x.key === k && x.updatedAt === ts)?.value ?? "—"}</TableCell>)}
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
     </div>

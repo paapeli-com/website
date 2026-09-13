@@ -22,13 +22,24 @@ export const useDeviceTelemetry = (deviceId: string | undefined, hours: number) 
   return useGetDeviceTimeSeriesQuery(workspaceId ?? "", PRODUCT_KEY, deviceId ?? "", hours);
 };
 
-/* Values arrive as strings; non-numeric ones (e.g. "true", "good") can't be
-   plotted, so they are dropped. */
+/** A telemetry value as a number, or null when it can't be plotted. The spec
+ *  types values as strings, but numbers are accepted too; non-numeric values
+ *  (e.g. "true", "good") and blanks are rejected. */
+export const toNumber = (value: unknown): number | null => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string" || value.trim() === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+};
+
+/* Every plottable point of one series, oldest first. */
 export const toSeries = (points: EntityFieldItem[] = []): SeriesPoint[] =>
-  points.flatMap((p) => {
-    const y = p.value?.trim() === "" ? NaN : Number(p.value);
-    return Number.isFinite(y) ? [{ x: String(p.ts), y }] : [];
-  });
+  [...points]
+    .sort((a, b) => Number(a.ts) - Number(b.ts))
+    .flatMap((p) => {
+      const y = toNumber(p.value);
+      return y === null ? [] : [{ x: String(p.ts), y }];
+    });
 
 interface FieldsProps {
   deviceId?: string;
