@@ -15,6 +15,8 @@ export interface Widget {
   metricKey?: string;
   metricKeys?: string[]; // for table
   dimensionKey?: string; // for breakdown / donut / bar
+  deviceId?: string; // for the "devices" source: the device to chart
+  telemetryKey?: string; // for the "devices" source: which telemetry series
   text?: string; // for text widget
 }
 

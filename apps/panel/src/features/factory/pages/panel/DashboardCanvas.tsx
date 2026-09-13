@@ -18,6 +18,14 @@ import {
   getTable,
   WidgetKind,
 } from "@/features/factory/lib/dashboardData";
+import {
+  DEVICES_SOURCE_ID,
+  DeviceSourceFields,
+  rangeToHours,
+  toSeries,
+  useDeviceTelemetry,
+} from "@/features/factory/components/dashboard/DeviceTelemetrySource";
+import { useDevices } from "@/features/factory/hooks/useDevices";
 import { Button } from "@/features/factory/components/ui/button";
 import { Input } from "@/features/factory/components/ui/input";
 import { Label } from "@/features/factory/components/ui/label";
@@ -131,6 +139,12 @@ const T: Record<string, Record<Lang, string>> = {
   hideToolbar: { en: "Hide toolbar", ar: "إخفاء شريط الأدوات", fa: "پنهان کردن نوار ابزار" },
   showToolbar: { en: "Show toolbar", ar: "إظهار شريط الأدوات", fa: "نمایش نوار ابزار" },
   editSettings: { en: "Edit settings", ar: "تعديل الإعدادات", fa: "تنظیمات" },
+  device: { en: "Device", ar: "الجهاز", fa: "دستگاه" },
+  selectDevice: { en: "Select a device", ar: "اختر جهازًا", fa: "یک دستگاه انتخاب کنید" },
+  noDevices: { en: "No devices", ar: "لا توجد أجهزة", fa: "دستگاهی وجود ندارد" },
+  telemetryKey: { en: "Telemetry", ar: "القياس", fa: "تله‌متری" },
+  noTelemetry: { en: "No telemetry in this time range", ar: "لا توجد قياسات في هذه الفترة", fa: "در این بازه تله‌متری وجود ندارد" },
+  loading: { en: "Loading…", ar: "جارٍ التحميل…", fa: "در حال بارگذاری…" },
 };
 
 const WIDGET_CATALOG: { kind: WidgetKind; titleKey: string; icon: any; w: number; h: number }[] = [
@@ -223,7 +237,31 @@ const MiniDonut = ({ data }: { data: { label: string; value: number }[] }) => {
 
 /* ============== Widget renderer ============== */
 
-const WidgetBody = ({ w, refreshKey }: { w: Widget; refreshKey: number }) => {
+const Hint = ({ children }: { children: React.ReactNode }) => (
+  <div className="h-full flex items-center justify-center text-xs text-muted-foreground text-center px-2">{children}</div>
+);
+
+/* Line chart bound to one device's telemetry series from the history API. */
+const DeviceLineBody = ({ w, hours, refreshKey, tt }: { w: Widget; hours: number; refreshKey: number; tt: (k: string) => string }) => {
+  const { data, isLoading, refetch } = useDeviceTelemetry(w.deviceId, hours);
+  const mounted = useRef(false);
+  useEffect(() => {
+    // The dashboard's refresh button / interval bumps refreshKey.
+    if (!mounted.current) { mounted.current = true; return; }
+    if (w.deviceId) refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
+  const series = useMemo(() => toSeries(w.telemetryKey ? data?.[w.telemetryKey] : undefined), [data, w.telemetryKey]);
+
+  if (!w.deviceId) return <Hint>{tt("selectDevice")}</Hint>;
+  if (isLoading) return <Hint>{tt("loading")}</Hint>;
+  if (series.length === 0) return <Hint>{tt("noTelemetry")}</Hint>;
+  // MiniLine needs two points to draw a segment.
+  const points = series.length === 1 ? [series[0], series[0]] : series;
+  return <div className="h-full"><MiniLine data={points} /></div>;
+};
+
+const WidgetBody = ({ w, refreshKey, hours, tt }: { w: Widget; refreshKey: number; hours: number; tt: (k: string) => string }) => {
   const salt = `${refreshKey}`;
   if (w.kind === "kpi") {
     const k = getKPI(w.dataSourceId, w.metricKey || "", salt);
@@ -247,6 +285,7 @@ const WidgetBody = ({ w, refreshKey }: { w: Widget; refreshKey: number }) => {
     );
   }
   if (w.kind === "line") {
+    if (w.dataSourceId === DEVICES_SOURCE_ID) return <DeviceLineBody w={w} hours={hours} refreshKey={refreshKey} tt={tt} />;
     return <div className="h-full"><MiniLine data={getSeries(w.dataSourceId, w.metricKey || "", 24, salt)} /></div>;
   }
   if (w.kind === "bar") {
@@ -307,6 +346,14 @@ const DashboardCanvas = () => {
   const dashboard = useMemo(() => items.find((d) => d.id === params.id), [items, params.id]);
 
   const { widgets, addWidget, updateWidget, removeWidget, setAll, resetLayout } = useDashboardCanvas(params.id || "default");
+  const { items: devices } = useDevices();
+  const sourceLabel = (w: Widget) => {
+    if (w.dataSourceId === DEVICES_SOURCE_ID && w.deviceId) {
+      const d = devices.find((x) => x.id === w.deviceId);
+      if (d) return d.label || d.name;
+    }
+    return findDataSource(w.dataSourceId).label;
+  };
 
   const [refreshKey, setRefreshKey] = useState(0);
   const [refreshInterval, setRefreshInterval] = useState("manual");
@@ -571,7 +618,7 @@ const DashboardCanvas = () => {
                     <GripVertical className="h-4 w-4" />
                   </button>
                   <span className="text-sm font-medium text-foreground truncate">{w.title}</span>
-                  <Badge variant="outline" className="text-[10px] py-0 h-4">{findDataSource(w.dataSourceId).label}</Badge>
+                  <Badge variant="outline" className="text-[10px] py-0 h-4">{sourceLabel(w)}</Badge>
                 </div>
                 <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setConfigId(w.id)}><Settings2 className="h-3.5 w-3.5" /></Button>
@@ -579,7 +626,7 @@ const DashboardCanvas = () => {
                 </div>
               </div>
               <div className="flex-1 p-3 overflow-hidden">
-                <WidgetBody w={w} refreshKey={refreshKey} />
+                <WidgetBody w={w} refreshKey={refreshKey} hours={rangeToHours(timeRange)} tt={tt} />
               </div>
               {/* Resize handle */}
               <div
@@ -633,6 +680,8 @@ const DashboardCanvas = () => {
                         metricKey: src.metrics[0].key,
                         metricKeys: editing.kind === "table" ? src.metrics.slice(0, 3).map((m) => m.key) : undefined,
                         dimensionKey: src.dimensions[0]?.key,
+                        deviceId: undefined,
+                        telemetryKey: undefined,
                       });
                     }}>
                       <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
@@ -641,7 +690,17 @@ const DashboardCanvas = () => {
                   </div>
                 )}
 
-                {(editing.kind === "kpi" || editing.kind === "line") && (
+                {editing.kind === "line" && editing.dataSourceId === DEVICES_SOURCE_ID && (
+                  <DeviceSourceFields
+                    deviceId={editing.deviceId}
+                    telemetryKey={editing.telemetryKey}
+                    hours={rangeToHours(timeRange)}
+                    tt={tt}
+                    onChange={(patch) => updateWidget(editing.id, patch)}
+                  />
+                )}
+
+                {(editing.kind === "kpi" || (editing.kind === "line" && editing.dataSourceId !== DEVICES_SOURCE_ID)) && (
                   <div>
                     <Label className="text-sm">{tt("metric")}</Label>
                     <Select value={editing.metricKey} onValueChange={(v) => updateWidget(editing.id, { metricKey: v })}>
