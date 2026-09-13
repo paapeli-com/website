@@ -77,6 +77,11 @@ import {
   useAckAlarmMutation,
   useClearAlarmMutation,
   useGetDeviceTimeSeriesQuery,
+  useCreateProductDeviceCommandMutation,
+  useEditProductDeviceCommandMutation,
+  useDeleteProductDeviceCommandMutation,
+  type PaapeliProductDeviceCommand,
+  type EntityFieldItem,
   type PaapeliAlarmListItem,
   type DeviceActivityResponse,
 } from "@paapeli/api";
@@ -959,7 +964,13 @@ const fmtDateTime = (ms: number) => {
 const TELEMETRY_RANGES_H = [1, 6, 12, 24] as const;
 const DEFAULT_TELEMETRY_RANGE_H = 24;
 
-export interface TelemetryRow { key: string; value: string; updatedAt: number }
+export interface TelemetryRow {
+  key: string;
+  value: string;
+  updatedAt: number;
+  /** Every point for this key in the lookback window, newest first. */
+  points: EntityFieldItem[];
+}
 
 /* Latest telemetry rows (key/value/updatedAt) — shared by the Latest Data
    tab and the Overview "Latest Values" card so both show the same data.
@@ -973,7 +984,7 @@ const useLatestTelemetryRows = (deviceId: string | undefined, hours: number) => 
   const rows = useMemo<TelemetryRow[]>(
     () => Object.entries(data ?? {}).flatMap(([key, points]) => {
       const last = points[points.length - 1];
-      return last ? [{ key, value: last.value, updatedAt: last.ts }] : [];
+      return last ? [{ key, value: last.value, updatedAt: last.ts, points: [...points].reverse() }] : [];
     }),
     [data],
   );
@@ -1142,9 +1153,15 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
   const [range, setRange] = useState(String(DEFAULT_TELEMETRY_RANGE_H));
   const { rows: fetchedRows, isLoading } = useLatestTelemetryRows(deviceId, Number(range));
 
-  // There is no telemetry delete endpoint yet, so deletes only hide keys locally.
-  const [removedKeys, setRemovedKeys] = useState<Set<string>>(new Set());
-  const rows = useMemo(() => fetchedRows.filter((r) => !removedKeys.has(r.key)), [fetchedRows, removedKeys]);
+  // There is no telemetry delete endpoint yet, so deletes only hide rows locally.
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
+  // One row per data point the API returned, not one per key.
+  const rows = useMemo(
+    () => fetchedRows
+      .flatMap((r) => r.points.map((p, i) => ({ id: `${r.key}|${p.ts}|${i}`, key: r.key, value: p.value, updatedAt: p.ts })))
+      .filter((r) => !removedIds.has(r.id)),
+    [fetchedRows, removedIds],
+  );
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sortAsc, setSortAsc] = useState(true);
@@ -1166,7 +1183,7 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
     const q = query.trim().toLowerCase();
     return [...rows]
       .filter((r) => !q || r.key.toLowerCase().includes(q))
-      .sort((a, b) => (sortAsc ? a.key.localeCompare(b.key) : b.key.localeCompare(a.key)));
+      .sort((a, b) => (sortAsc ? a.key.localeCompare(b.key) : b.key.localeCompare(a.key)) || b.updatedAt - a.updatedAt);
   }, [rows, sortAsc, query]);
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -1174,11 +1191,11 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
   const startIndex = (page - 1) * pageSize;
   const pageRows = filtered.slice(startIndex, startIndex + pageSize);
 
-  const allOnPageChecked = pageRows.length > 0 && pageRows.every((r) => selected.has(r.key));
+  const allOnPageChecked = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id));
   const toggleAll = () => setSelected((prev) => {
     const next = new Set(prev);
-    if (allOnPageChecked) pageRows.forEach((r) => next.delete(r.key));
-    else pageRows.forEach((r) => next.add(r.key));
+    if (allOnPageChecked) pageRows.forEach((r) => next.delete(r.id));
+    else pageRows.forEach((r) => next.add(r.id));
     return next;
   });
   const toggleOne = (k: string) => setSelected((prev) => {
@@ -1189,8 +1206,8 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
 
   // Bulk delete keeps the strategy dialog; single-row delete is a plain confirm.
   const confirmBulkDelete = () => {
-    const keys = [...selected];
-    setRemovedKeys((prev) => new Set([...prev, ...keys]));
+    const ids = [...selected];
+    setRemovedIds((prev) => new Set([...prev, ...ids]));
     setSelected(new Set());
     setDeleteOpen(false);
     toast({ title: L.deleted });
@@ -1198,7 +1215,7 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
   const confirmRowDelete = () => {
     if (!confirmKey) return;
     const k = confirmKey;
-    setRemovedKeys((prev) => new Set(prev).add(k));
+    setRemovedIds((prev) => new Set(prev).add(k));
     setSelected((prev) => { const n = new Set(prev); n.delete(k); return n; });
     setConfirmKey(null);
     toast({ title: L.deleted });
@@ -1206,7 +1223,7 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
 
   const exportCsv = () => {
     const esc = (s: string) => `"${String(s).replace(/"/g, '""')}"`;
-    const header = [L.lastUpdate, L.key, L.value].map(esc).join(",");
+    const header = [L.timestamp, L.key, L.value].map(esc).join(",");
     const body = filtered.map((r) => [fmtDateTime(r.updatedAt), r.key, r.value].map(esc).join(",")).join("\n");
     const blob = new Blob(["﻿" + header + "\n" + body], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -1216,7 +1233,9 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
     toast({ title: L.exported });
   };
 
-  const selectedKeys = [...selected];
+  // The widget preview works per telemetry key, whichever of its rows were ticked.
+  const selectedKeys = [...new Set(rows.filter((r) => selected.has(r.id)).map((r) => r.key))];
+  const confirmRow = rows.find((r) => r.id === confirmKey);
   const confirmAdd = () => { setAddOpen(false); toast({ title: L.added }); };
 
   return (
@@ -1268,7 +1287,7 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-muted/40">
                 <TableHead className="w-10"><Checkbox checked={allOnPageChecked} onCheckedChange={toggleAll} /></TableHead>
-                <TableHead>{L.lastUpdate}</TableHead>
+                <TableHead>{L.timestamp}</TableHead>
                 <TableHead>
                   <button className="inline-flex items-center gap-1" onClick={() => setSortAsc((a) => !a)}>
                     {L.key} {sortAsc ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
@@ -1280,13 +1299,13 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
             </TableHeader>
             <TableBody>
               {pageRows.map((r) => (
-                <TableRow key={r.key} data-state={selected.has(r.key) ? "selected" : undefined}>
-                  <TableCell><Checkbox checked={selected.has(r.key)} onCheckedChange={() => toggleOne(r.key)} /></TableCell>
+                <TableRow key={r.id} data-state={selected.has(r.id) ? "selected" : undefined}>
+                  <TableCell><Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggleOne(r.id)} /></TableCell>
                   <TableCell className="whitespace-nowrap text-muted-foreground">{fmtDateTime(r.updatedAt)}</TableCell>
                   <TableCell className="font-medium">{r.key}</TableCell>
-                  <TableCell>{r.value}</TableCell>
+                  <TableCell className="tabular-nums">{r.value}</TableCell>
                   <TableCell>
-                    <button onClick={() => setConfirmKey(r.key)} className="text-muted-foreground hover:text-destructive" aria-label={L.del}><Trash2 className="h-4 w-4" /></button>
+                    <button onClick={() => setConfirmKey(r.id)} className="text-muted-foreground hover:text-destructive" aria-label={L.del}><Trash2 className="h-4 w-4" /></button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -1347,7 +1366,7 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
           <AlertDialogHeader>
             <AlertDialogTitle>{L.deleteOneTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              {L.deleteOneDesc} <span className="font-medium text-foreground">{confirmKey}</span>
+              {L.deleteOneDesc} <span className="font-medium text-foreground">{confirmRow ? `${confirmRow.key} · ${fmtDateTime(confirmRow.updatedAt)}` : ""}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1695,6 +1714,218 @@ const schemaProperties = (schema?: Record<string, unknown>) =>
 /** Activity types the gateway records for a command's lifecycle. */
 const COMMAND_ACTIVITY_TYPES = new Set(["COMMAND_SENT", "COMMAND_SUCCEEDED", "COMMAND_FAILED"]);
 
+const DEFAULT_COMMAND_FORM = {
+  commandKey: "",
+  label: "",
+  description: "",
+  dispatchMethod: "",
+  parameterSchema: '{\n  "type": "object",\n  "properties": {}\n}',
+  enabled: true,
+  oneWay: true,
+  queueIfOffline: false,
+  timeoutMs: 10000,
+  retries: 3,
+};
+type CommandForm = typeof DEFAULT_COMMAND_FORM;
+
+const clampInt = (v: string, min: number, max: number) =>
+  Math.min(max, Math.max(min, Math.round(Number(v) || 0)));
+
+/* Add / edit / delete a device type's command catalog —
+   /products/{productKey}/device-types/{deviceType}/commands. */
+const CommandCatalogManager = ({ deviceType, commands }: { deviceType: string; commands: PaapeliProductDeviceCommand[] }) => {
+  const { t, isRTL } = useLanguage();
+  const { toast } = useToast();
+  const createCommand = useCreateProductDeviceCommandMutation();
+  const editCommand = useEditProductDeviceCommandMutation();
+  const deleteCommand = useDeleteProductDeviceCommandMutation();
+
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [form, setForm] = useState<CommandForm>(DEFAULT_COMMAND_FORM);
+  const [confirmDelete, setConfirmDelete] = useState<PaapeliProductDeviceCommand | null>(null);
+  const set = <K extends keyof CommandForm>(k: K, v: CommandForm[K]) => setForm((f) => ({ ...f, [k]: v }));
+
+  const fail = (error: unknown) =>
+    toast({ title: t("error"), description: error instanceof Error ? error.message : t("error"), variant: "destructive" });
+
+  const openCreate = () => {
+    setEditingKey(null);
+    setForm(DEFAULT_COMMAND_FORM);
+    setFormOpen(true);
+  };
+
+  // The dispatch settings are write-only — the API never returns them — so an
+  // edit starts them from the defaults and leaves the dispatch method blank
+  // rather than guessing it.
+  const openEdit = (c: PaapeliProductDeviceCommand) => {
+    setEditingKey(c.commandKey);
+    setForm({
+      ...DEFAULT_COMMAND_FORM,
+      commandKey: c.commandKey,
+      label: c.label,
+      description: c.description ?? "",
+      parameterSchema: JSON.stringify(c.parameterSchema ?? { type: "object", properties: {} }, null, 2),
+      enabled: c.enabled,
+    });
+    setFormOpen(true);
+  };
+
+  const save = async () => {
+    if (!form.commandKey.trim() || !form.label.trim() || !form.dispatchMethod.trim()) {
+      toast({ title: t("error"), description: t("commandRequiredFields"), variant: "destructive" });
+      return;
+    }
+    let parameterSchema: Record<string, unknown>;
+    try {
+      parameterSchema = JSON.parse(form.parameterSchema.trim() || "{}");
+      if (!parameterSchema || typeof parameterSchema !== "object" || Array.isArray(parameterSchema)) throw new Error();
+    } catch {
+      toast({ title: t("error"), description: t("invalidSchemaJson"), variant: "destructive" });
+      return;
+    }
+    const body = {
+      label: form.label.trim(),
+      description: form.description.trim() || undefined,
+      dispatchMethod: form.dispatchMethod.trim(),
+      parameterSchema,
+      oneWay: form.oneWay,
+      queueIfOffline: form.queueIfOffline,
+      timeoutMs: form.timeoutMs,
+      retries: form.retries,
+      enabled: form.enabled,
+    };
+    try {
+      if (editingKey) {
+        await editCommand.mutateAsync({ productKey: PRODUCT_KEY, deviceType, commandKey: editingKey, ...body });
+      } else {
+        await createCommand.mutateAsync({ productKey: PRODUCT_KEY, deviceType, commandKey: form.commandKey.trim(), ...body });
+      }
+      toast({ title: t("commandSaved"), description: body.label });
+      setFormOpen(false);
+    } catch (error) {
+      fail(error);
+    }
+  };
+
+  const doDelete = async () => {
+    if (!confirmDelete) return;
+    const c = confirmDelete;
+    try {
+      await deleteCommand.mutateAsync({ productKey: PRODUCT_KEY, deviceType, commandKey: c.commandKey });
+      toast({ title: t("commandDeleted"), description: c.label });
+    } catch (error) {
+      fail(error);
+    } finally {
+      setConfirmDelete(null);
+    }
+  };
+
+  const saving = createCommand.isPending || editCommand.isPending;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <Label>{t("manageCommands")}</Label>
+        <Button variant="outline" size="sm" onClick={openCreate}>
+          <Plus className="h-4 w-4 me-1" /> {t("addCommand")}
+        </Button>
+      </div>
+      <div className="border rounded-md divide-y divide-border">
+        {commands.length === 0 ? (
+          <p className="py-4 text-center text-xs text-muted-foreground">{t("noCommandsAvailable")}</p>
+        ) : commands.map((c) => (
+          <div key={c.commandKey} className="flex items-center gap-2 px-3 py-2">
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium truncate">{c.label}</div>
+              <div className="text-xs text-muted-foreground font-mono truncate" dir="ltr">{c.commandKey}</div>
+            </div>
+            {!c.enabled && <Badge variant="outline" className="text-xs font-normal">{t("disabled")}</Badge>}
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(c)} aria-label={t("editCommand")}>
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setConfirmDelete(c)} aria-label={t("delete")}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
+
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" dir={isRTL ? "rtl" : "ltr"}>
+          <DialogHeader>
+            <DialogTitle>{editingKey ? t("editCommand") : t("addCommand")}</DialogTitle>
+            {editingKey && <DialogDescription>{t("dispatchWriteOnly")}</DialogDescription>}
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>{t("commandKey")}</Label>
+              <Input value={form.commandKey} onChange={(e) => set("commandKey", e.target.value)} disabled={!!editingKey} className="mt-1 font-mono" dir="ltr" placeholder="setLocationInterval" />
+            </div>
+            <div>
+              <Label>{t("commandLabel")}</Label>
+              <Input value={form.label} onChange={(e) => set("label", e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label>{t("description")}</Label>
+              <Textarea value={form.description} onChange={(e) => set("description", e.target.value)} rows={2} className="mt-1" />
+            </div>
+            <div>
+              <Label>{t("dispatchMethod")}</Label>
+              <Input value={form.dispatchMethod} onChange={(e) => set("dispatchMethod", e.target.value)} className="mt-1 font-mono" dir="ltr" placeholder="setLocationInterval" />
+            </div>
+            <div>
+              <Label>{t("parameterSchema")}</Label>
+              <Textarea value={form.parameterSchema} onChange={(e) => set("parameterSchema", e.target.value)} rows={6} className="mt-1 font-mono text-xs" dir="ltr" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>{t("commandTimeoutMs")}</Label>
+                <Input type="number" min={1} max={300000} value={form.timeoutMs} onChange={(e) => set("timeoutMs", clampInt(e.target.value, 1, 300000))} className="mt-1" dir="ltr" />
+              </div>
+              <div>
+                <Label>{t("commandRetries")}</Label>
+                <Input type="number" min={0} max={10} value={form.retries} onChange={(e) => set("retries", clampInt(e.target.value, 0, 10))} className="mt-1" dir="ltr" />
+              </div>
+            </div>
+            {([
+              ["enabled", t("enabled")],
+              ["oneWay", t("oneWay")],
+              ["queueIfOffline", t("queueIfOffline")],
+            ] as const).map(([key, text]) => (
+              <div key={key} className="flex items-center justify-between">
+                <Label>{text}</Label>
+                <Switch checked={form[key]} onCheckedChange={(v) => set(key, v)} />
+              </div>
+            ))}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setFormOpen(false)}>{t("cancel")}</Button>
+            <Button onClick={save} disabled={saving}>{t("save")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => { if (!o) setConfirmDelete(null); }}>
+        <AlertDialogContent dir={isRTL ? "rtl" : "ltr"}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("deleteCommandQuestion")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("deleteCommandDesc")} <span className="font-medium text-foreground">{confirmDelete?.label}</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={doDelete} disabled={deleteCommand.isPending}>
+              {t("delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
 export const SendCommandDialog = ({ open, onOpenChange, device }: any) => {
   const { isRTL, t, formatNumber } = useLanguage();
   const [cmd, setCmd] = useState("");
@@ -1705,7 +1936,7 @@ export const SendCommandDialog = ({ open, onOpenChange, device }: any) => {
 
   /* The picker is the device type's command catalog, not a fixed list: the
      gateway rejects any key the catalog does not define. */
-  const { data: catalog, isLoading: catalogLoading } = useGetProductDeviceCommandsQuery(
+  const { data: catalog, isLoading: catalogLoading, isError: catalogError } = useGetProductDeviceCommandsQuery(
     PRODUCT_KEY, device?.type ?? "", open,
   );
   const commands = (catalog ?? []).filter((c) => c.enabled);
@@ -1794,7 +2025,7 @@ export const SendCommandDialog = ({ open, onOpenChange, device }: any) => {
             <Label>{t("commandType")}</Label>
             <Select value={cmd} onValueChange={setCmd} disabled={catalogLoading || commands.length === 0}>
               <SelectTrigger className="mt-1">
-                <SelectValue placeholder={catalogLoading ? t("loading") : t("noCommandsAvailable")} />
+                <SelectValue placeholder={catalogLoading ? t("loading") : catalogError ? t("commandsLoadFailed") : t("noCommandsAvailable")} />
               </SelectTrigger>
               <SelectContent>
                 {commands.map((c) => (
@@ -1811,6 +2042,9 @@ export const SendCommandDialog = ({ open, onOpenChange, device }: any) => {
               <Label>{t("payloadJson")}</Label>
               <Textarea value={params} onChange={e => setParams(e.target.value)} rows={4} className="mt-1 font-mono text-xs" dir="ltr" />
             </div>
+          )}
+          {device.type && !catalogLoading && !catalogError && (
+            <CommandCatalogManager deviceType={device.type} commands={catalog ?? []} />
           )}
           <div>
             <Label className="mb-2 block">{t("commandHistory")}</Label>

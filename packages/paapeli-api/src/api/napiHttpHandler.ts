@@ -97,19 +97,49 @@ apiClient.interceptors.request.use((config) => {
     return config;
 });
 
+/* Whether the gateway is answering readably right now. Its only public endpoint
+   is login, which returns a CORS-enabled 400 for an empty body — so any
+   readable response proves the gateway is up and CORS works. Uses bare axios
+   (no interceptors, no token) and is shared by a burst of failing requests. */
+let reachabilityProbe: Promise<boolean> | null = null;
+function gatewayReachable(): Promise<boolean> {
+    if (!reachabilityProbe) {
+        reachabilityProbe = axios
+            .post(AUTH_ENDPOINTS[0], {}, { baseURL: apiClient.defaults.baseURL, timeout: 5000 })
+            .then(
+                () => true,
+                (e) => !!e?.response,
+            )
+            .finally(() => {
+                setTimeout(() => {
+                    reachabilityProbe = null;
+                }, 10_000);
+            });
+    }
+    return reachabilityProbe;
+}
+
 /* A readable 401 means the token is dead. The gateway, though, omits CORS
    headers on its 401s, so cross-origin the browser hides the status and axios
-   sees a network error with no `response` (see apps/panel/src/shared/config.ts).
-   Such an error can't be told apart from being offline, so it only signs out
-   when the token's own `exp` confirms the session is over. */
+   sees a bare network error (ERR_NETWORK, no `response`) — see
+   apps/panel/src/shared/config.ts. That looks the same as being offline, so:
+   an expired `exp` signs out at once; otherwise, if the gateway is provably
+   reachable, the hidden status can only be its auth rejection, so sign out. */
 apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (!isAuthRequest(error?.config?.url)) {
-            const status = error?.response?.status;
-            const opaque = !error?.response && !axios.isCancel(error);
-            if (status === 401 || (opaque && isTokenExpired(currentToken))) {
+        if (isAuthRequest(error?.config?.url) || axios.isCancel(error)) {
+            return Promise.reject(error);
+        }
+        if (error?.response?.status === 401) {
+            expireSession();
+        } else if (!error?.response && error?.code === 'ERR_NETWORK' && currentToken) {
+            if (isTokenExpired(currentToken)) {
                 expireSession();
+            } else if (typeof navigator === 'undefined' || navigator.onLine) {
+                void gatewayReachable().then((up) => {
+                    if (up) expireSession();
+                });
             }
         }
         return Promise.reject(error);
