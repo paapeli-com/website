@@ -14,7 +14,11 @@ export function setApiBaseUrl(baseUrl: string) {
     apiClient.defaults.baseURL = baseUrl;
 }
 
+/* The token currently attached to the client, kept so its `exp` can be read. */
+let currentToken: string | null = null;
+
 export function setApiAuthToken(token: string | null) {
+    currentToken = token;
     if (token) {
         apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
         // A new token starts a new session, so re-arm the 401 handling. Without
@@ -48,27 +52,65 @@ const AUTH_ENDPOINTS = ['/api/v1/aiot/auth/login', '/api/v1/aiot/user/signup'];
 const isAuthRequest = (url: string | undefined) =>
     !!url && AUTH_ENDPOINTS.some((p) => url.includes(p));
 
-/* A 401 anywhere else means the token is dead: clear it, drop the shared
-   session, let the app tear down its own state, then bounce to the shared
-   login. Guarded so a burst of parallel 401s only signs out once. */
+/* True when the JWT's `exp` claim has passed. A token that isn't a JWT or has
+   no `exp` is never treated as expired — only the server can judge it. */
+function isTokenExpired(token: string | null): boolean {
+    if (!token) return false;
+    try {
+        const payload = token.split('.')[1];
+        if (!payload) return false;
+        const { exp } = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as {
+            exp?: number;
+        };
+        return typeof exp === 'number' && Date.now() >= exp * 1000;
+    } catch {
+        return false;
+    }
+}
+
+/* The token is dead: clear it, drop the shared session, let the app tear down
+   its own state, then bounce to the shared login. Guarded so a burst of
+   parallel failures only signs out once. */
 let signedOutFor401 = false;
+function expireSession() {
+    if (signedOutFor401) return;
+    signedOutFor401 = true;
+    setApiAuthToken(null);
+    signOut();
+    unauthorizedHandlers.forEach((handler) => {
+        // One bad handler must not stop the redirect below.
+        try {
+            handler();
+        } catch {
+            /* ignore */
+        }
+    });
+    goToLogin();
+}
+
+/* Don't send a request whose token has already expired — sign out instead. */
+apiClient.interceptors.request.use((config) => {
+    if (!isAuthRequest(config.url) && isTokenExpired(currentToken)) {
+        expireSession();
+        return Promise.reject(new axios.CanceledError('Session expired'));
+    }
+    return config;
+});
+
+/* A readable 401 means the token is dead. The gateway, though, omits CORS
+   headers on its 401s, so cross-origin the browser hides the status and axios
+   sees a network error with no `response` (see apps/panel/src/shared/config.ts).
+   Such an error can't be told apart from being offline, so it only signs out
+   when the token's own `exp` confirms the session is over. */
 apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
-        const status = error?.response?.status;
-        if (status === 401 && !signedOutFor401 && !isAuthRequest(error?.config?.url)) {
-            signedOutFor401 = true;
-            setApiAuthToken(null);
-            signOut();
-            unauthorizedHandlers.forEach((handler) => {
-                // One bad handler must not stop the redirect below.
-                try {
-                    handler();
-                } catch {
-                    /* ignore */
-                }
-            });
-            goToLogin();
+        if (!isAuthRequest(error?.config?.url)) {
+            const status = error?.response?.status;
+            const opaque = !error?.response && !axios.isCancel(error);
+            if (status === 401 || (opaque && isTokenExpired(currentToken))) {
+                expireSession();
+            }
         }
         return Promise.reject(error);
     },
