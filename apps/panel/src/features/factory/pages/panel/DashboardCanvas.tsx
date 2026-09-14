@@ -16,21 +16,28 @@ import {
   getSeries,
   getBreakdown,
   getTable,
+  DataSource,
+  MetricOption,
   TableData,
   WidgetKind,
 } from "@/features/factory/lib/dashboardData";
 import {
   DEVICES_SOURCE_ID,
   DeviceSourceFields,
+  fmtDateTime,
+  fmtTimeTick,
   isDeviceWidget,
   rangeToHours,
   sourcesForKind,
+  toBucketRows,
   toKPI,
   toReadingsTable,
   toSeries,
-  toTimeBuckets,
+  toTimeRows,
   useDeviceTelemetry,
+  widgetTelemetryKeys,
 } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from "recharts";
 import { useDevices } from "@/features/factory/hooks/useDevices";
 import { Button } from "@/features/factory/components/ui/button";
 import { Input } from "@/features/factory/components/ui/input";
@@ -171,6 +178,8 @@ const T: Record<string, Record<Lang, string>> = {
   },
   cancel: { en: "Cancel", ar: "إلغاء", fa: "انصراف" },
   widgetRemoved: { en: "Widget removed", ar: "تمت إزالة العنصر", fa: "ویجت حذف شد" },
+  seriesMetrics: { en: "Metrics", ar: "المقاييس", fa: "معیارها" },
+  selectMetric: { en: "Select at least one metric", ar: "اختر مقياسًا واحدًا على الأقل", fa: "حداقل یک معیار انتخاب کنید" },
 };
 
 const WIDGET_CATALOG: { kind: WidgetKind; titleKey: string; icon: any; w: number; h: number }[] = [
@@ -202,24 +211,107 @@ const MiniLine = ({ data, color = "hsl(var(--primary))" }: { data: { x: string; 
   );
 };
 
-const MiniBar = ({ data, color = "hsl(var(--primary))" }: { data: { label: string; value: number }[]; color?: string }) => {
-  const max = Math.max(...data.map((d) => d.value)) || 1;
+const SERIES_COLORS = ["hsl(var(--primary))", "#0077B6", "#10b981", "#f59e0b", "#ef4444"];
+const AXIS_TEXT = { fontSize: 10, fill: "hsl(var(--muted-foreground))" };
+const compactNumber = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
+
+type ChartSeries = { key: string; label: string };
+type ChartRow = Record<string, string | number>;
+
+interface WidgetChartProps {
+  kind: "line" | "bar";
+  rows: ChartRow[];
+  series: ChartSeries[];
+  /** "t" rows carry ms timestamps; "label" rows carry category names. */
+  xKey: "t" | "label";
+  xLabel: string;
+  yLabel?: string;
+}
+
+/* Line / bar chart with labelled axes, a hover tooltip and, once there is more
+   than one series, a legend. Always LTR: time and numbers read left to right. */
+const WidgetChart = ({ kind, rows, series, xKey, xLabel, yLabel }: WidgetChartProps) => {
+  const isTime = xKey === "t";
+  const numericX = isTime && kind === "line";
+  const times = isTime ? rows.map((r) => Number(r.t)) : [];
+  const tickFormatter = isTime ? fmtTimeTick(times.length ? times[times.length - 1] - times[0] : 0) : undefined;
+
+  const grid = <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />;
+  const xAxis = (
+    <XAxis
+      dataKey={xKey}
+      type={numericX ? "number" : "category"}
+      scale={numericX ? "time" : "auto"}
+      domain={numericX ? ["dataMin", "dataMax"] : undefined}
+      tickFormatter={tickFormatter}
+      tick={AXIS_TEXT}
+      tickLine={false}
+      axisLine={{ stroke: "hsl(var(--border))" }}
+      minTickGap={16}
+      height={34}
+      label={{ value: xLabel, position: "insideBottom", ...AXIS_TEXT }}
+    />
+  );
+  const yAxis = (
+    <YAxis
+      width={yLabel ? 58 : 44}
+      tick={AXIS_TEXT}
+      tickLine={false}
+      axisLine={false}
+      tickFormatter={(v: number) => compactNumber.format(v)}
+      label={yLabel ? { value: yLabel, angle: -90, position: "insideLeft", style: { textAnchor: "middle" }, ...AXIS_TEXT } : undefined}
+    />
+  );
+  const tooltip = (
+    <RTooltip
+      labelFormatter={(v) => (isTime ? fmtDateTime(Number(v)) : String(v))}
+      contentStyle={{ fontSize: 12, borderRadius: 8, background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))" }}
+    />
+  );
+  const legend = series.length > 1 ? <Legend verticalAlign="top" height={22} iconSize={8} wrapperStyle={{ fontSize: 11 }} /> : null;
+  const margin = { top: 6, right: 12, bottom: 0, left: 0 };
+
   return (
-    <div className="flex items-end justify-around h-full w-full gap-2 px-2">
-      {data.map((d, i) => (
-        <div key={`${d.label}-${i}`} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
-          <div className="text-[10px] text-muted-foreground">{d.value}</div>
-          <div className="w-full rounded-t-sm" style={{ height: `${(d.value / max) * 80}%`, background: color }} />
-          <div className="text-[10px] text-muted-foreground truncate w-full text-center">{d.label}</div>
-        </div>
-      ))}
+    <div className="h-full w-full" dir="ltr">
+      <ResponsiveContainer width="100%" height="100%">
+        {kind === "line" ? (
+          <AreaChart data={rows} margin={margin}>
+            {grid}{xAxis}{yAxis}{tooltip}{legend}
+            {series.map((s, i) => {
+              const color = SERIES_COLORS[i % SERIES_COLORS.length];
+              return (
+                <Area
+                  key={s.key}
+                  type="monotone"
+                  dataKey={s.key}
+                  name={s.label}
+                  stroke={color}
+                  fill={color}
+                  fillOpacity={series.length > 1 ? 0.06 : 0.12}
+                  strokeWidth={1.75}
+                  dot={rows.length === 1}
+                  connectNulls
+                  isAnimationActive={false}
+                />
+              );
+            })}
+          </AreaChart>
+        ) : (
+          <BarChart data={rows} margin={margin}>
+            {grid}{xAxis}{yAxis}{tooltip}{legend}
+            {series.map((s, i) => (
+              <Bar key={s.key} dataKey={s.key} name={s.label} fill={SERIES_COLORS[i % SERIES_COLORS.length]} radius={[3, 3, 0, 0]} maxBarSize={36} isAnimationActive={false} />
+            ))}
+          </BarChart>
+        )}
+      </ResponsiveContainer>
     </div>
   );
 };
 
 const MiniDonut = ({ data }: { data: { label: string; value: number }[] }) => {
   const total = data.reduce((s, d) => s + d.value, 0) || 1;
-  const palette = ["hsl(var(--primary))", "#0077B6", "#10b981", "#f59e0b", "#ef4444"];
+  const palette = SERIES_COLORS;
   let acc = 0;
   const r = 35;
   const c = 2 * Math.PI * r;
@@ -316,26 +408,56 @@ const DeviceBody = ({ w, hours, refreshKey, tt }: { w: Widget; hours: number; re
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
   const series = useMemo(() => toSeries(w.telemetryKey ? data?.[w.telemetryKey] : undefined), [data, w.telemetryKey]);
+  const keys = widgetTelemetryKeys(w) ?? [];
+  const keysId = keys.join("|");
+  const rows = useMemo(
+    () => (w.kind === "line" ? toTimeRows(data, keys) : w.kind === "bar" ? toBucketRows(data, keys) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data, w.kind, keysId],
+  );
 
   if (!w.deviceId) return <Hint>{tt("selectDevice")}</Hint>;
   if (isLoading) return <Hint>{tt("loading")}</Hint>;
 
   if (w.kind === "table") {
-    const keys = w.telemetryKeys ?? [];
     const t = toReadingsTable(data, keys, tt("time"));
     if (keys.length === 0 || t.rows.length === 0) return <Hint>{tt("noTelemetry")}</Hint>;
     return <TableView t={t} />;
   }
 
+  if (w.kind === "line" || w.kind === "bar") {
+    if (rows.length === 0) return <Hint>{tt("noTelemetry")}</Hint>;
+    // Only keys that actually have numeric readings get a series.
+    const plotted = keys.filter((k) => rows.some((r) => k in r));
+    return (
+      <WidgetChart
+        kind={w.kind}
+        rows={rows}
+        series={plotted.map((k) => ({ key: k, label: k }))}
+        xKey="t"
+        xLabel={tt("time")}
+        yLabel={plotted.length === 1 ? plotted[0] : undefined}
+      />
+    );
+  }
+
   if (series.length === 0) return <Hint>{tt("noTelemetry")}</Hint>;
   // MiniLine needs two points to draw a segment.
   const points = series.length === 1 ? [series[0], series[0]] : series;
-  if (w.kind === "kpi") return <KpiView {...toKPI(series)} series={points} />;
-  if (w.kind === "bar") return <div className="h-full"><MiniBar data={toTimeBuckets(series)} /></div>;
-  return <div className="h-full"><MiniLine data={points} /></div>;
+  return <KpiView {...toKPI(series)} series={points} />;
 };
 
-const WidgetBody = ({ w, refreshKey, hours, tt }: { w: Widget; refreshKey: number; hours: number; tt: (k: string) => string }) => {
+const RANGE_MS: Record<string, number> = { "1h": 3_600_000, "24h": 86_400_000, "7d": 7 * 86_400_000, "30d": 30 * 86_400_000 };
+
+/** The metrics a mock-source line / bar / table plots. Older line and bar
+ *  widgets saved a single `metricKey`, which is read as a one-metric list. */
+const widgetMetricKeys = (w: Widget) => w.metricKeys ?? (w.metricKey ? [w.metricKey] : []);
+const metricLabel = (m: MetricOption) => `${m.label}${m.unit ? ` (${m.unit})` : ""}`;
+/** The metrics a new widget, or one moved to another source, starts with. */
+const initialMetricKeys = (kind: WidgetKind, src: DataSource) =>
+  kind === "table" ? src.metrics.slice(0, 3).map((m) => m.key) : kind === "line" || kind === "bar" ? [src.metrics[0].key] : undefined;
+
+const WidgetBody = ({ w, refreshKey, hours, range, tt }: { w: Widget; refreshKey: number; hours: number; range: string; tt: (k: string) => string }) => {
   const salt = `${refreshKey}`;
   if (isDeviceWidget(w.kind, w.dataSourceId)) {
     return <DeviceBody w={w} hours={hours} refreshKey={refreshKey} tt={tt} />;
@@ -344,11 +466,37 @@ const WidgetBody = ({ w, refreshKey, hours, tt }: { w: Widget; refreshKey: numbe
     const k = getKPI(w.dataSourceId, w.metricKey || "", salt);
     return <KpiView value={k.value} unit={k.unit} change={k.change} series={getSeries(w.dataSourceId, w.metricKey || "", 16, salt)} />;
   }
-  if (w.kind === "line") {
-    return <div className="h-full"><MiniLine data={getSeries(w.dataSourceId, w.metricKey || "", 24, salt)} /></div>;
-  }
-  if (w.kind === "bar") {
-    return <div className="h-full"><MiniBar data={getBreakdown(w.dataSourceId, w.dimensionKey, salt, w.metricKey)} /></div>;
+  if (w.kind === "line" || w.kind === "bar") {
+    const src = findDataSource(w.dataSourceId);
+    const chosen = widgetMetricKeys(w);
+    const metrics = src.metrics.filter((m) => chosen.includes(m.key));
+    if (metrics.length === 0) return <Hint>{tt("selectMetric")}</Hint>;
+    const series = metrics.map((m) => ({ key: m.key, label: metricLabel(m) }));
+    const units = [...new Set(metrics.map((m) => m.unit || ""))];
+    const yLabel = metrics.length === 1 ? metricLabel(metrics[0]) : units.length === 1 && units[0] ? units[0] : undefined;
+
+    if (w.kind === "line") {
+      // Mock points are spread evenly over the dashboard's time range, ending now.
+      const n = 24;
+      const end = Math.floor(Date.now() / 60_000) * 60_000;
+      const step = (RANGE_MS[range] ?? RANGE_MS["24h"]) / (n - 1);
+      const perMetric = metrics.map((m) => getSeries(w.dataSourceId, m.key, n, salt));
+      const rows = Array.from({ length: n }, (_, i) => {
+        const row: ChartRow = { t: end - (n - 1 - i) * step };
+        metrics.forEach((m, j) => { row[m.key] = perMetric[j][i].y; });
+        return row;
+      });
+      return <WidgetChart kind="line" rows={rows} series={series} xKey="t" xLabel={tt("time")} yLabel={yLabel} />;
+    }
+
+    const dim = src.dimensions.find((d) => d.key === w.dimensionKey) ?? src.dimensions[0];
+    const perMetric = metrics.map((m) => getBreakdown(w.dataSourceId, dim.key, salt, m.key));
+    const rows = dim.values.map((label, i) => {
+      const row: ChartRow = { label };
+      metrics.forEach((m, j) => { row[m.key] = perMetric[j][i].value; });
+      return row;
+    });
+    return <WidgetChart kind="bar" rows={rows} series={series} xKey="label" xLabel={dim.label} yLabel={yLabel} />;
   }
   if (w.kind === "donut") {
     return <MiniDonut data={getBreakdown(w.dataSourceId, w.dimensionKey, salt, w.metricKey)} />;
@@ -519,7 +667,7 @@ const DashboardCanvas = () => {
       h: cat.h,
       dataSourceId: src.id,
       metricKey: src.metrics[0].key,
-      metricKeys: kind === "table" ? src.metrics.slice(0, 3).map((m) => m.key) : undefined,
+      metricKeys: initialMetricKeys(kind, src),
       dimensionKey: kind === "donut" || kind === "bar" ? src.dimensions[0].key : undefined,
       text: kind === "text" ? "" : undefined,
     });
@@ -572,7 +720,7 @@ const DashboardCanvas = () => {
         <>
         <div ref={toolbarSentinelRef} className="h-px" aria-hidden />
         <div
-          className={`sticky top-0 z-40 mb-1 py-3 border-b bg-background/95 backdrop-blur transition-shadow ${
+          className={`sticky top-0 z-[35] mb-1 py-3 border-b bg-background/95 backdrop-blur transition-shadow ${
             fullscreen ? "px-4" : "-mx-4 px-4 lg:-mx-6 lg:px-6"
           } ${toolbarStuck ? "border-border shadow-sm" : "border-transparent"}`}
         >
@@ -602,15 +750,15 @@ const DashboardCanvas = () => {
               <TooltipProvider delayDuration={150}>
                 <Tooltip><TooltipTrigger asChild>
                   <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setRefreshKey((k) => k + 1)} aria-label={tt("refresh")}><RefreshCw className="h-4 w-4" /></Button>
-                </TooltipTrigger><TooltipContent>{tt("refresh")}</TooltipContent></Tooltip>
+                </TooltipTrigger><TooltipContent side="bottom">{tt("refresh")}</TooltipContent></Tooltip>
                 <Tooltip><TooltipTrigger asChild>
                   <Button variant="outline" size="icon" className="h-9 w-9" onClick={resetLayout} aria-label={tt("resetLayout")}><RotateCcw className="h-4 w-4" /></Button>
-                </TooltipTrigger><TooltipContent>{tt("resetLayout")}</TooltipContent></Tooltip>
+                </TooltipTrigger><TooltipContent side="bottom">{tt("resetLayout")}</TooltipContent></Tooltip>
                 <Tooltip><TooltipTrigger asChild>
                   <Button variant="outline" size="icon" className="h-9 w-9" onClick={toggleFullscreen} aria-label={fullscreen ? tt("exitFullscreen") : tt("fullscreen")}>
                     {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                   </Button>
-                </TooltipTrigger><TooltipContent>{fullscreen ? tt("exitFullscreen") : tt("fullscreen")}</TooltipContent></Tooltip>
+                </TooltipTrigger><TooltipContent side="bottom">{fullscreen ? tt("exitFullscreen") : tt("fullscreen")}</TooltipContent></Tooltip>
               </TooltipProvider>
 
               <DropdownMenu>
@@ -637,7 +785,7 @@ const DashboardCanvas = () => {
                   <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => navigate(lp(`/dashboard/${dashboard.id}/edit`))} aria-label={tt("editSettings")}>
                     <Pencil className="h-4 w-4" />
                   </Button>
-                </TooltipTrigger><TooltipContent>{tt("editSettings")}</TooltipContent></Tooltip>
+                </TooltipTrigger><TooltipContent side="bottom">{tt("editSettings")}</TooltipContent></Tooltip>
               </TooltipProvider>
             </div>
           </div>
@@ -696,7 +844,7 @@ const DashboardCanvas = () => {
                 </div>
               </div>
               <div className="flex-1 p-3 overflow-hidden">
-                <WidgetBody w={w} refreshKey={refreshKey} hours={rangeToHours(timeRange)} tt={tt} />
+                <WidgetBody w={w} refreshKey={refreshKey} hours={rangeToHours(timeRange)} range={timeRange} tt={tt} />
               </div>
               {/* Resize handle */}
               <div
@@ -748,7 +896,7 @@ const DashboardCanvas = () => {
                       updateWidget(editing.id, {
                         dataSourceId: v,
                         metricKey: src.metrics[0].key,
-                        metricKeys: editing.kind === "table" ? src.metrics.slice(0, 3).map((m) => m.key) : undefined,
+                        metricKeys: initialMetricKeys(editing.kind, src),
                         dimensionKey: src.dimensions[0]?.key,
                         deviceId: undefined,
                         telemetryKey: undefined,
@@ -765,15 +913,16 @@ const DashboardCanvas = () => {
                   <DeviceSourceFields
                     deviceId={editing.deviceId}
                     telemetryKey={editing.telemetryKey}
-                    telemetryKeys={editing.telemetryKeys}
-                    multiple={editing.kind === "table"}
+                    telemetryKeys={editing.kind === "kpi" ? undefined : widgetTelemetryKeys(editing)}
+                    multiple={editing.kind !== "kpi"}
+                    defaultCount={editing.kind === "table" ? 3 : 1}
                     hours={rangeToHours(timeRange)}
                     tt={tt}
                     onChange={(patch) => updateWidget(editing.id, patch)}
                   />
                 )}
 
-                {!editingDevices && (editing.kind === "kpi" || editing.kind === "line" || editing.kind === "bar" || editing.kind === "donut") && (
+                {!editingDevices && (editing.kind === "kpi" || editing.kind === "donut") && (
                   <div>
                     <Label className="text-sm">{tt("metric")}</Label>
                     <Select value={editing.metricKey ?? findDataSource(editing.dataSourceId).metrics[0].key} onValueChange={(v) => updateWidget(editing.id, { metricKey: v })}>
@@ -797,21 +946,21 @@ const DashboardCanvas = () => {
                   </div>
                 )}
 
-                {!editingDevices && editing.kind === "table" && (
+                {!editingDevices && (editing.kind === "table" || editing.kind === "line" || editing.kind === "bar") && (
                   <div>
-                    <Label className="text-sm">{tt("metrics")}</Label>
+                    <Label className="text-sm">{tt(editing.kind === "table" ? "metrics" : "seriesMetrics")}</Label>
                     <div className="mt-2 space-y-1.5 border border-border rounded-md p-2">
-                      {findDataSource(editing.dataSourceId).metrics.map((m) => {
-                        const checked = editing.metricKeys?.includes(m.key);
+                      {findDataSource(editing.dataSourceId).metrics.map((m, _, all) => {
+                        const chosen = widgetMetricKeys(editing);
                         return (
                           <label key={m.key} className="flex items-center gap-2 text-sm cursor-pointer">
                             <input
                               type="checkbox"
-                              checked={!!checked}
+                              checked={chosen.includes(m.key)}
                               onChange={(e) => {
-                                const cur = new Set(editing.metricKeys || []);
+                                const cur = new Set(chosen);
                                 if (e.target.checked) cur.add(m.key); else cur.delete(m.key);
-                                updateWidget(editing.id, { metricKeys: Array.from(cur) });
+                                updateWidget(editing.id, { metricKeys: all.filter((x) => cur.has(x.key)).map((x) => x.key) });
                               }}
                             />
                             {m.label}{m.unit ? ` (${m.unit})` : ""}

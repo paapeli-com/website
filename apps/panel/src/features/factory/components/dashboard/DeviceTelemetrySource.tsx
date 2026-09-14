@@ -5,7 +5,7 @@ import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import {
   DATA_SOURCES,
-  type BreakdownItem, type SeriesPoint, type TableData, type WidgetKind,
+  type SeriesPoint, type TableData, type WidgetKind,
 } from "@/features/factory/lib/dashboardData";
 import { Label } from "@/features/factory/components/ui/label";
 import {
@@ -61,10 +61,26 @@ const hhmm = (ms: number) => {
   const d = new Date(ms);
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
-const fmtDateTime = (ms: number) => {
+export const fmtDateTime = (ms: number) => {
   const d = new Date(ms);
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${hhmm(ms)}:${pad(d.getSeconds())}`;
 };
+
+/** A time-axis tick: clock time within a day and a half, the date beyond. */
+export const fmtTimeTick = (spanMs: number) => (ms: number) => {
+  if (spanMs <= 36 * 3_600_000) return hhmm(ms);
+  const d = new Date(ms);
+  return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
+};
+
+/** A chart row on a time axis: `t` in ms plus one numeric field per series. */
+export type TimeRow = { t: number } & Record<string, number>;
+
+/** The telemetry keys a line / bar / table widget plots. Older widgets saved a
+ *  single `telemetryKey`, which is read as a one-key list. Undefined until
+ *  something is chosen, so the pickers can pre-select a default. */
+export const widgetTelemetryKeys = (w: { telemetryKey?: string; telemetryKeys?: string[] }) =>
+  w.telemetryKeys ?? (w.telemetryKey ? [w.telemetryKey] : undefined);
 
 /** A KPI from one series: the latest reading and its change since the first. */
 export const toKPI = (series: SeriesPoint[]) => {
@@ -74,19 +90,44 @@ export const toKPI = (series: SeriesPoint[]) => {
   return { value: round(last), change };
 };
 
-/** Bar data: the average of a series over `count` equal time slices, oldest
- *  first, labelled by each slice's start time. Empty slices are dropped. */
-export const toTimeBuckets = (series: SeriesPoint[], count = 8): BreakdownItem[] => {
-  if (!series.length) return [];
-  const t0 = Number(series[0].x);
-  const span = Number(series[series.length - 1].x) - t0 || 1;
-  const slices = Array.from({ length: count }, () => ({ sum: 0, n: 0 }));
-  series.forEach((p) => {
-    const s = slices[Math.min(count - 1, Math.floor(((Number(p.x) - t0) / span) * count))];
-    s.sum += p.y;
-    s.n += 1;
+const numericSeries = (data: Record<string, EntityFieldItem[]> | undefined, keys: string[]) =>
+  keys.map((k) => ({ key: k, points: toSeries(data?.[k]) })).filter((s) => s.points.length);
+
+/** Line data: every plottable reading of the chosen keys, merged on timestamp,
+ *  oldest first. A row only carries the keys that reported at that instant. */
+export const toTimeRows = (data: Record<string, EntityFieldItem[]> | undefined, keys: string[]): TimeRow[] => {
+  const byTs = new Map<number, TimeRow>();
+  numericSeries(data, keys).forEach(({ key, points }) => points.forEach((p) => {
+    const t = Number(p.x);
+    const row = byTs.get(t) ?? ({ t } as TimeRow);
+    row[key] = p.y;
+    byTs.set(t, row);
+  }));
+  return [...byTs.values()].sort((a, b) => a.t - b.t);
+};
+
+/** Bar data: each chosen key averaged over `count` equal time slices of the
+ *  shared time span, oldest first. Slices no key reported in are dropped. */
+export const toBucketRows = (data: Record<string, EntityFieldItem[]> | undefined, keys: string[], count = 8): TimeRow[] => {
+  const series = numericSeries(data, keys);
+  const all = series.flatMap((s) => s.points.map((p) => Number(p.x)));
+  if (!all.length) return [];
+  const t0 = Math.min(...all);
+  const span = Math.max(...all) - t0 || 1;
+  const slices = Array.from({ length: count }, (_, i) => ({ t: t0 + (span * i) / count, sums: {} as Record<string, { sum: number; n: number }> }));
+  series.forEach(({ key, points }) => points.forEach((p) => {
+    const slice = slices[Math.min(count - 1, Math.floor(((Number(p.x) - t0) / span) * count))];
+    const acc = (slice.sums[key] ??= { sum: 0, n: 0 });
+    acc.sum += p.y;
+    acc.n += 1;
+  }));
+  return slices.flatMap(({ t, sums }) => {
+    const entries = Object.entries(sums);
+    if (!entries.length) return [];
+    const row = { t } as TimeRow;
+    entries.forEach(([k, { sum, n }]) => { row[k] = round(sum / n); });
+    return [row];
   });
-  return slices.flatMap((s, i) => (s.n ? [{ label: hhmm(t0 + (span * i) / count), value: round(s.sum / s.n) }] : []));
 };
 
 /** Table data: the latest readings of the chosen keys, merged on timestamp,
@@ -117,13 +158,15 @@ interface FieldsProps {
   telemetryKeys?: string[];
   /** Pick several telemetry keys (checkboxes) instead of one, e.g. for tables. */
   multiple?: boolean;
+  /** How many keys `multiple` pre-selects for a newly chosen device. */
+  defaultCount?: number;
   hours: number;
   tt: (key: string) => string;
   onChange: (patch: FieldsPatch) => void;
 }
 
 /** Device + telemetry-key pickers for a widget bound to the Devices source. */
-export function DeviceSourceFields({ deviceId, telemetryKey, telemetryKeys, multiple, hours, tt, onChange }: FieldsProps) {
+export function DeviceSourceFields({ deviceId, telemetryKey, telemetryKeys, multiple, defaultCount = 1, hours, tt, onChange }: FieldsProps) {
   const { items: devices, isLoading: devicesLoading } = useDevices();
   const { data, isLoading: keysLoading } = useDeviceTelemetry(deviceId, hours);
   const keys = useMemo(() => Object.keys(data ?? {}).sort(), [data]);
@@ -132,7 +175,7 @@ export function DeviceSourceFields({ deviceId, telemetryKey, telemetryKeys, mult
   // the widget isn't left blank. Keys the user already chose are never replaced.
   useEffect(() => {
     if (!deviceId || !keys.length) return;
-    if (multiple && !telemetryKeys) onChange({ telemetryKeys: keys.slice(0, 3) });
+    if (multiple && !telemetryKeys) onChange({ telemetryKeys: keys.slice(0, defaultCount) });
     if (!multiple && !telemetryKey) onChange({ telemetryKey: keys[0] });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceId, telemetryKey, telemetryKeys, multiple, keys]);
