@@ -64,7 +64,8 @@ export const useDashboardCanvas = (dashboardId: string) => {
 
   const setAll = useCallback((next: Widget[]) => setWidgets(next), []);
 
-  const resetLayout = useCallback(() => setWidgets(defaultLayout()), []);
+  // Tidies the existing widgets into a gap-free grid; it never adds or removes any.
+  const resetLayout = useCallback(() => setWidgets((prev) => packLayout(prev)), []);
 
   return { widgets, addWidget, updateWidget, removeWidget, setAll, resetLayout };
 };
@@ -108,6 +109,30 @@ export const resolveCollisions = (list: Widget[], movedId: string): Widget[] => 
     }
   }
   return out;
+};
+
+// Re-place every widget, in reading order (top to bottom, then left to right),
+// at the first free spot at or after the previous widget's position. Gaps
+// close, but no widget jumps ahead of one that came before it. Sizes are kept
+// (widths clamped to the grid), so only the arrangement changes.
+export const packLayout = (list: Widget[]): Widget[] => {
+  const ordered = [...list].sort((a, b) => a.y - b.y || a.x - b.x);
+  const placed: Widget[] = [];
+  let cursor = { x: 0, y: 0 };
+  for (const widget of ordered) {
+    const w = Math.min(widget.w, COLS);
+    let spot: Widget | null = null;
+    for (let y = cursor.y; !spot; y++) {
+      for (let x = y === cursor.y ? cursor.x : 0; x + w <= COLS; x++) {
+        const candidate = { ...widget, x, y, w };
+        if (!placed.some((p) => collides(candidate, p))) { spot = candidate; break; }
+      }
+    }
+    placed.push(spot!);
+    cursor = { x: spot!.x, y: spot!.y };
+  }
+  // Keep the caller's original order so React keys stay stable.
+  return list.map((w) => placed.find((p) => p.id === w.id)!);
 };
 
 export const snapPosition = (x: number, y: number, w: number) => {

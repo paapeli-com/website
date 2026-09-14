@@ -27,7 +27,9 @@ import {
   fmtDateTime,
   fmtTimeTick,
   isDeviceWidget,
+  noDataSpans,
   rangeToHours,
+  sliceTelemetry,
   sourcesForKind,
   toBucketRows,
   toKPI,
@@ -35,9 +37,10 @@ import {
   toSeries,
   toTimeRows,
   useDeviceTelemetry,
+  utcOffsetLabel,
   widgetTelemetryKeys,
 } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, ReferenceArea, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from "recharts";
 import { useDevices } from "@/features/factory/hooks/useDevices";
 import { Button } from "@/features/factory/components/ui/button";
 import { Input } from "@/features/factory/components/ui/input";
@@ -150,6 +153,9 @@ const T: Record<string, Record<Lang, string>> = {
   every1m: { en: "Every 1m", ar: "كل دقيقة", fa: "هر ۱ دقیقه" },
   every5m: { en: "Every 5m", ar: "كل 5 دقائق", fa: "هر ۵ دقیقه" },
   every15m: { en: "Every 15m", ar: "كل 15 دقيقة", fa: "هر ۱۵ دقیقه" },
+  every1h: { en: "Every 1h", ar: "كل ساعة", fa: "هر ۱ ساعت" },
+  last15m: { en: "Last 15m", ar: "آخر 15 دقيقة", fa: "۱۵ دقیقه اخیر" },
+  noData: { en: "No data", ar: "لا توجد بيانات", fa: "بدون داده" },
   last1h: { en: "Last 1h", ar: "آخر ساعة", fa: "۱ ساعت اخیر" },
   last24h: { en: "Last 24h", ar: "آخر 24 ساعة", fa: "۲۴ ساعت اخیر" },
   last7d: { en: "Last 7d", ar: "آخر 7 أيام", fa: "۷ روز اخیر" },
@@ -214,6 +220,8 @@ const MiniLine = ({ data, color = "hsl(var(--primary))" }: { data: { x: string; 
 const SERIES_COLORS = ["hsl(var(--primary))", "#0077B6", "#10b981", "#f59e0b", "#ef4444"];
 const AXIS_TEXT = { fontSize: 10, fill: "hsl(var(--muted-foreground))" };
 const compactNumber = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
+// ReferenceArea renders these SVG props, but Recharts 3's typings drop them.
+const NO_DATA_FILL = { fill: "hsl(var(--muted-foreground))", fillOpacity: 0.08, stroke: "none" } as Record<string, unknown>;
 
 type ChartSeries = { key: string; label: string };
 type ChartRow = Record<string, string | number>;
@@ -226,15 +234,24 @@ interface WidgetChartProps {
   xKey: "t" | "label";
   xLabel: string;
   yLabel?: string;
+  /** Time window [start, end] in ms. The time axis spans all of it, so a
+   *  device that stopped reporting doesn't look current. */
+  timeWindow?: [number, number];
+  /** Stretches of the window with no readings, shaded and labelled. */
+  noData?: [number, number][];
+  noDataLabel?: string;
+  /** IANA zone the time axis and tooltip are shown in. */
+  timeZone?: string;
 }
 
 /* Line / bar chart with labelled axes, a hover tooltip and, once there is more
    than one series, a legend. Always LTR: time and numbers read left to right. */
-const WidgetChart = ({ kind, rows, series, xKey, xLabel, yLabel }: WidgetChartProps) => {
+const WidgetChart = ({ kind, rows, series, xKey, xLabel, yLabel, timeWindow, noData, noDataLabel, timeZone }: WidgetChartProps) => {
   const isTime = xKey === "t";
   const numericX = isTime && kind === "line";
   const times = isTime ? rows.map((r) => Number(r.t)) : [];
-  const tickFormatter = isTime ? fmtTimeTick(times.length ? times[times.length - 1] - times[0] : 0) : undefined;
+  const span = timeWindow ? timeWindow[1] - timeWindow[0] : times.length ? times[times.length - 1] - times[0] : 0;
+  const tickFormatter = isTime ? fmtTimeTick(span, timeZone) : undefined;
 
   const grid = <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />;
   const xAxis = (
@@ -242,7 +259,8 @@ const WidgetChart = ({ kind, rows, series, xKey, xLabel, yLabel }: WidgetChartPr
       dataKey={xKey}
       type={numericX ? "number" : "category"}
       scale={numericX ? "time" : "auto"}
-      domain={numericX ? ["dataMin", "dataMax"] : undefined}
+      domain={numericX ? timeWindow ?? ["dataMin", "dataMax"] : undefined}
+      allowDataOverflow={numericX && !!timeWindow}
       tickFormatter={tickFormatter}
       tick={AXIS_TEXT}
       tickLine={false}
@@ -264,7 +282,7 @@ const WidgetChart = ({ kind, rows, series, xKey, xLabel, yLabel }: WidgetChartPr
   );
   const tooltip = (
     <RTooltip
-      labelFormatter={(v) => (isTime ? fmtDateTime(Number(v)) : String(v))}
+      labelFormatter={(v) => (isTime ? fmtDateTime(Number(v), timeZone) : String(v))}
       contentStyle={{ fontSize: 12, borderRadius: 8, background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))" }}
     />
   );
@@ -277,6 +295,18 @@ const WidgetChart = ({ kind, rows, series, xKey, xLabel, yLabel }: WidgetChartPr
         {kind === "line" ? (
           <AreaChart data={rows} margin={margin}>
             {grid}{xAxis}{yAxis}{tooltip}{legend}
+            {numericX && noData?.map(([x1, x2]) => (
+              <ReferenceArea
+                key={`${x1}-${x2}`}
+                {...NO_DATA_FILL}
+                x1={x1}
+                x2={x2}
+                ifOverflow="hidden"
+                zIndex={0}
+                // Only label a stretch wide enough to hold the words.
+                label={span && (x2 - x1) / span > 0.15 ? { value: noDataLabel, position: "center" as const, ...AXIS_TEXT } : undefined}
+              />
+            ))}
             {series.map((s, i) => {
               const color = SERIES_COLORS[i % SERIES_COLORS.length];
               return (
@@ -398,8 +428,9 @@ const TableView = ({ t }: { t: TableData }) => (
 );
 
 /* Any widget bound to one device's telemetry from the history API. */
-const DeviceBody = ({ w, hours, refreshKey, tt }: { w: Widget; hours: number; refreshKey: number; tt: (k: string) => string }) => {
-  const { data, isLoading, refetch } = useDeviceTelemetry(w.deviceId, hours);
+const DeviceBody = ({ w, hours, range, timeZone, refreshKey, tt }: { w: Widget; hours: number; range: string; timeZone: string; refreshKey: number; tt: (k: string) => string }) => {
+  const timeLabel = `${tt("time")} (${utcOffsetLabel(timeZone)})`;
+  const { data: fetched, dataUpdatedAt, isLoading, refetch } = useDeviceTelemetry(w.deviceId, hours);
   const mounted = useRef(false);
   useEffect(() => {
     // The dashboard's refresh button / interval bumps refreshKey.
@@ -407,20 +438,25 @@ const DeviceBody = ({ w, hours, refreshKey, tt }: { w: Widget; hours: number; re
     if (w.deviceId) refetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
+  // The window ends when the data was fetched, i.e. "now" as of the last
+  // refresh, and covers the chosen range, capped at what the API returns.
+  const end = dataUpdatedAt || Date.now();
+  const start = end - Math.min(RANGE_MS[range] ?? RANGE_MS["24h"], hours * 3_600_000);
+  const data = useMemo(() => sliceTelemetry(fetched, start), [fetched, start]);
   const series = useMemo(() => toSeries(w.telemetryKey ? data?.[w.telemetryKey] : undefined), [data, w.telemetryKey]);
   const keys = widgetTelemetryKeys(w) ?? [];
   const keysId = keys.join("|");
   const rows = useMemo(
-    () => (w.kind === "line" ? toTimeRows(data, keys) : w.kind === "bar" ? toBucketRows(data, keys) : []),
+    () => (w.kind === "line" ? toTimeRows(data, keys) : w.kind === "bar" ? toBucketRows(data, keys, start, end) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, w.kind, keysId],
+    [data, w.kind, keysId, start, end],
   );
 
   if (!w.deviceId) return <Hint>{tt("selectDevice")}</Hint>;
   if (isLoading) return <Hint>{tt("loading")}</Hint>;
 
   if (w.kind === "table") {
-    const t = toReadingsTable(data, keys, tt("time"));
+    const t = toReadingsTable(data, keys, timeLabel, timeZone);
     if (keys.length === 0 || t.rows.length === 0) return <Hint>{tt("noTelemetry")}</Hint>;
     return <TableView t={t} />;
   }
@@ -435,8 +471,12 @@ const DeviceBody = ({ w, hours, refreshKey, tt }: { w: Widget; hours: number; re
         rows={rows}
         series={plotted.map((k) => ({ key: k, label: k }))}
         xKey="t"
-        xLabel={tt("time")}
+        xLabel={timeLabel}
         yLabel={plotted.length === 1 ? plotted[0] : undefined}
+        timeZone={timeZone}
+        timeWindow={[start, end]}
+        noData={w.kind === "line" ? noDataSpans(rows.map((r) => r.t), start, end) : undefined}
+        noDataLabel={tt("noData")}
       />
     );
   }
@@ -447,7 +487,7 @@ const DeviceBody = ({ w, hours, refreshKey, tt }: { w: Widget; hours: number; re
   return <KpiView {...toKPI(series)} series={points} />;
 };
 
-const RANGE_MS: Record<string, number> = { "1h": 3_600_000, "24h": 86_400_000, "7d": 7 * 86_400_000, "30d": 30 * 86_400_000 };
+const RANGE_MS: Record<string, number> = { "15m": 900_000, "1h": 3_600_000, "24h": 86_400_000, "7d": 7 * 86_400_000, "30d": 30 * 86_400_000 };
 
 /** The metrics a mock-source line / bar / table plots. Older line and bar
  *  widgets saved a single `metricKey`, which is read as a one-metric list. */
@@ -457,10 +497,10 @@ const metricLabel = (m: MetricOption) => `${m.label}${m.unit ? ` (${m.unit})` : 
 const initialMetricKeys = (kind: WidgetKind, src: DataSource) =>
   kind === "table" ? src.metrics.slice(0, 3).map((m) => m.key) : kind === "line" || kind === "bar" ? [src.metrics[0].key] : undefined;
 
-const WidgetBody = ({ w, refreshKey, hours, range, tt }: { w: Widget; refreshKey: number; hours: number; range: string; tt: (k: string) => string }) => {
+const WidgetBody = ({ w, refreshKey, hours, range, timeZone, tt }: { w: Widget; refreshKey: number; hours: number; range: string; timeZone: string; tt: (k: string) => string }) => {
   const salt = `${refreshKey}`;
   if (isDeviceWidget(w.kind, w.dataSourceId)) {
-    return <DeviceBody w={w} hours={hours} refreshKey={refreshKey} tt={tt} />;
+    return <DeviceBody w={w} hours={hours} range={range} timeZone={timeZone} refreshKey={refreshKey} tt={tt} />;
   }
   if (w.kind === "kpi") {
     const k = getKPI(w.dataSourceId, w.metricKey || "", salt);
@@ -486,7 +526,7 @@ const WidgetBody = ({ w, refreshKey, hours, range, tt }: { w: Widget; refreshKey
         metrics.forEach((m, j) => { row[m.key] = perMetric[j][i].y; });
         return row;
       });
-      return <WidgetChart kind="line" rows={rows} series={series} xKey="t" xLabel={tt("time")} yLabel={yLabel} />;
+      return <WidgetChart kind="line" rows={rows} series={series} xKey="t" xLabel={`${tt("time")} (${utcOffsetLabel(timeZone)})`} yLabel={yLabel} timeZone={timeZone} />;
     }
 
     const dim = src.dimensions.find((d) => d.key === w.dimensionKey) ?? src.dimensions[0];
@@ -518,13 +558,53 @@ const REFRESH_OPTS = [
   { v: "1m", k: "every1m", ms: 60_000 },
   { v: "5m", k: "every5m", ms: 300_000 },
   { v: "15m", k: "every15m", ms: 900_000 },
+  { v: "1h", k: "every1h", ms: 3_600_000 },
 ];
 const TIME_OPTS = [
+  { v: "15m", k: "last15m" },
   { v: "1h", k: "last1h" },
   { v: "24h", k: "last24h" },
   { v: "7d", k: "last7d" },
   { v: "30d", k: "last30d" },
 ];
+
+/* The dashboard's settings page saves its own wording ("Every 30 seconds",
+   "Last 24 Hours"); built-in dashboards save the short codes the toolbar uses.
+   Both map onto a toolbar option, so the saved settings are what a dashboard
+   opens with. */
+const SETTING_REFRESH: Record<string, string> = {
+  Manual: "manual",
+  "Every 30 seconds": "30s",
+  "Every minute": "1m",
+  "Every 5 minutes": "5m",
+  "Every 15 minutes": "15m",
+  "Every hour": "1h",
+};
+const SETTING_TIME_RANGE: Record<string, string> = {
+  "Last 15 minutes": "15m",
+  "Last hour": "1h",
+  "Last 24 Hours": "24h",
+  "Last 7 Days": "7d",
+  "Last 30 Days": "30d",
+};
+const refreshFromSetting = (v?: string) =>
+  v && REFRESH_OPTS.some((o) => o.v === v) ? v : SETTING_REFRESH[v ?? ""] ?? "manual";
+const rangeFromSetting = (v?: string) =>
+  v && TIME_OPTS.some((o) => o.v === v) ? v : SETTING_TIME_RANGE[v ?? ""] ?? "24h";
+
+/* Times are shown in the reader's zone: Tehran for Persian, Qatar for Arabic,
+   UTC for English. UTC is also what every dashboard's settings start with, so
+   it can't be told apart from a deliberate choice; any other zone picked in
+   the settings is a deliberate choice and wins. */
+const LANGUAGE_TIME_ZONE: Record<Lang, string> = { en: "UTC", fa: "Asia/Tehran", ar: "Asia/Qatar" };
+const SETTING_TIME_ZONE: Record<string, string> = {
+  "(UTC+03:30) Tehran": "Asia/Tehran",
+  "(UTC+03:00) Riyadh": "Asia/Riyadh",
+  "(UTC-05:00) Eastern Time": "America/New_York",
+  "(UTC+01:00) Central European Time": "Europe/Berlin",
+};
+const timeZoneFor = (lang: Lang, setting?: string) =>
+  SETTING_TIME_ZONE[setting ?? ""] ?? LANGUAGE_TIME_ZONE[lang] ?? "UTC";
 
 const DashboardCanvas = () => {
   const { language } = useLanguage();
@@ -547,8 +627,17 @@ const DashboardCanvas = () => {
   };
 
   const [refreshKey, setRefreshKey] = useState(0);
-  const [refreshInterval, setRefreshInterval] = useState("manual");
-  const [timeRange, setTimeRange] = useState("24h");
+  const [refreshInterval, setRefreshInterval] = useState(() => refreshFromSetting(dashboard?.refreshInterval));
+  const [timeRange, setTimeRange] = useState(() => rangeFromSetting(dashboard?.timeRange));
+  const timeZone = timeZoneFor(lang, dashboard?.timezone);
+  // Open with the dashboard's saved settings, and pick them up again if they
+  // change. The toolbar can still override them for this visit.
+  useEffect(() => {
+    if (!dashboard) return;
+    setRefreshInterval(refreshFromSetting(dashboard.refreshInterval));
+    setTimeRange(rangeFromSetting(dashboard.timeRange));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dashboard?.id, dashboard?.refreshInterval, dashboard?.timeRange]);
   const [fullscreen, setFullscreen] = useState(false);
   const [configId, setConfigId] = useState<string | null>(null);
   const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
@@ -844,7 +933,7 @@ const DashboardCanvas = () => {
                 </div>
               </div>
               <div className="flex-1 p-3 overflow-hidden">
-                <WidgetBody w={w} refreshKey={refreshKey} hours={rangeToHours(timeRange)} range={timeRange} tt={tt} />
+                <WidgetBody w={w} refreshKey={refreshKey} hours={rangeToHours(timeRange)} range={timeRange} timeZone={timeZone} tt={tt} />
               </div>
               {/* Resize handle */}
               <div
