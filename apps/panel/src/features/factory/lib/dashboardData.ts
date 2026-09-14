@@ -125,10 +125,10 @@ export const getSeries = (sourceId: string, metricKey: string, points = 12, salt
   return out;
 };
 
-export const getBreakdown = (sourceId: string, dimensionKey?: string, salt = ""): BreakdownItem[] => {
+export const getBreakdown = (sourceId: string, dimensionKey?: string, salt = "", metricKey?: string): BreakdownItem[] => {
   const src = findDataSource(sourceId);
   const dim = src.dimensions.find((d) => d.key === dimensionKey) ?? src.dimensions[0];
-  const r = seed(`${sourceId}-${dim.key}-${salt}-bd`);
+  const r = seed(`${sourceId}-${dim.key}-${salt}-bd${metricKey ? `-${metricKey}` : ""}`);
   return dim.values.map((v) => ({ label: v, value: Math.round(r() * 100) }));
 };
 

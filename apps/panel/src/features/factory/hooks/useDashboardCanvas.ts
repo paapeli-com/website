@@ -17,6 +17,7 @@ export interface Widget {
   dimensionKey?: string; // for breakdown / donut / bar
   deviceId?: string; // for the "devices" source: the device to chart
   telemetryKey?: string; // for the "devices" source: which telemetry series
+  telemetryKeys?: string[]; // for the "devices" source in a table: its columns
   text?: string; // for text widget
 }
 

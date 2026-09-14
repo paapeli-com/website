@@ -16,13 +16,19 @@ import {
   getSeries,
   getBreakdown,
   getTable,
+  TableData,
   WidgetKind,
 } from "@/features/factory/lib/dashboardData";
 import {
   DEVICES_SOURCE_ID,
   DeviceSourceFields,
+  isDeviceWidget,
   rangeToHours,
+  sourcesForKind,
+  toKPI,
+  toReadingsTable,
   toSeries,
+  toTimeBuckets,
   useDeviceTelemetry,
 } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { useDevices } from "@/features/factory/hooks/useDevices";
@@ -145,6 +151,7 @@ const T: Record<string, Record<Lang, string>> = {
   telemetryKey: { en: "Telemetry", ar: "القياس", fa: "تله‌متری" },
   noTelemetry: { en: "No telemetry in this time range", ar: "لا توجد قياسات في هذه الفترة", fa: "در این بازه تله‌متری وجود ندارد" },
   loading: { en: "Loading…", ar: "جارٍ التحميل…", fa: "در حال بارگذاری…" },
+  time: { en: "Time", ar: "الوقت", fa: "زمان" },
 };
 
 const WIDGET_CATALOG: { kind: WidgetKind; titleKey: string; icon: any; w: number; h: number }[] = [
@@ -180,8 +187,8 @@ const MiniBar = ({ data, color = "hsl(var(--primary))" }: { data: { label: strin
   const max = Math.max(...data.map((d) => d.value)) || 1;
   return (
     <div className="flex items-end justify-around h-full w-full gap-2 px-2">
-      {data.map((d) => (
-        <div key={d.label} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+      {data.map((d, i) => (
+        <div key={`${d.label}-${i}`} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
           <div className="text-[10px] text-muted-foreground">{d.value}</div>
           <div className="w-full rounded-t-sm" style={{ height: `${(d.value / max) * 80}%`, background: color }} />
           <div className="text-[10px] text-muted-foreground truncate w-full text-center">{d.label}</div>
@@ -206,7 +213,7 @@ const MiniDonut = ({ data }: { data: { label: string; value: number }[] }) => {
           const dash = frac * c;
           const el = (
             <circle
-              key={d.label}
+              key={`${d.label}-${i}`}
               cx="50"
               cy="50"
               r={r}
@@ -224,7 +231,7 @@ const MiniDonut = ({ data }: { data: { label: string; value: number }[] }) => {
       </svg>
       <div className="space-y-1 text-xs">
         {data.map((d, i) => (
-          <div key={d.label} className="flex items-center gap-2">
+          <div key={`${d.label}-${i}`} className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-sm" style={{ background: palette[i % palette.length] }} />
             <span className="text-foreground">{d.label}</span>
             <span className="text-muted-foreground">{Math.round((d.value / total) * 100)}%</span>
@@ -241,8 +248,46 @@ const Hint = ({ children }: { children: React.ReactNode }) => (
   <div className="h-full flex items-center justify-center text-xs text-muted-foreground text-center px-2">{children}</div>
 );
 
-/* Line chart bound to one device's telemetry series from the history API. */
-const DeviceLineBody = ({ w, hours, refreshKey, tt }: { w: Widget; hours: number; refreshKey: number; tt: (k: string) => string }) => {
+const KpiView = ({ value, unit, change, series }: { value: number; unit?: string; change: number; series: { x: string; y: number }[] }) => {
+  const up = change >= 0;
+  return (
+    <div className="flex flex-col justify-between h-full p-1">
+      <div>
+        <div className="text-3xl font-bold text-foreground">
+          {value.toLocaleString()}
+          {unit && <span className="text-base ml-1 text-muted-foreground">{unit}</span>}
+        </div>
+        <div className={`text-xs mt-1 flex items-center gap-1 ${up ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+          {up ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+          {Math.abs(change)}% vs prev
+        </div>
+      </div>
+      <div className="h-10 -mx-1 opacity-80">
+        <MiniLine data={series} />
+      </div>
+    </div>
+  );
+};
+
+const TableView = ({ t }: { t: TableData }) => (
+  <div className="h-full overflow-auto text-xs">
+    <table className="w-full">
+      <thead className="text-muted-foreground border-b border-border sticky top-0 bg-card">
+        <tr>{t.columns.map((c) => <th key={c} className="text-left font-medium py-1.5 px-2">{c}</th>)}</tr>
+      </thead>
+      <tbody>
+        {t.rows.map((r, i) => (
+          <tr key={i} className="border-b border-border/50">
+            {r.map((cell, j) => <td key={j} className="py-1.5 px-2 text-foreground">{typeof cell === "number" ? cell.toLocaleString() : cell}</td>)}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
+
+/* Any widget bound to one device's telemetry from the history API. */
+const DeviceBody = ({ w, hours, refreshKey, tt }: { w: Widget; hours: number; refreshKey: number; tt: (k: string) => string }) => {
   const { data, isLoading, refetch } = useDeviceTelemetry(w.deviceId, hours);
   const mounted = useRef(false);
   useEffect(() => {
@@ -255,63 +300,42 @@ const DeviceLineBody = ({ w, hours, refreshKey, tt }: { w: Widget; hours: number
 
   if (!w.deviceId) return <Hint>{tt("selectDevice")}</Hint>;
   if (isLoading) return <Hint>{tt("loading")}</Hint>;
+
+  if (w.kind === "table") {
+    const keys = w.telemetryKeys ?? [];
+    const t = toReadingsTable(data, keys, tt("time"));
+    if (keys.length === 0 || t.rows.length === 0) return <Hint>{tt("noTelemetry")}</Hint>;
+    return <TableView t={t} />;
+  }
+
   if (series.length === 0) return <Hint>{tt("noTelemetry")}</Hint>;
   // MiniLine needs two points to draw a segment.
   const points = series.length === 1 ? [series[0], series[0]] : series;
+  if (w.kind === "kpi") return <KpiView {...toKPI(series)} series={points} />;
+  if (w.kind === "bar") return <div className="h-full"><MiniBar data={toTimeBuckets(series)} /></div>;
   return <div className="h-full"><MiniLine data={points} /></div>;
 };
 
 const WidgetBody = ({ w, refreshKey, hours, tt }: { w: Widget; refreshKey: number; hours: number; tt: (k: string) => string }) => {
   const salt = `${refreshKey}`;
+  if (isDeviceWidget(w.kind, w.dataSourceId)) {
+    return <DeviceBody w={w} hours={hours} refreshKey={refreshKey} tt={tt} />;
+  }
   if (w.kind === "kpi") {
     const k = getKPI(w.dataSourceId, w.metricKey || "", salt);
-    const up = k.change >= 0;
-    return (
-      <div className="flex flex-col justify-between h-full p-1">
-        <div>
-          <div className="text-3xl font-bold text-foreground">
-            {k.value.toLocaleString()}
-            {k.unit && <span className="text-base ml-1 text-muted-foreground">{k.unit}</span>}
-          </div>
-          <div className={`text-xs mt-1 flex items-center gap-1 ${up ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-            {up ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-            {Math.abs(k.change)}% vs prev
-          </div>
-        </div>
-        <div className="h-10 -mx-1 opacity-80">
-          <MiniLine data={getSeries(w.dataSourceId, w.metricKey || "", 16, salt)} />
-        </div>
-      </div>
-    );
+    return <KpiView value={k.value} unit={k.unit} change={k.change} series={getSeries(w.dataSourceId, w.metricKey || "", 16, salt)} />;
   }
   if (w.kind === "line") {
-    if (w.dataSourceId === DEVICES_SOURCE_ID) return <DeviceLineBody w={w} hours={hours} refreshKey={refreshKey} tt={tt} />;
     return <div className="h-full"><MiniLine data={getSeries(w.dataSourceId, w.metricKey || "", 24, salt)} /></div>;
   }
   if (w.kind === "bar") {
-    return <div className="h-full"><MiniBar data={getBreakdown(w.dataSourceId, w.dimensionKey, salt)} /></div>;
+    return <div className="h-full"><MiniBar data={getBreakdown(w.dataSourceId, w.dimensionKey, salt, w.metricKey)} /></div>;
   }
   if (w.kind === "donut") {
-    return <MiniDonut data={getBreakdown(w.dataSourceId, w.dimensionKey, salt)} />;
+    return <MiniDonut data={getBreakdown(w.dataSourceId, w.dimensionKey, salt, w.metricKey)} />;
   }
   if (w.kind === "table") {
-    const t = getTable(w.dataSourceId, w.metricKeys || [], salt);
-    return (
-      <div className="h-full overflow-auto text-xs">
-        <table className="w-full">
-          <thead className="text-muted-foreground border-b border-border sticky top-0 bg-card">
-            <tr>{t.columns.map((c) => <th key={c} className="text-left font-medium py-1.5 px-2">{c}</th>)}</tr>
-          </thead>
-          <tbody>
-            {t.rows.map((r, i) => (
-              <tr key={i} className="border-b border-border/50">
-                {r.map((cell, j) => <td key={j} className="py-1.5 px-2 text-foreground">{typeof cell === "number" ? cell.toLocaleString() : cell}</td>)}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
+    return <TableView t={getTable(w.dataSourceId, w.metricKeys || [], salt)} />;
   }
   if (w.kind === "text") {
     return <div className="text-sm text-foreground whitespace-pre-wrap p-1">{w.text || ""}</div>;
@@ -436,6 +460,7 @@ const DashboardCanvas = () => {
 
   const totalRows = useMemo(() => widgets.reduce((m, w) => Math.max(m, w.y + w.h), 6), [widgets]);
   const editing = widgets.find((w) => w.id === configId) || null;
+  const editingDevices = !!editing && isDeviceWidget(editing.kind, editing.dataSourceId);
 
   if (!dashboard) {
     return (
@@ -682,28 +707,31 @@ const DashboardCanvas = () => {
                         dimensionKey: src.dimensions[0]?.key,
                         deviceId: undefined,
                         telemetryKey: undefined,
+                        telemetryKeys: undefined,
                       });
                     }}>
                       <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-                      <SelectContent>{DATA_SOURCES.map((d) => <SelectItem key={d.id} value={d.id}>{d.label}</SelectItem>)}</SelectContent>
+                      <SelectContent>{sourcesForKind(editing.kind).map((d) => <SelectItem key={d.id} value={d.id}>{d.label}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                 )}
 
-                {editing.kind === "line" && editing.dataSourceId === DEVICES_SOURCE_ID && (
+                {editingDevices && (
                   <DeviceSourceFields
                     deviceId={editing.deviceId}
                     telemetryKey={editing.telemetryKey}
+                    telemetryKeys={editing.telemetryKeys}
+                    multiple={editing.kind === "table"}
                     hours={rangeToHours(timeRange)}
                     tt={tt}
                     onChange={(patch) => updateWidget(editing.id, patch)}
                   />
                 )}
 
-                {(editing.kind === "kpi" || (editing.kind === "line" && editing.dataSourceId !== DEVICES_SOURCE_ID)) && (
+                {!editingDevices && (editing.kind === "kpi" || editing.kind === "line" || editing.kind === "bar" || editing.kind === "donut") && (
                   <div>
                     <Label className="text-sm">{tt("metric")}</Label>
-                    <Select value={editing.metricKey} onValueChange={(v) => updateWidget(editing.id, { metricKey: v })}>
+                    <Select value={editing.metricKey ?? findDataSource(editing.dataSourceId).metrics[0].key} onValueChange={(v) => updateWidget(editing.id, { metricKey: v })}>
                       <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {findDataSource(editing.dataSourceId).metrics.map((m) => <SelectItem key={m.key} value={m.key}>{m.label}</SelectItem>)}
@@ -712,7 +740,7 @@ const DashboardCanvas = () => {
                   </div>
                 )}
 
-                {(editing.kind === "donut" || editing.kind === "bar") && (
+                {!editingDevices && (editing.kind === "donut" || editing.kind === "bar") && (
                   <div>
                     <Label className="text-sm">{tt("dimension")}</Label>
                     <Select value={editing.dimensionKey} onValueChange={(v) => updateWidget(editing.id, { dimensionKey: v })}>
@@ -724,7 +752,7 @@ const DashboardCanvas = () => {
                   </div>
                 )}
 
-                {editing.kind === "table" && (
+                {!editingDevices && editing.kind === "table" && (
                   <div>
                     <Label className="text-sm">{tt("metrics")}</Label>
                     <div className="mt-2 space-y-1.5 border border-border rounded-md p-2">
