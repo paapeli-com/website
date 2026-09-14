@@ -6,40 +6,41 @@ import { ArrowRight, BookOpen, Clock } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { blogHref, blogPostHref } from "@/lib/blog-link";
 import blogAuthorEric from "@/src/assets/blog-author-eric.jpg";
+import blogAgentic from "@/src/assets/blog-agentic-industrial-iot.jpg";
 import blogInotex from "@/src/assets/blog-inotex-2026.jpg";
 import blogAiot from "@/src/assets/p-platform-hero.jpg";
 import blogOilGas from "@/src/assets/oilgas-refinery.jpg";
-import blogSmartHome from "@/src/assets/bld-lobby.jpg";
 
 /* ------------------------------------------------------------------ */
 /* Blog section.                                                       */
 /*                                                                     */
-/* Four real posts from docs.paapeli.com/blog: one featured, then      */
-/* three cards. Titles and descriptions are each post's own, in the    */
-/* language the reader is in, and every card links to that language's  */
-/* copy of the post — a Persian reader gets /fa/blog/<slug>, not the   */
-/* English one. The slug is identical in all three locales, so only    */
-/* blogPostHref() differs per language.                                */
+/* The four latest posts from docs.paapeli.com/blog: the newest one    */
+/* featured, then the next three as cards, newest first. Titles and    */
+/* descriptions are each post's own, in the language the reader is in, */
+/* and every card links to that language's copy of the post, so a      */
+/* Persian reader gets /fa/blog/<slug>, not the English one. The slug  */
+/* is identical in all three locales, so only blogPostHref() differs   */
+/* per language.                                                       */
 /*                                                                     */
 /* This replaces a Figma placeholder set (UI/UX articles by a "Jese    */
 /* Leos" dated 2020) whose four "Read more" buttons all pointed at     */
 /* href="#".                                                           */
 /*                                                                     */
-/* Only the INOTEX post ships a cover image of its own; the other      */
-/* three borrow the site photo closest to their subject, picked from   */
-/* photos that appear on no other section of this page so the strip    */
-/* does not repeat an image the reader has already scrolled past.      */
+/* The featured post and the INOTEX post use their own cover images;   */
+/* the other two borrow the site photo closest to their subject,       */
+/* picked from photos that appear on no other section of this page so */
+/* the strip does not repeat an image the reader has already seen.     */
 /* ------------------------------------------------------------------ */
 
-const FEATURED_SLUG = "AIoT-The-New-Generation-of-Intelligent-IoT";
-const FEATURED_IMAGE = blogAiot;
+const FEATURED_SLUG = "from-dashboards-to-decisions-agentic-ai-industrial-iot";
+const FEATURED_IMAGE = blogAgentic;
 
 const ARTICLE_SLUGS = [
-  "The-AIoT-Revolution-in-the-Oil-and-Gas-Industry",
   "paapeli-at-inotex-2026",
-  "Smart-Home-Day",
+  "The-AIoT-Revolution-in-the-Oil-and-Gas-Industry",
+  "AIoT-The-New-Generation-of-Intelligent-IoT",
 ];
-const ARTICLE_IMAGES = [blogOilGas, blogInotex, blogSmartHome];
+const ARTICLE_IMAGES = [blogInotex, blogOilGas, blogAiot];
 
 /* Every post on the blog is by the same author, in every language. */
 const AUTHOR = { name: "Eric Shams", avatar: blogAuthorEric };
@@ -64,15 +65,15 @@ const COPY: Record<string, Copy> = {
     subheading: "Learn how to turn data into operational value and scale your industrial systems.",
     viewMore: "Read Blog",
     readMore: "Read more",
-    date: "November 15, 2025",
+    date: "September 14, 2026",
     featured: {
-      title: "AIoT: The New Generation of Intelligent IoT",
-      description: "The world of the Internet of Things has grown rapidly in recent years, but the arrival of Artificial Intelligence has taken it to an entirely new level. Devices are evolving from simple data reporters into active, intelligent decision-makers.",
+      title: "From Dashboards to Decisions: How Agentic AI Is Changing Industrial IoT",
+      description: "Industrial IoT has made operations visible. Agentic AI could make them responsive, turning live equipment data into recommendations, workflows, and governed action.",
     },
     articles: [
-      { title: "The AIoT Revolution in the Oil and Gas Industry", description: "Integrating the Internet of Things with Artificial Intelligence has created a new path for technological transformation in critical sectors, especially oil and gas." },
       { title: "Paapeli at INOTEX 2026 — Booth 665", description: "Paapeli is taking part in INOTEX 2026, one of the country’s specialist events for innovation and technology, from 2 to 5 September at Pardis Technology Park." },
-      { title: "Smart Home Day", description: "Homes are no longer just places to live: they have become intelligent entities that communicate with us, anticipate our needs, and make everyday life simpler." },
+      { title: "The AIoT Revolution in the Oil and Gas Industry", description: "Integrating the Internet of Things with Artificial Intelligence has created a new path for technological transformation in critical sectors, especially oil and gas." },
+      { title: "AIoT: The New Generation of Intelligent IoT", description: "The world of the Internet of Things has grown rapidly in recent years, but the arrival of Artificial Intelligence has taken it to an entirely new level. Devices are evolving from simple data reporters into active, intelligent decision-makers." },
     ],
   },
   fa: {
@@ -80,15 +81,15 @@ const COPY: Record<string, Copy> = {
     subheading: "یاد بگیرید چطور داده را به ارزش عملیاتی تبدیل کنید و سامانه‌های صنعتی خود را مقیاس دهید",
     viewMore: "بلاگ پاپلی را بخوانید",
     readMore: "ادامهٔ مطلب",
-    date: "۲۴ آبان ۱۴۰۴",
+    date: "۲۳ شهریور ۱۴۰۵",
     featured: {
-      title: "AIoT؛ نسل جدید اینترنت اشیا با موتور هوش مصنوعی",
-      description: "دنیای اینترنت اشیا (IoT) در سال‌های اخیر رشد چشمگیری داشته، اما ورود هوش مصنوعی (AI) آن را وارد مرحله‌ای کاملاً تازه کرده است؛ دستگاه‌ها از حالت «گزارش‌دهنده» به حالت «تصمیم‌گیرنده» ارتقا پیدا کرده‌اند",
+      title: "از داشبورد تا تصمیم: هوش مصنوعی عامل‌محور چگونه اینترنت اشیای صنعتی را دگرگون می‌کند",
+      description: "اینترنت اشیای صنعتی عملیات را قابل مشاهده کرده است. هوش مصنوعی عامل‌محور می‌تواند آن را پاسخ‌گو کند و داده‌های زنده تجهیزات را به توصیه، گردش کار و اقدام کنترل‌شده تبدیل کند",
     },
     articles: [
-      { title: "انقلاب AIoT در صنعت نفت و گاز", description: "ترکیب اینترنت اشیا با هوش مصنوعی مسیر تازه‌ای در تحول صنایع کلیدی، به‌ویژه حوزهٔ نفت و گاز، ایجاد کرده است" },
       { title: "پاپِلی در نمایشگاه اینوتکس ۲۰۲۶، غرفه ۶۶۵", description: "پاپِلی در اینوتکس ۲۰۲۶، از رویدادهای تخصصی نوآوری و فناوری کشور، حضور دارد؛ از ۱۱ تا ۱۴ شهریور ۱۴۰۵ در پارک فناوری پردیس" },
-      { title: "روز جهانی خانه‌های هوشمند مبارک!", description: "خانه‌ها دیگر فقط محل سکونت نیستند؛ به موجوداتی پویا تبدیل شده‌اند که با ما ارتباط برقرار می‌کنند و نیازهای ما را پیش‌بینی می‌کنند" },
+      { title: "انقلاب AIoT در صنعت نفت و گاز", description: "ترکیب اینترنت اشیا با هوش مصنوعی مسیر تازه‌ای در تحول صنایع کلیدی، به‌ویژه حوزهٔ نفت و گاز، ایجاد کرده است" },
+      { title: "AIoT؛ نسل جدید اینترنت اشیا با موتور هوش مصنوعی", description: "دنیای اینترنت اشیا (IoT) در سال‌های اخیر رشد چشمگیری داشته، اما ورود هوش مصنوعی (AI) آن را وارد مرحله‌ای کاملاً تازه کرده است؛ دستگاه‌ها از حالت «گزارش‌دهنده» به حالت «تصمیم‌گیرنده» ارتقا پیدا کرده‌اند" },
     ],
   },
   ar: {
@@ -96,15 +97,15 @@ const COPY: Record<string, Copy> = {
     subheading: "تعلّم كيف تحوّل البيانات إلى قيمة تشغيلية وتوسّع أنظمتك الصناعية",
     viewMore: "اقرأ مدونة بابيلي",
     readMore: "اقرأ المزيد",
-    date: "15 نوفمبر 2025",
+    date: "14 سبتمبر 2026",
     featured: {
-      title: "الذكاء الاصطناعي لإنترنت الأشياء (AIoT)",
-      description: "شهد عالم إنترنت الأشياء (IoT) تطورًا كبيرًا خلال السنوات الأخيرة، لكن دخول الذكاء الاصطناعي (AI) نقله إلى مرحلة جديدة تمامًا؛ فقد انتقلت الأجهزة من دور جامعي البيانات إلى صنّاع قرارات حقيقيين",
+      title: "من لوحات المعلومات إلى القرارات: كيف يغيّر الذكاء الاصطناعي الوكيل إنترنت الأشياء الصناعي",
+      description: "جعل إنترنت الأشياء الصناعي العمليات مرئية، ويمكن للذكاء الاصطناعي الوكيل أن يجعلها أكثر استجابة عبر تحويل بيانات المعدات الحية إلى توصيات وسير عمل وإجراءات منضبطة",
     },
     articles: [
-      { title: "ثورة AIoT في صناعة النفط والغاز", description: "دمج إنترنت الأشياء مع الذكاء الاصطناعي يقدّم مسارًا جديدًا لتطوير الصناعات الحيوية، وخاصة قطاع النفط والغاز" },
       { title: "بابِلي في معرض إينوتكس 2026 — الجناح 665", description: "تشارك بابِلي في معرض إينوتكس 2026، أحد أبرز الفعاليات المتخصصة في الابتكار والتكنولوجيا، من 2 إلى 5 سبتمبر في مجمع بارديس التكنولوجي" },
-      { title: "اليوم العالمي للمنازل الذكية", description: "لم تعد المنازل مجرد أماكن للسكن، بل أصبحت كيانات ذكية تتواصل معنا وتتوقّع احتياجاتنا وتجعل حياتنا اليومية أبسط" },
+      { title: "ثورة AIoT في صناعة النفط والغاز", description: "دمج إنترنت الأشياء مع الذكاء الاصطناعي يقدّم مسارًا جديدًا لتطوير الصناعات الحيوية، وخاصة قطاع النفط والغاز" },
+      { title: "الذكاء الاصطناعي لإنترنت الأشياء (AIoT)", description: "شهد عالم إنترنت الأشياء (IoT) تطورًا كبيرًا خلال السنوات الأخيرة، لكن دخول الذكاء الاصطناعي (AI) نقله إلى مرحلة جديدة تمامًا؛ فقد انتقلت الأجهزة من دور جامعي البيانات إلى صنّاع قرارات حقيقيين" },
     ],
   },
 };
