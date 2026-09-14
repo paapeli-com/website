@@ -69,6 +69,16 @@ import {
 } from "@/features/factory/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/features/factory/components/ui/tooltip";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/features/factory/components/ui/alert-dialog";
+import {
   Plus,
   Maximize2,
   Minimize2,
@@ -152,6 +162,15 @@ const T: Record<string, Record<Lang, string>> = {
   noTelemetry: { en: "No telemetry in this time range", ar: "لا توجد قياسات في هذه الفترة", fa: "در این بازه تله‌متری وجود ندارد" },
   loading: { en: "Loading…", ar: "جارٍ التحميل…", fa: "در حال بارگذاری…" },
   time: { en: "Time", ar: "الوقت", fa: "زمان" },
+  removeWidgetQ: { en: "Remove widget?", ar: "إزالة العنصر؟", fa: "ویجت حذف شود؟" },
+  removeWidgetPre: { en: "This will remove", ar: "سيؤدي هذا إلى إزالة", fa: "ویجت" },
+  removeWidgetPost: {
+    en: "from this dashboard. This action cannot be undone.",
+    ar: "من لوحة التحكم هذه. لا يمكن التراجع عن هذا الإجراء.",
+    fa: "از این داشبورد حذف می‌شود. این عمل قابل بازگشت نیست.",
+  },
+  cancel: { en: "Cancel", ar: "إلغاء", fa: "انصراف" },
+  widgetRemoved: { en: "Widget removed", ar: "تمت إزالة العنصر", fa: "ویجت حذف شد" },
 };
 
 const WIDGET_CATALOG: { kind: WidgetKind; titleKey: string; icon: any; w: number; h: number }[] = [
@@ -385,7 +404,24 @@ const DashboardCanvas = () => {
   const [fullscreen, setFullscreen] = useState(false);
   const [configId, setConfigId] = useState<string | null>(null);
   const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
+  const [pendingRemove, setPendingRemove] = useState<Widget | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // The toolbar is sticky. A 1px sentinel sits right above it: once that
+  // scrolls out of the page's scroll container the bar is pinned, and gets a
+  // divider so widgets don't slide under it unmarked.
+  const toolbarSentinelRef = useRef<HTMLDivElement>(null);
+  const [toolbarStuck, setToolbarStuck] = useState(false);
+  const hasDashboard = !!dashboard;
+  useEffect(() => {
+    const el = toolbarSentinelRef.current;
+    if (!el) { setToolbarStuck(false); return; }
+    let root = el.parentElement;
+    while (root && !/(auto|scroll)/.test(getComputedStyle(root).overflowY)) root = root.parentElement;
+    const io = new IntersectionObserver(([entry]) => setToolbarStuck(!entry.isIntersecting), { root });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [toolbarCollapsed, fullscreen, hasDashboard]);
 
   // Auto-refresh
   useEffect(() => {
@@ -492,7 +528,7 @@ const DashboardCanvas = () => {
   const body = (
     <>
       {/* Header / toolbar — aligned with predefined AI Managers dashboard */}
-      <div className={`mb-4 ${fullscreen ? "px-4 pt-3" : ""}`}>
+      <div className={`${toolbarCollapsed ? "mb-4" : ""} ${fullscreen ? "px-4 pt-3" : ""}`}>
         <div className="flex flex-wrap items-center gap-3">
           <div className="min-w-0 flex-1">
             {!fullscreen && (
@@ -530,9 +566,17 @@ const DashboardCanvas = () => {
             </Tooltip>
           </TooltipProvider>
         </div>
+      </div>
 
-        {!toolbarCollapsed && (
-          <div className="flex items-center gap-2 flex-wrap mt-3">
+      {!toolbarCollapsed && (
+        <>
+        <div ref={toolbarSentinelRef} className="h-px" aria-hidden />
+        <div
+          className={`sticky top-0 z-40 mb-1 py-3 border-b bg-background/95 backdrop-blur transition-shadow ${
+            fullscreen ? "px-4" : "-mx-4 px-4 lg:-mx-6 lg:px-6"
+          } ${toolbarStuck ? "border-border shadow-sm" : "border-transparent"}`}
+        >
+          <div className="flex items-center gap-2 flex-wrap">
             <Select value={timeRange} onValueChange={setTimeRange}>
               <SelectTrigger className="h-9 w-auto min-w-[150px] text-xs gap-2">
                 <Calendar className="h-3.5 w-3.5" />
@@ -597,8 +641,9 @@ const DashboardCanvas = () => {
               </TooltipProvider>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+        </>
+      )}
 
       {/* Grid */}
       <div
@@ -647,7 +692,7 @@ const DashboardCanvas = () => {
                 </div>
                 <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setConfigId(w.id)}><Settings2 className="h-3.5 w-3.5" /></Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeWidget(w.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setPendingRemove(w)}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
               <div className="flex-1 p-3 overflow-hidden">
@@ -808,7 +853,7 @@ const DashboardCanvas = () => {
                 </div>
 
                 <div className="flex justify-between gap-2 pt-3 border-t border-border">
-                  <Button variant="outline" className="text-destructive" onClick={() => { removeWidget(editing.id); setConfigId(null); }}>
+                  <Button variant="outline" className="text-destructive" onClick={() => setPendingRemove(editing)}>
                     <Trash2 className="h-4 w-4 me-1.5" />{tt("remove")}
                   </Button>
                   <Button onClick={() => setConfigId(null)}>{tt("apply")}</Button>
@@ -818,6 +863,34 @@ const DashboardCanvas = () => {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Confirm widget removal */}
+      <AlertDialog open={!!pendingRemove} onOpenChange={(o) => !o && setPendingRemove(null)}>
+        {/* In fullscreen only the fullscreen element is painted, so the dialog renders inside it. */}
+        <AlertDialogContent container={fullscreen ? containerRef.current : undefined}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tt("removeWidgetQ")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {tt("removeWidgetPre")} <span className="font-medium text-foreground">{pendingRemove?.title}</span> {tt("removeWidgetPost")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tt("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              onClick={() => {
+                if (!pendingRemove) return;
+                removeWidget(pendingRemove.id);
+                if (configId === pendingRemove.id) setConfigId(null);
+                setPendingRemove(null);
+                toast.success(tt("widgetRemoved"));
+              }}
+            >
+              {tt("remove")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 
