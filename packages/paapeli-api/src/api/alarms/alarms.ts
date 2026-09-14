@@ -59,13 +59,24 @@ export interface SeverityRule {
     count?: number;
 }
 
+/** Where a rule is in its asynchronous provisioning lifecycle. */
+export type AlarmRuleProvisioningState = 'PROVISIONING' | 'ACTIVE' | 'FAILED' | 'DELETING';
+
 export interface AlarmRuleItem {
+    /** Stable Paapeli alarm-rule id — the one the delete endpoint takes. */
     id: string;
+    thingsBoardId?: string;
+    /** The device that owns the rule. */
+    deviceId: string;
     name: string;
     description?: string;
     arguments: string[];
     /** Keyed by severity level, e.g. "CRITICAL" / "WARNING". */
     alarmRules: Record<string, SeverityRule>;
+    provisioningState: AlarmRuleProvisioningState;
+    workflowId?: string;
+    /** Why provisioning failed, when it did. */
+    lastError?: string;
     createdAt: string;
 }
 
@@ -77,8 +88,11 @@ export interface CreateAlarmRuleRequest {
     clearRule?: RuleExpression;
 }
 
+/** Creation is asynchronous (202): the rule starts out PROVISIONING. */
 export interface CreateAlarmRuleResponse {
     id: string;
+    provisioningState: AlarmRuleProvisioningState;
+    workflowId?: string;
     createdAt: string;
 }
 
@@ -119,6 +133,23 @@ export const alarmService = {
     ): Promise<PaapeliAlarmListItem> {
         const { data } = await napiHttpHandler.post<PaapeliAlarmListItem>(
             `/api/v1/aiot/alarms/${workspaceId}/${productKey}/clear/${alarmId}/device/${deviceId}`,
+        );
+        return data;
+    },
+    /**
+     * List every alarm rule in the workspace product, including rules still
+     * provisioning or failed. Optionally narrowed to one device.
+     */
+    async getWorkspaceAlarmRules(
+        workspaceId: string,
+        productKey: string,
+        page: number,
+        size: number,
+        deviceId?: string,
+    ): Promise<PageResponse<AlarmRuleItem>> {
+        const { data } = await napiHttpHandler.get<PageResponse<AlarmRuleItem>>(
+            `/api/v1/aiot/alarms/${workspaceId}/${productKey}/rule`,
+            { page, size, ...(deviceId ? { deviceId } : {}) },
         );
         return data;
     },

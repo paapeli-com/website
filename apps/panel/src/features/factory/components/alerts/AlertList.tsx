@@ -11,7 +11,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/features/factory
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/features/factory/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/features/factory/components/ui/dropdown-menu";
 import {
-  Search, Bell, AlertOctagon, Users, Zap, TrendingUp, User, Clock,
+  Search, Bell, AlertOctagon, Users, Zap, User, Clock,
   Bookmark, Archive, CheckCircle2, MoreHorizontal, ChevronLeft, ChevronRight, Eye,
   CircleDot, ListFilter, Download, Pencil, UserPlus, Trash2,
 } from "lucide-react";
@@ -21,6 +21,18 @@ import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import type { Alert, AlertSeverity, AlertStatus } from "@/features/factory/types/alerts";
 import { cn } from "@/shared/lib/utils";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
+import {
+  useAckAlarmMutation,
+  useClearAlarmMutation,
+  useGetDevicesAlarmsQueries,
+  type PaapeliAlarmListItem,
+} from "@paapeli/api";
+import { useDevices, type UserDevice } from "@/features/factory/hooks/useDevices";
+import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
+import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { useToast } from "@/features/factory/hooks/use-toast";
+import { TableRowsSkeleton } from "@/features/factory/components/panel/DetailPageSkeleton";
+import { apiSeverityToUi } from "./alarmRuleMapping";
 
 const severityBadge: Record<AlertSeverity, string> = {
   critical: "bg-red-100 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-400 dark:border-red-500/30",
@@ -64,18 +76,87 @@ const statusLabel = (s: AlertStatus, tt: (k: string) => string): string => {
   return map[s];
 };
 
+/* Gateway alarm statuses are ThingsBoard's: ACTIVE_UNACK, ACTIVE_ACK,
+   CLEARED_UNACK, CLEARED_ACK. A cleared alarm is resolved whether or not
+   anyone acknowledged it first. */
+const toStatus = (raw: string): AlertStatus => {
+  const v = raw?.toUpperCase() ?? "";
+  if (v.startsWith("CLEARED")) return "resolved";
+  if (v === "ACTIVE_ACK") return "acknowledged";
+  return "active";
+};
+
+const formatElapsed = (ms: number) => {
+  const totalMin = Math.max(0, Math.floor(ms / 60_000));
+  const d = Math.floor(totalMin / 1440);
+  const h = Math.floor((totalMin % 1440) / 60);
+  const m = totalMin % 60;
+  return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m`;
+};
+
+/* The API returns only id, name, severity, status and creation time; device
+   and location come from the device the alarm was fetched for. The API gives
+   no clear time, so a resolved alarm has no duration. */
+const toAlert = (a: PaapeliAlarmListItem, device: UserDevice): Alert => {
+  const status = toStatus(a.status);
+  return {
+    id: a.id,
+    ruleId: "",
+    ruleName: a.name,
+    severity: apiSeverityToUi(a.severity),
+    status,
+    deviceId: device.id,
+    deviceName: device.label || device.name,
+    locationId: device.assetId ?? "",
+    locationName: device.location ?? "",
+    triggerCondition: "",
+    startTime: new Date(a.creationTime).toISOString(),
+    duration: status === "resolved" ? "" : formatElapsed(Date.now() - a.creationTime),
+    notes: [],
+  };
+};
+
 type StatusChip = "active" | "unacknowledged" | "acknowledged" | "escalated" | "archived";
 
 export const AlertList = () => {
   const { t, isRTL } = useLanguage();
   const tt = t as (k: string) => string;
 
-  /* No alarms endpoint yet. This used to render a fixed set of invented
-     alarms — severities, assignees, durations and all — which is
-     indistinguishable from live plant data to anyone looking at the screen.
-     Point this at the query once it exists; every filter, KPI and export
-     below already works off this one array. */
-  const alerts: Alert[] = [];
+  const { toast } = useToast();
+  const workspaceId = useWorkspaceId();
+  const { items: deviceList, isLoading: devicesLoading } = useDevices();
+
+  /* The API lists alarms per device, so fetch every device's and merge them.
+     Every filter, KPI and export below works off this one array. */
+  const alarmQueries = useGetDevicesAlarmsQueries(workspaceId ?? "", PRODUCT_KEY, deviceList.map((d) => d.id));
+  const alertsLoading = devicesLoading || alarmQueries.some((q) => q.isLoading);
+  const failedDevices = alarmQueries.filter((q) => q.isError).length;
+  const alarmsVersion = alarmQueries.map((q) => q.dataUpdatedAt).join(",");
+  const alerts: Alert[] = useMemo(
+    () => deviceList.flatMap((d, i) => (alarmQueries[i]?.data ?? []).map((a) => toAlert(a, d))),
+    // alarmQueries is a new array every render; its data changes are what alarmsVersion tracks.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [deviceList, alarmsVersion],
+  );
+
+  const ackAlarm = useAckAlarmMutation();
+  const clearAlarm = useClearAlarmMutation();
+  /* Both mutations invalidate the device's ['deviceAlarms', …] queries, so the
+     row's status updates from the server rather than being patched locally. */
+  const runAlarmAction = async (kind: "ack" | "clear", alert: Alert) => {
+    if (!workspaceId) {
+      toast({ title: tt("error"), description: tt("noWorkspaceSelected"), variant: "destructive" });
+      return;
+    }
+    try {
+      await (kind === "ack" ? ackAlarm : clearAlarm).mutateAsync({
+        workspaceId, productKey: PRODUCT_KEY, alarmId: alert.id, deviceId: alert.deviceId,
+      });
+      toast({ title: tt(kind === "ack" ? "alarmAcknowledged" : "alarmCleared"), description: alert.ruleName });
+    } catch (error) {
+      toast({ title: tt("error"), description: error instanceof Error ? error.message : tt("error"), variant: "destructive" });
+    }
+  };
 
   const [activeKpi, setActiveKpi] = useState<"active" | "unacknowledged" | "critical" | "escalated">("active");
   const [statusChip, setStatusChip] = useState<StatusChip | "all">("all");
@@ -96,7 +177,7 @@ export const AlertList = () => {
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 600);
+    void Promise.all(alarmQueries.map((q) => q.refetch())).finally(() => setIsRefreshing(false));
   };
 
   // Counts for KPIs and chips
@@ -110,11 +191,11 @@ export const AlertList = () => {
       acknowledged: all.filter(a => a.status === "acknowledged").length,
       archived: all.filter(a => a.status === "archived").length,
     };
-  }, []);
+  }, [alerts]);
 
-  const locations = useMemo(() => Array.from(new Set(alerts.map(a => a.locationId))), []);
-  const devices = useMemo(() => Array.from(new Set(alerts.map(a => a.deviceId))), []);
-  const assignees = useMemo(() => Array.from(new Set(alerts.map(a => a.assignedTo).filter(Boolean))) as string[], []);
+  const locations = useMemo(() => Array.from(new Set(alerts.map(a => a.locationId).filter(Boolean))), [alerts]);
+  const devices = useMemo(() => Array.from(new Set(alerts.map(a => a.deviceId))), [alerts]);
+  const assignees = useMemo(() => Array.from(new Set(alerts.map(a => a.assignedTo).filter(Boolean))) as string[], [alerts]);
 
   const filtered = useMemo(() => {
     const sevRank: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
@@ -142,8 +223,8 @@ export const AlertList = () => {
       if (statusFilter !== "all" && a.status !== statusFilter) return false;
       return true;
     }).sort((a, b) => {
-      const dA = new Date((a as any).createdAt || (a as any).triggeredAt || 0).getTime();
-      const dB = new Date((b as any).createdAt || (b as any).triggeredAt || 0).getTime();
+      const dA = new Date(a.startTime).getTime();
+      const dB = new Date(b.startTime).getTime();
       switch (sortKey) {
         case "newest": return dB - dA;
         case "oldest": return dA - dB;
@@ -151,7 +232,7 @@ export const AlertList = () => {
         default: return (sevRank[b.severity] || 0) - (sevRank[a.severity] || 0);
       }
     });
-  }, [activeKpi, statusChip, search, severity, location, device, assignee, statusFilter, sortKey]);
+  }, [alerts, activeKpi, statusChip, search, severity, location, device, assignee, statusFilter, sortKey]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -212,11 +293,6 @@ export const AlertList = () => {
               </div>
               <div className="mt-1 flex items-baseline gap-2">
                 <span className="text-xl font-bold text-foreground leading-none">{k.value}</span>
-                <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground">
-                  <TrendingUp className="h-3 w-3 text-red-500" />
-                  <span className="text-red-500 font-medium">{k.trend}</span>
-                  <span className="hidden sm:inline">{tt("kpiFromYesterday")}</span>
-                </span>
               </div>
             </button>
           );
@@ -305,6 +381,10 @@ export const AlertList = () => {
       })()}
 
 
+      {failedDevices > 0 && (
+        <p className="text-sm text-destructive">{tt("alertsLoadFailedDevices").replace("{n}", String(failedDevices))}</p>
+      )}
+
       {/* Table */}
       <div className="rounded-lg border bg-card overflow-hidden text-sm [&_th]:text-xs [&_td]:text-sm [&_th]:h-10 [&_td]:p-3">
         <Table>
@@ -330,7 +410,9 @@ export const AlertList = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paged.length === 0 ? (
+            {alertsLoading && alerts.length === 0 ? (
+              <TableRowsSkeleton rows={5} columns={10} />
+            ) : paged.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={10}>
                   {/* Nothing to show at all is "no data"; nothing matching the
@@ -394,7 +476,7 @@ export const AlertList = () => {
                   <TableCell className="max-w-[200px]">
                     <LocationCell path={a.locationName} />
                   </TableCell>
-                  <TableCell className="text-sm">{a.duration}</TableCell>
+                  <TableCell className="text-sm">{a.duration || <span className="text-muted-foreground">—</span>}</TableCell>
                   <TableCell className="text-sm">
                     {a.assignedTo || <span className="text-muted-foreground">—</span>}
                   </TableCell>
@@ -405,7 +487,13 @@ export const AlertList = () => {
                           <Eye className="h-3.5 w-3.5 me-1" />{tt("alertView")}
                         </Button>
                       ) : (
-                        <Button variant="outline" size="sm" className="h-7 px-3 text-orange-600 border-orange-200 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-500/30 dark:hover:bg-orange-500/10">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-3 text-orange-600 border-orange-200 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-500/30 dark:hover:bg-orange-500/10"
+                          onClick={() => runAlarmAction("ack", a)}
+                          disabled={ackAlarm.isPending}
+                        >
                           {tt("alertAcknowledge")}
                         </Button>
                       )}
@@ -419,6 +507,11 @@ export const AlertList = () => {
                           <DropdownMenuItem onClick={() => setOpenId(a.id)}>
                             <Eye className="h-4 w-4 me-2" />{tt("alertView")}
                           </DropdownMenuItem>
+                          {a.status !== "resolved" && (
+                            <DropdownMenuItem onClick={() => runAlarmAction("clear", a)} disabled={clearAlarm.isPending}>
+                              <CheckCircle2 className="h-4 w-4 me-2" />{tt("clearAlarm")}
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem>
                             <UserPlus className="h-4 w-4 me-2" />{tt("alertAssign")}
                           </DropdownMenuItem>
@@ -458,14 +551,28 @@ export const AlertList = () => {
       {/* Detail side panel */}
       <Sheet open={!!opened} onOpenChange={(o) => !o && setOpenId(null)}>
         <SheetContent side={isRTL ? "left" : "right"} className="w-full sm:max-w-md p-0 overflow-y-auto">
-          {opened && <AlertDetailPanel alert={opened} tt={tt} />}
+          {opened && (
+            <AlertDetailPanel
+              alert={opened}
+              tt={tt}
+              busy={ackAlarm.isPending || clearAlarm.isPending}
+              onAck={() => runAlarmAction("ack", opened)}
+              onClear={() => runAlarmAction("clear", opened)}
+            />
+          )}
         </SheetContent>
       </Sheet>
     </div>
   );
 };
 
-const AlertDetailPanel = ({ alert, tt }: { alert: Alert; tt: (k: string) => string }) => {
+const AlertDetailPanel = ({ alert, tt, busy, onAck, onClear }: {
+  alert: Alert;
+  tt: (k: string) => string;
+  busy: boolean;
+  onAck: () => void;
+  onClear: () => void;
+}) => {
   return (
     <div className="flex flex-col h-full">
       <SheetHeader className="px-6 pt-6 pb-4 border-b">
@@ -492,15 +599,15 @@ const AlertDetailPanel = ({ alert, tt }: { alert: Alert; tt: (k: string) => stri
         </TabsList>
 
         <TabsContent value="details" className="px-6 py-4 space-y-4">
-          <DetailRow label={tt("alertDescription")} value={alert.triggerCondition} />
+          <DetailRow label={tt("alertDescription")} value={alert.triggerCondition || "—"} />
           <DetailRow label={tt("devices")} value={<>
             <div>{alert.deviceName}</div>
             <div className="text-xs font-mono text-muted-foreground">{alert.deviceId}</div>
           </>} />
-          <DetailRow label={tt("locations")} value={alert.locationName} />
-          <DetailRow label={tt("alertTriggerCondition")} value={alert.triggerCondition} />
+          <DetailRow label={tt("locations")} value={alert.locationName || tt("noData")} />
+          <DetailRow label={tt("alertTriggerCondition")} value={alert.triggerCondition || "—"} />
           <DetailRow label={tt("alertStartTime")} value={<span dir="ltr">{new Date(alert.startTime).toLocaleString()}</span>} />
-          <DetailRow label={tt("alertDuration")} value={alert.duration} />
+          <DetailRow label={tt("alertDuration")} value={alert.duration || "—"} />
           <DetailRow label={tt("alertAssignedTo")} value={alert.assignedTo || "—"} />
           <DetailRow label={tt("alertEscalationLevel")} value={alert.status === "escalated" ? "L2" : "L1"} />
           <DetailRow label={tt("alertRule")} value={alert.ruleName} />
@@ -517,7 +624,16 @@ const AlertDetailPanel = ({ alert, tt }: { alert: Alert; tt: (k: string) => stri
       </Tabs>
 
       <div className="border-t p-4 space-y-2 bg-background">
-        <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">{tt("alertAcknowledgeAlarm")}</Button>
+        {alert.status === "active" && (
+          <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white" onClick={onAck} disabled={busy}>
+            {tt("alertAcknowledgeAlarm")}
+          </Button>
+        )}
+        {alert.status !== "resolved" && (
+          <Button variant="outline" className="w-full" onClick={onClear} disabled={busy}>
+            {tt("clearAlarm")}
+          </Button>
+        )}
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" size="sm">{tt("alertAssign")}</Button>
           <Button variant="outline" size="sm">{tt("alertArchive")}</Button>

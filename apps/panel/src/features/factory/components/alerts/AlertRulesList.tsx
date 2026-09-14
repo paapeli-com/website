@@ -1,39 +1,62 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  useDeleteAlarmRuleMutation,
+  useGetWorkspaceAlarmRulesQuery,
+  type AlarmRuleItem,
+  type AlarmRuleProvisioningState,
+  type RuleTriggerType,
+} from "@paapeli/api";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { Badge } from "@/features/factory/components/ui/badge";
 import { Button } from "@/features/factory/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/features/factory/components/ui/table";
-import { Switch } from "@/features/factory/components/ui/switch";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/features/factory/components/ui/tooltip";
 import {
-  Edit, Trash2, Plus, Zap, Wifi, Brain, Activity, Clock, Layers,
-  Download, Pencil, Archive,
-} from "lucide-react";
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/features/factory/components/ui/alert-dialog";
+import { Trash2, Plus, Zap, Clock, Repeat, Download } from "lucide-react";
 import { NoData } from "@/features/factory/components/NoData";
-import type { AlertRule, RuleType, AlertSeverity } from "@/features/factory/types/alerts";
+import { TableRowsSkeleton } from "@/features/factory/components/panel/DetailPageSkeleton";
+import type { AlertSeverity } from "@/features/factory/types/alerts";
 import { ListToolbar, type ActionItem, type FilterField, type SortOption } from "@/features/factory/components/panel/ListToolbar";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
-import { useAlertRulesStore } from "@/features/factory/hooks/useAlertStore";
+import { useDevices } from "@/features/factory/hooks/useDevices";
+import { useToast } from "@/features/factory/hooks/use-toast";
+import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
+import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { SEVERITY_RANK, apiSeverityToUi } from "./alarmRuleMapping";
 
+/* One request covers the workspace: the API clamps page size to 1–100. Page 0
+   is the first page whether the endpoint counts from 0 or treats anything
+   below 1 as 1 (as its per-device sibling documents). */
+const RULES_PAGE = 0;
+const RULES_PAGE_SIZE = 100;
+const PAGE_SIZE = 10;
 
-const ruleTypeIcons: Record<RuleType, any> = {
-  threshold: Zap,
-  condition: Activity,
-  time_window: Clock,
-  device_state: Wifi,
-  heartbeat: Activity,
-  anomaly: Brain,
-  cross_device: Layers,
+const triggerIcons: Record<RuleTriggerType, typeof Zap> = {
+  SIMPLE: Zap,
+  DURATION: Clock,
+  REPEATING: Repeat,
 };
 
-const ruleTypeLabelKeys: Record<RuleType, string> = {
-  threshold: "ruleTypeThreshold",
-  condition: "ruleTypeCondition",
-  time_window: "ruleTypeTimeWindow",
-  device_state: "ruleTypeDeviceState",
-  heartbeat: "ruleTypeHeartbeat",
-  anomaly: "ruleTypeAnomaly",
-  cross_device: "ruleTypeCrossDevice",
+const triggerLabelKeys: Record<RuleTriggerType, string> = {
+  SIMPLE: "alertTriggerSimple",
+  DURATION: "alertTriggerDuration",
+  REPEATING: "alertTriggerRepeating",
+};
+
+const stateLabelKeys: Record<AlarmRuleProvisioningState, string> = {
+  PROVISIONING: "alertRuleStateProvisioning",
+  ACTIVE: "alertRuleStateActive",
+  FAILED: "alertRuleStateFailed",
+  DELETING: "alertRuleStateDeleting",
+};
+
+const stateColors: Record<AlarmRuleProvisioningState, string> = {
+  ACTIVE: "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/10",
+  PROVISIONING: "bg-sky-500/10 text-sky-600 hover:bg-sky-500/10",
+  DELETING: "bg-muted text-muted-foreground hover:bg-muted",
+  FAILED: "bg-rose-500/10 text-rose-600 hover:bg-rose-500/10",
 };
 
 const severityColors: Record<AlertSeverity, string> = {
@@ -43,6 +66,40 @@ const severityColors: Record<AlertSeverity, string> = {
   low: "bg-blue-500 text-white",
 };
 
+/** The row the table renders, derived from an AlarmRuleItem. */
+interface RuleRow {
+  id: string;
+  deviceId: string;
+  name: string;
+  description: string;
+  /** The most severe level the rule defines; null if it defines none. */
+  severity: AlertSeverity | null;
+  triggerType: RuleTriggerType | null;
+  expression: string;
+  state: AlarmRuleProvisioningState;
+  lastError?: string;
+  createdAt: string;
+}
+
+const toRow = (r: AlarmRuleItem): RuleRow => {
+  // A rule can define conditions for several severities; show the most severe.
+  const top = Object.entries(r.alarmRules ?? {})
+    .map(([severity, rule]) => ({ severity: apiSeverityToUi(severity), rule }))
+    .sort((a, b) => SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity])[0];
+  return {
+    id: r.id,
+    deviceId: r.deviceId,
+    name: r.name,
+    description: r.description ?? "",
+    severity: top?.severity ?? null,
+    triggerType: top?.rule.triggerType ?? null,
+    expression: top?.rule.triggerExpression ?? "",
+    state: r.provisioningState,
+    lastError: r.lastError,
+    createdAt: r.createdAt,
+  };
+};
+
 interface AlertRulesListProps {
   onCreateRule: () => void;
 }
@@ -50,75 +107,72 @@ interface AlertRulesListProps {
 export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
   const { t, isRTL } = useLanguage();
   const tt = t as (k: string) => string;
+  const { toast } = useToast();
+  const workspaceId = useWorkspaceId();
+  const { items: devices } = useDevices();
+  const deviceName = (id: string) => {
+    const d = devices.find((x) => x.id === id);
+    return d ? d.label || d.name : id;
+  };
 
-  /* Only what the user actually created (localStorage-backed). The seeded
-     ALR-* rules that used to be concatenated here were invented — there is no
-     rules endpoint yet, so an empty store means no data. */
-  const { items: rules } = useAlertRulesStore();
+  // Creating and deleting are asynchronous server-side, so poll while any
+  // rule is still on its way in or out.
+  const [inFlight, setInFlight] = useState(false);
+  const { data, isLoading, isError, isFetching, refetch } = useGetWorkspaceAlarmRulesQuery(
+    workspaceId ?? "", PRODUCT_KEY, RULES_PAGE, RULES_PAGE_SIZE,
+    { refetchInterval: inFlight ? 5000 : false },
+  );
+  const rules = useMemo(() => (data?.data ?? []).map(toRow), [data]);
+  useEffect(() => {
+    setInFlight(rules.some((r) => r.state === "PROVISIONING" || r.state === "DELETING"));
+  }, [rules]);
+
+  const deleteRule = useDeleteAlarmRuleMutation();
+  const [confirmDelete, setConfirmDelete] = useState<RuleRow | null>(null);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [locationFilter, setLocationFilter] = useState("all");
+  const [deviceFilter, setDeviceFilter] = useState("all");
   const [severityFilter, setSeverityFilter] = useState("all");
   const [triggerTypeFilter, setTriggerTypeFilter] = useState("all");
   const [sortKey, setSortKey] = useState("nameAsc");
   const [listView, setListView] = useState<"table" | "grid" | "compact" | "board">("table");
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
-
-  /* The switch was never persisted for the seeded rules either; this keeps it
-     responsive without claiming a write the store cannot make. */
-  const [enabledOverrides, setEnabledOverrides] = useState<Record<string, boolean>>({});
-  const isEnabled = (rule: AlertRule) => enabledOverrides[rule.id] ?? rule.enabled;
-  const toggleRule = (ruleId: string, current: boolean) => {
-    setEnabledOverrides((prev) => ({ ...prev, [ruleId]: !current }));
-  };
 
   const filtered = useMemo(() => {
-    const sevRank: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+    const q = search.toLowerCase();
     return rules
       .filter((r) => {
-        if (search && !r.name.toLowerCase().includes(search.toLowerCase()) && !(r.description || "").toLowerCase().includes(search.toLowerCase())) return false;
-        if (statusFilter !== "all") {
-          const on = statusFilter === "enabled";
-          if (r.enabled !== on) return false;
-        }
+        if (q && !r.name.toLowerCase().includes(q) && !r.description.toLowerCase().includes(q)) return false;
+        if (statusFilter !== "all" && r.state !== statusFilter) return false;
         if (severityFilter !== "all" && r.severity !== severityFilter) return false;
-        if (triggerTypeFilter !== "all" && r.ruleType !== triggerTypeFilter) return false;
-        if (locationFilter !== "all" && r.locationId !== locationFilter) return false;
+        if (triggerTypeFilter !== "all" && r.triggerType !== triggerTypeFilter) return false;
+        if (deviceFilter !== "all" && r.deviceId !== deviceFilter) return false;
         return true;
       })
       .sort((a, b) => {
         switch (sortKey) {
           case "nameDesc": return b.name.localeCompare(a.name);
-          case "lastUpdated":
-            return new Date((b as any).updatedAt || 0).getTime() - new Date((a as any).updatedAt || 0).getTime();
-          case "severity":
-            return (sevRank[b.severity] || 0) - (sevRank[a.severity] || 0);
+          case "lastUpdated": return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          case "severity": return (b.severity ? SEVERITY_RANK[b.severity] : 0) - (a.severity ? SEVERITY_RANK[a.severity] : 0);
           case "nameAsc":
           default: return a.name.localeCompare(b.name);
         }
       });
-  }, [rules, search, statusFilter, severityFilter, triggerTypeFilter, locationFilter, sortKey]);
+  }, [rules, search, statusFilter, severityFilter, triggerTypeFilter, deviceFilter, sortKey]);
 
-  const locations = useMemo(() => Array.from(new Set(rules.map((r) => r.locationId).filter(Boolean))) as string[], [rules]);
+  const ruleDeviceIds = useMemo(() => Array.from(new Set(rules.map((r) => r.deviceId))), [rules]);
 
   const filterFields: FilterField[] = [
     {
       key: "status", label: tt("status"), value: statusFilter, onChange: setStatusFilter,
       options: [
         { value: "all", label: tt("all") },
-        { value: "enabled", label: tt("enabled") },
-        { value: "disabled", label: tt("disabled") || "Disabled" },
+        ...(Object.keys(stateLabelKeys) as AlarmRuleProvisioningState[]).map((s) => ({ value: s, label: tt(stateLabelKeys[s]) })),
       ],
     },
     {
-      key: "location", label: tt("location"), value: locationFilter, onChange: setLocationFilter,
-      options: [{ value: "all", label: tt("all") }, ...locations.map((l) => ({ value: l, label: l }))],
+      key: "device", label: tt("alertRuleDevice"), value: deviceFilter, onChange: setDeviceFilter,
+      options: [{ value: "all", label: tt("all") }, ...ruleDeviceIds.map((id) => ({ value: id, label: deviceName(id) }))],
     },
     {
       key: "severity", label: tt("alertSeverity"), value: severityFilter, onChange: setSeverityFilter,
@@ -134,7 +188,7 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
       key: "triggerType", label: tt("triggerType"), value: triggerTypeFilter, onChange: setTriggerTypeFilter,
       options: [
         { value: "all", label: tt("all") },
-        ...Object.keys(ruleTypeLabelKeys).map((k) => ({ value: k, label: tt(ruleTypeLabelKeys[k as RuleType]) })),
+        ...(Object.keys(triggerLabelKeys) as RuleTriggerType[]).map((k) => ({ value: k, label: tt(triggerLabelKeys[k]) })),
       ],
     },
   ];
@@ -147,9 +201,12 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
   ];
 
   const handleExport = () => {
-    const header = ["id", "name", "ruleType", "severity", "enabled", "triggerCount", "locationId"];
-    const csv = [header.join(","), ...filtered.map((r) => header.map((h) => `"${String((r as any)[h] ?? "").replace(/"/g, '""')}"`).join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const header = ["id", "name", "device", "triggerType", "severity", "state", "expression", "createdAt"];
+    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const lines = filtered.map((r) =>
+      [r.id, r.name, deviceName(r.deviceId), r.triggerType ?? "", r.severity ?? "", r.state, r.expression, r.createdAt].map(esc).join(","),
+    );
+    const blob = new Blob([[header.join(","), ...lines].join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = `alert-rules-${Date.now()}.csv`; a.click();
@@ -158,37 +215,46 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
 
   const actionItems: ActionItem[] = [
     { key: "export", label: tt("export"), icon: Download, onSelect: handleExport },
-    { key: "bulkEdit", label: tt("bulkEdit"), icon: Pencil, comingSoon: true },
-    { key: "archive", label: tt("archive"), icon: Archive, comingSoon: true },
-    { key: "delete", label: tt("delete"), icon: Trash2, destructive: true, comingSoon: true },
   ];
 
-  const activeFilterCount = [statusFilter, locationFilter, severityFilter, triggerTypeFilter].filter((v) => v !== "all").length;
+  const doDelete = async () => {
+    if (!confirmDelete || !workspaceId) return;
+    const rule = confirmDelete;
+    try {
+      await deleteRule.mutateAsync({ workspaceId, productKey: PRODUCT_KEY, alarmRuleId: rule.id, deviceId: rule.deviceId });
+      toast({ title: tt("alertRuleDeleted"), description: rule.name });
+    } catch (error) {
+      toast({ title: tt("error"), description: error instanceof Error ? error.message : tt("error"), variant: "destructive" });
+    } finally {
+      setConfirmDelete(null);
+    }
+  };
 
-  const pageSize = 10;
+  const activeFilterCount = [statusFilter, deviceFilter, severityFilter, triggerTypeFilter].filter((v) => v !== "all").length;
+
   const [page, setPage] = useState(1);
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
-  const paged = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
     <div className="space-y-4" dir={isRTL ? "rtl" : "ltr"}>
       <div className="flex justify-between items-center">
         <p className="text-sm text-muted-foreground">
-          {rules.length} {t("alertRulesCount")}
+          {data?.totalElements ?? rules.length} {tt("alertRulesCount")}
         </p>
         <Button size="sm" onClick={onCreateRule} className="bg-primary hover:bg-primary/90 text-primary-foreground h-9 px-4 gap-2 rounded-md">
           <Plus className="h-4 w-4" />
-          {t("alertCreateRule")}
+          {tt("alertCreateRule")}
         </Button>
       </div>
 
       <ListToolbar
         search={{ value: search, onChange: setSearch, placeholder: tt("alertSearchPlaceholder") }}
         view={{ value: listView, onChange: setListView, available: ["table"] }}
-        onRefresh={handleRefresh}
-        isRefreshing={isRefreshing}
-        filter={{ fields: filterFields, activeCount: activeFilterCount, onClear: () => { setStatusFilter("all"); setLocationFilter("all"); setSeverityFilter("all"); setTriggerTypeFilter("all"); } }}
+        onRefresh={() => { void refetch(); }}
+        isRefreshing={isFetching && !isLoading}
+        filter={{ fields: filterFields, activeCount: activeFilterCount, onClear: () => { setStatusFilter("all"); setDeviceFilter("all"); setSeverityFilter("all"); setTriggerTypeFilter("all"); } }}
         sort={{ options: sortOptions, value: sortKey, onChange: setSortKey }}
         actions={actionItems}
         selectionCount={0}
@@ -198,20 +264,25 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40">
-              <TableHead>{t("alertRuleName")}</TableHead>
-              <TableHead>{t("alertRuleType")}</TableHead>
-              <TableHead>{t("alertSeverity")}</TableHead>
-              <TableHead className="hidden md:table-cell">{t("alertTriggerCount")}</TableHead>
-              <TableHead className="hidden lg:table-cell">{t("alertRuleScope")}</TableHead>
-              <TableHead>{t("enabled")}</TableHead>
-              <TableHead className="w-[80px] text-end">{t("actions")}</TableHead>
+              <TableHead>{tt("alertRuleName")}</TableHead>
+              <TableHead>{tt("triggerType")}</TableHead>
+              <TableHead>{tt("alertSeverity")}</TableHead>
+              <TableHead className="hidden lg:table-cell">{tt("alertRuleDevice")}</TableHead>
+              <TableHead>{tt("status")}</TableHead>
+              <TableHead className="w-[80px] text-end">{tt("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paged.length === 0 && (
+            {isLoading && <TableRowsSkeleton rows={4} columns={6} />}
+            {!isLoading && isError && (
               <TableRow>
-                <TableCell colSpan={7} className="p-0">
-                  {/* Nothing stored at all is "no data"; nothing matching the
+                <TableCell colSpan={6} className="text-center text-sm text-destructive py-10">{tt("alertRulesLoadFailed")}</TableCell>
+              </TableRow>
+            )}
+            {!isLoading && !isError && paged.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="p-0">
+                  {/* Nothing on the server is "no data"; nothing matching the
                       current search/filters is an empty result set. */}
                   {rules.length === 0 ? (
                     <NoData />
@@ -221,52 +292,53 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
                 </TableCell>
               </TableRow>
             )}
-            {paged.map((rule) => {
-              const TypeIcon = ruleTypeIcons[rule.ruleType];
+            {!isLoading && paged.map((rule) => {
+              const TypeIcon = rule.triggerType ? triggerIcons[rule.triggerType] : Zap;
               return (
                 <TableRow key={rule.id}>
                   <TableCell>
                     <div>
                       <p className="font-medium">{rule.name}</p>
-                      <p className="text-xs text-muted-foreground">{rule.description}</p>
+                      {rule.description && <p className="text-xs text-muted-foreground">{rule.description}</p>}
+                      {rule.expression && <p className="text-xs text-muted-foreground font-mono mt-0.5" dir="ltr">{rule.expression}</p>}
+                      {rule.state === "FAILED" && rule.lastError && (
+                        <p className="text-xs text-destructive mt-0.5">{rule.lastError}</p>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1.5">
-                      <TypeIcon className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-xs">{tt(ruleTypeLabelKeys[rule.ruleType])}</span>
-                    </div>
+                    {rule.triggerType ? (
+                      <div className="flex items-center gap-1.5">
+                        <TypeIcon className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-xs">{tt(triggerLabelKeys[rule.triggerType])}</span>
+                      </div>
+                    ) : <span className="text-xs text-muted-foreground">{tt("noData")}</span>}
                   </TableCell>
                   <TableCell>
-                    <Badge className={severityColors[rule.severity]}>
-                      {t(`alert${rule.severity.charAt(0).toUpperCase() + rule.severity.slice(1)}` as any)}
+                    {rule.severity ? (
+                      <Badge className={severityColors[rule.severity]}>
+                        {tt(`alert${rule.severity.charAt(0).toUpperCase() + rule.severity.slice(1)}`)}
+                      </Badge>
+                    ) : <span className="text-xs text-muted-foreground">{tt("noData")}</span>}
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell text-xs">{deviceName(rule.deviceId)}</TableCell>
+                  <TableCell>
+                    <Badge className={stateColors[rule.state] ?? "bg-muted text-muted-foreground"}>
+                      {stateLabelKeys[rule.state] ? tt(stateLabelKeys[rule.state]) : rule.state}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell font-mono text-sm">{rule.triggerCount}</TableCell>
-                  <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
-                    {rule.deviceIds.length > 0 ? tt("devicesCount").replace("{n}", String(rule.deviceIds.length)) : rule.locationId || tt("all")}
-                  </TableCell>
-                  <TableCell>
-                    <Switch checked={isEnabled(rule)} onCheckedChange={() => toggleRule(rule.id, isEnabled(rule))} />
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" disabled>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>{t("settingsComingSoon")}</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" disabled>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>{t("settingsComingSoon")}</TooltipContent>
-                      </Tooltip>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={() => setConfirmDelete(rule)}
+                        disabled={rule.state === "DELETING"}
+                        aria-label={tt("delete")}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -281,7 +353,30 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
           <SmartPagination currentPage={currentPage} totalPages={totalPages} onChange={setPage} />
         </div>
       )}
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => { if (!o) setConfirmDelete(null); }}>
+        <AlertDialogContent dir={isRTL ? "rtl" : "ltr"}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tt("alertRuleDeleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {tt("alertRuleDeleteDesc")}{" "}
+              <span className="font-medium text-foreground">
+                {confirmDelete ? `${confirmDelete.name} · ${deviceName(confirmDelete.deviceId)}` : ""}
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tt("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={doDelete}
+              disabled={deleteRule.isPending}
+            >
+              {tt("delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
-

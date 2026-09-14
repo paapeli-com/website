@@ -54,8 +54,9 @@ export function useCreateAlarmRuleMutation() {
             ...req
         }: CreateAlarmRuleRequest & { workspaceId: string; productKey: string; deviceId: string }) =>
             alarmService.createAlarmRule(workspaceId, productKey, deviceId, req),
-        onSuccess: (_data, { workspaceId, productKey, deviceId }) => {
-            queryClient.invalidateQueries({ queryKey: ['alarmRules', workspaceId, productKey, deviceId] });
+        onSuccess: (_data, { workspaceId, productKey }) => {
+            // Prefix match: refreshes both the per-device and the workspace lists.
+            queryClient.invalidateQueries({ queryKey: ['alarmRules', workspaceId, productKey] });
         },
     });
 }
@@ -75,8 +76,9 @@ export function useDeleteAlarmRuleMutation() {
             alarmRuleId: string;
             deviceId: string;
         }) => alarmService.deleteAlarmRule(workspaceId, productKey, alarmRuleId, deviceId),
-        onSuccess: (_data, { workspaceId, productKey, deviceId }) => {
-            queryClient.invalidateQueries({ queryKey: ['alarmRules', workspaceId, productKey, deviceId] });
+        onSuccess: (_data, { workspaceId, productKey }) => {
+            // Prefix match: refreshes both the per-device and the workspace lists.
+            queryClient.invalidateQueries({ queryKey: ['alarmRules', workspaceId, productKey] });
         },
     });
 }
