@@ -10,6 +10,8 @@ import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 const hasPersian = (v: string) => /[\u0600-\u06FF]/.test(v);
 
 const SEGMENT_KEY: Record<string, string> = {
+  // The asset tree root (see ROOT_LOCATION_NAME in useAssetLocations).
+  "main directory": "mainDirectory",
   qazvin: "locQazvin",
   tehran: "locTehran",
   "factory a": "locFactoryA",
@@ -29,7 +31,7 @@ interface LocationCellProps {
 export const LocationCell = ({ path, className = "" }: LocationCellProps) => {
   const { t, language } = useLanguage();
   const full = (path || "").trim();
-  if (!full) return <span className="text-muted-foreground">—</span>;
+  if (!full) return <span className={`text-muted-foreground ${className}`}>{t("noData")}</span>;
 
   const tx = (seg: string) => {
     const key = SEGMENT_KEY[seg.toLowerCase()];

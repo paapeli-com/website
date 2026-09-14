@@ -457,7 +457,7 @@ const DeviceDetails = () => {
                 </Badge>
                 <span className="text-muted-foreground inline-flex items-center gap-1 text-sm">
                   <MapPin className="h-3.5 w-3.5" />
-                  <LocationCell path={device.location || "Qazvin > Factory A > Sulfonation > Line 1"} />
+                  <LocationCell path={device.location} />
                 </span>
                 {deviceTags.map((tg: string) => (
                   <Badge key={tg} variant="outline" className="text-xs font-normal">{tg}</Badge>
@@ -538,7 +538,7 @@ const DeviceDetails = () => {
                   <InfoRow label={t("type")} value={profileLabelT(profile, t)} />
                   <InfoRow label={t("protocol")} value={device.protocol} />
                   <InfoRow label={t("gateway")} value={device.gateway || t("noData")} />
-                  <InfoRow label={t("location")} value={<LocationCell path={device.location || "Qazvin > Factory A > Sulfonation > Line 1"} />} />
+                  <InfoRow label={t("location")} value={<LocationCell path={device.location} />} />
                   <InfoRow label={t("created")} value={new Date(device.createdAt).toLocaleDateString()} />
                   <div className="flex items-start gap-3">
                     <span className="text-muted-foreground w-24 shrink-0">{t("tags")}</span>
@@ -743,7 +743,7 @@ const DeviceDetails = () => {
                     )}
                   </div>
                 } />
-                <InfoRow label={t("location")} value={<LocationCell path={device.location || "Qazvin > Factory A > Sulfonation > Line 1"} />} />
+                <InfoRow label={t("location")} value={<LocationCell path={device.location} />} />
                 <InfoRow label={t("gateway")} value={device.gateway || t("noData")} />
                 <div className="flex gap-2 pt-2">
                   <Button variant="outline" size="sm" onClick={() => setMoveOpen(true)}><MapPin className="h-4 w-4 me-2" /> {t("moveLocation")}</Button>

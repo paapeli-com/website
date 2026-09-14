@@ -25,6 +25,7 @@ import {
 } from "@/features/factory/components/ui/breadcrumb";
 import { ChevronUp, UploadCloud, X, Info } from "lucide-react";
 import { useDashboards, DashboardItem } from "@/features/factory/hooks/useDashboards";
+import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
 import { toast } from "sonner";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 
@@ -82,6 +83,8 @@ const DICT: Record<string, Record<Lang, string>> = {
   catExecutive: { en: "Executive", ar: "تنفيذي", fa: "اجرایی" },
   // Locations
   locAllSites: { en: "All Sites", ar: "جميع المواقع", fa: "همه سایت‌ها" },
+  locLoading: { en: "Loading locations…", ar: "جارٍ تحميل المواقع…", fa: "در حال بارگذاری مکان‌ها…" },
+  locNone: { en: "No locations defined", ar: "لم يتم تعريف مواقع", fa: "مکانی تعریف نشده است" },
   // Refresh
   refManual: { en: "Manual", ar: "يدوي", fa: "دستی" },
   ref30s: { en: "Every 30 seconds", ar: "كل 30 ثانية", fa: "هر ۳۰ ثانیه" },
@@ -107,7 +110,8 @@ const CATEGORY_KEYS: Array<{ v: string; k: keyof typeof DICT }> = [
   { v: "Maintenance", k: "catMaintenance" },
   { v: "Executive", k: "catExecutive" },
 ];
-const LOCATIONS = ["All Sites", "Factory A", "Factory A > Line 1", "Factory A > Sulfonation", "Factory A > Utilities", "Factory B", "Factory B > Boiler", "Factory B > Packaging", "Factory C > WTP"];
+/** Location value meaning "not tied to one site". */
+const ALL_SITES = "All Sites";
 const REFRESH_KEYS: Array<{ v: string; k: keyof typeof DICT }> = [
   { v: "Manual", k: "refManual" },
   { v: "Every 30 seconds", k: "ref30s" },
@@ -188,6 +192,17 @@ const DashboardForm = () => {
   const [openAccess, setOpenAccess] = useState(true);
   const [openAdvanced, setOpenAdvanced] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Same asset tree the device form's location picker reads. Dashboards are
+  // stored locally with the location as its breadcrumb text, so the path is
+  // the value. A saved location that isn't in the tree (e.g. from before this
+  // was connected) stays listed so editing doesn't silently blank it.
+  const { options: assetLocations, isLoading: locationsLoading } = useAssetLocations();
+  const locationOptions = useMemo(() => {
+    const paths = assetLocations.map((l) => l.path);
+    const saved = form.location && form.location !== ALL_SITES && !paths.includes(form.location) ? [form.location] : [];
+    return [ALL_SITES, ...saved, ...paths];
+  }, [assetLocations, form.location]);
 
   useEffect(() => {
     if (isEdit && existing) {
@@ -308,9 +323,12 @@ const DashboardForm = () => {
                   <div>
                     <FieldLabel hint optionalLabel={optionalLabel}>{tt("location")}</FieldLabel>
                     <Select value={form.location} onValueChange={(v) => setForm({ ...form, location: v })}>
-                      <SelectTrigger><SelectValue placeholder={tt("selectLocation")} /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder={locationsLoading ? tt("locLoading") : tt("selectLocation")} /></SelectTrigger>
                       <SelectContent>
-                        {LOCATIONS.map((c) => <SelectItem key={c} value={c}>{c === "All Sites" ? tt("locAllSites") : c}</SelectItem>)}
+                        {locationOptions.map((c) => <SelectItem key={c} value={c}>{c === ALL_SITES ? tt("locAllSites") : c}</SelectItem>)}
+                        {!locationsLoading && assetLocations.length === 0 && (
+                          <div className="px-2 py-1.5 text-xs text-muted-foreground">{tt("locNone")}</div>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>

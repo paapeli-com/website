@@ -747,7 +747,7 @@ const Devices = () => {
                                 </span>
                               </TableCell>
                               <TableCell onClick={(e) => e.stopPropagation()}>
-                                <LocationCell path={meta.location} />
+                                <LocationCell path={device.location} />
                               </TableCell>
                               <TableCell className="text-sm">{device.protocol}</TableCell>
                               <TableCell className="text-sm text-muted-foreground">{formattedUpdated}</TableCell>
