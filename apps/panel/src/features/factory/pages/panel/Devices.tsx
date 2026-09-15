@@ -893,7 +893,7 @@ const Devices = () => {
               {/* Only show the Access Token when that credentials type was selected. */}
               {(newDeviceCredentials.authMethod || "accessToken") === "accessToken" && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">{t("authAccessToken")}</Label>
+                  <Label className="text-xs font-semibold">{t("accessTokenUsername")}</Label>
                   <div className="flex items-center gap-2">
                     <Input value={newDeviceCredentials.apiKey} readOnly className="font-mono text-sm h-9" />
                     <Button

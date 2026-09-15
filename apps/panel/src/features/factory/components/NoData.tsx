@@ -8,6 +8,9 @@ interface NoDataProps {
   /** Match the surrounding section so the icon/text stay proportional. */
   size?: Size;
   className?: string;
+  /** Replaces "No data" where the list is empty because the user hasn't
+   *  created anything yet, so the text can say what to do next. */
+  message?: string;
 }
 
 const TEXT: Record<Size, string> = { sm: "text-xs", md: "text-sm", lg: "text-base" };
@@ -24,13 +27,13 @@ const PAD: Record<Size, string> = { sm: "py-6 gap-1.5", md: "py-10 gap-2", lg: "
  * say so instead: "No data" / "فاقد دیتا" / "لا توجد بيانات". Swap a <NoData />
  * back out for the real query as each endpoint lands.
  */
-export const NoData = ({ size = "md", className }: NoDataProps) => {
+export const NoData = ({ size = "md", className, message }: NoDataProps) => {
   const { t } = useLanguage();
 
   return (
     <div className={cn("flex flex-col items-center justify-center text-center", PAD[size], className)}>
       <DatabaseZap className={cn("text-muted-foreground/40", ICON[size])} />
-      <p className={cn("text-muted-foreground", TEXT[size])}>{t("noData")}</p>
+      <p className={cn("text-muted-foreground", TEXT[size])}>{message ?? t("noData")}</p>
     </div>
   );
 };

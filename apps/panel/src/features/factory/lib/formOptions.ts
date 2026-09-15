@@ -7,17 +7,11 @@ export interface OrgUser {
   email: string;
 }
 
-// Mirrors the mock members used on the Members page so "Share with users" is consistent.
-export const ORG_USERS: OrgUser[] = [
-  { id: "m-1", name: "Armin Rajabi", email: "armin.rajabi@company.com" },
-  { id: "m-2", name: "محمدعرفان شمس", email: "erfan.shams@company.com" },
-  { id: "m-3", name: "Mehdi Hoseini", email: "mehdi.hoseini@company.com" },
-  { id: "m-4a", name: "حامد فضایلی", email: "hamed.fazaeli@company.com" },
-  { id: "m-5", name: "Fatemeh Hosseini", email: "fatemeh.hosseini@company.com" },
-  { id: "m-6", name: "امیرکیان عدل", email: "amirkian.adl@company.com" },
-  { id: "m-7", name: "Peyman Karimi", email: "peyman.karimi@company.com" },
-  { id: "m-8", name: "علیرضا طاهری‌نژاد", email: "alireza.taheri@company.com" },
-];
+// The people a device or gateway can be shared with: the workspace's members.
+// There is no endpoint that lists them yet, so the list is empty rather than
+// the sample names it used to hold, which read as real colleagues. Fill it
+// from the members API once one exists.
+export const ORG_USERS: OrgUser[] = [];
 
 export const userById = (id: string) => ORG_USERS.find((u) => u.id === id);
 

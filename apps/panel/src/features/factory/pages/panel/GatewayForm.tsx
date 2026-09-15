@@ -40,6 +40,7 @@ import {
   MapPin,
   ChevronDown,
   LayoutGrid,
+  X as XIcon,
 } from "lucide-react";
 import { ShareWithUsers } from "@/features/factory/components/panel/ShareWithUsers";
 import { SecurityConfig, emptySecurity, type SecurityValue } from "@/features/factory/components/panel/SecurityConfig";
@@ -156,7 +157,20 @@ const GatewayForm = () => {
   const [model, setModel] = useState("Generic");
   const [sharedUsers, setSharedUsers] = useState<string[]>([]);
   const [security, setSecurity] = useState<SecurityValue>(() => emptySecurity());
-  const [tags, setTags] = useState("");
+  // Tags are added one at a time with Enter or a comma, like the device form.
+  // The gateway store keeps them as one comma-separated string.
+  const [tagList, setTagList] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+  const addTag = (raw: string) => {
+    const v = raw.trim().replace(/,$/, "").trim();
+    if (!v) return;
+    setTagList((prev) => (prev.includes(v) ? prev : [...prev, v]));
+    setTagInput("");
+  };
+  const removeTag = (tag: string) => setTagList((prev) => prev.filter((x) => x !== tag));
+  // A tag still being typed when the form is submitted counts too.
+  const pendingTag = tagInput.trim().replace(/,$/, "").trim();
+  const tags = (pendingTag && !tagList.includes(pendingTag) ? [...tagList, pendingTag] : tagList).join(", ");
   const [description, setDescription] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -187,7 +201,7 @@ const GatewayForm = () => {
       });
       sessionStorage.setItem(
         "paapeli.newGatewayCredentials",
-        JSON.stringify({ name: created.name, gatewayId: created.gatewayId, pairingKey: created.pairingKey, protocol, model, location, description, useSsl: security.method === "ssl", tags }),
+        JSON.stringify({ name: created.name, gatewayId: created.gatewayId, pairingKey: created.pairingKey, authMethod: security.method, protocol, model, location, description, useSsl: security.method === "ssl", tags }),
       );
       toast({ title: t("success") || "Success", description: `${created.name} created` });
       // Open the new gateway directly so the user lands in the onboarding flow.
@@ -315,7 +329,40 @@ const GatewayForm = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
                 <div>
                   <FieldLabel hint>{t("tagsLabel")}</FieldLabel>
-                  <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder={t("addTagsPlaceholder")} className="h-11" />
+                  <div className="min-h-11 rounded-md border border-input bg-background px-2 py-1.5 flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring focus-within:border-transparent">
+                    {tagList.map((tag) => (
+                      <span key={tag} className="inline-flex items-center gap-1 rounded bg-primary/10 text-primary text-xs px-2 py-1">
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => removeTag(tag)}
+                          className="hover:bg-primary/20 rounded p-0.5"
+                          aria-label={`Remove ${tag}`}
+                        >
+                          <XIcon className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                    <input
+                      value={tagInput}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v.endsWith(",")) addTag(v.slice(0, -1));
+                        else setTagInput(v);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === ",") {
+                          e.preventDefault();
+                          addTag(tagInput);
+                        } else if (e.key === "Backspace" && !tagInput && tagList.length) {
+                          removeTag(tagList[tagList.length - 1]);
+                        }
+                      }}
+                      onBlur={() => tagInput && addTag(tagInput)}
+                      placeholder={tagList.length === 0 ? t("addTagsPlaceholder") : ""}
+                      className="flex-1 min-w-[120px] bg-transparent outline-none text-sm py-1"
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1.5">{t("pressEnterTags")}</p>
                 </div>
                 <div>
@@ -330,7 +377,7 @@ const GatewayForm = () => {
               </div>
               <div className="mt-5 pt-5 border-t border-border">
                 <FieldLabel hint>{t("shareWithUsers")}</FieldLabel>
-                <ShareWithUsers value={sharedUsers} onChange={setSharedUsers} />
+                <ShareWithUsers value={sharedUsers} onChange={setSharedUsers} subject="gateway" />
               </div>
             </CollapsibleContent>
           </Card>

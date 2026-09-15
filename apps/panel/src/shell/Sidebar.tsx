@@ -19,7 +19,27 @@ interface RowProps {
   item: NavItem;
   onNavigate?: () => void;
   collapsed?: boolean;
+  /** The one menu path that is active for the current URL (see activeNavPath). */
+  activePath?: string;
 }
+
+const normalizePath = (path: string) => path.toLowerCase().replace(/\/+$/, "") || "/";
+
+/* The menu path the current URL belongs to. A path matches the URL itself or
+   anything beneath it, and a path ending in "/" (a section's home) only
+   matches exactly. When several match, the longest wins: /devices/gateways
+   belongs to Gateways alone, not to Devices as well. */
+const activeNavPath = (pathname: string, items: NavItem[]) => {
+  const current = normalizePath(pathname);
+  const paths = items.flatMap((i) => [i, ...(i.children ?? [])]).flatMap((i) => (i.path ? [i.path] : []));
+  let best: string | undefined;
+  for (const path of paths) {
+    const p = normalizePath(path);
+    const matches = path.endsWith("/") ? current === p : current === p || current.startsWith(`${p}/`);
+    if (matches && (!best || p.length > normalizePath(best).length)) best = path;
+  }
+  return best;
+};
 
 const rowBase = "flex items-center gap-3 text-[13px] transition-colors";
 /* Square tile on the rail; a full-width padded row otherwise. */
@@ -42,7 +62,7 @@ function ComingSoonLeaf({ item, collapsed }: RowProps) {
   );
 }
 
-function Leaf({ item, onNavigate, collapsed }: RowProps) {
+function Leaf({ item, onNavigate, collapsed, activePath }: RowProps) {
   const { title, icon: Icon, path, href, comingSoon, chevron } = item;
   const t = useShellT();
 
@@ -67,23 +87,24 @@ function Leaf({ item, onNavigate, collapsed }: RowProps) {
     );
   }
 
+  // NavLink's own isActive is true for every ancestor path too, so the row
+  // uses the single most specific match worked out for the whole menu.
+  const isActive = path === activePath;
   return (
     <NavLink
       to={path!}
       end={path!.endsWith("/")}
       onClick={onNavigate}
       title={collapsed ? t(title) : undefined}
-      className={({ isActive }) =>
-        cn(
-          "group relative flex items-center gap-3 text-[13px] transition-colors",
-          collapsed ? "mx-auto size-9 justify-center rounded-xl" : "w-full rounded-lg px-3 py-2",
-          isActive
-            ? "bg-primary/10 font-semibold text-primary"
-            : "text-foreground/80 hover:bg-muted hover:text-foreground",
-        )
-      }
+      className={cn(
+        "group relative flex items-center gap-3 text-[13px] transition-colors",
+        collapsed ? "mx-auto size-9 justify-center rounded-xl" : "w-full rounded-lg px-3 py-2",
+        isActive
+          ? "bg-primary/10 font-semibold text-primary"
+          : "text-foreground/80 hover:bg-muted hover:text-foreground",
+      )}
     >
-      {({ isActive }) => (
+      {(
         <>
           {/* The active marker is its own element rather than an inset
               box-shadow: a shadow is drawn inside the border box and the row's
@@ -107,7 +128,7 @@ function Leaf({ item, onNavigate, collapsed }: RowProps) {
 /* `onExpand` un-collapses the rail: a group has nowhere to put its children on
    an icon-only rail, so clicking one opens the sidebar back up rather than
    doing nothing. */
-function Group({ item, onNavigate, collapsed, onExpand }: RowProps & { onExpand?: () => void }) {
+function Group({ item, onNavigate, collapsed, onExpand, activePath }: RowProps & { onExpand?: () => void }) {
   const location = useLocation();
   const isGroupActive = item.children!.some((c) => c.path && location.pathname.startsWith(c.path));
   const [open, setOpen] = useState(isGroupActive);
@@ -158,7 +179,7 @@ function Group({ item, onNavigate, collapsed, onExpand }: RowProps & { onExpand?
       {open && !collapsed && (
         <div className="mt-0.5 space-y-0.5 ltr:ml-[22px] rtl:mr-[22px] border-border ltr:border-l rtl:border-r ltr:pl-2 rtl:pr-2">
           {item.children!.map((c) => (
-            <Leaf key={c.title} item={c} onNavigate={onNavigate} />
+            <Leaf key={c.title} item={c} onNavigate={onNavigate} activePath={activePath} />
           ))}
         </div>
       )}
@@ -178,6 +199,8 @@ export function SidebarContent({ section, onNavigate, collapsed, onExpand }: Sid
   const SectionIcon = section.icon;
   const t = useShellT();
   const footerItems = section.footerItems ?? [];
+  const location = useLocation();
+  const activePath = activeNavPath(location.pathname, [...section.items, ...footerItems]);
   return (
     <div className="flex h-full flex-col bg-card">
       <div className="px-2 pt-3">
@@ -195,9 +218,9 @@ export function SidebarContent({ section, onNavigate, collapsed, onExpand }: Sid
       <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-4">
         {section.items.map((item) =>
           item.children ? (
-            <Group key={item.title} item={item} onNavigate={onNavigate} collapsed={collapsed} onExpand={onExpand} />
+            <Group key={item.title} item={item} onNavigate={onNavigate} collapsed={collapsed} onExpand={onExpand} activePath={activePath} />
           ) : (
-            <Leaf key={item.title} item={item} onNavigate={onNavigate} collapsed={collapsed} />
+            <Leaf key={item.title} item={item} onNavigate={onNavigate} collapsed={collapsed} activePath={activePath} />
           ),
         )}
       </nav>
@@ -207,7 +230,7 @@ export function SidebarContent({ section, onNavigate, collapsed, onExpand }: Sid
         <div className="border-t border-border">
           <div className="space-y-1 px-2 py-3">
             {footerItems.map((item) => (
-              <Leaf key={item.title} item={item} onNavigate={onNavigate} collapsed={collapsed} />
+              <Leaf key={item.title} item={item} onNavigate={onNavigate} collapsed={collapsed} activePath={activePath} />
             ))}
           </div>
         </div>
