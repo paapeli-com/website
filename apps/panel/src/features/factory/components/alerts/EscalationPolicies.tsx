@@ -1,13 +1,57 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import {
+  useDeleteEscalationChainMutation,
+  useGetEscalationChainsQueries,
+  useGetWorkspaceAlarmRulesQuery,
+  type AlarmEscalationChain,
+  type AlarmRuleItem,
+} from "@paapeli/api";
+import type { EscalationPolicy } from "@/features/factory/types/alerts";
+import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
+import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/features/factory/components/ui/card";
 import { Badge } from "@/features/factory/components/ui/badge";
 import { Button } from "@/features/factory/components/ui/button";
 import { Switch } from "@/features/factory/components/ui/switch";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/features/factory/components/ui/tooltip";
-import { Plus, Edit, Clock, Users, ArrowRight } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/features/factory/components/ui/alert-dialog";
+import { Plus, Edit, Clock, Users, ArrowRight, Trash2 } from "lucide-react";
 import { NoData } from "@/features/factory/components/NoData";
-import { useEscalationsStore } from "@/features/factory/hooks/useAlertStore";
+import { useToast } from "@/features/factory/hooks/use-toast";
+
+/* The chain API is addressed by rule id, not chain id, so each card keeps it. */
+type ChainPolicy = EscalationPolicy & { alarmRuleId: string };
+
+/* Same page the Rules tab reads, so the two share react-query's cache. */
+const RULES_PAGE = 0;
+const RULES_PAGE_SIZE = 100;
+
+/* A chain belongs to one alarm rule, so the card is named after the rule.
+   The API has no SLA, so the card's SLA is the time until the last step
+   runs. There is no member lookup endpoint, so a step shows the ids of the
+   users it calls where the role used to be. */
+const toPolicy = (rule: AlarmRuleItem, chain: AlarmEscalationChain): ChainPolicy => {
+  const steps = chain.steps ?? [];
+  const totalSeconds = steps.reduce((sum, s) => sum + (s.delaySeconds ?? 0), 0);
+  return {
+    id: chain.id,
+    alarmRuleId: rule.id,
+    name: rule.name,
+    description: rule.description ?? "",
+    levels: steps.map((s, i) => ({
+      level: i + 1,
+      role: (s.actions ?? []).map((a) => a.userId).join(", "),
+      delayMinutes: Math.round((s.delaySeconds ?? 0) / 60),
+      notificationChannelIds: [],
+    })),
+    slaMinutes: Math.round(totalSeconds / 60),
+    enabled: chain.enabled,
+    createdAt: chain.createdAt,
+  };
+};
 
 const policyI18n: Record<string, { name: string; desc: string }> = {
   "ESC-001": { name: "escPolStandardName", desc: "escPolStandardDesc" },
@@ -22,15 +66,55 @@ const roleI18n: Record<string, string> = {
 
 interface EscalationPoliciesProps {
   onCreateClick?: () => void;
+  /** Opens the edit form for the chain of this alarm rule. */
+  onEditClick?: (alarmRuleId: string) => void;
 }
 
-export const EscalationPolicies = ({ onCreateClick }: EscalationPoliciesProps) => {
+export const EscalationPolicies = ({ onCreateClick, onEditClick }: EscalationPoliciesProps) => {
   const { t, isRTL } = useLanguage();
   const tt = t as (k: string) => string;
-  /* Only what the user actually created (localStorage-backed). The two seeded
-     ESC-001/ESC-002 policies that used to be concatenated here were invented —
-     there is no escalation endpoint yet, so an empty store means no data. */
-  const { items: policies } = useEscalationsStore();
+  /* Chains are fetched per alarm rule, so list the workspace's rules and ask
+     for each active one's chain (only an active rule can have one). Rules
+     without a chain, and failed requests, simply contribute no card. */
+  const workspaceId = useWorkspaceId();
+  const { data: rulesPage, isLoading: rulesLoading } = useGetWorkspaceAlarmRulesQuery(
+    workspaceId ?? "", PRODUCT_KEY, RULES_PAGE, RULES_PAGE_SIZE,
+  );
+  const activeRules = useMemo(
+    () => (rulesPage?.data ?? []).filter((r) => r.provisioningState === "ACTIVE"),
+    [rulesPage],
+  );
+  const chainQueries = useGetEscalationChainsQueries(workspaceId ?? "", PRODUCT_KEY, activeRules.map((r) => r.id));
+  const chainsLoading = rulesLoading || !workspaceId || chainQueries.some((q) => q.isLoading);
+  const chainsVersion = chainQueries.map((q) => q.dataUpdatedAt).join(",");
+  const policies: ChainPolicy[] = useMemo(
+    () => activeRules.flatMap((rule, i) => {
+      const chain = chainQueries[i]?.data;
+      return chain ? [toPolicy(rule, chain)] : [];
+    }),
+    // chainQueries is a new array every render; its data changes are what chainsVersion tracks.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeRules, chainsVersion],
+  );
+
+  const { toast } = useToast();
+  const deleteChain = useDeleteEscalationChainMutation();
+  const [confirmDelete, setConfirmDelete] = useState<ChainPolicy | null>(null);
+  /* The mutation invalidates this rule's chain query; the refetch answers
+     404 → null, which drops the card. */
+  const doDelete = async () => {
+    if (!confirmDelete || !workspaceId) return;
+    const policy = confirmDelete;
+    try {
+      await deleteChain.mutateAsync({ workspaceId, productKey: PRODUCT_KEY, alarmRuleId: policy.alarmRuleId });
+      toast({ title: tt("escalationDeleted"), description: policy.name });
+    } catch (error) {
+      const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast({ title: tt("error"), description: message || tt("error"), variant: "destructive" });
+    } finally {
+      setConfirmDelete(null);
+    }
+  };
 
   /* The switch was never persisted for the seeded policies either; this keeps
      it responsive without claiming a write the store cannot make. */
@@ -70,14 +154,24 @@ export const EscalationPolicies = ({ onCreateClick }: EscalationPoliciesProps) =
                     checked={isEnabled(policy.id, policy.enabled)}
                     onCheckedChange={() => togglePolicy(policy.id, isEnabled(policy.id, policy.enabled))}
                   />
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" disabled>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{t("settingsComingSoon")}</TooltipContent>
-                  </Tooltip>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onEditClick?.(policy.alarmRuleId)}
+                    disabled={!onEditClick}
+                    aria-label={tt("edit")}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-destructive"
+                    onClick={() => setConfirmDelete(policy)}
+                    aria-label={tt("delete")}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">{desc}</p>
@@ -110,6 +204,28 @@ export const EscalationPolicies = ({ onCreateClick }: EscalationPoliciesProps) =
           );
         })}
       </div>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => { if (!o) setConfirmDelete(null); }}>
+        <AlertDialogContent dir={isRTL ? "rtl" : "ltr"}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tt("escalationDeleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {tt("escalationDeleteDesc")}{" "}
+              <span className="font-medium text-foreground">{confirmDelete?.name ?? ""}</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tt("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={doDelete}
+              disabled={deleteChain.isPending}
+            >
+              {tt("delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

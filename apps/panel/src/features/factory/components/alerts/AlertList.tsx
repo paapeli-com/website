@@ -24,14 +24,14 @@ import { KpiSection } from "@/features/factory/components/panel/KpiSection";
 import {
   useAckAlarmMutation,
   useClearAlarmMutation,
-  useGetDevicesAlarmsQueries,
-  type PaapeliAlarmListItem,
+  useGetWorkspaceAlarmsQuery,
+  type WorkspaceAlarmItem,
 } from "@paapeli/api";
-import { useDevices, type UserDevice } from "@/features/factory/hooks/useDevices";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useToast } from "@/features/factory/hooks/use-toast";
 import { TableRowsSkeleton } from "@/features/factory/components/panel/DetailPageSkeleton";
+import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
 import { apiSeverityToUi } from "./alarmRuleMapping";
 
 const severityBadge: Record<AlertSeverity, string> = {
@@ -94,24 +94,27 @@ const formatElapsed = (ms: number) => {
   return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m`;
 };
 
-/* The API returns only id, name, severity, status and creation time; device
-   and location come from the device the alarm was fetched for. The API gives
-   no clear time, so a resolved alarm has no duration. */
-const toAlert = (a: PaapeliAlarmListItem, device: UserDevice): Alert => {
+/* Each alarm carries its own device and asset. `locationPath` is the asset's
+   full breadcrumb from the asset tree, when it has loaded; otherwise the bare
+   asset name stands in. The API gives no clear time, so a resolved alarm has
+   no duration. */
+const toAlert = (a: WorkspaceAlarmItem, locationPath: string | undefined): Alert => {
   const status = toStatus(a.status);
+  const created = new Date(a.createdAt).getTime();
   return {
     id: a.id,
     ruleId: "",
-    ruleName: a.name,
+    ruleName: a.alarmName,
     severity: apiSeverityToUi(a.severity),
     status,
-    deviceId: device.id,
-    deviceName: device.label || device.name,
-    locationId: device.assetId ?? "",
-    locationName: device.location ?? "",
+    deviceId: a.deviceId,
+    deviceName: a.deviceName ?? a.deviceId,
+    locationId: a.assetId ?? "",
+    locationName: locationPath ?? a.assetName ?? "",
+    assignedTo: a.assignedTo?.displayName || a.assignedTo?.email || undefined,
     triggerCondition: "",
-    startTime: new Date(a.creationTime).toISOString(),
-    duration: status === "resolved" ? "" : formatElapsed(Date.now() - a.creationTime),
+    startTime: new Date(created).toISOString(),
+    duration: status === "resolved" ? "" : formatElapsed(Date.now() - created),
     notes: [],
   };
 };
@@ -124,20 +127,17 @@ export const AlertList = () => {
 
   const { toast } = useToast();
   const workspaceId = useWorkspaceId();
-  const { items: deviceList, isLoading: devicesLoading } = useDevices();
+  const { options: assetLocations } = useAssetLocations();
 
-  /* The API lists alarms per device, so fetch every device's and merge them.
-     Every filter, KPI and export below works off this one array. */
-  const alarmQueries = useGetDevicesAlarmsQueries(workspaceId ?? "", PRODUCT_KEY, deviceList.map((d) => d.id));
-  const alertsLoading = devicesLoading || alarmQueries.some((q) => q.isLoading);
-  const failedDevices = alarmQueries.filter((q) => q.isError).length;
-  const alarmsVersion = alarmQueries.map((q) => q.dataUpdatedAt).join(",");
-  const alerts: Alert[] = useMemo(
-    () => deviceList.flatMap((d, i) => (alarmQueries[i]?.data ?? []).map((a) => toAlert(a, d))),
-    // alarmQueries is a new array every render; its data changes are what alarmsVersion tracks.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [deviceList, alarmsVersion],
-  );
+  /* One workspace-product list covers every device's alarms. Every filter,
+     KPI and export below works off this one array. Without a workspace the
+     query is disabled, which still counts as loading. */
+  const alarmsQuery = useGetWorkspaceAlarmsQuery(workspaceId ?? "", PRODUCT_KEY);
+  const alertsLoading = alarmsQuery.isLoading || !workspaceId;
+  const alerts: Alert[] = useMemo(() => {
+    const pathById = new Map(assetLocations.map((o) => [o.id, o.path]));
+    return (alarmsQuery.data ?? []).map((a) => toAlert(a, a.assetId ? pathById.get(a.assetId) : undefined));
+  }, [alarmsQuery.data, assetLocations]);
 
   const ackAlarm = useAckAlarmMutation();
   const clearAlarm = useClearAlarmMutation();
@@ -177,7 +177,7 @@ export const AlertList = () => {
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    void Promise.all(alarmQueries.map((q) => q.refetch())).finally(() => setIsRefreshing(false));
+    void alarmsQuery.refetch().finally(() => setIsRefreshing(false));
   };
 
   // Counts for KPIs and chips
@@ -381,8 +381,8 @@ export const AlertList = () => {
       })()}
 
 
-      {failedDevices > 0 && (
-        <p className="text-sm text-destructive">{tt("alertsLoadFailedDevices").replace("{n}", String(failedDevices))}</p>
+      {alarmsQuery.isError && (
+        <p className="text-sm text-destructive">{tt("alertsLoadFailed")}</p>
       )}
 
       {/* Table */}

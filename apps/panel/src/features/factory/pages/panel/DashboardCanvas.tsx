@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useGetWorkspaceAlarmsQuery, type WorkspaceAlarmItem } from "@paapeli/api";
+import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
+import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useDashboards } from "@/features/factory/hooks/useDashboards";
@@ -6,11 +9,11 @@ import {
   useDashboardCanvas,
   Widget,
   resolveCollisions,
+  packLayout,
   snapPosition,
   GRID_COLS,
 } from "@/features/factory/hooks/useDashboardCanvas";
 import {
-  DATA_SOURCES,
   findDataSource,
   getKPI,
   getSeries,
@@ -30,6 +33,8 @@ import {
   toEnergyIntervals,
 } from "@/features/factory/components/dashboard/EnergySource";
 import {
+  ALERTS_SOURCE_ID,
+  isAlertsWidget,
   DEVICES_SOURCE_ID,
   DeviceSourceFields,
   ENERGY_SOURCE_ID,
@@ -110,8 +115,8 @@ import {
   LayoutGrid,
   LineChart as LineIcon,
   BarChart3,
-  PieChart,
   Table as TableIcon,
+  PieChart,
   Type as TextIcon,
   Gauge,
   RotateCcw,
@@ -157,7 +162,9 @@ const T: Record<string, Record<Lang, string>> = {
   height: { en: "Height", ar: "الارتفاع", fa: "ارتفاع" },
   remove: { en: "Remove", ar: "إزالة", fa: "حذف" },
   apply: { en: "Apply", ar: "تطبيق", fa: "اعمال" },
-  noWidgets: { en: "No widgets yet. Click Add Widget to get started.", ar: "لا توجد عناصر بعد. انقر فوق إضافة عنصر للبدء.", fa: "هنوز ویجتی نیست. برای شروع روی افزودن ویجت کلیک کنید." },
+  noWidgets: { en: "This dashboard has no charts yet. Add one to start visualizing your data.", ar: "لا تحتوي لوحة التحكم هذه على مخططات بعد. أضف مخططاً لبدء عرض بياناتك.", fa: "این داشبورد هنوز نموداری ندارد. برای نمایش داده‌هایتان یک نمودار اضافه کنید." },
+  createFirstChart: { en: "Create your first chart", ar: "أنشئ مخططك الأول", fa: "اولین نمودار خود را بسازید" },
+  addChart: { en: "Add chart", ar: "إضافة مخطط", fa: "افزودن نمودار" },
   manual: { en: "Manual", ar: "يدوي", fa: "دستی" },
   every30s: { en: "Every 30s", ar: "كل 30 ثانية", fa: "هر ۳۰ ثانیه" },
   every1m: { en: "Every 1m", ar: "كل دقيقة", fa: "هر ۱ دقیقه" },
@@ -209,6 +216,8 @@ const T: Record<string, Record<Lang, string>> = {
   selectMetric: { en: "Select at least one metric", ar: "اختر مقياسًا واحدًا على الأقل", fa: "حداقل یک معیار انتخاب کنید" },
 };
 
+/* A donut can only be fed by the Alerts source, so it starts there (see
+   handleAddFromCatalog); every other kind starts on Devices. */
 const WIDGET_CATALOG: { kind: WidgetKind; titleKey: string; icon: any; w: number; h: number }[] = [
   { kind: "kpi", titleKey: "kpi", icon: Gauge, w: 3, h: 2 },
   { kind: "line", titleKey: "line", icon: LineIcon, w: 6, h: 4 },
@@ -218,8 +227,20 @@ const WIDGET_CATALOG: { kind: WidgetKind; titleKey: string; icon: any; w: number
   { kind: "text", titleKey: "text", icon: TextIcon, w: 4, h: 2 },
 ];
 
+/** A widget that shows real data: device telemetry, an energy meter, alarm
+ *  counts, or text. Everything else renders the generated mock data in
+ *  lib/dashboardData. */
+const isRealWidget = (w: Widget) =>
+  w.kind === "text" ||
+  isDeviceWidget(w.kind, w.dataSourceId) ||
+  isEnergyWidget(w.kind, w.dataSourceId) ||
+  isAlertsWidget(w.kind, w.dataSourceId);
+
 const ROW_H = 84;
 const GAP = 12;
+/** Grid size of the "Add chart" tile shown in the canvas's free space. */
+const ADD_TILE_W = 4;
+const ADD_TILE_H = 2;
 
 /* ============== Mini chart renderers ============== */
 
@@ -581,6 +602,158 @@ const DeviceBody = ({ w, view, refreshKey, tt }: { w: Widget; view: TimeView; re
   return <KpiView {...toKPI(series)} series={points} />;
 };
 
+/* ---- Alerts source: counts of the workspace's alarms ----
+   Severity is grouped the way the Alarms page ranks it (apiSeverityToUi):
+   CRITICAL → Critical, MAJOR/MINOR → Warning, anything else → Info. "Open"
+   is an alarm that hasn't been cleared. An alarm belongs to the window its
+   creation time falls in. */
+
+type AlertGroup = "Critical" | "Warning" | "Info";
+const ALERT_GROUPS: AlertGroup[] = ["Critical", "Warning", "Info"];
+
+const alertGroup = (a: WorkspaceAlarmItem): AlertGroup => {
+  const s = a.severity?.toUpperCase();
+  if (s === "CRITICAL") return "Critical";
+  if (s === "MAJOR" || s === "MINOR" || s === "WARNING") return "Warning";
+  return "Info";
+};
+
+const isOpenAlarm = (a: WorkspaceAlarmItem) => !a.status?.toUpperCase().startsWith("CLEARED");
+
+/** Whether an alarm counts toward one of the Alerts source's metrics. */
+const matchesAlertMetric = (a: WorkspaceAlarmItem, metricKey: string) => {
+  switch (metricKey) {
+    case "critical": return alertGroup(a) === "Critical";
+    case "warning": return alertGroup(a) === "Warning";
+    case "info": return alertGroup(a) === "Info";
+    case "open": return isOpenAlarm(a);
+    default: return true;
+  }
+};
+
+const alarmTime = (a: WorkspaceAlarmItem) => new Date(a.createdAt).getTime();
+
+/** Per-bucket counts of `alarms` over [start, end), split into `n` equal buckets. */
+const bucketCounts = (alarms: WorkspaceAlarmItem[], start: number, end: number, n: number) => {
+  const step = (end - start) / n;
+  const counts = Array.from({ length: n }, () => 0);
+  for (const a of alarms) {
+    const t = alarmTime(a);
+    if (t < start || t >= end) continue;
+    counts[Math.min(n - 1, Math.floor((t - start) / step))]++;
+  }
+  return { step, counts };
+};
+
+const AlertsBody = ({ w, view, refreshKey, tt }: { w: Widget; view: TimeView; refreshKey: number; tt: (k: string) => string }) => {
+  const { timeZone } = view;
+  const workspaceId = useWorkspaceId();
+  const { data, dataUpdatedAt, isLoading, isError, refetch } = useGetWorkspaceAlarmsQuery(workspaceId ?? "", PRODUCT_KEY);
+  useRefetchOnRefresh(refreshKey, !!workspaceId, refetch);
+
+  // Not capped like telemetry: the alarm list isn't limited to a lookback.
+  const end = view.zoom ? view.zoom[1] : dataUpdatedAt || Date.now();
+  const start = view.zoom ? view.zoom[0] : end - (RANGE_MS[view.range] ?? RANGE_MS["24h"]);
+  const alarms = data ?? [];
+  const inWindow = useMemo(
+    () => alarms.filter((a) => { const t = alarmTime(a); return t >= start && t < end; }),
+    [alarms, start, end],
+  );
+
+  const src = findDataSource(ALERTS_SOURCE_ID);
+  const metricsFor = (keys: string[]) => src.metrics.filter((m) => keys.includes(m.key));
+
+  if (!workspaceId || isLoading) return <Hint>{tt("loading")}</Hint>;
+  if (isError) return <Hint>{tt("noData")}</Hint>;
+
+  if (w.kind === "kpi") {
+    const key = w.metricKey || src.metrics[0].key;
+    const matching = alarms.filter((a) => matchesAlertMetric(a, key));
+    const value = inWindow.filter((a) => matchesAlertMetric(a, key)).length;
+    // Change against the window of the same length just before this one.
+    const span = end - start;
+    const prev = matching.filter((a) => { const t = alarmTime(a); return t >= start - span && t < start; }).length;
+    const change = prev > 0 ? Math.round(((value - prev) / prev) * 1000) / 10 : undefined;
+    const { counts } = bucketCounts(matching, start, end, 12);
+    return <KpiView value={value} change={change} series={counts.map((y, i) => ({ x: `${i + 1}`, y }))} />;
+  }
+
+  if (w.kind === "line") {
+    const metrics = metricsFor(widgetMetricKeys(w));
+    if (metrics.length === 0) return <Hint>{tt("selectMetric")}</Hint>;
+    const n = 24;
+    const perMetric = metrics.map((m) => bucketCounts(alarms.filter((a) => matchesAlertMetric(a, m.key)), start, end, n));
+    const step = (end - start) / n;
+    const rows = Array.from({ length: n }, (_, i) => {
+      const row: ChartRow = { t: start + i * step };
+      metrics.forEach((m, j) => { row[m.key] = perMetric[j].counts[i]; });
+      return row;
+    });
+    return (
+      <WidgetChart
+        kind="line"
+        rows={rows}
+        series={metrics.map((m) => ({ key: m.key, label: m.label }))}
+        xKey="t"
+        xLabel={`${tt("time")} (${utcOffsetLabel(timeZone)})`}
+        yLabel={metrics.length === 1 ? metrics[0].label : undefined}
+        timeZone={timeZone}
+        timeWindow={[start, end]}
+        onZoom={view.onZoom}
+      />
+    );
+  }
+
+  if (w.kind === "bar") {
+    const metrics = metricsFor(widgetMetricKeys(w));
+    if (metrics.length === 0) return <Hint>{tt("selectMetric")}</Hint>;
+    const rows = ALERT_GROUPS.map((group) => {
+      const row: ChartRow = { label: group };
+      metrics.forEach((m) => {
+        row[m.key] = inWindow.filter((a) => alertGroup(a) === group && matchesAlertMetric(a, m.key)).length;
+      });
+      return row;
+    });
+    return (
+      <WidgetChart
+        kind="bar"
+        rows={rows}
+        series={metrics.map((m) => ({ key: m.key, label: m.label }))}
+        xKey="label"
+        xLabel={src.dimensions[0].label}
+        yLabel={metrics.length === 1 ? metrics[0].label : undefined}
+      />
+    );
+  }
+
+  if (w.kind === "donut") {
+    // "Open" narrows the split to open alarms; the severity metrics would each
+    // leave a single slice, so they split every alarm in the window instead.
+    const pool = w.metricKey === "open" ? inWindow.filter(isOpenAlarm) : inWindow;
+    const slices = ALERT_GROUPS.map((group) => ({ label: group, value: pool.filter((a) => alertGroup(a) === group).length }));
+    if (slices.every((s) => s.value === 0)) return <Hint>{tt("noData")}</Hint>;
+    return <MiniDonut data={slices} />;
+  }
+
+  if (w.kind === "table") {
+    const metrics = metricsFor(w.metricKeys ?? []);
+    if (metrics.length === 0) return <Hint>{tt("selectMetric")}</Hint>;
+    return (
+      <TableView
+        t={{
+          columns: [src.dimensions[0].label, ...metrics.map((m) => m.label)],
+          rows: ALERT_GROUPS.map((group) => [
+            group,
+            ...metrics.map((m) => inWindow.filter((a) => alertGroup(a) === group && matchesAlertMetric(a, m.key)).length),
+          ]),
+        }}
+      />
+    );
+  }
+
+  return null;
+};
+
 /* A widget on the Energy source: one meter's readings turned into consumption,
    peak demand, cost and CO₂ over the dashboard's window (see EnergySource). */
 const EnergyBody = ({ w, view, refreshKey, tt }: { w: Widget; view: TimeView; refreshKey: number; tt: (k: string) => string }) => {
@@ -672,6 +845,9 @@ const WidgetBody = ({ w, refreshKey, view, tt }: { w: Widget; refreshKey: number
   }
   if (isEnergyWidget(w.kind, w.dataSourceId)) {
     return <EnergyBody w={w} view={view} refreshKey={refreshKey} tt={tt} />;
+  }
+  if (isAlertsWidget(w.kind, w.dataSourceId)) {
+    return <AlertsBody w={w} view={view} refreshKey={refreshKey} tt={tt} />;
   }
   if (w.kind === "kpi") {
     const k = getKPI(w.dataSourceId, w.metricKey || "", salt);
@@ -789,6 +965,14 @@ const DashboardCanvas = () => {
   const dashboard = useMemo(() => items.find((d) => d.id === params.id), [items, params.id]);
 
   const { widgets, addWidget, updateWidget, removeWidget, setAll, resetLayout } = useDashboardCanvas(params.id || "default");
+
+  /* Layouts saved before mock sources were removed (including the old seeded
+     sample charts) still hold mock widgets. Drop them from the stored layout
+     and close the holes they leave, so a dashboard with nothing real left
+     opens on the empty state. */
+  useEffect(() => {
+    if (widgets.some((w) => !isRealWidget(w))) setAll(packLayout(widgets.filter(isRealWidget)));
+  }, [widgets, setAll]);
   const { items: devices } = useDevices();
   const sourceLabel = (w: Widget) => {
     if (w.dataSourceId === DEVICES_SOURCE_ID && w.deviceId) {
@@ -933,6 +1117,18 @@ const DashboardCanvas = () => {
   };
 
   const totalRows = useMemo(() => widgets.reduce((m, w) => Math.max(m, w.y + w.h), 6), [widgets]);
+
+  /* Where the "Add chart" tile goes: the first gap, in reading order, that
+     fits it — otherwise the row below everything. */
+  const addSpot = useMemo(() => {
+    const [w, h] = [ADD_TILE_W, ADD_TILE_H];
+    const taken = (x: number, y: number) =>
+      widgets.some((o) => x < o.x + o.w && x + w > o.x && y < o.y + o.h && y + h > o.y);
+    for (let y = 0; ; y++) {
+      for (let x = 0; x + w <= GRID_COLS; x++) if (!taken(x, y)) return { x, y };
+    }
+  }, [widgets]);
+  const gridRows = Math.max(totalRows, addSpot.y + ADD_TILE_H);
   const editing = widgets.find((w) => w.id === configId) || null;
   const editingDevices = !!editing && isDeviceWidget(editing.kind, editing.dataSourceId);
   const editingEnergy = !!editing && isEnergyWidget(editing.kind, editing.dataSourceId);
@@ -948,9 +1144,11 @@ const DashboardCanvas = () => {
     );
   }
 
-  const handleAddFromCatalog = (kind: WidgetKind) => {
+  const handleAddFromCatalog = (kind: WidgetKind, at?: { x: number; y: number }) => {
     const cat = WIDGET_CATALOG.find((c) => c.kind === kind)!;
-    const src = DATA_SOURCES[0];
+    // Start on real device telemetry (the user picks the device in settings);
+    // a donut can't show a device, so it starts on the workspace's alarms.
+    const src = findDataSource(kind === "donut" ? ALERTS_SOURCE_ID : DEVICES_SOURCE_ID);
     addWidget({
       kind,
       title: tt(cat.titleKey),
@@ -961,7 +1159,7 @@ const DashboardCanvas = () => {
       metricKeys: initialMetricKeys(kind, src),
       dimensionKey: kind === "donut" || kind === "bar" ? src.dimensions[0].key : undefined,
       text: kind === "text" ? "" : undefined,
-    });
+    }, at);
   };
 
   const body = (
@@ -1091,15 +1289,36 @@ const DashboardCanvas = () => {
       <div
         data-grid
         className="relative w-full"
-        style={{ minHeight: `${totalRows * (ROW_H + GAP)}px`, backgroundSize: `calc((100% - ${GAP * (GRID_COLS - 1)}px) / ${GRID_COLS} + ${GAP}px) ${ROW_H + GAP}px`, backgroundImage: dragging ? "linear-gradient(to right, hsl(var(--border)/0.4) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border)/0.4) 1px, transparent 1px)" : undefined }}
+        style={{ minHeight: `${(widgets.length > 0 ? gridRows : totalRows) * (ROW_H + GAP)}px`, backgroundSize: `calc((100% - ${GAP * (GRID_COLS - 1)}px) / ${GRID_COLS} + ${GAP}px) ${ROW_H + GAP}px`, backgroundImage: dragging ? "linear-gradient(to right, hsl(var(--border)/0.4) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border)/0.4) 1px, transparent 1px)" : undefined }}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
       >
         {widgets.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <LayoutGrid className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">{tt("noWidgets")}</p>
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="flex max-w-sm flex-col items-center rounded-xl border border-dashed border-border bg-card/50 px-6 py-10 text-center">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+                <LayoutGrid className="h-7 w-7 text-primary" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">{tt("createFirstChart")}</h2>
+              <p className="mt-1 mb-5 text-sm text-muted-foreground">{tt("noWidgets")}</p>
+              {/* Same catalog as the toolbar's Add Widget menu. */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground">
+                    <Plus className="h-4 w-4" />
+                    {tt("createFirstChart")}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center" className="bg-popover w-56">
+                  <DropdownMenuLabel>{tt("addWidget")}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {WIDGET_CATALOG.map((c) => (
+                    <DropdownMenuItem key={c.kind} onClick={() => handleAddFromCatalog(c.kind)}>
+                      <c.icon className="h-4 w-4 mr-2" /> {tt(c.titleKey)}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         )}
@@ -1151,6 +1370,36 @@ const DashboardCanvas = () => {
             </Card>
           );
         })}
+
+        {/* "Add chart" tile in the first free space; the picked chart is placed there. */}
+        {widgets.length > 0 && !dragging && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="absolute flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary"
+                style={{
+                  left: `calc((100% - ${GAP * (GRID_COLS - 1)}px) / ${GRID_COLS} * ${addSpot.x} + ${GAP * addSpot.x}px)`,
+                  top: `${addSpot.y * (ROW_H + GAP)}px`,
+                  width: `calc((100% - ${GAP * (GRID_COLS - 1)}px) / ${GRID_COLS} * ${ADD_TILE_W} + ${GAP * (ADD_TILE_W - 1)}px)`,
+                  height: `${ADD_TILE_H * ROW_H + GAP * (ADD_TILE_H - 1)}px`,
+                }}
+              >
+                <Plus className="h-5 w-5" />
+                <span className="text-sm font-medium">{tt("addChart")}</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className="bg-popover w-56">
+              <DropdownMenuLabel>{tt("addWidget")}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {WIDGET_CATALOG.map((c) => (
+                <DropdownMenuItem key={c.kind} onClick={() => handleAddFromCatalog(c.kind, addSpot)}>
+                  <c.icon className="h-4 w-4 mr-2" /> {tt(c.titleKey)}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
 
         {/* Ghost / drop target preview */}
         {dragging && ghost && (

@@ -38,6 +38,7 @@ const Alarms = () => {
 
   const goCreateRule = () => navigate(lp("/alarms/rules/new"));
   const goCreateEscalation = () => navigate(lp("/alarms/escalation/new"));
+  const goEditEscalation = (alarmRuleId: string) => navigate(lp(`/alarms/escalation/${alarmRuleId}/edit`));
   const goCreateChannel = () => navigate(lp("/alarms/channels/new"));
 
   return (
@@ -75,7 +76,7 @@ const Alarms = () => {
         <TabsContent value="all"><AlertList /></TabsContent>
 
         <TabsContent value="rules"><AlertRulesList onCreateRule={goCreateRule} /></TabsContent>
-        <TabsContent value="escalation"><EscalationPolicies onCreateClick={goCreateEscalation} /></TabsContent>
+        <TabsContent value="escalation"><EscalationPolicies onCreateClick={goCreateEscalation} onEditClick={goEditEscalation} /></TabsContent>
         <TabsContent value="channels"><NotificationChannels onCreateClick={goCreateChannel} /></TabsContent>
         <TabsContent value="analytics"><AlertAnalytics /></TabsContent>
         <TabsContent value="templates"><AlertTemplates onUseTemplate={goCreateRule} /></TabsContent>

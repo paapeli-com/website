@@ -1,40 +1,58 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { alarmService, type PaapeliAlarmListItem } from './alarms';
-
-/** Alarms are listed per device and paged at most 100 at a time. */
-const DEVICE_ALARMS_PAGE_SIZE = 100;
-/** Safety net against a server that never reports its last page. */
-const DEVICE_ALARMS_MAX_PAGES = 50;
+import { alarmService, type AlarmEscalationChain, type WorkspaceAlarmItem } from './alarms';
 
 /**
- * Every alarm of each given device — one query per device, each walking all
- * of that device's pages. Keys share useGetDeviceAlarmsQuery's
- * ['deviceAlarms', ws, pk, deviceId] prefix, so the ack/clear mutations'
- * invalidations refresh them too.
+ * The escalation chain of each given alarm rule, one query per rule. A rule
+ * without a chain answers 404, which resolves to `null` rather than an error.
  */
-export function useGetDevicesAlarmsQueries(
+export function useGetEscalationChainsQueries(
     workspaceId: string,
     productKey: string,
-    deviceIds: string[],
+    alarmRuleIds: string[],
     enabled = true,
 ) {
     return useQueries({
-        queries: deviceIds.map((deviceId) => ({
-            queryKey: ['deviceAlarms', workspaceId, productKey, deviceId, 'all'],
-            queryFn: async (): Promise<PaapeliAlarmListItem[]> => {
-                const all: PaapeliAlarmListItem[] = [];
-                // Pages are one-based.
-                for (let page = 1; page <= DEVICE_ALARMS_MAX_PAGES; page++) {
-                    const res = await alarmService.getDeviceAlarms(
-                        workspaceId, productKey, deviceId, page, DEVICE_ALARMS_PAGE_SIZE,
-                    );
-                    all.push(...(res.data ?? []));
-                    if (!res.hasNext) break;
+        queries: alarmRuleIds.map((alarmRuleId) => ({
+            queryKey: ['escalationChain', workspaceId, productKey, alarmRuleId],
+            queryFn: async (): Promise<AlarmEscalationChain | null> => {
+                try {
+                    return await alarmService.getEscalationChain(workspaceId, productKey, alarmRuleId);
+                } catch (error) {
+                    const status = (error as { response?: { status?: number } })?.response?.status;
+                    if (status === 404) return null;
+                    throw error;
                 }
-                return all;
             },
-            enabled: enabled && !!workspaceId && !!productKey && !!deviceId,
+            enabled: enabled && !!workspaceId && !!productKey && !!alarmRuleId,
         })),
+    });
+}
+
+/** The server clamps alarm pages to at most 100. */
+const WORKSPACE_ALARMS_PAGE_SIZE = 100;
+/** Safety net against a server that never reports its last page. */
+const WORKSPACE_ALARMS_MAX_PAGES = 50;
+
+/**
+ * Every alarm in the workspace product, walking all pages into one array.
+ * Keyed ['workspaceAlarms', ws, pk], which the ack/clear mutations invalidate.
+ */
+export function useGetWorkspaceAlarmsQuery(workspaceId: string, productKey: string, enabled = true) {
+    return useQuery({
+        queryKey: ['workspaceAlarms', workspaceId, productKey, 'all'],
+        queryFn: async (): Promise<WorkspaceAlarmItem[]> => {
+            const all: WorkspaceAlarmItem[] = [];
+            // Pages are one-based.
+            for (let page = 1; page <= WORKSPACE_ALARMS_MAX_PAGES; page++) {
+                const res = await alarmService.getWorkspaceAlarms(
+                    workspaceId, productKey, page, WORKSPACE_ALARMS_PAGE_SIZE,
+                );
+                all.push(...(res.data ?? []));
+                if (!res.hasNext) break;
+            }
+            return all;
+        },
+        enabled: enabled && !!workspaceId && !!productKey,
     });
 }
 

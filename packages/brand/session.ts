@@ -75,6 +75,28 @@ export function getCurrentUser(): { name: string; email: string; initial: string
   };
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The signed-in account's user id, read from the bearer JWT's payload.
+ *  There is no "who am I" endpoint and login returns only the token, so the
+ *  token is the one place the id lives. The claim name isn't documented, so
+ *  the usual ones are tried and only a UUID (the shape of a user id) counts.
+ *  Not verified here — the gateway checks the signature on every call. */
+export function getCurrentUserId(): string | null {
+  const token = getToken();
+  const payload = token?.split(".")[1];
+  if (!payload) return null;
+  try {
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const claims = JSON.parse(atob(base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=")));
+    for (const key of ["userId", "user_id", "uid", "id", "sub"]) {
+      const value = claims?.[key];
+      if (typeof value === "string" && UUID_RE.test(value)) return value;
+    }
+  } catch {}
+  return null;
+}
+
 export function isAuthenticated(): boolean {
   return getSession() !== null;
 }

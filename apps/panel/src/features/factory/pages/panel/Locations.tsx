@@ -402,35 +402,11 @@ const Locations = () => {
     }
   };
 
-  /* A workspace with no root asset gets one automatically, so a freshly
-     registered user lands on a usable tree instead of an empty panel with a
-     button to press.
-
-     This lives here rather than in the sign-up flow because POST .../root
-     requires the product subscription to already be active, and at sign-up it
-     is not: the workspace is seconds old and ProductGate is what subscribes
-     the product when the feature first loads. By the time this page renders,
-     that has happened — so this is the earliest point the call can succeed.
-
-     Guarded by a ref rather than the mutation's own pending flag: a failure
-     must not become a retry loop against a workspace whose subscription is
-     genuinely missing, so it is attempted once per workspace per mount and the
-     manual button below stays as the fallback. */
-  const autoProvisionedFor = useRef<string | null>(null);
-  useEffect(() => {
-    if (!treeNotFound || !workspaceId) return;
-    if (autoProvisionedFor.current === workspaceId) return;
-    autoProvisionedFor.current = workspaceId;
-    provisionRoot.mutate(
-      { workspaceId, productKey: PRODUCT_KEY },
-      { onSuccess: () => void refetchTree() },
-    );
-  }, [treeNotFound, workspaceId]); // eslint-disable-line
-
   // ----- UI handlers -----
-  // Footer button: provisions the single root asset for the product. Still
-  // reachable when the automatic attempt above failed — children are added via
-  // each node's "..." menu once the root is there.
+  // Footer button: provisions the single root asset for the product. The root
+  // is normally created at sign-in (see ensureWorkspaceSetup in
+  // src/login/LoginPage), so this is the fallback when that step failed.
+  // Children are added via each node's "..." menu once the root is there.
   const handleProvisionRoot = () => {
     if (provisionRoot.isPending) return;
     if (!workspaceId) return void toast.error(t("noWorkspaceSelected"));

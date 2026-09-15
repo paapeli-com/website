@@ -9,6 +9,28 @@ export interface PaapeliAlarmListItem {
     creationTime: number;
 }
 
+export interface AlarmAssignee {
+    userId: string;
+    displayName?: string;
+    email?: string;
+}
+
+/** An alarm from the workspace-product list — carries its device and asset. */
+export interface WorkspaceAlarmItem {
+    id: string;
+    alarmName: string;
+    severity: string;
+    status: string;
+    deviceId: string;
+    deviceName?: string;
+    assetId?: string;
+    assetName?: string;
+    /** ISO date-time. */
+    createdAt: string;
+    /** Always null until the server implements alarm assignment. */
+    assignedTo: AlarmAssignee | null;
+}
+
 export type RuleOperator = 'GT' | 'LT' | 'EQ' | 'NEQ' | 'GTE' | 'LTE';
 export type RuleValueType = 'STRING_LITERAL' | 'NUMBER_LITERAL' | 'BOOLEAN_LITERAL' | 'NULL';
 export type RuleCombinator = 'AND' | 'OR';
@@ -80,6 +102,43 @@ export interface AlarmRuleItem {
     createdAt: string;
 }
 
+export type EscalationActionType = 'CALL';
+
+export interface EscalationAction {
+    id?: string;
+    position?: number;
+    actionType: EscalationActionType;
+    /** An active member of the same workspace. */
+    userId: string;
+}
+
+export interface EscalationStep {
+    id?: string;
+    position?: number;
+    /** Wait before executing this step. */
+    delaySeconds: number;
+    actions: EscalationAction[];
+}
+
+/** A rule's escalation chain; steps and actions are in execution order. */
+export interface AlarmEscalationChain {
+    id: string;
+    alarmRuleId: string;
+    enabled: boolean;
+    steps: EscalationStep[];
+    createdAt: string;
+    updatedAt: string;
+}
+
+/** Body of the create-or-replace call; at least one step is required. */
+export interface AlarmEscalationChainRequest {
+    enabled: boolean;
+    steps: {
+        delaySeconds: number;
+        actions: { actionType: EscalationActionType; userId: string }[];
+    }[];
+}
+
 export interface CreateAlarmRuleRequest {
     name: string;
     description: string;
@@ -97,6 +156,19 @@ export interface CreateAlarmRuleResponse {
 }
 
 export const alarmService = {
+    /** List the alarms of every device in the workspace product (one-based pages, size 1-100). */
+    async getWorkspaceAlarms(
+        workspaceId: string,
+        productKey: string,
+        page: number,
+        size: number,
+    ): Promise<PageResponse<WorkspaceAlarmItem>> {
+        const { data } = await napiHttpHandler.get<PageResponse<WorkspaceAlarmItem>>(
+            `/api/v1/aiot/alarms/${workspaceId}/${productKey}`,
+            { page, size },
+        );
+        return data;
+    },
     async getDeviceAlarms(
         workspaceId: string,
         productKey: string,
@@ -179,6 +251,40 @@ export const alarmService = {
             req,
         );
         return data;
+    },
+    /** Get an alarm rule's escalation chain. 404 when the rule has none. */
+    async getEscalationChain(
+        workspaceId: string,
+        productKey: string,
+        alarmRuleId: string,
+    ): Promise<AlarmEscalationChain> {
+        const { data } = await napiHttpHandler.get<AlarmEscalationChain>(
+            `/api/v1/aiot/alarms/${workspaceId}/${productKey}/rule/${alarmRuleId}/escalation-chain`,
+        );
+        return data;
+    },
+    /** Create or replace an active alarm rule's escalation chain (atomic). */
+    async putEscalationChain(
+        workspaceId: string,
+        productKey: string,
+        alarmRuleId: string,
+        req: AlarmEscalationChainRequest,
+    ): Promise<AlarmEscalationChain> {
+        const { data } = await napiHttpHandler.put<AlarmEscalationChain>(
+            `/api/v1/aiot/alarms/${workspaceId}/${productKey}/rule/${alarmRuleId}/escalation-chain`,
+            req,
+        );
+        return data;
+    },
+    /** Delete an alarm rule's escalation chain. Idempotent when the rule has none (204). */
+    async deleteEscalationChain(
+        workspaceId: string,
+        productKey: string,
+        alarmRuleId: string,
+    ): Promise<void> {
+        await napiHttpHandler.del(
+            `/api/v1/aiot/alarms/${workspaceId}/${productKey}/rule/${alarmRuleId}/escalation-chain`,
+        );
     },
     async deleteAlarmRule(
         workspaceId: string,

@@ -25,10 +25,23 @@ export const isDeviceWidget = (kind: WidgetKind, sourceId?: string) =>
 /** The data source that reads an energy meter's telemetry (see EnergySource). */
 export const ENERGY_SOURCE_ID = "energy";
 
-/** The data sources a widget of this kind can be bound to. Devices and Energy
- *  both read one device's telemetry, which a donut can't show. */
+/** The data source whose widgets count the workspace's alarms. */
+export const ALERTS_SOURCE_ID = "alerts";
+
+/** Widget kinds that can show alarm counts — all but text. */
+export const ALERTS_WIDGET_KINDS: WidgetKind[] = ["kpi", "line", "bar", "donut", "table"];
+
+export const isAlertsWidget = (kind: WidgetKind, sourceId?: string) =>
+  sourceId === ALERTS_SOURCE_ID && ALERTS_WIDGET_KINDS.includes(kind);
+
+/** The data sources a widget of this kind can be bound to. Only Devices,
+ *  Energy and Alerts read real data — the rest of DATA_SOURCES is generated
+ *  mock data, so it is not offered. Devices and Energy read one device's
+ *  telemetry, which a donut can't show; Alerts can feed every chart kind. */
 export const sourcesForKind = (kind: WidgetKind) =>
-  DATA_SOURCES.filter((d) => (d.id !== DEVICES_SOURCE_ID && d.id !== ENERGY_SOURCE_ID) || DEVICE_WIDGET_KINDS.includes(kind));
+  DATA_SOURCES.filter((d) =>
+    ((d.id === DEVICES_SOURCE_ID || d.id === ENERGY_SOURCE_ID) && DEVICE_WIDGET_KINDS.includes(kind)) ||
+    (d.id === ALERTS_SOURCE_ID && ALERTS_WIDGET_KINDS.includes(kind)));
 
 /* The history endpoint takes a lookback in hours and clamps it to 1–24, so
    any dashboard range longer than a day shows the last 24 hours, and ranges

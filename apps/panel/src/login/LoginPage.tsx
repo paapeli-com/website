@@ -1,6 +1,8 @@
 import { useCallback, useState, type FormEvent } from "react";
-import { authService, setApiAuthToken, workspacesService } from "@paapeli/api";
+import { assetsService, authService, setApiAuthToken, workspacesService } from "@paapeli/api";
+import { productKeyFor } from "@paapeli/brand/config";
 import { signIn as persistSession } from "@paapeli/brand/session";
+import { getActiveWorkspaceId, setActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { SiteNav } from "./SiteNav";
 import { useCopy } from "./copy";
 import { decodeGoogleIdentity, useGoogleButton } from "./googleSignIn";
@@ -62,17 +64,117 @@ function Notice({ tone, children }: { tone: "error" | "success"; children: React
   );
 }
 
-/* A brand new account has no workspace, and every product endpoint is scoped
-   to one. Best effort: a failure here must not block the user from getting in,
-   so it is swallowed and logged. */
-async function ensureWorkspace() {
+/* A local heuristic, not a policy: the gateway owns the real password rules,
+   so this only guides the user and never blocks submitting. Scores 0–4. */
+function scorePassword(password: string): number {
+  if (!password) return 0;
+  let points = 0;
+  if (password.length >= 8) points++;
+  if (password.length >= 12) points++;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) points++;
+  if (/\d/.test(password)) points++;
+  if (/[^A-Za-z0-9]/.test(password)) points++;
+  // Too short, or one repeated character, is weak however varied it looks.
+  if (password.length < 8 || /^(.)\1+$/.test(password)) return 1;
+  return Math.max(1, Math.min(4, points - 1));
+}
+
+const STRENGTH_STYLES = [
+  { bar: "bg-destructive", text: "text-destructive" },
+  { bar: "bg-amber-500", text: "text-amber-600" },
+  { bar: "bg-emerald-400", text: "text-emerald-600" },
+  { bar: "bg-emerald-600", text: "text-emerald-700" },
+];
+
+function PasswordStrength({ password }: { password: string }) {
+  const copy = useCopy();
+  const score = scorePassword(password);
+  if (score === 0) return null;
+  const labels = [copy.strengthWeak, copy.strengthFair, copy.strengthGood, copy.strengthStrong];
+  const style = STRENGTH_STYLES[score - 1];
+  return (
+    <div className="mt-2" aria-live="polite">
+      <div className="flex gap-1" aria-hidden>
+        {[1, 2, 3, 4].map((segment) => (
+          <span
+            key={segment}
+            className={`h-1 flex-1 rounded-full transition-colors ${segment <= score ? style.bar : "bg-border"}`}
+          />
+        ))}
+      </div>
+      <p className="mt-1.5 text-xs text-muted-foreground">
+        <span className="sr-only">{copy.passwordStrength}: </span>
+        <span className={`font-medium ${style.text}`}>{labels[score - 1]}</span>
+        {score < 4 && <> · {copy.passwordHint}</>}
+      </p>
+    </div>
+  );
+}
+
+const statusOf = (e: unknown) => (e as { response?: { status?: number } })?.response?.status;
+
+/** The product whose root location is provisioned at sign-in. */
+const ROOT_PRODUCT_KEY = productKeyFor("SmartFactory");
+
+/* Gets the account to a usable tree before it reaches the panel: a workspace,
+   the SmartFactory subscription, and that product's root location.
+
+   The steps are in dependency order. Every product endpoint is scoped to a
+   workspace, and POST .../root needs the subscription to be active already.
+   So this does what ProductGate would do on the first feature load, then
+   creates the root the Locations page used to create on first visit.
+
+   The workspace picked is the one AccountMenu would pick (the stored id if
+   the user is still a member, else the first), and it is stored as active so
+   the shell scopes to the workspace that was just set up.
+
+   Best effort: a failure here must not block the user from getting in, so it
+   is logged and swallowed. ProductGate and the Locations page's manual button
+   remain the fallbacks. */
+async function ensureWorkspaceSetup() {
   try {
     const workspaces = await workspacesService.listActiveWorkspaces();
-    if (workspaces.length === 0) {
-      await workspacesService.createWorkspace({ name: "My Workspace" });
+    const stored = getActiveWorkspaceId();
+    let workspaceId =
+      workspaces.find((ws) => ws.workspaceId === stored)?.workspaceId ?? workspaces[0]?.workspaceId;
+    if (!workspaceId) {
+      workspaceId = (await workspacesService.createWorkspace({ name: "My Workspace" })).id;
+    }
+    setActiveWorkspaceId(workspaceId);
+
+    if (!ROOT_PRODUCT_KEY) return;
+
+    const products = await workspacesService.listWorkspaceProducts(workspaceId);
+    if (!products.some((p) => p.productKey === ROOT_PRODUCT_KEY)) {
+      try {
+        await workspacesService.subscribeWorkspaceProduct(workspaceId, { productKey: ROOT_PRODUCT_KEY });
+      } catch (error) {
+        // 409 = already subscribed, the state we wanted.
+        if (statusOf(error) !== 409) throw error;
+      }
+    }
+
+    /* GET 404 = no root yet. POST 409 = the root appeared meanwhile, or the
+       subscription made a moment ago is still provisioning — so on 409 wait
+       briefly and look again rather than giving up. Capped, so a stuck
+       subscription delays sign-in by a few seconds at most. */
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        await assetsService.getRoot(workspaceId, ROOT_PRODUCT_KEY);
+        return;
+      } catch (error) {
+        if (statusOf(error) !== 404) throw error;
+      }
+      try {
+        await assetsService.provisionRoot(workspaceId, ROOT_PRODUCT_KEY);
+        return;
+      } catch (error) {
+        if (statusOf(error) !== 409) throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   } catch (error) {
-    console.warn("Failed to ensure a default workspace", error);
+    console.warn("Failed to set up the workspace and root location", error);
   }
 }
 
@@ -133,6 +235,8 @@ export default function LoginPage() {
     try {
       const { token } = await authService.login({ username: email.trim(), password });
       persistSession(email.trim(), token);
+      setApiAuthToken(token);
+      await ensureWorkspaceSetup();
       window.location.href = redirectTarget();
     } catch (err) {
       const status = (err as { response?: { status?: number } })?.response?.status;
@@ -166,7 +270,7 @@ export default function LoginPage() {
         // Active immediately — sign in and land them in the app.
         persistSession(signupEmail.trim(), token, result.displayName);
         setApiAuthToken(token);
-        await ensureWorkspace();
+        await ensureWorkspaceSetup();
         window.location.href = redirectTarget();
         return;
       }
@@ -257,8 +361,8 @@ export default function LoginPage() {
         persistSession(googleEmail ?? "", token, name);
         setApiAuthToken(token);
         // Google sign-up is silent — there is no separate "account created"
-        // response to branch on, so check for a workspace either way.
-        await ensureWorkspace();
+        // response to branch on, so run the setup either way.
+        await ensureWorkspaceSetup();
         window.location.href = redirectTarget();
       } catch (err) {
         const status = (err as { response?: { status?: number } })?.response?.status;
@@ -411,6 +515,7 @@ export default function LoginPage() {
                   value={signupPassword}
                   onChange={(e) => setSignupPassword(e.target.value)}
                 />
+                <PasswordStrength password={signupPassword} />
               </div>
 
               <div className="mb-4">
@@ -494,6 +599,7 @@ export default function LoginPage() {
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                     />
+                    <PasswordStrength password={newPassword} />
                   </div>
 
                   <div className="mb-4">

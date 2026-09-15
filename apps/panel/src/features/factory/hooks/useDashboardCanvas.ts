@@ -27,14 +27,12 @@ export interface Widget {
 
 const KEY = (dashboardId: string) => `paapeli-canvas-${dashboardId}-v1`;
 
-const defaultLayout = (): Widget[] => [
-  { id: "w1", kind: "kpi", title: "Units Produced", x: 0, y: 0, w: 3, h: 2, dataSourceId: "production", metricKey: "units" },
-  { id: "w2", kind: "kpi", title: "OEE", x: 3, y: 0, w: 3, h: 2, dataSourceId: "production", metricKey: "oee" },
-  { id: "w3", kind: "kpi", title: "Energy Cost", x: 6, y: 0, w: 3, h: 2, dataSourceId: "energy", metricKey: "cost" },
-  { id: "w4", kind: "kpi", title: "Critical Alerts", x: 9, y: 0, w: 3, h: 2, dataSourceId: "alerts", metricKey: "critical" },
-  { id: "w5", kind: "line", title: "Production Trend", x: 0, y: 2, w: 8, h: 4, dataSourceId: "production", metricKey: "units" },
-  { id: "w6", kind: "donut", title: "Alerts by Severity", x: 8, y: 2, w: 4, h: 4, dataSourceId: "alerts", dimensionKey: "severity" },
-];
+/* A new dashboard starts empty. It used to be seeded with sample KPI, trend
+   and severity charts bound to sources that have no data for a fresh account,
+   so a new dashboard opened full of empty charts; the canvas page shows a
+   "create your first chart" state instead. Dashboards that already have a
+   saved layout are unaffected — only a missing layout falls back to this. */
+const defaultLayout = (): Widget[] => [];
 
 export const useDashboardCanvas = (dashboardId: string) => {
   const [widgets, setWidgets] = useState<Widget[]>(() => {
@@ -49,12 +47,18 @@ export const useDashboardCanvas = (dashboardId: string) => {
     try { localStorage.setItem(KEY(dashboardId), JSON.stringify(widgets)); } catch {}
   }, [widgets, dashboardId]);
 
-  const addWidget = useCallback((w: Omit<Widget, "id" | "x" | "y">) => {
+  /** Adds a widget below everything, or at `at` (e.g. where the canvas's
+   *  "Add chart" tile sat), pushing down anything it then overlaps. */
+  const addWidget = useCallback((w: Omit<Widget, "id" | "x" | "y">, at?: { x: number; y: number }) => {
     setWidgets((prev) => {
-      // place at first empty row at x=0
-      const maxY = prev.reduce((m, p) => Math.max(m, p.y + p.h), 0);
-      const nw: Widget = { ...w, id: `w-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, x: 0, y: maxY };
-      return [...prev, nw];
+      const id = `w-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      if (!at) {
+        // place at first empty row at x=0
+        const maxY = prev.reduce((m, p) => Math.max(m, p.y + p.h), 0);
+        return [...prev, { ...w, id, x: 0, y: maxY }];
+      }
+      const x = Math.max(0, Math.min(COLS - w.w, at.x));
+      return resolveCollisions([...prev, { ...w, id, x, y: at.y }], id);
     });
   }, []);
 

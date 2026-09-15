@@ -185,6 +185,8 @@ export default function FactoryRoutes() {
                       <Route path="/:lang/alarms/rules/new" element={<ProtectedRoute><AlertRuleForm /></ProtectedRoute>} />
                       <Route path="/alarms/escalation/new" element={<ProtectedRoute><EscalationForm /></ProtectedRoute>} />
                       <Route path="/:lang/alarms/escalation/new" element={<ProtectedRoute><EscalationForm /></ProtectedRoute>} />
+                      <Route path="/alarms/escalation/:alarmRuleId/edit" element={<ProtectedRoute><EscalationForm /></ProtectedRoute>} />
+                      <Route path="/:lang/alarms/escalation/:alarmRuleId/edit" element={<ProtectedRoute><EscalationForm /></ProtectedRoute>} />
                       <Route path="/alarms/channels/new" element={<ProtectedRoute><ChannelForm /></ProtectedRoute>} />
                       <Route path="/:lang/alarms/channels/new" element={<ProtectedRoute><ChannelForm /></ProtectedRoute>} />
 

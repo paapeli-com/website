@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { Button } from "@/features/factory/components/ui/button";
 import { Card } from "@/features/factory/components/ui/card";
@@ -23,6 +23,9 @@ const EscalationForm = () => {
   const tt = t as (k: string) => string;
   const goBack = (tab?: string) => navigate(lp(tab ? `/alarms?tab=${tab}` : "/alarms"));
   const [actions, setActions] = useState<{ primary: Action; secondary?: Action } | null>(null);
+  // Present on /alarms/escalation/:alarmRuleId/edit — the same form, prefilled.
+  const { alarmRuleId } = useParams<{ alarmRuleId?: string }>();
+  const title = tt(alarmRuleId ? "escalationEdit" : "alertCreateEscalation");
 
   return (
     <>
@@ -41,20 +44,28 @@ const EscalationForm = () => {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>{tt("alertCreateEscalation")}</BreadcrumbPage>
+            <BreadcrumbPage>{title}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-foreground">{tt("alertCreateEscalation")}</h1>
+        <h1 className="text-2xl font-bold text-foreground">{title}</h1>
         <p className="text-sm text-muted-foreground mt-1">
           {tt("escalationFormDesc")}
         </p>
       </div>
 
       <Card className="p-4 max-w-3xl">
-        <CreateEscalationDialog inline hideActions onActionsChange={setActions} onCancel={() => goBack()} onCreated={() => goBack("escalation")} />
+        <CreateEscalationDialog
+          key={alarmRuleId ?? "new"}
+          inline
+          hideActions
+          editAlarmRuleId={alarmRuleId}
+          onActionsChange={setActions}
+          onCancel={() => goBack()}
+          onCreated={() => goBack("escalation")}
+        />
       </Card>
 
       <div className="sticky bottom-0 -mx-4 lg:-mx-6 mt-6 bg-background/95 backdrop-blur border-t border-border z-20 px-4 lg:px-6 py-3">
@@ -67,7 +78,7 @@ const EscalationForm = () => {
             disabled={actions?.primary.disabled}
             className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
-            {actions?.primary.label ?? tt("create")}
+            {actions?.primary.label ?? tt(alarmRuleId ? "save" : "create")}
           </Button>
         </div>
       </div>

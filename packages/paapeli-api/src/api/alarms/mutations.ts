@@ -1,5 +1,41 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { alarmService, CreateAlarmRuleRequest } from './alarms';
+import { alarmService, AlarmEscalationChainRequest, CreateAlarmRuleRequest } from './alarms';
+
+export function useDeleteEscalationChainMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationKey: ['deleteEscalationChain'],
+        mutationFn: ({
+            workspaceId,
+            productKey,
+            alarmRuleId,
+        }: {
+            workspaceId: string;
+            productKey: string;
+            alarmRuleId: string;
+        }) => alarmService.deleteEscalationChain(workspaceId, productKey, alarmRuleId),
+        onSuccess: (_data, { workspaceId, productKey, alarmRuleId }) => {
+            queryClient.invalidateQueries({ queryKey: ['escalationChain', workspaceId, productKey, alarmRuleId] });
+        },
+    });
+}
+
+export function usePutEscalationChainMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationKey: ['putEscalationChain'],
+        mutationFn: ({
+            workspaceId,
+            productKey,
+            alarmRuleId,
+            ...req
+        }: AlarmEscalationChainRequest & { workspaceId: string; productKey: string; alarmRuleId: string }) =>
+            alarmService.putEscalationChain(workspaceId, productKey, alarmRuleId, req),
+        onSuccess: (_data, { workspaceId, productKey, alarmRuleId }) => {
+            queryClient.invalidateQueries({ queryKey: ['escalationChain', workspaceId, productKey, alarmRuleId] });
+        },
+    });
+}
 
 export function useAckAlarmMutation() {
     const queryClient = useQueryClient();
@@ -18,6 +54,7 @@ export function useAckAlarmMutation() {
         }) => alarmService.ackAlarm(workspaceId, productKey, alarmId, deviceId),
         onSuccess: (_data, { workspaceId, productKey, deviceId }) => {
             queryClient.invalidateQueries({ queryKey: ['deviceAlarms', workspaceId, productKey, deviceId] });
+            queryClient.invalidateQueries({ queryKey: ['workspaceAlarms', workspaceId, productKey] });
         },
     });
 }
@@ -39,6 +76,7 @@ export function useClearAlarmMutation() {
         }) => alarmService.clearAlarm(workspaceId, productKey, alarmId, deviceId),
         onSuccess: (_data, { workspaceId, productKey, deviceId }) => {
             queryClient.invalidateQueries({ queryKey: ['deviceAlarms', workspaceId, productKey, deviceId] });
+            queryClient.invalidateQueries({ queryKey: ['workspaceAlarms', workspaceId, productKey] });
         },
     });
 }
