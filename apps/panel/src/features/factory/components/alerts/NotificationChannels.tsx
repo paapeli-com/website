@@ -6,7 +6,7 @@ import { Switch } from "@/features/factory/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/features/factory/components/ui/tooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/features/factory/components/ui/table";
 import {
-  Plus, Edit, Trash2, Mail, MessageSquare, Globe, Bell, Radio,
+  Plus, Edit, Trash2, Mail, MessageSquare, Bell, Phone,
   Download, Pencil, Archive,
 } from "lucide-react";
 import type { NotificationChannelType } from "@/features/factory/types/alerts";
@@ -16,21 +16,17 @@ import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import { useChannelsStore } from "@/features/factory/hooks/useAlertStore";
 
 const channelIcons: Record<NotificationChannelType, any> = {
-  email: Mail,
+  phone: Phone,
   sms: MessageSquare,
-  whatsapp: MessageSquare,
-  webhook: Globe,
+  email: Mail,
   in_app: Bell,
-  mqtt: Radio,
 };
 
 const channelLabels: Record<NotificationChannelType, string> = {
-  email: "Email",
+  phone: "Phone",
   sms: "SMS",
-  whatsapp: "WhatsApp",
-  webhook: "Webhook",
+  email: "Email",
   in_app: "In-App",
-  mqtt: "MQTT",
 };
 
 interface NotificationChannelsProps {
@@ -189,7 +185,9 @@ export const NotificationChannels = ({ onCreateClick }: NotificationChannelsProp
           </TableHeader>
           <TableBody>
             {paged.map((channel) => {
-              const Icon = channelIcons[channel.type];
+              // Channels saved before WhatsApp, Webhook and MQTT were dropped keep
+              // their type in the browser; show them with its raw name.
+              const Icon = channelIcons[channel.type] ?? Bell;
               return (
                 <TableRow key={channel.id}>
                   <TableCell className="font-medium">
@@ -199,7 +197,7 @@ export const NotificationChannels = ({ onCreateClick }: NotificationChannelsProp
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{channelLabels[channel.type]}</Badge>
+                    <Badge variant="outline">{channelLabels[channel.type] ?? channel.type}</Badge>
                   </TableCell>
                   <TableCell className="hidden md:table-cell text-xs text-muted-foreground font-mono">
                     {Object.entries(channel.config).map(([k, v]) => {

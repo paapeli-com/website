@@ -89,7 +89,7 @@ export interface EscalationPolicy {
   createdAt: string;
 }
 
-export type NotificationChannelType = 'email' | 'sms' | 'whatsapp' | 'webhook' | 'in_app' | 'mqtt';
+export type NotificationChannelType = 'phone' | 'sms' | 'email' | 'in_app';
 
 export interface NotificationChannel {
   id: string;

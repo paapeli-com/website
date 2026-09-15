@@ -1658,6 +1658,11 @@ export const translations = {
     devicesCount: "{n} devices",
     channelNamePlaceholder: "e.g. Ops Team Email",
     alertChannelInApp: "In-App",
+    alertChannelPhone: "Phone",
+    recipientsHint: "Type and press Enter to add more than one",
+    fromProfile: "From your profile",
+    invalidRecipientEmail: "This is not a valid email address",
+    invalidRecipientPhone: "This is not a valid phone number",
     slaUnit: "SLA: {n} minutes",
 
     // FirmwareForm
@@ -3815,6 +3820,11 @@ export const translations = {
     devicesCount: "{n} جهاز",
     channelNamePlaceholder: "مثال: بريد فريق العمليات",
     alertChannelInApp: "داخل التطبيق",
+    alertChannelPhone: "مكالمة هاتفية",
+    recipientsHint: "اكتب ثم اضغط Enter لإضافة أكثر من مستلم",
+    fromProfile: "من ملفك الشخصي",
+    invalidRecipientEmail: "عنوان البريد الإلكتروني غير صالح",
+    invalidRecipientPhone: "رقم الهاتف غير صالح",
     slaUnit: "SLA: {n} دقيقة",
 
     // FirmwareForm
@@ -5964,6 +5974,11 @@ export const translations = {
     devicesCount: "{n} دستگاه",
     channelNamePlaceholder: "مثال: ایمیل تیم عملیات",
     alertChannelInApp: "درون‌برنامه‌ای",
+    alertChannelPhone: "تماس تلفنی",
+    recipientsHint: "بنویسید و Enter بزنید تا چند گیرنده اضافه شود",
+    fromProfile: "از پروفایل شما",
+    invalidRecipientEmail: "آدرس ایمیل معتبر نیست",
+    invalidRecipientPhone: "شماره تلفن معتبر نیست",
     slaUnit: "SLA: {n} دقیقه",
 
     // FirmwareForm
