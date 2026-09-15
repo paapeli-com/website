@@ -380,8 +380,7 @@ export const mockNotificationChannels: NotificationChannel[] = [
   { id: 'NC-001', name: 'In-App Notifications', type: 'in_app', config: {}, enabled: true, createdAt: '2026-01-01T00:00:00Z' },
   { id: 'NC-002', name: 'Email – Operations Team', type: 'email', config: { to: 'ops@company.com' }, enabled: true, createdAt: '2026-01-01T00:00:00Z' },
   { id: 'NC-003', name: 'SMS – On-Call', type: 'sms', config: { to: '+989123456789' }, enabled: true, createdAt: '2026-01-05T00:00:00Z' },
-  { id: 'NC-004', name: 'Webhook – PagerDuty', type: 'webhook', config: { url: 'https://events.pagerduty.com/v2/enqueue' }, enabled: true, createdAt: '2026-01-10T00:00:00Z' },
-  { id: 'NC-005', name: 'MQTT Republish', type: 'mqtt', config: { topic: 'alerts/republish' }, enabled: false, createdAt: '2026-01-15T00:00:00Z' },
+  { id: 'NC-004', name: 'Phone – Plant Manager', type: 'phone', config: { to: '+989123456789' }, enabled: true, createdAt: '2026-01-10T00:00:00Z' },
 ];
 
 export const mockAlertTemplates: AlertTemplate[] = [

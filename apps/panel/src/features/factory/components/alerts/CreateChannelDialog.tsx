@@ -6,7 +6,8 @@ import { Label } from "@/features/factory/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/features/factory/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/features/factory/components/ui/dialog";
 import { Badge } from "@/features/factory/components/ui/badge";
-import { Mail, MessageSquare, Globe, Bell, Radio } from "lucide-react";
+import { Mail, MessageSquare, Bell, Phone, X } from "lucide-react";
+import { getCurrentUser } from "@paapeli/brand/session";
 import type { NotificationChannelType } from "@/features/factory/types/alerts";
 import { useChannelsStore } from "@/features/factory/hooks/useAlertStore";
 import { useToast } from "@/features/factory/hooks/use-toast";
@@ -29,12 +30,39 @@ interface CreateChannelDialogProps {
 }
 
 const channelIcons: Record<NotificationChannelType, any> = {
-  email: Mail,
+  phone: Phone,
   sms: MessageSquare,
-  whatsapp: MessageSquare,
-  webhook: Globe,
+  email: Mail,
   in_app: Bell,
-  mqtt: Radio,
+};
+
+type RecipientKind = "email" | "phone";
+
+/* Phone calls and SMS go to phone numbers, email to addresses; in-app has no
+   recipients to enter. */
+const recipientKinds: Record<NotificationChannelType, RecipientKind | null> = {
+  phone: "phone",
+  sms: "phone",
+  email: "email",
+  in_app: null,
+};
+
+const recipientPlaceholders: Record<RecipientKind, string> = {
+  email: "ops@company.com",
+  phone: "+989123456789",
+};
+
+/* Persian and Arabic-Indic digits from a local keyboard become ASCII, so a
+   number is stored the same way however it was typed. */
+const toAsciiDigits = (s: string) =>
+  s.replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0)).replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660));
+
+/** A recipient in its stored form, or null when it isn't a valid one. */
+const normalizeRecipient = (kind: RecipientKind, raw: string): string | null => {
+  const value = toAsciiDigits(raw).trim();
+  if (kind === "email") return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? value.toLowerCase() : null;
+  const phone = value.replace(/[\s()-]/g, "");
+  return /^\+?\d{7,15}$/.test(phone) ? phone : null;
 };
 
 export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, onActionsChange, onCancel, onCreated }: CreateChannelDialogProps) => {
@@ -44,30 +72,52 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
   const { create: createChannel } = useChannelsStore();
   const [name, setName] = useState("");
   const [channelType, setChannelType] = useState<NotificationChannelType>("email");
-  const [config, setConfig] = useState<Record<string, string>>({});
+  const [recipients, setRecipients] = useState<string[]>([]);
+  const [draft, setDraft] = useState("");
+  const [draftInvalid, setDraftInvalid] = useState(false);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
 
-  const channels: NotificationChannelType[] = ["email", "sms", "whatsapp", "webhook", "in_app", "mqtt"];
+  const channels: NotificationChannelType[] = ["phone", "sms", "email", "in_app"];
   const channelLabels: Record<NotificationChannelType, string> = {
-    email: "Email",
+    phone: t("alertChannelPhone"),
     sms: "SMS",
-    whatsapp: "WhatsApp",
-    webhook: "Webhook",
+    email: "Email",
     in_app: t("alertChannelInApp"),
-    mqtt: "MQTT",
   };
 
-  const configFields: Record<NotificationChannelType, { field: string; placeholder: string; type: string }[]> = {
-    email: [{ field: "to", placeholder: "ops@company.com", type: "email" }],
-    sms: [{ field: "to", placeholder: "+989123456789", type: "tel" }],
-    whatsapp: [{ field: "to", placeholder: "+989123456789", type: "tel" }],
-    webhook: [{ field: "url", placeholder: "https://example.com/webhook", type: "url" }],
-    in_app: [],
-    mqtt: [{ field: "topic", placeholder: "alerts/channel", type: "text" }],
+  const kind = recipientKinds[channelType];
+
+  /* The signed-in account's own contact for this kind, offered first in the
+     dropdown. The session only carries an email: there is no phone number on
+     the profile or the API yet, so phone and SMS have nothing to offer. */
+  const profile = getCurrentUser();
+  const profileContact = kind === "email" ? profile?.email : undefined;
+  const suggestions = kind && profileContact
+    ? [normalizeRecipient(kind, profileContact)].filter((v): v is string =>
+        !!v && !recipients.includes(v) && v.includes(toAsciiDigits(draft).trim().toLowerCase()))
+    : [];
+
+  const addRecipient = (raw: string) => {
+    if (!kind) return false;
+    const value = normalizeRecipient(kind, raw);
+    if (!value) {
+      setDraftInvalid(raw.trim() !== "");
+      return false;
+    }
+    setRecipients((list) => (list.includes(value) ? list : [...list, value]));
+    setDraft("");
+    setDraftInvalid(false);
+    return true;
   };
 
-  const handleConfigChange = (field: string, value: string) => {
-    setConfig({ ...config, [field]: value });
+  /* A valid address still sitting in the input counts too, so it isn't lost
+     when the form is submitted without pressing Enter. */
+  const finalRecipients = () => {
+    if (!kind) return [];
+    const pending = normalizeRecipient(kind, draft);
+    return pending && !recipients.includes(pending) ? [...recipients, pending] : recipients;
   };
+  const config: Record<string, string> = kind && finalRecipients().length ? { to: finalRecipients().join(", ") } : {};
 
   const handleCreate = () => {
     const created = createChannel({ name: name.trim(), type: channelType, config, enabled: true });
@@ -76,7 +126,8 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
     onOpenChange?.(false);
     setName("");
     setChannelType("email");
-    setConfig({});
+    setRecipients([]);
+    setDraft("");
   };
 
   const handleCancel = () => {
@@ -84,7 +135,7 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
     onOpenChange?.(false);
   };
 
-  const submitDisabled = !name || (configFields[channelType].length > 0 && Object.values(config).some(v => !v));
+  const submitDisabled = !name.trim() || (!!kind && finalRecipients().length === 0);
 
   useEffect(() => {
     if (!hideActions || !onActionsChange) return;
@@ -93,7 +144,7 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
       secondary: { label: t("cancel"), onClick: handleCancel, variant: "outline" },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hideActions, name, channelType, config]);
+  }, [hideActions, name, channelType, recipients, draft]);
 
   const Icon = channelIcons[channelType];
 
@@ -123,41 +174,100 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
         {/* Channel Type */}
         <div className="space-y-2">
           <Label>{t("alertChannelType")}</Label>
-          <Select value={channelType} onValueChange={(v) => { setChannelType(v as NotificationChannelType); setConfig({}); }}>
+          <Select
+            value={channelType}
+            onValueChange={(v) => {
+              const next = v as NotificationChannelType;
+              // Numbers carry over between phone and SMS; addresses don't fit either.
+              if (recipientKinds[next] !== kind) setRecipients([]);
+              setChannelType(next);
+              setDraft("");
+              setDraftInvalid(false);
+            }}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {channels.map(ch => (
-                <SelectItem key={ch} value={ch}>
-                  <div className="flex items-center gap-2">
-                    <Icon className="h-4 w-4" />
-                    {channelLabels[ch]}
-                  </div>
-                </SelectItem>
-              ))}
+              {channels.map(ch => {
+                const ChannelIcon = channelIcons[ch];
+                return (
+                  <SelectItem key={ch} value={ch}>
+                    <div className="flex items-center gap-2">
+                      <ChannelIcon className="h-4 w-4" />
+                      {channelLabels[ch]}
+                    </div>
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
 
         {/* Configuration Fields */}
-        {configFields[channelType].length > 0 && (
+        {kind && (
           <div className="space-y-3 border-t pt-3">
             <p className="text-sm font-medium">{t("alertChannelConfig")}</p>
-            {configFields[channelType].map(({ field, placeholder, type }) => {
-              const labelKey = field === "to" ? "configFieldTo" : field === "topic" ? "configFieldTopic" : field === "url" ? "configFieldUrl" : field;
-              return (
-                <div key={field} className="space-y-1">
-                  <Label className="text-sm">{t(labelKey as any)}</Label>
-                  <Input
-                    type={type}
-                    placeholder={placeholder}
-                    value={config[field] || ""}
-                    onChange={(e) => handleConfigChange(field, e.target.value)}
+            <div className="space-y-1">
+              <Label className="text-sm">{t("configFieldTo")}</Label>
+              <div className="relative">
+                <div className="flex min-h-10 w-full flex-wrap items-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring focus-within:border-transparent">
+                  {recipients.map((r) => (
+                    <Badge key={r} variant="secondary" className="gap-1" dir="ltr">
+                      {r}
+                      <button
+                        type="button"
+                        aria-label={t("delete")}
+                        onClick={() => setRecipients((list) => list.filter((x) => x !== r))}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                  <input
+                    type={kind === "email" ? "email" : "tel"}
+                    dir="ltr"
+                    value={draft}
+                    placeholder={recipients.length ? "" : recipientPlaceholders[kind]}
+                    onChange={(e) => { setDraft(e.target.value); setDraftInvalid(false); setSuggestionsOpen(true); }}
+                    onFocus={() => setSuggestionsOpen(true)}
+                    onBlur={() => {
+                      setSuggestionsOpen(false);
+                      // Keep what was typed if it's valid; otherwise leave it to fix.
+                      if (draft.trim() && normalizeRecipient(kind, draft)) addRecipient(draft);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addRecipient(draft); }
+                      if (e.key === "Backspace" && !draft && recipients.length) setRecipients((list) => list.slice(0, -1));
+                      if (e.key === "Escape") setSuggestionsOpen(false);
+                    }}
+                    className="flex-1 min-w-[140px] bg-transparent text-base outline-none placeholder:text-muted-foreground md:text-sm"
                   />
                 </div>
-              );
-            })}
+                {suggestionsOpen && suggestions.length > 0 && (
+                  <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
+                    {suggestions.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        // Keep focus in the input so blur doesn't close the list first.
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => { addRecipient(s); setSuggestionsOpen(false); }}
+                        className="flex w-full cursor-default select-none items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <span dir="ltr">{s}</span>
+                        <span className="text-xs text-muted-foreground">{t("fromProfile")}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p className={`text-xs ${draftInvalid ? "text-destructive" : "text-muted-foreground"}`}>
+                {draftInvalid
+                  ? t(kind === "email" ? "invalidRecipientEmail" : "invalidRecipientPhone")
+                  : t("recipientsHint")}
+              </p>
+            </div>
           </div>
         )}
 
@@ -169,14 +279,11 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
           </div>
           {Object.entries(config).length > 0 && (
             <div className="text-xs space-y-1">
-              {Object.entries(config).map(([k, v]) => {
-                const labelKey = k === "to" ? "configFieldTo" : k === "topic" ? "configFieldTopic" : k === "url" ? "configFieldUrl" : k;
-                return (
-                  <p key={k} className="text-muted-foreground">
-                    <span className="font-mono">{t(labelKey as any)}:</span> {v}
-                  </p>
-                );
-              })}
+              {Object.entries(config).map(([k, v]) => (
+                <p key={k} className="text-muted-foreground">
+                  <span className="font-mono">{t("configFieldTo")}:</span> <span dir="ltr">{v}</span>
+                </p>
+              ))}
             </div>
           )}
         </div>
@@ -208,4 +315,3 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
     </Dialog>
   );
 };
-
