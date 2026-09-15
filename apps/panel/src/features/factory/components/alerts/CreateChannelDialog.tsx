@@ -6,8 +6,11 @@ import { Label } from "@/features/factory/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/features/factory/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/features/factory/components/ui/dialog";
 import { Badge } from "@/features/factory/components/ui/badge";
-import { Mail, MessageSquare, Bell, Phone, X } from "lucide-react";
+import { Checkbox } from "@/features/factory/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/features/factory/components/ui/popover";
+import { Mail, MessageSquare, Bell, Phone, X, ChevronDown } from "lucide-react";
 import { getCurrentUser } from "@paapeli/brand/session";
+import { loadMembers, type Member } from "@/features/factory/data/workspaceMembers";
 import type { NotificationChannelType } from "@/features/factory/types/alerts";
 import { useChannelsStore } from "@/features/factory/hooks/useAlertStore";
 import { useToast } from "@/features/factory/hooks/use-toast";
@@ -47,23 +50,9 @@ const recipientKinds: Record<NotificationChannelType, RecipientKind | null> = {
   in_app: null,
 };
 
-const recipientPlaceholders: Record<RecipientKind, string> = {
-  email: "ops@company.com",
-  phone: "+989123456789",
-};
-
-/* Persian and Arabic-Indic digits from a local keyboard become ASCII, so a
-   number is stored the same way however it was typed. */
-const toAsciiDigits = (s: string) =>
-  s.replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0)).replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660));
-
-/** A recipient in its stored form, or null when it isn't a valid one. */
-const normalizeRecipient = (kind: RecipientKind, raw: string): string | null => {
-  const value = toAsciiDigits(raw).trim();
-  if (kind === "email") return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? value.toLowerCase() : null;
-  const phone = value.replace(/[\s()-]/g, "");
-  return /^\+?\d{7,15}$/.test(phone) ? phone : null;
-};
+/** A member's address for this kind of channel, if they have one. */
+const contactOf = (m: Member, kind: RecipientKind) =>
+  (kind === "email" ? m.email : m.phone)?.trim() || undefined;
 
 export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, onActionsChange, onCancel, onCreated }: CreateChannelDialogProps) => {
 
@@ -72,10 +61,17 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
   const { create: createChannel } = useChannelsStore();
   const [name, setName] = useState("");
   const [channelType, setChannelType] = useState<NotificationChannelType>("email");
-  const [recipients, setRecipients] = useState<string[]>([]);
-  const [draft, setDraft] = useState("");
-  const [draftInvalid, setDraftInvalid] = useState(false);
-  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  // Recipients are picked from the workspace's active members, never typed.
+  const [members] = useState<Member[]>(() => {
+    const self = getCurrentUser()?.email.toLowerCase();
+    const active = loadMembers().filter((m) => m.status === "Active");
+    // The signed-in user comes first, as the most likely recipient.
+    return [...active.filter((m) => m.email.toLowerCase() === self), ...active.filter((m) => m.email.toLowerCase() !== self)];
+  });
+  const selfEmail = getCurrentUser()?.email.toLowerCase();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [query, setQuery] = useState("");
 
   const channels: NotificationChannelType[] = ["phone", "sms", "email", "in_app"];
   const channelLabels: Record<NotificationChannelType, string> = {
@@ -87,37 +83,18 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
 
   const kind = recipientKinds[channelType];
 
-  /* The signed-in account's own contact for this kind, offered first in the
-     dropdown. The session only carries an email: there is no phone number on
-     the profile or the API yet, so phone and SMS have nothing to offer. */
-  const profile = getCurrentUser();
-  const profileContact = kind === "email" ? profile?.email : undefined;
-  const suggestions = kind && profileContact
-    ? [normalizeRecipient(kind, profileContact)].filter((v): v is string =>
-        !!v && !recipients.includes(v) && v.includes(toAsciiDigits(draft).trim().toLowerCase()))
-    : [];
-
-  const addRecipient = (raw: string) => {
-    if (!kind) return false;
-    const value = normalizeRecipient(kind, raw);
-    if (!value) {
-      setDraftInvalid(raw.trim() !== "");
-      return false;
-    }
-    setRecipients((list) => (list.includes(value) ? list : [...list, value]));
-    setDraft("");
-    setDraftInvalid(false);
-    return true;
-  };
-
-  /* A valid address still sitting in the input counts too, so it isn't lost
-     when the form is submitted without pressing Enter. */
-  const finalRecipients = () => {
-    if (!kind) return [];
-    const pending = normalizeRecipient(kind, draft);
-    return pending && !recipients.includes(pending) ? [...recipients, pending] : recipients;
-  };
-  const config: Record<string, string> = kind && finalRecipients().length ? { to: finalRecipients().join(", ") } : {};
+  /* Selected members who can be reached on this channel. A selection carries
+     over between types; anyone without an address for the current type (e.g.
+     no mobile number for SMS) simply isn't counted. */
+  const chosen = kind ? members.filter((m) => selectedIds.includes(m.id) && contactOf(m, kind)) : [];
+  const toggleMember = (id: string) =>
+    setSelectedIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+  const matches = members.filter((m) => {
+    const q = query.trim().toLowerCase();
+    return !q || m.name.toLowerCase().includes(q) || (kind && contactOf(m, kind)?.toLowerCase().includes(q));
+  });
+  const anyReachable = !!kind && members.some((m) => contactOf(m, kind));
+  const config: Record<string, string> = kind && chosen.length ? { to: chosen.map((m) => contactOf(m, kind)).join(", ") } : {};
 
   const handleCreate = () => {
     const created = createChannel({ name: name.trim(), type: channelType, config, enabled: true });
@@ -126,8 +103,8 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
     onOpenChange?.(false);
     setName("");
     setChannelType("email");
-    setRecipients([]);
-    setDraft("");
+    setSelectedIds([]);
+    setQuery("");
   };
 
   const handleCancel = () => {
@@ -135,7 +112,7 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
     onOpenChange?.(false);
   };
 
-  const submitDisabled = !name.trim() || (!!kind && finalRecipients().length === 0);
+  const submitDisabled = !name.trim() || (!!kind && chosen.length === 0);
 
   useEffect(() => {
     if (!hideActions || !onActionsChange) return;
@@ -144,7 +121,7 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
       secondary: { label: t("cancel"), onClick: handleCancel, variant: "outline" },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hideActions, name, channelType, recipients, draft]);
+  }, [hideActions, name, channelType, selectedIds]);
 
   const Icon = channelIcons[channelType];
 
@@ -177,12 +154,8 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
           <Select
             value={channelType}
             onValueChange={(v) => {
-              const next = v as NotificationChannelType;
-              // Numbers carry over between phone and SMS; addresses don't fit either.
-              if (recipientKinds[next] !== kind) setRecipients([]);
-              setChannelType(next);
-              setDraft("");
-              setDraftInvalid(false);
+              setChannelType(v as NotificationChannelType);
+              setQuery("");
             }}
           >
             <SelectTrigger>
@@ -210,62 +183,74 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
             <p className="text-sm font-medium">{t("alertChannelConfig")}</p>
             <div className="space-y-1">
               <Label className="text-sm">{t("configFieldTo")}</Label>
-              <div className="relative">
-                <div className="flex min-h-10 w-full flex-wrap items-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring focus-within:border-transparent">
-                  {recipients.map((r) => (
-                    <Badge key={r} variant="secondary" className="gap-1" dir="ltr">
-                      {r}
-                      <button
-                        type="button"
-                        aria-label={t("delete")}
-                        onClick={() => setRecipients((list) => list.filter((x) => x !== r))}
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                  <input
-                    type={kind === "email" ? "email" : "tel"}
-                    dir="ltr"
-                    value={draft}
-                    placeholder={recipients.length ? "" : recipientPlaceholders[kind]}
-                    onChange={(e) => { setDraft(e.target.value); setDraftInvalid(false); setSuggestionsOpen(true); }}
-                    onFocus={() => setSuggestionsOpen(true)}
-                    onBlur={() => {
-                      setSuggestionsOpen(false);
-                      // Keep what was typed if it's valid; otherwise leave it to fix.
-                      if (draft.trim() && normalizeRecipient(kind, draft)) addRecipient(draft);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addRecipient(draft); }
-                      if (e.key === "Backspace" && !draft && recipients.length) setRecipients((list) => list.slice(0, -1));
-                      if (e.key === "Escape") setSuggestionsOpen(false);
-                    }}
-                    className="flex-1 min-w-[140px] bg-transparent text-base outline-none placeholder:text-muted-foreground md:text-sm"
-                  />
-                </div>
-                {suggestionsOpen && suggestions.length > 0 && (
-                  <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
-                    {suggestions.map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        // Keep focus in the input so blur doesn't close the list first.
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => { addRecipient(s); setSuggestionsOpen(false); }}
-                        className="flex w-full cursor-default select-none items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <span dir="ltr">{s}</span>
-                        <span className="text-xs text-muted-foreground">{t("fromProfile")}</span>
-                      </button>
-                    ))}
+              <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex min-h-10 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm text-start focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  >
+                    <span className="flex flex-1 flex-wrap items-center gap-1.5">
+                      {chosen.length === 0 ? (
+                        <span className="text-muted-foreground">{t("selectMembers")}</span>
+                      ) : (
+                        chosen.map((m) => (
+                          <Badge key={m.id} variant="secondary" className="gap-1">
+                            {m.name}
+                            <span
+                              role="button"
+                              aria-label={t("delete")}
+                              // Remove without opening the list.
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onClick={(e) => { e.stopPropagation(); toggleMember(m.id); }}
+                            >
+                              <X className="h-3 w-3" />
+                            </span>
+                          </Badge>
+                        ))
+                      )}
+                    </span>
+                    <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-1">
+                  <div className="p-1">
+                    <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search")} className="h-9" />
                   </div>
-                )}
-              </div>
-              <p className={`text-xs ${draftInvalid ? "text-destructive" : "text-muted-foreground"}`}>
-                {draftInvalid
-                  ? t(kind === "email" ? "invalidRecipientEmail" : "invalidRecipientPhone")
-                  : t("recipientsHint")}
+                  <div className="max-h-64 overflow-y-auto">
+                    {matches.map((m) => {
+                      const contact = contactOf(m, kind);
+                      return (
+                        <label
+                          key={m.id}
+                          className={`flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm ${contact ? "cursor-pointer hover:bg-accent hover:text-accent-foreground" : "cursor-not-allowed opacity-50"}`}
+                        >
+                          <Checkbox
+                            checked={!!contact && selectedIds.includes(m.id)}
+                            disabled={!contact}
+                            onCheckedChange={() => toggleMember(m.id)}
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate">
+                              {m.name}
+                              {m.email.toLowerCase() === selfEmail && <span className="ms-1 text-xs text-muted-foreground">({t("you")})</span>}
+                            </span>
+                            {contact ? (
+                              <span className="block truncate text-xs text-muted-foreground" dir="ltr">{contact}</span>
+                            ) : (
+                              <span className="block truncate text-xs text-muted-foreground">{t("noPhoneNumber")}</span>
+                            )}
+                          </span>
+                        </label>
+                      );
+                    })}
+                    {matches.length === 0 && (
+                      <p className="px-2 py-3 text-center text-sm text-muted-foreground">{t("noResults")}</p>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <p className="text-xs text-muted-foreground">
+                {anyReachable ? t("membersOnlyHint") : t("noMemberPhones")}
               </p>
             </div>
           </div>

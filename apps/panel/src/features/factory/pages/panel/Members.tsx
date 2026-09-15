@@ -31,22 +31,13 @@ import {
   Send, X as XIcon, ShieldCheck, ShieldAlert, Shield, Wrench, EyeIcon, Sparkles, Clock,
 } from "lucide-react";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
+import {
+  MEMBERS_STORAGE_KEY, MOCK_MEMBERS, mkInitials,
+  type AiotRole, type Member, type MemberStatus,
+} from "@/features/factory/data/workspaceMembers";
 
 // ---------------- Types ----------------
-type AiotRole = "Full Access" | "Manager" | "Editor" | "Operator" | "Viewer" | "Custom";
-type MemberStatus = "Active" | "Pending" | "Disabled";
 type InviteStatus = "Pending" | "Accepted" | "Expired" | "Cancelled";
-
-interface Member {
-  id: string;
-  name: string;
-  email: string;
-  role: AiotRole;
-  status: MemberStatus;
-  lastLogin?: string; // ISO
-  initials?: string;
-  avatarTone?: string;
-}
 
 interface Invitation {
   id: string;
@@ -59,7 +50,7 @@ interface Invitation {
 
 // ---------------- Storage ----------------
 const LS = {
-  members: "paapeli.members.list.v3",
+  members: MEMBERS_STORAGE_KEY,
   invites: "paapeli.members.invites.v3",
 };
 const loadLS = <T,>(k: string, fb: T): T => {
@@ -68,31 +59,7 @@ const loadLS = <T,>(k: string, fb: T): T => {
 const saveLS = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 
 // ---------------- Mock seeds ----------------
-const TONES = [
-  "bg-rose-500/15 text-rose-600",
-  "bg-amber-500/15 text-amber-600",
-  "bg-emerald-500/15 text-emerald-600",
-  "bg-sky-500/15 text-sky-600",
-  "bg-violet-500/15 text-violet-600",
-  "bg-fuchsia-500/15 text-fuchsia-600",
-  "bg-orange-500/15 text-orange-600",
-  "bg-teal-500/15 text-teal-600",
-];
-
-const mkInitials = (name: string) =>
-  name.split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
-
-const MOCK_MEMBERS: Member[] = [
-  { id: "m-1", name: "Armin Rajabi", email: "armin.rajabi@company.com", role: "Full Access", status: "Active", lastLogin: new Date(Date.now() - 2 * 3600 * 1000).toISOString() },
-  { id: "m-2", name: "محمدعرفان شمس", email: "erfan.shams@company.com", role: "Manager", status: "Active", lastLogin: new Date(Date.now() - 24 * 3600 * 1000).toISOString() },
-  { id: "m-3", name: "Mehdi Hoseini", email: "mehdi.hoseini@company.com", role: "Operator", status: "Active", lastLogin: new Date(Date.now() - 3 * 86400 * 1000).toISOString() },
-  { id: "m-4a", name: "حامد فضایلی", email: "hamed.fazaeli@company.com", role: "Editor", status: "Active", lastLogin: new Date(Date.now() - 5 * 86400 * 1000).toISOString() },
-  { id: "m-5", name: "Fatemeh Hosseini", email: "fatemeh.hosseini@company.com", role: "Operator", status: "Disabled", lastLogin: new Date(Date.now() - 7 * 86400 * 1000).toISOString() },
-  { id: "m-6", name: "امیرکیان عدل", email: "amirkian.adl@company.com", role: "Manager", status: "Active", lastLogin: new Date(Date.now() - 7 * 86400 * 1000).toISOString() },
-  { id: "m-7", name: "Peyman Karimi", email: "peyman.karimi@company.com", role: "Viewer", status: "Disabled", lastLogin: new Date(Date.now() - 14 * 86400 * 1000).toISOString() },
-  { id: "m-8", name: "علیرضا طاهری‌نژاد", email: "alireza.taheri@company.com", role: "Operator", status: "Active", lastLogin: new Date(Date.now() - 14 * 86400 * 1000).toISOString() },
-].map((m, i) => ({ ...m, initials: mkInitials(m.name), avatarTone: TONES[i % TONES.length] })) as Member[];
-
+// The member seed lives in data/workspaceMembers, shared with channel pickers.
 const MOCK_INVITES: Invitation[] = [
   { id: "i-1", email: "ali.tehrani@company.com", role: "Editor", invitedBy: "Armin Rajabi", sentAt: new Date(Date.now() - 2 * 86400 * 1000).toISOString(), status: "Pending" },
   { id: "i-2", email: "leila.kazemi@company.com", role: "Viewer", invitedBy: "Armin Rajabi", sentAt: new Date(Date.now() - 5 * 86400 * 1000).toISOString(), status: "Pending" },
