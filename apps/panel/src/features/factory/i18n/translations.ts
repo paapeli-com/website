@@ -1659,10 +1659,10 @@ export const translations = {
     channelNamePlaceholder: "e.g. Ops Team Email",
     alertChannelInApp: "In-App",
     alertChannelPhone: "Phone",
-    recipientsHint: "Type and press Enter to add more than one",
-    fromProfile: "From your profile",
-    invalidRecipientEmail: "This is not a valid email address",
-    invalidRecipientPhone: "This is not a valid phone number",
+    selectMembers: "Select members",
+    membersOnlyHint: "Only members of this workspace can be selected",
+    noPhoneNumber: "No mobile number",
+    noMemberPhones: "No member of this workspace has a mobile number yet",
     slaUnit: "SLA: {n} minutes",
 
     // FirmwareForm
@@ -3821,10 +3821,10 @@ export const translations = {
     channelNamePlaceholder: "مثال: بريد فريق العمليات",
     alertChannelInApp: "داخل التطبيق",
     alertChannelPhone: "مكالمة هاتفية",
-    recipientsHint: "اكتب ثم اضغط Enter لإضافة أكثر من مستلم",
-    fromProfile: "من ملفك الشخصي",
-    invalidRecipientEmail: "عنوان البريد الإلكتروني غير صالح",
-    invalidRecipientPhone: "رقم الهاتف غير صالح",
+    selectMembers: "اختر الأعضاء",
+    membersOnlyHint: "يمكن اختيار أعضاء مساحة العمل هذه فقط",
+    noPhoneNumber: "لا يوجد رقم جوال",
+    noMemberPhones: "لا يملك أي عضو في مساحة العمل هذه رقم جوال بعد",
     slaUnit: "SLA: {n} دقيقة",
 
     // FirmwareForm
@@ -5975,10 +5975,10 @@ export const translations = {
     channelNamePlaceholder: "مثال: ایمیل تیم عملیات",
     alertChannelInApp: "درون‌برنامه‌ای",
     alertChannelPhone: "تماس تلفنی",
-    recipientsHint: "بنویسید و Enter بزنید تا چند گیرنده اضافه شود",
-    fromProfile: "از پروفایل شما",
-    invalidRecipientEmail: "آدرس ایمیل معتبر نیست",
-    invalidRecipientPhone: "شماره تلفن معتبر نیست",
+    selectMembers: "انتخاب اعضا",
+    membersOnlyHint: "فقط اعضای این فضای کاری قابل انتخاب هستند",
+    noPhoneNumber: "شماره موبایل ثبت نشده",
+    noMemberPhones: "هنوز هیچ عضوی از این فضای کاری شماره موبایل ندارد",
     slaUnit: "SLA: {n} دقیقه",
 
     // FirmwareForm
