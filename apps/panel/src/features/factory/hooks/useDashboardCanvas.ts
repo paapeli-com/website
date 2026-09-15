@@ -18,6 +18,10 @@ export interface Widget {
   deviceId?: string; // for the "devices" source: the device to chart
   telemetryKey?: string; // for the "devices" source: which telemetry series
   telemetryKeys?: string[]; // for the "devices" source in a table: its columns
+  energyReading?: "kwh" | "wh" | "kw" | "w"; // for the "energy" source: what telemetryKey holds
+  tariff?: number; // for the "energy" source: price of one kWh
+  currency?: string; // for the "energy" source: the tariff's currency label
+  co2Factor?: number; // for the "energy" source: kg of CO₂ per kWh
   text?: string; // for text widget
 }
 

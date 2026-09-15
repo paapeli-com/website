@@ -22,9 +22,19 @@ import {
   WidgetKind,
 } from "@/features/factory/lib/dashboardData";
 import {
+  EnergySourceFields,
+  energyBucketRows,
+  energyMetric,
+  isEnergyWidget,
+  missingEnergySetting,
+  toEnergyIntervals,
+} from "@/features/factory/components/dashboard/EnergySource";
+import {
   DEVICES_SOURCE_ID,
   DeviceSourceFields,
+  ENERGY_SOURCE_ID,
   fmtDateTime,
+  fmtDayTime,
   fmtTimeTick,
   isDeviceWidget,
   noDataSpans,
@@ -156,6 +166,17 @@ const T: Record<string, Record<Lang, string>> = {
   every1h: { en: "Every 1h", ar: "كل ساعة", fa: "هر ۱ ساعت" },
   last15m: { en: "Last 15m", ar: "آخر 15 دقيقة", fa: "۱۵ دقیقه اخیر" },
   noData: { en: "No data", ar: "لا توجد بيانات", fa: "بدون داده" },
+  to: { en: "to", ar: "إلى", fa: "تا" },
+  energyReading: { en: "Reading type", ar: "نوع القراءة", fa: "نوع داده کنتور" },
+  readingKwh: { en: "Energy counter (kWh)", ar: "عداد الطاقة (kWh)", fa: "شمارنده انرژی (kWh)" },
+  readingWh: { en: "Energy counter (Wh)", ar: "عداد الطاقة (Wh)", fa: "شمارنده انرژی (Wh)" },
+  readingKw: { en: "Power (kW)", ar: "القدرة (kW)", fa: "توان (kW)" },
+  readingW: { en: "Power (W)", ar: "القدرة (W)", fa: "توان (W)" },
+  tariff: { en: "Price per kWh", ar: "سعر كل kWh", fa: "قیمت هر kWh" },
+  currency: { en: "Currency", ar: "العملة", fa: "واحد پول" },
+  co2Factor: { en: "CO₂ per kWh (kg)", ar: "CO₂ لكل kWh (كغ)", fa: "CO₂ هر kWh (کیلوگرم)" },
+  needTariff: { en: "Set a price per kWh in the widget settings", ar: "أدخل سعر كل kWh في إعدادات العنصر", fa: "قیمت هر kWh را در تنظیمات ویجت وارد کنید" },
+  needCo2: { en: "Set CO₂ per kWh in the widget settings", ar: "أدخل كمية CO₂ لكل kWh في إعدادات العنصر", fa: "مقدار CO₂ هر kWh را در تنظیمات ویجت وارد کنید" },
   last1h: { en: "Last 1h", ar: "آخر ساعة", fa: "۱ ساعت اخیر" },
   last24h: { en: "Last 24h", ar: "آخر 24 ساعة", fa: "۲۴ ساعت اخیر" },
   last7d: { en: "Last 7d", ar: "آخر 7 أيام", fa: "۷ روز اخیر" },
@@ -222,6 +243,7 @@ const AXIS_TEXT = { fontSize: 10, fill: "hsl(var(--muted-foreground))" };
 const compactNumber = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
 // ReferenceArea renders these SVG props, but Recharts 3's typings drop them.
 const NO_DATA_FILL = { fill: "hsl(var(--muted-foreground))", fillOpacity: 0.08, stroke: "none" } as Record<string, unknown>;
+const SELECTION_FILL = { fill: "hsl(var(--primary))", fillOpacity: 0.15, stroke: "hsl(var(--primary))", strokeOpacity: 0.4 } as Record<string, unknown>;
 
 type ChartSeries = { key: string; label: string };
 type ChartRow = Record<string, string | number>;
@@ -242,16 +264,59 @@ interface WidgetChartProps {
   noDataLabel?: string;
   /** IANA zone the time axis and tooltip are shown in. */
   timeZone?: string;
+  /** Called with [from, to] in ms when a stretch of a time chart is selected. */
+  onZoom?: (from: number, to: number) => void;
 }
 
 /* Line / bar chart with labelled axes, a hover tooltip and, once there is more
-   than one series, a legend. Always LTR: time and numbers read left to right. */
-const WidgetChart = ({ kind, rows, series, xKey, xLabel, yLabel, timeWindow, noData, noDataLabel, timeZone }: WidgetChartProps) => {
+   than one series, a legend. Always LTR: time and numbers read left to right.
+   On a time axis, dragging across the chart selects a stretch to zoom to; on a
+   bar chart a single click zooms to that bar's slice. */
+const WidgetChart = ({ kind, rows, series, xKey, xLabel, yLabel, timeWindow, noData, noDataLabel, timeZone, onZoom }: WidgetChartProps) => {
   const isTime = xKey === "t";
   const numericX = isTime && kind === "line";
   const times = isTime ? rows.map((r) => Number(r.t)) : [];
   const span = timeWindow ? timeWindow[1] - timeWindow[0] : times.length ? times[times.length - 1] - times[0] : 0;
   const tickFormatter = isTime ? fmtTimeTick(span, timeZone) : undefined;
+
+  const [selection, setSelection] = useState<{ from: number; to: number } | null>(null);
+  const zoomable = isTime && !!onZoom && rows.length > 1;
+  // A bar stands for a whole slice, so a selection ends where its last slice does.
+  const sliceMs = !numericX && times.length > 1 ? times[1] - times[0] : 0;
+  const pointerTime = (state: any) => {
+    const t = Number(state?.activeLabel);
+    return state?.activeLabel === undefined || !Number.isFinite(t) ? undefined : t;
+  };
+  const zoomHandlers = zoomable
+    ? {
+        onMouseDown: (state: any) => {
+          const t = pointerTime(state);
+          if (t !== undefined) setSelection({ from: t, to: t });
+        },
+        onMouseMove: (state: any) => {
+          const t = pointerTime(state);
+          if (t !== undefined) setSelection((s) => (s ? { ...s, to: t } : s));
+        },
+        onMouseUp: () => {
+          if (selection) {
+            const from = Math.min(selection.from, selection.to);
+            const to = Math.max(selection.from, selection.to) + sliceMs;
+            if (to > from) onZoom!(from, to);
+          }
+          setSelection(null);
+        },
+        onMouseLeave: () => setSelection(null),
+      }
+    : {};
+  const selectionArea = selection && selection.from !== selection.to ? (
+    <ReferenceArea
+      {...SELECTION_FILL}
+      x1={Math.min(selection.from, selection.to)}
+      x2={Math.max(selection.from, selection.to)}
+      ifOverflow="hidden"
+      zIndex={0}
+    />
+  ) : null;
 
   const grid = <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />;
   const xAxis = (
@@ -290,11 +355,11 @@ const WidgetChart = ({ kind, rows, series, xKey, xLabel, yLabel, timeWindow, noD
   const margin = { top: 6, right: 12, bottom: 0, left: 0 };
 
   return (
-    <div className="h-full w-full" dir="ltr">
+    <div className={`h-full w-full ${zoomable ? "cursor-crosshair select-none" : ""}`} dir="ltr">
       <ResponsiveContainer width="100%" height="100%">
         {kind === "line" ? (
-          <AreaChart data={rows} margin={margin}>
-            {grid}{xAxis}{yAxis}{tooltip}{legend}
+          <AreaChart data={rows} margin={margin} {...zoomHandlers}>
+            {grid}{xAxis}{yAxis}{tooltip}{legend}{selectionArea}
             {numericX && noData?.map(([x1, x2]) => (
               <ReferenceArea
                 key={`${x1}-${x2}`}
@@ -327,8 +392,8 @@ const WidgetChart = ({ kind, rows, series, xKey, xLabel, yLabel, timeWindow, noD
             })}
           </AreaChart>
         ) : (
-          <BarChart data={rows} margin={margin}>
-            {grid}{xAxis}{yAxis}{tooltip}{legend}
+          <BarChart data={rows} margin={margin} {...zoomHandlers}>
+            {grid}{xAxis}{yAxis}{tooltip}{legend}{selectionArea}
             {series.map((s, i) => (
               <Bar key={s.key} dataKey={s.key} name={s.label} fill={SERIES_COLORS[i % SERIES_COLORS.length]} radius={[3, 3, 0, 0]} maxBarSize={36} isAnimationActive={false} />
             ))}
@@ -389,8 +454,10 @@ const Hint = ({ children }: { children: React.ReactNode }) => (
   <div className="h-full flex items-center justify-center text-xs text-muted-foreground text-center px-2">{children}</div>
 );
 
-const KpiView = ({ value, unit, change, series }: { value: number; unit?: string; change: number; series: { x: string; y: number }[] }) => {
-  const up = change >= 0;
+/* `change` is optional: a total over the dashboard's window has no earlier
+   window to compare with, so it shows the value alone. */
+const KpiView = ({ value, unit, change, series }: { value: number; unit?: string; change?: number; series: { x: string; y: number }[] }) => {
+  const up = (change ?? 0) >= 0;
   return (
     <div className="flex flex-col justify-between h-full p-1">
       <div>
@@ -398,10 +465,12 @@ const KpiView = ({ value, unit, change, series }: { value: number; unit?: string
           {value.toLocaleString()}
           {unit && <span className="text-base ml-1 text-muted-foreground">{unit}</span>}
         </div>
-        <div className={`text-xs mt-1 flex items-center gap-1 ${up ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-          {up ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-          {Math.abs(change)}% vs prev
-        </div>
+        {change !== undefined && (
+          <div className={`text-xs mt-1 flex items-center gap-1 ${up ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+            {up ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+            {Math.abs(change)}% vs prev
+          </div>
+        )}
       </div>
       <div className="h-10 -mx-1 opacity-80">
         <MiniLine data={series} />
@@ -427,22 +496,46 @@ const TableView = ({ t }: { t: TableData }) => (
   </div>
 );
 
-/* Any widget bound to one device's telemetry from the history API. */
-const DeviceBody = ({ w, hours, range, timeZone, refreshKey, tt }: { w: Widget; hours: number; range: string; timeZone: string; refreshKey: number; tt: (k: string) => string }) => {
-  const timeLabel = `${tt("time")} (${utcOffsetLabel(timeZone)})`;
-  const { data: fetched, dataUpdatedAt, isLoading, refetch } = useDeviceTelemetry(w.deviceId, hours);
+/** The dashboard's time settings, as every widget needs them. */
+interface TimeView {
+  /** A toolbar option, or "custom" while zoomed. */
+  range: string;
+  /** The zoomed-in [from, to] in ms, if any. */
+  zoom: [number, number] | null;
+  /** Lookback, in hours, to fetch from the history API. */
+  hours: number;
+  timeZone: string;
+  onZoom: (from: number, to: number) => void;
+}
+
+/* The dashboard's refresh button / interval bumps refreshKey; refetch on every
+   bump after the first render. */
+const useRefetchOnRefresh = (refreshKey: number, enabled: boolean, refetch: () => unknown) => {
   const mounted = useRef(false);
   useEffect(() => {
-    // The dashboard's refresh button / interval bumps refreshKey.
     if (!mounted.current) { mounted.current = true; return; }
-    if (w.deviceId) refetch();
+    if (enabled) refetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
-  // The window ends when the data was fetched, i.e. "now" as of the last
-  // refresh, and covers the chosen range, capped at what the API returns.
-  const end = dataUpdatedAt || Date.now();
-  const start = end - Math.min(RANGE_MS[range] ?? RANGE_MS["24h"], hours * 3_600_000);
-  const data = useMemo(() => sliceTelemetry(fetched, start), [fetched, start]);
+};
+
+/* The [start, end] a telemetry widget shows: the zoomed-in stretch, or the
+   chosen range ending when the data was fetched ("now" as of the last
+   refresh), capped at what the history API returns. */
+const telemetryWindow = (view: TimeView, fetchedAt: number): [number, number] => {
+  if (view.zoom) return view.zoom;
+  const end = fetchedAt || Date.now();
+  return [end - Math.min(RANGE_MS[view.range] ?? RANGE_MS["24h"], view.hours * 3_600_000), end];
+};
+
+/* Any widget bound to one device's telemetry from the history API. */
+const DeviceBody = ({ w, view, refreshKey, tt }: { w: Widget; view: TimeView; refreshKey: number; tt: (k: string) => string }) => {
+  const { timeZone } = view;
+  const timeLabel = `${tt("time")} (${utcOffsetLabel(timeZone)})`;
+  const { data: fetched, dataUpdatedAt, isLoading, refetch } = useDeviceTelemetry(w.deviceId, view.hours);
+  useRefetchOnRefresh(refreshKey, !!w.deviceId, refetch);
+  const [start, end] = telemetryWindow(view, dataUpdatedAt);
+  const data = useMemo(() => sliceTelemetry(fetched, start, end), [fetched, start, end]);
   const series = useMemo(() => toSeries(w.telemetryKey ? data?.[w.telemetryKey] : undefined), [data, w.telemetryKey]);
   const keys = widgetTelemetryKeys(w) ?? [];
   const keysId = keys.join("|");
@@ -477,6 +570,7 @@ const DeviceBody = ({ w, hours, range, timeZone, refreshKey, tt }: { w: Widget; 
         timeWindow={[start, end]}
         noData={w.kind === "line" ? noDataSpans(rows.map((r) => r.t), start, end) : undefined}
         noDataLabel={tt("noData")}
+        onZoom={view.onZoom}
       />
     );
   }
@@ -485,6 +579,79 @@ const DeviceBody = ({ w, hours, range, timeZone, refreshKey, tt }: { w: Widget; 
   // MiniLine needs two points to draw a segment.
   const points = series.length === 1 ? [series[0], series[0]] : series;
   return <KpiView {...toKPI(series)} series={points} />;
+};
+
+/* A widget on the Energy source: one meter's readings turned into consumption,
+   peak demand, cost and CO₂ over the dashboard's window (see EnergySource). */
+const EnergyBody = ({ w, view, refreshKey, tt }: { w: Widget; view: TimeView; refreshKey: number; tt: (k: string) => string }) => {
+  const { timeZone } = view;
+  const { data: fetched, dataUpdatedAt, isLoading, refetch } = useDeviceTelemetry(w.deviceId, view.hours);
+  useRefetchOnRefresh(refreshKey, !!w.deviceId, refetch);
+  const [start, end] = telemetryWindow(view, dataUpdatedAt);
+  const reading = w.energyReading ?? "kwh";
+  const series = useMemo(
+    () => toSeries(w.telemetryKey ? sliceTelemetry(fetched, start, end)?.[w.telemetryKey] : undefined),
+    [fetched, start, end, w.telemetryKey],
+  );
+  const intervals = useMemo(() => toEnergyIntervals(series, reading), [series, reading]);
+
+  if (!w.deviceId) return <Hint>{tt("selectDevice")}</Hint>;
+  if (isLoading) return <Hint>{tt("loading")}</Hint>;
+  if (intervals.length === 0) return <Hint>{tt("noTelemetry")}</Hint>;
+
+  const settings = { tariff: w.tariff, co2Factor: w.co2Factor };
+  const src = findDataSource(ENERGY_SOURCE_ID);
+  // Cost is in whatever currency the tariff was entered in.
+  const unitOf = (m: MetricOption) => (m.key === "cost" ? w.currency || m.unit : m.unit);
+  const labelOf = (m: MetricOption) => `${m.label}${unitOf(m) ? ` (${unitOf(m)})` : ""}`;
+  const timeLabel = `${tt("time")} (${utcOffsetLabel(timeZone)})`;
+
+  if (w.kind === "kpi") {
+    const m = src.metrics.find((x) => x.key === w.metricKey) ?? src.metrics[0];
+    const missing = missingEnergySetting(m.key, settings);
+    if (missing) return <Hint>{tt(missing)}</Hint>;
+    const spark = energyBucketRows(intervals, [m.key], settings, start, end, 16)
+      .flatMap((r) => (m.key in r ? [{ x: String(r.t), y: r[m.key] }] : []));
+    return <KpiView value={energyMetric(intervals, m.key, settings)!} unit={unitOf(m)} series={spark.length === 1 ? [spark[0], spark[0]] : spark} />;
+  }
+
+  const chosen = src.metrics.filter((m) => widgetMetricKeys(w).includes(m.key));
+  if (chosen.length === 0) return <Hint>{tt("selectMetric")}</Hint>;
+  const usable = chosen.filter((m) => !missingEnergySetting(m.key, settings));
+  if (usable.length === 0) return <Hint>{tt(missingEnergySetting(chosen[0].key, settings)!)}</Hint>;
+  const keys = usable.map((m) => m.key);
+
+  if (w.kind === "table") {
+    // One row per slice of the window, newest first, skipping empty slices.
+    const slices = energyBucketRows(intervals, keys, settings, start, end, 24).filter((r) => keys.some((k) => k in r)).reverse();
+    return (
+      <TableView
+        t={{
+          columns: [timeLabel, ...usable.map(labelOf)],
+          rows: slices.map((r) => [fmtDayTime(r.t, timeZone), ...keys.map((k) => (k in r ? r[k] : "—"))]),
+        }}
+      />
+    );
+  }
+
+  const rows = energyBucketRows(intervals, keys, settings, start, end, w.kind === "line" ? 48 : 12);
+  const units = [...new Set(usable.map((m) => unitOf(m) || ""))];
+  const yLabel = usable.length === 1 ? labelOf(usable[0]) : units.length === 1 && units[0] ? units[0] : undefined;
+  return (
+    <WidgetChart
+      kind={w.kind === "line" ? "line" : "bar"}
+      rows={rows}
+      series={usable.map((m) => ({ key: m.key, label: labelOf(m) }))}
+      xKey="t"
+      xLabel={timeLabel}
+      yLabel={yLabel}
+      timeZone={timeZone}
+      timeWindow={[start, end]}
+      noData={w.kind === "line" ? noDataSpans(series.map((p) => Number(p.x)), start, end) : undefined}
+      noDataLabel={tt("noData")}
+      onZoom={view.onZoom}
+    />
+  );
 };
 
 const RANGE_MS: Record<string, number> = { "15m": 900_000, "1h": 3_600_000, "24h": 86_400_000, "7d": 7 * 86_400_000, "30d": 30 * 86_400_000 };
@@ -497,10 +664,14 @@ const metricLabel = (m: MetricOption) => `${m.label}${m.unit ? ` (${m.unit})` : 
 const initialMetricKeys = (kind: WidgetKind, src: DataSource) =>
   kind === "table" ? src.metrics.slice(0, 3).map((m) => m.key) : kind === "line" || kind === "bar" ? [src.metrics[0].key] : undefined;
 
-const WidgetBody = ({ w, refreshKey, hours, range, timeZone, tt }: { w: Widget; refreshKey: number; hours: number; range: string; timeZone: string; tt: (k: string) => string }) => {
+const WidgetBody = ({ w, refreshKey, view, tt }: { w: Widget; refreshKey: number; view: TimeView; tt: (k: string) => string }) => {
   const salt = `${refreshKey}`;
+  const { range, zoom, timeZone } = view;
   if (isDeviceWidget(w.kind, w.dataSourceId)) {
-    return <DeviceBody w={w} hours={hours} range={range} timeZone={timeZone} refreshKey={refreshKey} tt={tt} />;
+    return <DeviceBody w={w} view={view} refreshKey={refreshKey} tt={tt} />;
+  }
+  if (isEnergyWidget(w.kind, w.dataSourceId)) {
+    return <EnergyBody w={w} view={view} refreshKey={refreshKey} tt={tt} />;
   }
   if (w.kind === "kpi") {
     const k = getKPI(w.dataSourceId, w.metricKey || "", salt);
@@ -516,17 +687,18 @@ const WidgetBody = ({ w, refreshKey, hours, range, timeZone, tt }: { w: Widget; 
     const yLabel = metrics.length === 1 ? metricLabel(metrics[0]) : units.length === 1 && units[0] ? units[0] : undefined;
 
     if (w.kind === "line") {
-      // Mock points are spread evenly over the dashboard's time range, ending now.
+      // Mock points are spread evenly over the zoomed stretch, or over the
+      // dashboard's time range ending now.
       const n = 24;
-      const end = Math.floor(Date.now() / 60_000) * 60_000;
-      const step = (RANGE_MS[range] ?? RANGE_MS["24h"]) / (n - 1);
+      const end = zoom ? zoom[1] : Math.floor(Date.now() / 60_000) * 60_000;
+      const step = (zoom ? zoom[1] - zoom[0] : RANGE_MS[range] ?? RANGE_MS["24h"]) / (n - 1);
       const perMetric = metrics.map((m) => getSeries(w.dataSourceId, m.key, n, salt));
       const rows = Array.from({ length: n }, (_, i) => {
         const row: ChartRow = { t: end - (n - 1 - i) * step };
         metrics.forEach((m, j) => { row[m.key] = perMetric[j][i].y; });
         return row;
       });
-      return <WidgetChart kind="line" rows={rows} series={series} xKey="t" xLabel={`${tt("time")} (${utcOffsetLabel(timeZone)})`} yLabel={yLabel} timeZone={timeZone} />;
+      return <WidgetChart kind="line" rows={rows} series={series} xKey="t" xLabel={`${tt("time")} (${utcOffsetLabel(timeZone)})`} yLabel={yLabel} timeZone={timeZone} onZoom={view.onZoom} />;
     }
 
     const dim = src.dimensions.find((d) => d.key === w.dimensionKey) ?? src.dimensions[0];
@@ -630,12 +802,41 @@ const DashboardCanvas = () => {
   const [refreshInterval, setRefreshInterval] = useState(() => refreshFromSetting(dashboard?.refreshInterval));
   const [timeRange, setTimeRange] = useState(() => rangeFromSetting(dashboard?.timeRange));
   const timeZone = timeZoneFor(lang, dashboard?.timezone);
+  // A stretch selected on a chart. While set, every widget shows it and the
+  // time dropdown reads "custom"; picking any preset clears it.
+  const [zoom, setZoom] = useState<[number, number] | null>(null);
+  const zoomTo = (from: number, to: number) => {
+    setZoom([from, to]);
+    setTimeRange("custom");
+  };
+  const chooseTimeRange = (v: string) => {
+    if (v === "custom") return;
+    setZoom(null);
+    setTimeRange(v);
+  };
+  const view: TimeView = {
+    range: timeRange,
+    zoom,
+    // Fetch far enough back to cover the zoomed stretch (the API allows 1 to 24 hours).
+    hours: zoom ? Math.min(24, Math.max(1, Math.ceil((Date.now() - zoom[0]) / 3_600_000))) : rangeToHours(timeRange),
+    timeZone,
+    onZoom: zoomTo,
+  };
+  const zoomLabel = zoom
+    ? (() => {
+        const from = fmtDayTime(zoom[0], timeZone);
+        const to = fmtDayTime(zoom[1], timeZone);
+        // Same day: show the date once, e.g. "09/14 14:05 to 16:30".
+        return `${from} ${tt("to")} ${from.slice(0, 5) === to.slice(0, 5) ? to.slice(6) : to}`;
+      })()
+    : "";
   // Open with the dashboard's saved settings, and pick them up again if they
   // change. The toolbar can still override them for this visit.
   useEffect(() => {
     if (!dashboard) return;
     setRefreshInterval(refreshFromSetting(dashboard.refreshInterval));
     setTimeRange(rangeFromSetting(dashboard.timeRange));
+    setZoom(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboard?.id, dashboard?.refreshInterval, dashboard?.timeRange]);
   const [fullscreen, setFullscreen] = useState(false);
@@ -734,6 +935,7 @@ const DashboardCanvas = () => {
   const totalRows = useMemo(() => widgets.reduce((m, w) => Math.max(m, w.y + w.h), 6), [widgets]);
   const editing = widgets.find((w) => w.id === configId) || null;
   const editingDevices = !!editing && isDeviceWidget(editing.kind, editing.dataSourceId);
+  const editingEnergy = !!editing && isEnergyWidget(editing.kind, editing.dataSourceId);
 
   if (!dashboard) {
     return (
@@ -814,12 +1016,15 @@ const DashboardCanvas = () => {
           } ${toolbarStuck ? "border-border shadow-sm" : "border-transparent"}`}
         >
           <div className="flex items-center gap-2 flex-wrap">
-            <Select value={timeRange} onValueChange={setTimeRange}>
+            <Select value={timeRange} onValueChange={chooseTimeRange}>
               <SelectTrigger className="h-9 w-auto min-w-[150px] text-xs gap-2">
                 <Calendar className="h-3.5 w-3.5" />
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>{TIME_OPTS.map((o) => <SelectItem key={o.v} value={o.v}>{tt(o.k)}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                {zoom && <SelectItem value="custom">{zoomLabel}</SelectItem>}
+                {TIME_OPTS.map((o) => <SelectItem key={o.v} value={o.v}>{tt(o.k)}</SelectItem>)}
+              </SelectContent>
             </Select>
 
             <div className="flex items-center gap-2 text-xs">
@@ -933,7 +1138,7 @@ const DashboardCanvas = () => {
                 </div>
               </div>
               <div className="flex-1 p-3 overflow-hidden">
-                <WidgetBody w={w} refreshKey={refreshKey} hours={rangeToHours(timeRange)} range={timeRange} timeZone={timeZone} tt={tt} />
+                <WidgetBody w={w} refreshKey={refreshKey} view={view} tt={tt} />
               </div>
               {/* Resize handle */}
               <div
@@ -1011,6 +1216,20 @@ const DashboardCanvas = () => {
                   />
                 )}
 
+                {editingEnergy && (
+                  <EnergySourceFields
+                    deviceId={editing.deviceId}
+                    telemetryKey={editing.telemetryKey}
+                    energyReading={editing.energyReading}
+                    tariff={editing.tariff}
+                    currency={editing.currency}
+                    co2Factor={editing.co2Factor}
+                    hours={rangeToHours(timeRange)}
+                    tt={tt}
+                    onChange={(patch) => updateWidget(editing.id, patch)}
+                  />
+                )}
+
                 {!editingDevices && (editing.kind === "kpi" || editing.kind === "donut") && (
                   <div>
                     <Label className="text-sm">{tt("metric")}</Label>
@@ -1023,7 +1242,7 @@ const DashboardCanvas = () => {
                   </div>
                 )}
 
-                {!editingDevices && (editing.kind === "donut" || editing.kind === "bar") && (
+                {!editingDevices && !editingEnergy && (editing.kind === "donut" || editing.kind === "bar") && (
                   <div>
                     <Label className="text-sm">{tt("dimension")}</Label>
                     <Select value={editing.dimensionKey} onValueChange={(v) => updateWidget(editing.id, { dimensionKey: v })}>

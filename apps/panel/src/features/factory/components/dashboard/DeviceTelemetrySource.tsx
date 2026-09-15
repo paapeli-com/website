@@ -22,9 +22,13 @@ export const DEVICE_WIDGET_KINDS: WidgetKind[] = ["kpi", "line", "bar", "table"]
 export const isDeviceWidget = (kind: WidgetKind, sourceId?: string) =>
   sourceId === DEVICES_SOURCE_ID && DEVICE_WIDGET_KINDS.includes(kind);
 
-/** The data sources a widget of this kind can be bound to. */
+/** The data source that reads an energy meter's telemetry (see EnergySource). */
+export const ENERGY_SOURCE_ID = "energy";
+
+/** The data sources a widget of this kind can be bound to. Devices and Energy
+ *  both read one device's telemetry, which a donut can't show. */
 export const sourcesForKind = (kind: WidgetKind) =>
-  DATA_SOURCES.filter((d) => d.id !== DEVICES_SOURCE_ID || DEVICE_WIDGET_KINDS.includes(kind));
+  DATA_SOURCES.filter((d) => (d.id !== DEVICES_SOURCE_ID && d.id !== ENERGY_SOURCE_ID) || DEVICE_WIDGET_KINDS.includes(kind));
 
 /* The history endpoint takes a lookback in hours and clamps it to 1–24, so
    any dashboard range longer than a day shows the last 24 hours, and ranges
@@ -33,9 +37,9 @@ export const rangeToHours = (range: string) => (range === "1h" || range === "15m
 
 type Telemetry = Record<string, EntityFieldItem[]>;
 
-/** Only the readings at or after `since` (ms). */
-export const sliceTelemetry = (data: Telemetry | undefined, since: number): Telemetry | undefined =>
-  data && Object.fromEntries(Object.entries(data).map(([k, points]) => [k, points.filter((p) => Number(p.ts) >= since)]));
+/** Only the readings from `since` to `until` (ms), inclusive. */
+export const sliceTelemetry = (data: Telemetry | undefined, since: number, until = Infinity): Telemetry | undefined =>
+  data && Object.fromEntries(Object.entries(data).map(([k, points]) => [k, points.filter((p) => Number(p.ts) >= since && Number(p.ts) <= until)]));
 
 /** The stretches of [start, end] with no reading: before the first one, after
  *  the last one, and between readings much further apart than the device's
@@ -102,6 +106,12 @@ const partsIn = (ms: number, timeZone?: string) => {
 export const fmtDateTime = (ms: number, timeZone?: string) => {
   const p = partsIn(ms, timeZone);
   return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
+};
+
+/** Month, day and clock time, e.g. "09/14 17:53". */
+export const fmtDayTime = (ms: number, timeZone?: string) => {
+  const p = partsIn(ms, timeZone);
+  return `${p.month}/${p.day} ${p.hour}:${p.minute}`;
 };
 
 /** A time-axis tick: clock time within a day and a half, the date beyond. */
