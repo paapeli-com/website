@@ -16,17 +16,31 @@ import { Badge } from "@/features/factory/components/ui/badge";
 import { Checkbox } from "@/features/factory/components/ui/checkbox";
 import { Textarea } from "@/features/factory/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/features/factory/components/ui/sheet";
-import { Plus, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Trash2, ChevronLeft, ChevronRight, DatabaseZap } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import type { AlertRuleWizardStep, ConditionOperator, AlertSeverity, RuleType, LogicOperator } from "@/features/factory/types/alerts";
-import { NoData } from "@/features/factory/components/NoData";
 import { useChannelsStore, useEscalationsStore } from "@/features/factory/hooks/useAlertStore";
 import { useToast } from "@/features/factory/hooks/use-toast";
 import { useDevices } from "@/features/factory/hooks/useDevices";
-import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useDeviceTelemetry } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { UI_TO_API_SEVERITY } from "./alarmRuleMapping";
+
+/* An empty list the user can fix themselves: says what is missing and, when
+   given an action, links to where it's created. Laid out like NoData. */
+const EmptyState = ({ message, action }: { message: string; action?: { label: string; onClick: () => void } }) => (
+  <div className="flex flex-col items-center justify-center gap-2 py-6 text-center">
+    <DatabaseZap className="h-7 w-7 text-muted-foreground/40" />
+    <p className="text-sm text-muted-foreground">{message}</p>
+    {action && (
+      <Button variant="outline" size="sm" className="mt-1" onClick={action.onClick}>
+        <Plus className="h-3 w-3 me-1" />{action.label}
+      </Button>
+    )}
+  </div>
+);
 
 const severityColors: Record<string, string> = {
   critical: "bg-destructive text-destructive-foreground",
@@ -138,9 +152,10 @@ const toExpression = (groups: ConditionGroupData[]): RuleExpression => {
 };
 
 export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onActionsChange, onCancel, onCreated }: AlertRuleWizardProps) => {
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, language } = useLanguage();
   const { toast } = useToast();
   const tt = t as (k: string) => string;
+  const navigate = useNavigate();
   const workspaceId = useWorkspaceId();
   const { items: devices, isLoading: devicesLoading } = useDevices();
   const createAlarmRule = useCreateAlarmRuleMutation();
@@ -156,8 +171,6 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
   const [ruleDescription, setRuleDescription] = useState("");
   const [ruleType, setRuleType] = useState<RuleType>("threshold");
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
-  const [deviceType, setDeviceType] = useState("");
-  const [locationScope, setLocationScope] = useState("");
 
   // Step 2: Conditions
   const [conditionGroups, setConditionGroups] = useState<ConditionGroupData[]>([
@@ -170,8 +183,9 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
   // Step 4: Escalation
   const [escalationPolicyId, setEscalationPolicyId] = useState("");
 
-  // Step 5: Notifications
-  const [selectedChannels, setSelectedChannels] = useState<string[]>(['NC-001']);
+  // Step 5: Notifications. Nothing is pre-selected: the old 'NC-001' default
+  // was a sample channel id, counted in the summary though it never existed.
+  const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
 
   // Step 6: Assignment
   const [assignedTeam, setAssignedTeam] = useState("");
@@ -219,6 +233,10 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
           }
         : g
     ));
+  };
+
+  const removeConditionGroup = (groupId: string) => {
+    setConditionGroups(prev => prev.filter(g => g.id !== groupId));
   };
 
   const addConditionGroup = () => {
@@ -321,10 +339,6 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
     return Array.from(new Set([...Object.keys(sampleTelemetry ?? {}).sort(), ...common]));
   }, [sampleTelemetry]);
   const operators: ConditionOperator[] = ['>', '<', '=', '!=', '>=', '<=', 'between', 'change_rate'];
-  const deviceTypes = ['temperature_sensor', 'vibration_sensor', 'pressure_sensor', 'flow_meter', 'power_meter', 'pump', 'compressor', 'furnace'];
-  // The product asset tree, as the device and dashboard forms list it. The
-  // alarm-rule API has no location field, so the choice isn't sent (yet).
-  const { options: locationOptions, isLoading: locationsLoading } = useAssetLocations();
 
   const BackIcon = isRTL ? ChevronRight : ChevronLeft;
   const NextIcon = isRTL ? ChevronLeft : ChevronRight;
@@ -389,7 +403,7 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
                 <Label>{t("alertScopeDevices")}</Label>
                 <div className="space-y-1 max-h-32 overflow-y-auto border rounded-md p-2">
                   {devicesLoading && <span className="text-sm text-muted-foreground">{tt("loading")}</span>}
-                  {!devicesLoading && devices.length === 0 && <NoData />}
+                  {!devicesLoading && devices.length === 0 && <EmptyState message={tt("alertNoDevicesYet")} />}
                   {devices.map(dev => {
                     const id = dev.id;
                     return (
@@ -405,28 +419,6 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
                     );
                   })}
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label>{t("alertScopeDeviceType")}</Label>
-                <Select value={deviceType} onValueChange={setDeviceType}>
-                  <SelectTrigger><SelectValue placeholder={t("alertSelectDeviceType")} /></SelectTrigger>
-                  <SelectContent>
-                    {deviceTypes.map(dt => <SelectItem key={dt} value={dt}>{dt.replace('_', ' ')}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>{t("alertScopeLocation")}</Label>
-                <Select value={locationScope} onValueChange={setLocationScope}>
-                  <SelectTrigger><SelectValue placeholder={t("alertSelectLocation")} /></SelectTrigger>
-                  <SelectContent>
-                    {locationsLoading && <div className="px-2 py-1.5 text-sm text-muted-foreground">{tt("loading")}</div>}
-                    {!locationsLoading && locationOptions.length === 0 && <NoData />}
-                    {locationOptions.map(loc => (
-                      <SelectItem key={loc.id} value={loc.id}>{loc.path}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           )}
@@ -447,6 +439,9 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
                         </SelectContent>
                       </Select>
                       <span className="text-xs text-muted-foreground">{t("alertConditionGroupLabel")}</span>
+                      <Button variant="ghost" size="sm" className="ms-auto text-destructive" onClick={() => removeConditionGroup(group.id)}>
+                        <Trash2 className="h-3 w-3 me-1" />{tt("alertRemoveConditionGroup")}
+                      </Button>
                     </div>
                   )}
                   {group.conditions.map((cond, ci) => (
@@ -559,7 +554,12 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
             <div className="space-y-4">
               <Label>{t("alertSelectEscalation")}</Label>
               <div className="space-y-3">
-                {escalationPolicies.length === 0 && <NoData />}
+                {escalationPolicies.length === 0 && (
+                  <EmptyState
+                    message={tt("alertNoEscalationsYet")}
+                    action={{ label: t("alertCreateEscalation"), onClick: () => navigate(localizedPath("/alarms/escalation/new", language)) }}
+                  />
+                )}
                 {escalationPolicies.map(policy => (
                   <button
                     key={policy.id}
@@ -589,7 +589,12 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
             <div className="space-y-4">
               <Label>{t("alertSelectChannels")}</Label>
               <div className="space-y-2">
-                {notificationChannels.length === 0 && <NoData />}
+                {notificationChannels.length === 0 && (
+                  <EmptyState
+                    message={tt("alertNoChannelsYet")}
+                    action={{ label: t("alertAddChannel"), onClick: () => navigate(localizedPath("/alarms/channels/new", language)) }}
+                  />
+                )}
                 {notificationChannels.map(channel => (
                   <label key={channel.id} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/30">
                     <Checkbox
