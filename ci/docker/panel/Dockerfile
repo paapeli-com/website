@@ -15,7 +15,7 @@ RUN pnpm install --frozen-lockfile
 # panel call its own domain, where server.mjs's SPA fallback returns the HTML
 # shell with a 200 and every query resolves to markup. config.ts also treats
 # blank as unset, so both ends have to fail before that can ship again.
-ARG PAAPELI_API_BASE_URL=https://gateway-mini.paapeli.me
+ARG PAAPELI_API_BASE_URL=https://api.paapeli.me
 ENV PAAPELI_API_BASE_URL=$PAAPELI_API_BASE_URL
 # ONE Vite build. This used to be five independent builds whose outputs were
 # stitched together at runtime via Module Federation; features are now
