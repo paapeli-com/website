@@ -117,7 +117,7 @@ const Gateways = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [credentialsOpen, setCredentialsOpen] = useState(false);
-  const [credentials, setCredentials] = useState<{ name: string; gatewayId: string; pairingKey: string } | null>(null);
+  const [credentials, setCredentials] = useState<{ name: string; gatewayId: string; pairingKey: string; authMethod?: string } | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Show credentials returned from GatewayForm
@@ -478,7 +478,7 @@ const Gateways = () => {
                 </div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground mb-1">{t("pairingKey")}</div>
+                <div className="text-xs text-muted-foreground mb-1">{t(credentials.authMethod === "accessToken" ? "accessTokenUsername" : "pairingKey")}</div>
                 <div className="flex gap-2">
                   <Input value={credentials.pairingKey} readOnly className="font-mono" />
                   <Button variant="outline" size="icon" onClick={() => copy(credentials.pairingKey, "key")}>

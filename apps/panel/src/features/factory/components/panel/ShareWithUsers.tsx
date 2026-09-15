@@ -17,12 +17,24 @@ interface Props {
   value: string[];
   onChange?: (ids: string[]) => void;
   readOnly?: boolean;
+  /** What is being shared, for the message shown when there's no one to share it with. */
+  subject?: "device" | "gateway";
 }
 
-export const ShareWithUsers = ({ value, onChange, readOnly = false }: Props) => {
+export const ShareWithUsers = ({ value, onChange, readOnly = false, subject = "device" }: Props) => {
   const { t, isRTL } = useLanguage();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+
+  // Nobody else is in the workspace yet: say so instead of offering an empty picker.
+  if (ORG_USERS.length === 0) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Users className="h-4 w-4 shrink-0" />
+        {t(subject === "gateway" ? "shareNoMembersGateway" : "shareNoMembersDevice")}
+      </div>
+    );
+  }
 
   const toggle = (id: string) => {
     if (!onChange) return;

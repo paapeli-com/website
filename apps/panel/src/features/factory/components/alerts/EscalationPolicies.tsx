@@ -53,7 +53,7 @@ export const EscalationPolicies = ({ onCreateClick }: EscalationPoliciesProps) =
       </div>
 
 
-      {policies.length === 0 && <NoData />}
+      {policies.length === 0 && <NoData message={tt("alertNoEscalationsCreateFirst")} />}
 
       <div className="grid gap-4">
         {policies.map(policy => {

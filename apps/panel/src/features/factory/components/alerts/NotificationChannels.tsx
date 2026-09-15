@@ -238,7 +238,7 @@ export const NotificationChannels = ({ onCreateClick }: NotificationChannelsProp
                   {/* Nothing stored at all is "no data"; nothing matching the
                       current search/filters is an empty result set. */}
                   {channels.length === 0 ? (
-                    <NoData />
+                    <NoData message={tt("alertNoChannelsCreateFirst")} />
                   ) : (
                     <p className="text-center text-sm text-muted-foreground py-10">{tt("noResults") || "No results"}</p>
                   )}

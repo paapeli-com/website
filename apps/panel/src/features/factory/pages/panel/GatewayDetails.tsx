@@ -601,7 +601,7 @@ const GatewayDetails = () => {
             <Card>
               <CardHeader><CardTitle className="text-base">{t("shareWithUsers")}</CardTitle></CardHeader>
               <CardContent>
-                <ShareWithUsers value={gateway.sharedUsers || []} readOnly />
+                <ShareWithUsers value={gateway.sharedUsers || []} readOnly subject="gateway" />
               </CardContent>
             </Card>
             <DeploymentCard gateway={gateway} t={t} toast={toast} />
@@ -1139,7 +1139,8 @@ const CredentialsDialog = ({ open, onOpenChange, credentials, t, fa, toast }: an
             </div>
           </div>
           <div>
-            <div className="text-xs text-muted-foreground mb-1">{t("pairingKey")}</div>
+            {/* With token auth the key is the access token, sent as the MQTT username. */}
+            <div className="text-xs text-muted-foreground mb-1">{t(credentials.authMethod === "accessToken" ? "accessTokenUsername" : "pairingKey")}</div>
             <div className="flex gap-2">
               <Input value={credentials.pairingKey} readOnly className="font-mono" dir="ltr" />
               <Button variant="outline" size="icon" className="shrink-0" onClick={() => copy(credentials.pairingKey, "key")}>
@@ -1230,7 +1231,7 @@ const EditGatewaySheet = ({ open, onOpenChange, gateway, isRTL }: any) => {
           </div>
           <div>
             <Label className="mb-2 block">{t("shareWithUsers")}</Label>
-            <ShareWithUsers value={shared} onChange={setShared} />
+            <ShareWithUsers value={shared} onChange={setShared} subject="gateway" />
           </div>
         </div>
         <SheetFooter className="gap-2">
