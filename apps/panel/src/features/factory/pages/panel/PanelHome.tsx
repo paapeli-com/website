@@ -15,6 +15,9 @@ import {
   ChevronRight,
   Wrench as Operations,
 } from "lucide-react";
+import { useGetWorkspaceAlarmsQuery, type WorkspaceAlarmItem } from "@paapeli/api";
+import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
+import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useDevices } from "@/features/factory/hooks/useDevices";
 import { useDashboards } from "@/features/factory/hooks/useDashboards";
 import { useWorkOrders } from "@/features/factory/hooks/useWorkOrders";
@@ -56,6 +59,37 @@ const D: Record<string, Record<Lang, string>> = {
   noData: { en: "No data", ar: "لا توجد بيانات", fa: "فاقد دیتا" },
 };
 
+/* "Needs attention" = an alarm nobody has acknowledged yet. The gateway's
+   statuses are ThingsBoard's: ACTIVE_UNACK, ACTIVE_ACK, CLEARED_UNACK,
+   CLEARED_ACK — so anything cleared, or already acknowledged, is out. */
+const isUnacknowledged = (a: WorkspaceAlarmItem) => {
+  const s = a.status?.toUpperCase() ?? "";
+  return !s.startsWith("CLEARED") && s !== "ACTIVE_ACK";
+};
+
+const SEVERITY_DOT: Record<string, string> = {
+  CRITICAL: "bg-red-500",
+  MAJOR: "bg-orange-500",
+  MINOR: "bg-amber-500",
+  WARNING: "bg-amber-500",
+};
+const severityDot = (severity?: string) => SEVERITY_DOT[severity?.toUpperCase() ?? ""] ?? "bg-blue-500";
+
+/** "5 minutes ago" in the panel's language — nothing of our own to translate. */
+const timeAgo = (iso: string, lang: Lang): string => {
+  const at = new Date(iso).getTime();
+  if (!at) return "";
+  const rtf = new Intl.RelativeTimeFormat(lang, { numeric: "auto" });
+  const minutes = Math.floor(Math.max(0, Date.now() - at) / 60_000);
+  if (minutes < 60) return rtf.format(-Math.max(1, minutes), "minute");
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return rtf.format(-hours, "hour");
+  return rtf.format(-Math.floor(hours / 24), "day");
+};
+
+/** How many rows the Attention card shows before "View all". */
+const ATTENTION_ROWS = 5;
+
 // Walk locations tree from localStorage and count location-typed nodes.
 function countLocations(): number {
   try {
@@ -87,9 +121,23 @@ export default function PanelHome() {
   const { items: dashboards } = useDashboards();
   const { items: workOrders } = useWorkOrders();
 
+  /* Alarms for this workspace product — the Attention card lists the
+     unacknowledged ones, and the alarm count below is how many there are. */
+  const workspaceId = useWorkspaceId();
+  const { data: alarms, isLoading: alarmsLoading } = useGetWorkspaceAlarmsQuery(
+    workspaceId ?? "", PRODUCT_KEY,
+  );
+  const attention = useMemo(
+    () => (alarms ?? [])
+      .filter(isUnacknowledged)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [alarms],
+  );
+  const alarmsPending = alarmsLoading || !workspaceId;
+
   /* --- Counts from sources of truth ---
-     Assets, locations, dashboards and work orders come from real stores.
-     Alarms, AI findings and OTA campaigns were counted off mock catalogues —
+     Assets, locations, dashboards, work orders and alarms come from real
+     sources. AI findings and OTA campaigns were counted off mock catalogues —
      there are no endpoints for them, so they read `null` and the cards show
      "no data" instead of a number that looks measured. */
   const assetCount = devices.length;
@@ -99,7 +147,9 @@ export default function PanelHome() {
   ).length;
   const dashboardCount = dashboards.length;
 
-  const activeAlarmCount: number | null = null;
+  // Null only while the list is still loading, so the tile says "no data"
+  // rather than a zero it hasn't confirmed.
+  const activeAlarmCount: number | null = alarmsPending ? null : attention.length;
   const aiFindings: number | null = null;
   const otaCampaigns: number | null = null;
 
@@ -122,10 +172,10 @@ export default function PanelHome() {
     { icon: Operations, label: tr("operations"), sub: `${fn(openWorkOrders)} ${tr("workOrders")}`, to: "/work-orders", color: "text-sky-600", bg: "bg-sky-50 dark:bg-sky-950/30" },
   ];
 
-  /* Attention, Activity and System Health had no source at all: the five rows
-     in each were written by hand (asset names, "2 min ago", every service
-     green) and re-rendered identically on every visit. They stay as empty
-     panels until there is a feed behind them. */
+  /* Activity and System Health had no source at all: the five rows in each
+     were written by hand (asset names, "2 min ago", every service green) and
+     re-rendered identically on every visit. They stay as empty panels until
+     there is a feed behind them. Attention now reads real alarms. */
   const Chevron = () => <ChevronRight className={`h-4 w-4 text-muted-foreground shrink-0 ${isRTL ? "rotate-180" : ""}`} />;
 
   return (
@@ -187,7 +237,29 @@ export default function PanelHome() {
         <div className="grid lg:grid-cols-2 gap-4">
           <Card className="p-5">
             <h2 className="text-sm font-semibold text-foreground mb-3 text-start">{tr("thingsNeedAttention")}</h2>
-            <NoData size="sm" />
+            {/* Unacknowledged alarms, newest first. Each row opens the Alarms page. */}
+            {attention.length === 0 ? (
+              !alarmsPending && <NoData size="sm" />
+            ) : (
+              <div className="space-y-1">
+                {attention.slice(0, ATTENTION_ROWS).map((a) => (
+                  <button
+                    key={a.id}
+                    onClick={() => navigate(lp("/alarms"))}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-start transition-colors hover:bg-muted/40"
+                  >
+                    <span className={`h-2 w-2 shrink-0 rounded-full ${severityDot(a.severity)}`} aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-foreground">{a.alarmName}</span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {a.deviceName ? `${a.deviceName} · ${timeAgo(a.createdAt, language as Lang)}` : timeAgo(a.createdAt, language as Lang)}
+                      </span>
+                    </span>
+                    <Chevron />
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="mt-3 text-center">
               <button onClick={() => navigate(lp("/alarms"))} className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1">
                 {tr("viewAll")} <ChevronRight className={`h-3 w-3 ${isRTL ? "rotate-180" : ""}`} />
