@@ -66,6 +66,8 @@ interface Device {
   device_id?: string;
   deviceID?: string;
   protocol: string;
+  /** Server-reported connectivity; drives the online/offline status. */
+  active?: boolean;
   location?: string;
   gateway?: string;
   tags?: string;
@@ -104,17 +106,18 @@ interface DeviceCredentials {
    and a live reading like "24.3°C". They were stable per device, so they
    looked like real telemetry — a device you had just created appeared to be
    online in Qazvin reporting a temperature. Only what the API actually
-   returns is shown now; the rest reads "no data" until there is a source. */
+   returns is shown now — status comes from the API's `active` flag; the rest
+   reads "no data" until there is a source. */
 const hasPersianText = (value: string) => /[\u0600-\u06FF]/.test(value);
 const persianTextClass = (value: string) => hasPersianText(value) ? "font-vazirmatn" : "";
 
 const getDeviceMeta = (device: Device, t: (k: any) => string) => {
   const noData = t("noData");
   return {
-    // No telemetry endpoint, so no sensor type, status or last reading.
+    // No telemetry endpoint, so no sensor type or last reading.
     sensorType: noData,
-    statusLabel: noData,
-    statusColor: "bg-muted-foreground/40",
+    statusLabel: device.active ? t("online") : t("offline"),
+    statusColor: device.active ? "bg-emerald-500" : "bg-muted-foreground/50",
     lastValue: noData,
     location: device.location || noData,
     gateway: device.gateway || noData,
@@ -352,10 +355,10 @@ const Devices = () => {
   };
 
   const getDeviceLocation = (d: Device) => d.location || (d as any).label || '';
-  /* Only a status the API actually reports; there is no fallback any more, so
-     an unknown status matches nothing but the "all" filter. */
-  const getDeviceStatus = (d: Device) =>
-    String((d as any).status || (d as any).state || '').toLowerCase();
+  /* The API reports connectivity as the boolean `active`; there is no third
+     "error" state behind it. */
+  const getDeviceStatus = (d: Device): 'online' | 'offline' =>
+    d.active ? 'online' : 'offline';
 
   const getDeviceTypeStr = (d: Device) => String((d as any).deviceType || (d as any).sensorType || (d as any).type || '');
 
@@ -365,6 +368,7 @@ const Devices = () => {
       deviceId: u.deviceId,
       name: u.name,
       protocol: u.protocol,
+      active: u.active,
       gateway: u.gateway,
       tags: u.tags,
       description: u.description,
@@ -494,7 +498,7 @@ const Devices = () => {
                 onChange: (v) => { setStatusFilter(v); setCurrentPage(1); },
                 options: [
                   { value: 'all', label: t('all') },
-                  ...Array.from(new Set(mergedDevices.map(getDeviceStatus))).filter(Boolean).map((s) => ({ value: s, label: s })),
+                  ...Array.from(new Set(mergedDevices.map(getDeviceStatus))).map((s) => ({ value: s, label: t(s) })),
                 ],
               },
               {
@@ -591,22 +595,18 @@ const Devices = () => {
                 />
 
                 {(() => {
-                  /* Total is a real count of what the API returned. Online,
-                     offline and errors used to be tallied from the hashed
-                     status above, so they added up to the device count and
-                     read as a live fleet summary — they have no source. */
+                  /* Total, online and offline are real counts from the API's
+                     `active` flag. Errors has no source — the API reports no
+                     error state — so it stays "no data" rather than a 0. */
                   const total = mergedDevices.length;
-                  const statuses = mergedDevices.map((d) => getDeviceStatus(d));
-                  const countOf = (name: string) => {
-                    const n = statuses.filter((v) => v === name).length;
-                    return statuses.some(Boolean) ? n : null;
-                  };
+                  const countOf = (name: string) =>
+                    mergedDevices.filter((d) => getDeviceStatus(d) === name).length;
 
                   const kpis: { label: string; value: number | null; icon: typeof Box; accent: string; bg: string; filter: string }[] = [
                     { label: t('totalDevices') || 'Total Devices', value: total, icon: Box, accent: 'text-primary', bg: 'from-primary/10 to-transparent', filter: 'all' },
                     { label: t('online') || 'Online', value: countOf('online'), icon: Wifi, accent: 'text-emerald-500', bg: 'from-emerald-50 to-transparent dark:from-emerald-500/10', filter: 'online' },
                     { label: t('offline') || 'Offline', value: countOf('offline'), icon: WifiOff, accent: 'text-muted-foreground', bg: 'from-muted/40 to-transparent', filter: 'offline' },
-                    { label: t('errorStatus') || 'Errors', value: countOf('error'), icon: AlertTriangle, accent: 'text-red-500', bg: 'from-red-50 to-transparent dark:from-red-500/10', filter: 'error' },
+                    { label: t('errorStatus') || 'Errors', value: null, icon: AlertTriangle, accent: 'text-red-500', bg: 'from-red-50 to-transparent dark:from-red-500/10', filter: 'error' },
                   ];
                   return (
                     <KpiSection storageKey="devices" className="mb-4">

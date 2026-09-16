@@ -24,6 +24,7 @@ import { useDevices } from "@/features/factory/hooks/useDevices";
 import { useToast } from "@/features/factory/hooks/use-toast";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 import { SEVERITY_RANK, apiSeverityToUi } from "./alarmRuleMapping";
 
 /* One request covers the workspace: the API clamps page size to 1–100. Page 0
@@ -118,11 +119,18 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
   // Creating and deleting are asynchronous server-side, so poll while any
   // rule is still on its way in or out.
   const [inFlight, setInFlight] = useState(false);
-  const { data, isLoading, isError, isFetching, refetch } = useGetWorkspaceAlarmRulesQuery(
+  const { data, isLoading, isError, error, isFetching, refetch } = useGetWorkspaceAlarmRulesQuery(
     workspaceId ?? "", PRODUCT_KEY, RULES_PAGE, RULES_PAGE_SIZE,
     { refetchInterval: inFlight ? 5000 : false },
   );
   const rules = useMemo(() => (data?.data ?? []).map(toRow), [data]);
+  // A failed load surfaces as a toast, once per failure, rather than as a
+  // table row; the table falls through to its empty state.
+  useEffect(() => {
+    if (!isError) return;
+    toast({ title: tt("error"), description: apiErrorMessage(error, tt("alertRulesLoadFailed")), variant: "destructive" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isError]);
   useEffect(() => {
     setInFlight(rules.some((r) => r.state === "PROVISIONING" || r.state === "DELETING"));
   }, [rules]);
@@ -274,12 +282,7 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
           </TableHeader>
           <TableBody>
             {isLoading && <TableRowsSkeleton rows={4} columns={6} />}
-            {!isLoading && isError && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-sm text-destructive py-10">{tt("alertRulesLoadFailed")}</TableCell>
-              </TableRow>
-            )}
-            {!isLoading && !isError && paged.length === 0 && (
+            {!isLoading && paged.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="p-0">
                   {/* Nothing on the server is "no data"; nothing matching the

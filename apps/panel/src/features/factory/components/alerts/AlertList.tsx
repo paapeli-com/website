@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { LocationCell } from "@/features/factory/components/panel/LocationCell";
 import { Badge } from "@/features/factory/components/ui/badge";
@@ -20,6 +20,7 @@ import { NoData } from "@/features/factory/components/NoData";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import type { Alert, AlertSeverity, AlertStatus } from "@/features/factory/types/alerts";
 import { cn } from "@/shared/lib/utils";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
 import {
   useAckAlarmMutation,
@@ -134,6 +135,13 @@ export const AlertList = () => {
      query is disabled, which still counts as loading. */
   const alarmsQuery = useGetWorkspaceAlarmsQuery(workspaceId ?? "", PRODUCT_KEY);
   const alertsLoading = alarmsQuery.isLoading || !workspaceId;
+  // A failed load surfaces as a toast, once per failure, rather than as inline
+  // text; the table just renders empty.
+  useEffect(() => {
+    if (!alarmsQuery.isError) return;
+    toast({ title: tt("error"), description: apiErrorMessage(alarmsQuery.error, tt("alertsLoadFailed")), variant: "destructive" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alarmsQuery.isError]);
   const alerts: Alert[] = useMemo(() => {
     const pathById = new Map(assetLocations.map((o) => [o.id, o.path]));
     return (alarmsQuery.data ?? []).map((a) => toAlert(a, a.assetId ? pathById.get(a.assetId) : undefined));
@@ -380,10 +388,6 @@ export const AlertList = () => {
         );
       })()}
 
-
-      {alarmsQuery.isError && (
-        <p className="text-sm text-destructive">{tt("alertsLoadFailed")}</p>
-      )}
 
       {/* Table */}
       <div className="rounded-lg border bg-card overflow-hidden text-sm [&_th]:text-xs [&_td]:text-sm [&_th]:h-10 [&_td]:p-3">
