@@ -37,22 +37,44 @@ const WORKSPACE_ALARMS_MAX_PAGES = 50;
  * Every alarm in the workspace product, walking all pages into one array.
  * Keyed ['workspaceAlarms', ws, pk], which the ack/clear mutations invalidate.
  */
+async function fetchAllWorkspaceAlarms(workspaceId: string, productKey: string) {
+    const all: WorkspaceAlarmItem[] = [];
+    // Pages are one-based.
+    for (let page = 1; page <= WORKSPACE_ALARMS_MAX_PAGES; page++) {
+        const res = await alarmService.getWorkspaceAlarms(
+            workspaceId, productKey, page, WORKSPACE_ALARMS_PAGE_SIZE,
+        );
+        all.push(...(res.data ?? []));
+        if (!res.hasNext) break;
+    }
+    return all;
+}
+
 export function useGetWorkspaceAlarmsQuery(workspaceId: string, productKey: string, enabled = true) {
     return useQuery({
         queryKey: ['workspaceAlarms', workspaceId, productKey, 'all'],
-        queryFn: async (): Promise<WorkspaceAlarmItem[]> => {
-            const all: WorkspaceAlarmItem[] = [];
-            // Pages are one-based.
-            for (let page = 1; page <= WORKSPACE_ALARMS_MAX_PAGES; page++) {
-                const res = await alarmService.getWorkspaceAlarms(
-                    workspaceId, productKey, page, WORKSPACE_ALARMS_PAGE_SIZE,
-                );
-                all.push(...(res.data ?? []));
-                if (!res.hasNext) break;
-            }
-            return all;
-        },
+        queryFn: () => fetchAllWorkspaceAlarms(workspaceId, productKey),
         enabled: enabled && !!workspaceId && !!productKey,
+    });
+}
+
+/**
+ * The same list for several products at once — for callers that aren't scoped
+ * to one (the shell's notifications menu). Keys match
+ * useGetWorkspaceAlarmsQuery's, so both share the cache and the ack/clear
+ * mutations' invalidations refresh them together.
+ */
+export function useGetWorkspaceAlarmsQueries(
+    workspaceId: string,
+    productKeys: string[],
+    enabled = true,
+) {
+    return useQueries({
+        queries: productKeys.map((productKey) => ({
+            queryKey: ['workspaceAlarms', workspaceId, productKey, 'all'],
+            queryFn: () => fetchAllWorkspaceAlarms(workspaceId, productKey),
+            enabled: enabled && !!workspaceId && !!productKey,
+        })),
     });
 }
 

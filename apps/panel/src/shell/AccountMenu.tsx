@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { Check, ChevronDown, LayoutGrid, LogOut, Plus, Settings, SlidersHorizontal } from "lucide-react";
 import { useListActiveWorkspacesQuery } from "@paapeli/api";
 import { getCurrentUser, signOut as endSession } from "@paapeli/brand/session";
@@ -110,7 +109,10 @@ export function AccountMenu() {
           <div className="px-2 py-1">
             <button
               onClick={() => {
-                toast.info(t("Create new workspace"), { description: t("Coming soon.") });
+                // Both rows land on Cloud Management's Workspaces page: it lists
+                // the workspaces and holds the create form (see its "Create new
+                // workspace" panel).
+                navigate("/CloudManagement/workspaces");
                 close();
               }}
               className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-sm text-foreground transition-colors hover:bg-muted"
@@ -120,7 +122,7 @@ export function AccountMenu() {
             </button>
             <button
               onClick={() => {
-                toast.info(t("Manage workspaces"), { description: t("Coming soon.") });
+                navigate("/CloudManagement/workspaces");
                 close();
               }}
               className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-sm text-foreground transition-colors hover:bg-muted"

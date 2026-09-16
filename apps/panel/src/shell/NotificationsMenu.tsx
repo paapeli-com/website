@@ -1,14 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AlertTriangle, Bell } from "lucide-react";
+import {
+  useGetWorkspaceAlarmsQueries,
+  useListWorkspaceProductsQuery,
+  type WorkspaceAlarmItem,
+} from "@paapeli/api";
+import { useActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { cn } from "@/shared/lib/utils";
 import { useShellT } from "@/shared/i18n/shell";
+import { useAppLanguage, type AppLanguage } from "@/shared/i18n/appLanguage";
 
 type Tone = "critical" | "warning" | "info";
 type Category = "alarm" | "billing" | "system";
 
 interface Notification {
-  id: number;
+  id: string;
   category: Category;
   tone: Tone;
   title: string;
@@ -16,13 +23,42 @@ interface Notification {
   time: string;
 }
 
-/* No notifications feed yet.
+/* The alarm half of the feed is real: every alarm of every product the active
+   workspace is subscribed to (the shell isn't scoped to one product, so it
+   asks each). Billing and system have no endpoint yet, so those tabs stay
+   empty rather than showing invented entries.
 
-   These four were invented — a critical alarm on Line 2, a predicted pump
-   failure, a low wallet balance and a paid invoice — with fixed "4 minutes
-   ago" timestamps that never advanced, and they lit the unread dot on the
-   bell every time the panel loaded. Empty until there is a feed. */
-const NOTIFICATIONS: Notification[] = [];
+   There is no read/unread state on the server either — "mark all read" stays
+   a local dismissal of the bell's dot for this session. */
+const MAX_NOTIFICATIONS = 20;
+
+const alarmTone = (severity?: string): Tone => {
+  const s = severity?.toUpperCase();
+  if (s === "CRITICAL") return "critical";
+  if (s === "MAJOR" || s === "MINOR" || s === "WARNING") return "warning";
+  return "info";
+};
+
+/** "5 minutes ago" in the panel's language — no strings of our own to translate. */
+const timeAgo = (iso: string, lang: AppLanguage): string => {
+  const at = new Date(iso).getTime();
+  if (!at) return "";
+  const rtf = new Intl.RelativeTimeFormat(lang, { numeric: "auto" });
+  const minutes = Math.floor(Math.max(0, Date.now() - at) / 60_000);
+  if (minutes < 60) return rtf.format(-Math.max(1, minutes), "minute");
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return rtf.format(-hours, "hour");
+  return rtf.format(-Math.floor(hours / 24), "day");
+};
+
+const toNotification = (a: WorkspaceAlarmItem, lang: AppLanguage): Notification => ({
+  id: a.id,
+  category: "alarm",
+  tone: alarmTone(a.severity),
+  title: a.alarmName,
+  source: a.deviceName ?? a.assetName ?? "",
+  time: timeAgo(a.createdAt, lang),
+});
 
 const TONE_STYLES: Record<Tone, string> = {
   critical: "bg-destructive/10 text-destructive",
@@ -46,6 +82,24 @@ export function NotificationsMenu() {
   const [readAll, setReadAll] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const t = useShellT();
+  const lang = useAppLanguage();
+
+  const workspaceId = useActiveWorkspaceId();
+  const { data: products } = useListWorkspaceProductsQuery(workspaceId ?? "");
+  const productKeys = useMemo(() => (products ?? []).map((p) => p.productKey), [products]);
+  const alarmQueries = useGetWorkspaceAlarmsQueries(workspaceId ?? "", productKeys);
+  const loading = !!workspaceId && (!products || alarmQueries.some((q) => q.isLoading));
+  const alarmsVersion = alarmQueries.map((q) => q.dataUpdatedAt).join(",");
+  const notifications = useMemo(
+    () => alarmQueries
+      .flatMap((q) => q.data ?? [])
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, MAX_NOTIFICATIONS)
+      .map((a) => toNotification(a, lang)),
+    // alarmQueries is a new array every render; its data changes are what alarmsVersion tracks.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [alarmsVersion, lang],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -56,9 +110,9 @@ export function NotificationsMenu() {
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [open]);
 
-  const items = tab === "all" ? NOTIFICATIONS : NOTIFICATIONS.filter((n) => n.category === tab);
+  const items = tab === "all" ? notifications : notifications.filter((n) => n.category === tab);
 
-  const hasUnread = NOTIFICATIONS.length > 0 && !readAll;
+  const hasUnread = notifications.length > 0 && !readAll;
 
   const handleMarkAllRead = () => {
     setReadAll(true);
@@ -99,7 +153,7 @@ export function NotificationsMenu() {
           <div className="max-h-96 overflow-y-auto">
             {items.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-                {t(NOTIFICATIONS.length === 0 ? "No data" : "Nothing here yet.")}
+                {t(loading ? "Loading…" : notifications.length === 0 ? "No data" : "Nothing here yet.")}
               </p>
             ) : (
               items.map((n) => (
@@ -108,9 +162,10 @@ export function NotificationsMenu() {
                     <AlertTriangle className="size-4" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground">{t(n.title)}</p>
+                    {/* Alarm and device names come from the server — not translatable. */}
+                    <p className="text-sm font-semibold text-foreground">{n.title}</p>
                     <p className="text-sm text-muted-foreground">
-                      {t(n.source)} · {t(n.time)}
+                      {n.source ? `${n.source} · ${n.time}` : n.time}
                     </p>
                   </div>
                 </div>

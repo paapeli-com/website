@@ -24,12 +24,12 @@ const MAIN_ITEMS: CreateNewItem[] = [
   /* Locations are created in the tree on that page (each node's "..." menu),
      not on a dedicated form, so this opens the page itself. */
   { title: "Location", subtitle: "Create regions and production lines", icon: MapPin, path: factory("/locations") },
-  { title: "Rule", subtitle: "Create monitoring rules", icon: Bell },
+  { title: "Rule", subtitle: "Create monitoring rules", icon: Bell, path: factory("/alarms/rules/new") },
 ];
 
 const ADVANCED_ITEMS: CreateNewItem[] = [
   { title: "Work Order", subtitle: "Create maintenance tasks", icon: Wrench },
-  { title: "Dashboard", subtitle: "Create operational dashboards", icon: LayoutGrid },
+  { title: "Dashboard", subtitle: "Create operational dashboards", icon: LayoutGrid, path: factory("/dashboard/new") },
 ];
 
 function CreateNewRow({ item, onPick }: { item: CreateNewItem; onPick: (item: CreateNewItem) => void }) {
@@ -73,7 +73,7 @@ export function CreateNewMenu() {
       navigate(item.path);
       return;
     }
-    // Gateway, Rule, Work Order and Dashboard have no page and no endpoint yet.
+    // Gateway and Work Order have no page and no endpoint yet.
     toast.info(t(item.title), { description: t("Coming soon.") });
   };
 
