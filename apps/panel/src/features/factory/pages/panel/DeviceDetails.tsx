@@ -70,6 +70,9 @@ import {
   useGetDeviceActivitiesQuery,
   useGetDeviceByIdQuery,
   useGetDeviceCredentialsQuery,
+  useUpdateDeviceCredentialsMutation,
+  type PaapeliCredentials,
+  type UpdateDeviceCredentialsRequest,
   useEditDeviceMutation,
   useSendDeviceCommandMutation,
   useGetProductDeviceCommandsQuery,
@@ -1571,6 +1574,61 @@ const DeviceAlarms = ({ device }: { device: UserDevice }) => {
 
 // ===== Dialogs / Sheets =====
 
+/* The credential block's three cards are the API's credential types:
+   accessToken → ACCESS_TOKEN, basic → MQTT_BASIC, ssl → X509_CERTIFICATE.
+   MQTT_BASIC carries its clientId/userName/password as a JSON string in
+   credentialsValue, and the server never returns the password. */
+
+const mqttBasicOf = (c?: PaapeliCredentials) => {
+  if (c?.credentialType !== "MQTT_BASIC" || !c.credentialsValue) return null;
+  try {
+    return JSON.parse(c.credentialsValue) as { clientId?: string; userName?: string };
+  } catch {
+    return null;
+  }
+};
+
+/** The form's credential state, seeded from what the device actually has. */
+const securityFromCredentials = (c?: PaapeliCredentials): SecurityValue => {
+  const basic = mqttBasicOf(c);
+  return {
+    method:
+      c?.credentialType === "X509_CERTIFICATE" ? "ssl" : c?.credentialType === "MQTT_BASIC" ? "basic" : "accessToken",
+    accessToken: c?.credentialType === "ACCESS_TOKEN" ? c.credentialsId ?? "" : "",
+    clientId: basic?.clientId ?? "",
+    username: basic?.userName ?? "",
+    // Write-only on the server: never returned, so it starts blank.
+    password: "",
+    sslCert: c?.credentialType === "X509_CERTIFICATE" ? c.credentialsValue ?? "" : "",
+  };
+};
+
+const credentialsRequestFor = (s: SecurityValue): UpdateDeviceCredentialsRequest => {
+  switch (s.method) {
+    case "basic":
+      return {
+        credentialType: "MQTT_BASIC",
+        credentialsValue: JSON.stringify({
+          clientId: s.clientId.trim(),
+          userName: s.username.trim(),
+          password: s.password,
+        }),
+      };
+    case "ssl":
+      return { credentialType: "X509_CERTIFICATE", credentialsValue: s.sslCert.trim() };
+    default:
+      // The token itself is the identifier for ACCESS_TOKEN.
+      return { credentialType: "ACCESS_TOKEN", credentialsId: s.accessToken.trim() };
+  }
+};
+
+/** Whether the chosen method has everything the PUT needs. */
+const credentialsComplete = (s: SecurityValue) => {
+  if (s.method === "basic") return !!(s.clientId.trim() && s.username.trim() && s.password);
+  if (s.method === "ssl") return !!s.sslCert.trim();
+  return !!s.accessToken.trim();
+};
+
 export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
   const { isRTL, t } = useLanguage();
   const { toast } = useToast();
@@ -1582,25 +1640,29 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
   const [tags, setTags] = useState<string[]>(
     device?.tags?.split(",").map((t: string) => t.trim()).filter(Boolean) || [],
   );
-  const buildSecurity = (d: any): SecurityValue => ({
-    method: d?.authMethod || (d?.useSsl ? "ssl" : "accessToken"),
-    accessToken: d?.apiKey || "",
-    clientId: d?.authClientId || "",
-    username: d?.authUsername || "",
-    password: "",
-    sslCert: d?.sslCert || "",
-  });
-  const [security, setSecurity] = useState<SecurityValue>(() => buildSecurity(device));
+  /* The credential block is seeded from the device's real credentials rather
+     than from device fields (which never carried the token, so the Access
+     Token box showed empty). Only fetched while the sheet is open. */
+  const { data: credentials } = useGetDeviceCredentialsQuery(
+    workspaceId ?? "", PRODUCT_KEY, device?.id ?? "", !!open,
+  );
+  const updateCredentials = useUpdateDeviceCredentialsMutation();
+  const [security, setSecurity] = useState<SecurityValue>(() => securityFromCredentials(credentials));
   const [shared, setShared] = useState<string[]>(device?.sharedUsers || []);
 
   useEffect(() => {
     setName(device?.name || "");
     setDesc(device?.description || "");
     setTags(device?.tags?.split(",").map((t: string) => t.trim()).filter(Boolean) || []);
-    setSecurity(buildSecurity(device));
     setShared(device?.sharedUsers || []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [device, open]);
+
+  /* Re-seeded when the credentials arrive (and when the sheet reopens), so
+     edits aren't overwritten by a later refetch of the same values. */
+  const seeded = useMemo(() => securityFromCredentials(credentials), [credentials]);
+  useEffect(() => setSecurity(seeded), [seeded, open]);
+  const credentialsChanged = JSON.stringify(security) !== JSON.stringify(seeded);
 
   const addTag = () => {
     const v = tagInput.trim();
@@ -1656,14 +1718,19 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
         </div>
         <SheetFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("cancel")}</Button>
-          {/* PUT /devices/{ws}/{pk} takes name, label and description — the only
-              fields on this form the API can persist. Tags, sharing and the
-              credential block have no endpoint, so they are not saved. */}
+          {/* PUT /devices/{ws}/{pk} takes name, label and description; the
+              credential block goes to PUT /credentials/{ws}/{pk}/{deviceId},
+              and only when it was actually changed. Tags and sharing still
+              have no endpoint, so they are not saved. */}
           <Button
-            disabled={editDevice.isPending || !name.trim()}
+            disabled={editDevice.isPending || updateCredentials.isPending || !name.trim()}
             onClick={async () => {
               if (!workspaceId) {
                 toast({ title: t("error"), description: t("noWorkspaceSelected"), variant: "destructive" });
+                return;
+              }
+              if (credentialsChanged && !credentialsComplete(security)) {
+                toast({ title: t("error"), description: t("fillAllRequiredFields"), variant: "destructive" });
                 return;
               }
               try {
@@ -1675,6 +1742,16 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
                   label: name.trim(),
                   description: desc || undefined,
                 });
+                /* Replacing credentials cuts off anything connected with the
+                   old ones, so it is sent only when the user changed them. */
+                if (credentialsChanged) {
+                  await updateCredentials.mutateAsync({
+                    workspaceId,
+                    productKey: PRODUCT_KEY,
+                    deviceId: device.id,
+                    ...credentialsRequestFor(security),
+                  });
+                }
                 toast({ title: t("editDeviceTitle") });
                 onOpenChange(false);
               } catch (error) {

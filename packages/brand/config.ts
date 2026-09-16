@@ -10,8 +10,8 @@
 /* may contain one or more Solutions (specialised domains/apps) that     */
 /* appear as a tree under the product.                                   */
 export type Solution = {
-  id: string;
-  name: string;
+     id: string;
+            name: string;
   href?: string;
   disabled?: boolean;
   /** Workspace-product key (see @paapeli/api workspaces.subscribeWorkspaceProduct)
