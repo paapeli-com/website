@@ -70,9 +70,6 @@ import {
   useGetDeviceActivitiesQuery,
   useGetDeviceByIdQuery,
   useGetDeviceCredentialsQuery,
-  useUpdateDeviceCredentialsMutation,
-  type PaapeliCredentials,
-  type UpdateDeviceCredentialsRequest,
   useEditDeviceMutation,
   useSendDeviceCommandMutation,
   useGetProductDeviceCommandsQuery,
@@ -283,7 +280,7 @@ const DeviceDetails = () => {
   }, [listed, fetched, locationOptions]);
 
   const { rows: latestTelemetry, isLoading: telemetryLoading } = useLatestTelemetryRows(
-    device?.id, DEFAULT_TELEMETRY_RANGE_H,
+    device?.id, OVERVIEW_RANGE_H,
   );
 
   const [activeTab, setActiveTab] = useState("overview");
@@ -540,7 +537,7 @@ const DeviceDetails = () => {
                   <InfoRow label={t("deviceId")} value={device.deviceId} />
                   <InfoRow label={t("type")} value={profileLabelT(profile, t)} />
                   <InfoRow label={t("protocol")} value={device.protocol} />
-                  <InfoRow label={t("gateway")} value={device.gateway || t("noData")} />
+                  <InfoRow label={t("gateway")} value={device.gateway || "—"} />
                   <InfoRow label={t("location")} value={<LocationCell path={device.location} />} />
                   <InfoRow label={t("created")} value={new Date(device.createdAt).toLocaleDateString()} />
                   <div className="flex items-start gap-3">
@@ -553,7 +550,7 @@ const DeviceDetails = () => {
                         ))}
                     </div>
                   </div>
-                  <InfoRow label={t("description")} value={device.description || t("noData")} className={fa(device.description || "")} />
+                  <InfoRow label={t("description")} value={device.description || "—"} className={fa(device.description || "")} />
                 </CardContent>
               </Card>
 
@@ -569,12 +566,18 @@ const DeviceDetails = () => {
                           <div className="py-6 text-center text-sm text-muted-foreground">…</div>
                         ) : latestTelemetry.length === 0 ? (
                           <div className="py-6 text-center text-sm text-muted-foreground">{t("noData")}</div>
-                        ) : [...latestTelemetry]
-                          .sort((a, b) => b.updatedAt - a.updatedAt)
+                        ) : latestTelemetry
+                          // The five newest readings, whichever keys they came
+                          // from, so a device reporting one key still fills the card.
+                          .flatMap((r) => r.points.map((p, i) => ({ id: `${r.key}|${p.ts}|${i}`, key: r.key, value: p.value, at: Number(p.ts) })))
+                          .sort((a, b) => b.at - a.at)
                           .slice(0, 5)
                           .map((r) => (
-                            <div key={r.key} className={`flex items-center justify-between gap-3 py-2.5 ${isRTL ? "flex-row-reverse" : ""}`}>
-                              <span className="text-sm text-muted-foreground truncate">{r.key}</span>
+                            <div key={r.id} className={`flex items-center justify-between gap-3 py-2.5 ${isRTL ? "flex-row-reverse" : ""}`}>
+                              <span className="min-w-0">
+                                <span className="block text-sm text-muted-foreground truncate">{r.key}</span>
+                                <span className="block text-xs text-muted-foreground/70" dir="ltr">{fmtDateTime(r.at)}</span>
+                              </span>
                               <span className="text-sm font-semibold text-foreground shrink-0 tabular-nums">{r.value}</span>
                             </div>
                           ))}
@@ -749,7 +752,8 @@ const DeviceDetails = () => {
                 <InfoRow label={t("location")} value={<LocationCell path={device.location} />} />
                 <InfoRow label={t("gateway")} value={device.gateway || t("noData")} />
                 <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" onClick={() => setMoveOpen(true)}><MapPin className="h-4 w-4 me-2" /> {t("moveLocation")}</Button>
+                  {/* No endpoint moves a device between locations yet. */}
+                  <Button variant="outline" size="sm" disabled><MapPin className="h-4 w-4 me-2" /> {t("moveLocation")}</Button>
                 </div>
               </CardContent>
             </Card>
@@ -757,7 +761,6 @@ const DeviceDetails = () => {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-base flex items-center gap-2"><Lock className="h-4 w-4" /> {t("credentialsSecurity")}</CardTitle>
-                <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}><Edit className="h-4 w-4 me-2" /> {t("edit")}</Button>
               </CardHeader>
               <CardContent>
                 <SecurityConfig value={securityView} readOnly />
@@ -787,7 +790,7 @@ const DeviceDetails = () => {
                     <CredentialRow label={t("accessToken")} value={device.apiKey} mask onCopy={() => copy(device.apiKey, "tok")} copied={copied === "tok"} />
                     <Separator />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <CredentialRow label={t("mqttHost")} value="mqtt.paapeli.io" />
+                      <CredentialRow label={t("mqttHost")} value="mqtt.paapeli.com" />
                       <CredentialRow label={t("mqttPort")} value={device.useSsl ? "8883" : "1883"} />
                       <CredentialRow label={t("mqttUsername")} value={device.deviceId} />
                       <CredentialRow label={t("mqttPassword")} value={device.apiKey} mask />
@@ -939,16 +942,19 @@ const HealthGauge = ({ score }: { score: number }) => {
   );
 };
 
-const CredentialRow = ({ label, value, mask, onCopy, copied }: { label: string; value: string; mask?: boolean; onCopy?: () => void; copied?: boolean }) => {
+const CredentialRow = ({ label, value, mask, onCopy, copied }: { label: string; value?: string; mask?: boolean; onCopy?: () => void; copied?: boolean }) => {
   const [show, setShow] = useState(false);
-  const display = mask && !show ? "•".repeat(Math.min(value.length, 20)) : value;
+  // A credential the API never returns (e.g. the access token after creation)
+  // arrives undefined; showing a dash beats crashing on its length.
+  const text = value ?? "";
+  const display = !text ? "—" : mask && !show ? "•".repeat(Math.min(text.length, 20)) : text;
   return (
     <div>
       <Label className="text-xs text-muted-foreground">{label}</Label>
       <div className="flex items-center gap-2 mt-1">
         <Input value={display} readOnly className="font-mono text-xs" dir="ltr" />
-        {mask && <Button variant="outline" size="icon" onClick={() => setShow(!show)}><KeyRound className="h-4 w-4" /></Button>}
-        {onCopy && <Button variant="outline" size="icon" onClick={onCopy}>{copied ? <CheckCheck className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}</Button>}
+        {mask && !!text && <Button variant="outline" size="icon" onClick={() => setShow(!show)}><KeyRound className="h-4 w-4" /></Button>}
+        {onCopy && !!text && <Button variant="outline" size="icon" onClick={onCopy}>{copied ? <CheckCheck className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}</Button>}
       </div>
     </div>
   );
@@ -964,9 +970,16 @@ const fmtDateTime = (ms: number) => {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 };
 
-/** Lookback windows the history endpoint accepts, in hours (it clamps to 1–24). */
-const TELEMETRY_RANGES_H = [1, 6, 12, 24] as const;
-const DEFAULT_TELEMETRY_RANGE_H = 24;
+/* Lookback windows offered on the Latest Data tab, in minutes. The history
+   endpoint only takes whole hours (it clamps to 1–24), so the hour is fetched
+   and the shorter windows are trimmed from it here. */
+const TELEMETRY_RANGES_MIN = [1, 15, 60] as const;
+const DEFAULT_TELEMETRY_RANGE_MIN = 60;
+/** Hours to ask the API for, to cover a window given in minutes. */
+const rangeHours = (minutes: number) => Math.max(1, Math.ceil(minutes / 60));
+/* The Overview card looks a full day back, so a device that has been quiet for
+   a few hours still shows its last readings. */
+const OVERVIEW_RANGE_H = 24;
 
 export interface TelemetryRow {
   key: string;
@@ -998,9 +1011,9 @@ const useLatestTelemetryRows = (deviceId: string | undefined, hours: number) => 
 const TELE_WIDGETS = ["Tables", "Charts", "Cards", "Analogue gauges", "Alarm widgets"] as const;
 
 const TELE_L = {
-  en: { actions: "Actions", addToWidget: "Add to Widget", title: "Latest Data", lastUpdate: "Last update time", key: "Key", value: "Value", selected: "telemetry units selected", showOnWidget: "Show on widget", del: "Delete", deleteStrategy: "Delete strategy", strategy: "Strategy", delAll: "Delete all data", delExcept: "Delete all data except latest value", delLatest: "Delete latest value", delPeriod: "Delete all data for time period", cancel: "Cancel", itemsPerPage: "Items per page:", of: "of", timeSeriesTable: "Time series table", realtime: "Realtime - last 1 hour", timestamp: "Timestamp", addToDashboard: "Add to dashboard", addWidget: "Add widget to dashboard", selectExisting: "Select existing dashboard", createNew: "Create new dashboard", dashboard: "Dashboard", newTitle: "New dashboard title", openDashboard: "Open dashboard", add: "Add", deleted: "Telemetry deleted", added: "Widget added to dashboard", empty: "No telemetry", search: "Search keys", export: "Export", widget: "Widget", noDashboards: "No dashboards available", deleteOneTitle: "Delete telemetry?", deleteOneDesc: "This telemetry key will be permanently removed:", exported: "Data exported", range1h: "Last 1 hour", range6h: "Last 6 hours", range12h: "Last 12 hours", range24h: "Last 24 hours" },
-  fa: { actions: "عملیات", addToWidget: "افزودن به ویجت", title: "آخرین داده", lastUpdate: "زمان آخرین به‌روزرسانی", key: "کلید", value: "مقدار", selected: "تله‌متری انتخاب شد", showOnWidget: "نمایش در ویجت", del: "حذف", deleteStrategy: "راهبرد حذف", strategy: "راهبرد", delAll: "حذف همه‌ی داده‌ها", delExcept: "حذف همه‌ی داده‌ها به‌جز آخرین مقدار", delLatest: "حذف آخرین مقدار", delPeriod: "حذف داده‌ها برای یک بازه‌ی زمانی", cancel: "انصراف", itemsPerPage: "تعداد در هر صفحه:", of: "از", timeSeriesTable: "جدول سری‌زمانی", realtime: "زنده - یک ساعت اخیر", timestamp: "زمان", addToDashboard: "افزودن به داشبورد", addWidget: "افزودن ویجت به داشبورد", selectExisting: "انتخاب داشبورد موجود", createNew: "ایجاد داشبورد جدید", dashboard: "داشبورد", newTitle: "عنوان داشبورد جدید", openDashboard: "باز کردن داشبورد", add: "افزودن", deleted: "تله‌متری حذف شد", added: "ویجت به داشبورد اضافه شد", empty: "تله‌متری وجود ندارد", search: "جستجوی کلید", export: "خروجی", widget: "ویجت", noDashboards: "داشبوردی وجود ندارد", deleteOneTitle: "این داده حذف شود؟", deleteOneDesc: "این کلید تله‌متری برای همیشه حذف می‌شود:", exported: "خروجی داده‌ها گرفته شد", range1h: "۱ ساعت اخیر", range6h: "۶ ساعت اخیر", range12h: "۱۲ ساعت اخیر", range24h: "۲۴ ساعت اخیر" },
-  ar: { actions: "إجراءات", addToWidget: "إضافة إلى وِدجت", title: "أحدث البيانات", lastUpdate: "وقت آخر تحديث", key: "المفتاح", value: "القيمة", selected: "وحدة قياس محددة", showOnWidget: "عرض في وِدجت", del: "حذف", deleteStrategy: "استراتيجية الحذف", strategy: "الاستراتيجية", delAll: "حذف كل البيانات", delExcept: "حذف كل البيانات عدا آخر قيمة", delLatest: "حذف آخر قيمة", delPeriod: "حذف البيانات لفترة زمنية", cancel: "إلغاء", itemsPerPage: "عناصر لكل صفحة:", of: "من", timeSeriesTable: "جدول السلاسل الزمنية", realtime: "مباشر - آخر ساعة", timestamp: "الطابع الزمني", addToDashboard: "إضافة إلى اللوحة", addWidget: "إضافة وِدجت إلى اللوحة", selectExisting: "اختر لوحة موجودة", createNew: "إنشاء لوحة جديدة", dashboard: "اللوحة", newTitle: "عنوان اللوحة الجديدة", openDashboard: "فتح اللوحة", add: "إضافة", deleted: "تم حذف القياس", added: "تمت إضافة الوِدجت", empty: "لا توجد قياسات", search: "بحث المفاتيح", export: "تصدير", widget: "وِدجت", noDashboards: "لا توجد لوحات", deleteOneTitle: "حذف هذا القياس؟", deleteOneDesc: "سيتم حذف مفتاح القياس هذا نهائيًا:", exported: "تم تصدير البيانات", range1h: "آخر ساعة", range6h: "آخر ٦ ساعات", range12h: "آخر ١٢ ساعة", range24h: "آخر ٢٤ ساعة" },
+  en: { actions: "Actions", addToWidget: "Add to Widget", title: "Latest Data", lastUpdate: "Last update time", key: "Key", value: "Value", selected: "telemetry units selected", showOnWidget: "Show on widget", del: "Delete", deleteStrategy: "Delete strategy", strategy: "Strategy", delAll: "Delete all data", delExcept: "Delete all data except latest value", delLatest: "Delete latest value", delPeriod: "Delete all data for time period", cancel: "Cancel", itemsPerPage: "Items per page:", of: "of", timeSeriesTable: "Time series table", realtime: "Realtime - last 1 hour", timestamp: "Timestamp", addToDashboard: "Add to dashboard", addWidget: "Add widget to dashboard", selectExisting: "Select existing dashboard", createNew: "Create new dashboard", dashboard: "Dashboard", newTitle: "New dashboard title", openDashboard: "Open dashboard", add: "Add", deleted: "Telemetry deleted", added: "Widget added to dashboard", empty: "No telemetry", search: "Search keys", export: "Export", widget: "Widget", noDashboards: "No dashboards available", deleteOneTitle: "Delete telemetry?", deleteOneDesc: "This telemetry key will be permanently removed:", exported: "Data exported", range1m: "Last 1 minute", range15m: "Last 15 minutes", range60m: "Last 1 hour" },
+  fa: { actions: "عملیات", addToWidget: "افزودن به ویجت", title: "آخرین داده", lastUpdate: "زمان آخرین به‌روزرسانی", key: "کلید", value: "مقدار", selected: "تله‌متری انتخاب شد", showOnWidget: "نمایش در ویجت", del: "حذف", deleteStrategy: "راهبرد حذف", strategy: "راهبرد", delAll: "حذف همه‌ی داده‌ها", delExcept: "حذف همه‌ی داده‌ها به‌جز آخرین مقدار", delLatest: "حذف آخرین مقدار", delPeriod: "حذف داده‌ها برای یک بازه‌ی زمانی", cancel: "انصراف", itemsPerPage: "تعداد در هر صفحه:", of: "از", timeSeriesTable: "جدول سری‌زمانی", realtime: "زنده - یک ساعت اخیر", timestamp: "زمان", addToDashboard: "افزودن به داشبورد", addWidget: "افزودن ویجت به داشبورد", selectExisting: "انتخاب داشبورد موجود", createNew: "ایجاد داشبورد جدید", dashboard: "داشبورد", newTitle: "عنوان داشبورد جدید", openDashboard: "باز کردن داشبورد", add: "افزودن", deleted: "تله‌متری حذف شد", added: "ویجت به داشبورد اضافه شد", empty: "تله‌متری وجود ندارد", search: "جستجوی کلید", export: "خروجی", widget: "ویجت", noDashboards: "داشبوردی وجود ندارد", deleteOneTitle: "این داده حذف شود؟", deleteOneDesc: "این کلید تله‌متری برای همیشه حذف می‌شود:", exported: "خروجی داده‌ها گرفته شد", range1m: "۱ دقیقه اخیر", range15m: "۱۵ دقیقه اخیر", range60m: "۱ ساعت اخیر" },
+  ar: { actions: "إجراءات", addToWidget: "إضافة إلى وِدجت", title: "أحدث البيانات", lastUpdate: "وقت آخر تحديث", key: "المفتاح", value: "القيمة", selected: "وحدة قياس محددة", showOnWidget: "عرض في وِدجت", del: "حذف", deleteStrategy: "استراتيجية الحذف", strategy: "الاستراتيجية", delAll: "حذف كل البيانات", delExcept: "حذف كل البيانات عدا آخر قيمة", delLatest: "حذف آخر قيمة", delPeriod: "حذف البيانات لفترة زمنية", cancel: "إلغاء", itemsPerPage: "عناصر لكل صفحة:", of: "من", timeSeriesTable: "جدول السلاسل الزمنية", realtime: "مباشر - آخر ساعة", timestamp: "الطابع الزمني", addToDashboard: "إضافة إلى اللوحة", addWidget: "إضافة وِدجت إلى اللوحة", selectExisting: "اختر لوحة موجودة", createNew: "إنشاء لوحة جديدة", dashboard: "اللوحة", newTitle: "عنوان اللوحة الجديدة", openDashboard: "فتح اللوحة", add: "إضافة", deleted: "تم حذف القياس", added: "تمت إضافة الوِدجت", empty: "لا توجد قياسات", search: "بحث المفاتيح", export: "تصدير", widget: "وِدجت", noDashboards: "لا توجد لوحات", deleteOneTitle: "حذف هذا القياس؟", deleteOneDesc: "سيتم حذف مفتاح القياس هذا نهائيًا:", exported: "تم تصدير البيانات", range1m: "آخر دقيقة", range15m: "آخر ١٥ دقيقة", range60m: "آخر ساعة" },
 } as const;
 
 const WIDGET_COLORS = ["hsl(28 100% 50%)", "hsl(197 100% 40%)", "hsl(160 84% 39%)", "hsl(280 70% 55%)", "hsl(340 80% 55%)"];
@@ -1161,17 +1174,22 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
   const { toast } = useToast();
   const { items: dashboards } = useDashboards();
 
-  const [range, setRange] = useState(String(DEFAULT_TELEMETRY_RANGE_H));
-  const { rows: fetchedRows, isLoading } = useLatestTelemetryRows(deviceId, Number(range));
+  // The range is in minutes; the API is asked for whole hours around it.
+  const [range, setRange] = useState(String(DEFAULT_TELEMETRY_RANGE_MIN));
+  const { rows: fetchedRows, isLoading } = useLatestTelemetryRows(deviceId, rangeHours(Number(range)));
 
   // There is no telemetry delete endpoint yet, so deletes only hide rows locally.
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
-  // One row per data point the API returned, not one per key.
+  // One row per data point the API returned, not one per key, kept to the
+  // chosen window since the API's shortest lookback is an hour.
   const rows = useMemo(
-    () => fetchedRows
-      .flatMap((r) => r.points.map((p, i) => ({ id: `${r.key}|${p.ts}|${i}`, key: r.key, value: p.value, updatedAt: p.ts })))
-      .filter((r) => !removedIds.has(r.id)),
-    [fetchedRows, removedIds],
+    () => {
+      const since = Date.now() - Number(range) * 60_000;
+      return fetchedRows
+        .flatMap((r) => r.points.map((p, i) => ({ id: `${r.key}|${p.ts}|${i}`, key: r.key, value: p.value, updatedAt: p.ts })))
+        .filter((r) => r.updatedAt >= since && !removedIds.has(r.id));
+    },
+    [fetchedRows, removedIds, range],
   );
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -1259,8 +1277,8 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
             <Select value={range} onValueChange={(v) => { setRange(v); setCurrentPage(1); }}>
               <SelectTrigger className="h-9 w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {TELEMETRY_RANGES_H.map((h) => (
-                  <SelectItem key={h} value={String(h)}>{L[`range${h}h`]}</SelectItem>
+                {TELEMETRY_RANGES_MIN.map((m) => (
+                  <SelectItem key={m} value={String(m)}>{L[`range${m}m`]}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -1574,60 +1592,10 @@ const DeviceAlarms = ({ device }: { device: UserDevice }) => {
 
 // ===== Dialogs / Sheets =====
 
-/* The credential block's three cards are the API's credential types:
-   accessToken → ACCESS_TOKEN, basic → MQTT_BASIC, ssl → X509_CERTIFICATE.
-   MQTT_BASIC carries its clientId/userName/password as a JSON string in
-   credentialsValue, and the server never returns the password. */
 
-const mqttBasicOf = (c?: PaapeliCredentials) => {
-  if (c?.credentialType !== "MQTT_BASIC" || !c.credentialsValue) return null;
-  try {
-    return JSON.parse(c.credentialsValue) as { clientId?: string; userName?: string };
-  } catch {
-    return null;
-  }
-};
-
-/** The form's credential state, seeded from what the device actually has. */
-const securityFromCredentials = (c?: PaapeliCredentials): SecurityValue => {
-  const basic = mqttBasicOf(c);
-  return {
-    method:
-      c?.credentialType === "X509_CERTIFICATE" ? "ssl" : c?.credentialType === "MQTT_BASIC" ? "basic" : "accessToken",
-    accessToken: c?.credentialType === "ACCESS_TOKEN" ? c.credentialsId ?? "" : "",
-    clientId: basic?.clientId ?? "",
-    username: basic?.userName ?? "",
-    // Write-only on the server: never returned, so it starts blank.
-    password: "",
-    sslCert: c?.credentialType === "X509_CERTIFICATE" ? c.credentialsValue ?? "" : "",
-  };
-};
-
-const credentialsRequestFor = (s: SecurityValue): UpdateDeviceCredentialsRequest => {
-  switch (s.method) {
-    case "basic":
-      return {
-        credentialType: "MQTT_BASIC",
-        credentialsValue: JSON.stringify({
-          clientId: s.clientId.trim(),
-          userName: s.username.trim(),
-          password: s.password,
-        }),
-      };
-    case "ssl":
-      return { credentialType: "X509_CERTIFICATE", credentialsValue: s.sslCert.trim() };
-    default:
-      // The token itself is the identifier for ACCESS_TOKEN.
-      return { credentialType: "ACCESS_TOKEN", credentialsId: s.accessToken.trim() };
-  }
-};
-
-/** Whether the chosen method has everything the PUT needs. */
-const credentialsComplete = (s: SecurityValue) => {
-  if (s.method === "basic") return !!(s.clientId.trim() && s.username.trim() && s.password);
-  if (s.method === "ssl") return !!s.sslCert.trim();
-  return !!s.accessToken.trim();
-};
+/* Credentials are no longer edited from the device sheet, so the helpers that
+   turned the form's state into a credentials PUT are gone with it; the
+   Settings tab still shows them read only. */
 
 export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
   const { isRTL, t } = useLanguage();
@@ -1640,14 +1608,6 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
   const [tags, setTags] = useState<string[]>(
     device?.tags?.split(",").map((t: string) => t.trim()).filter(Boolean) || [],
   );
-  /* The credential block is seeded from the device's real credentials rather
-     than from device fields (which never carried the token, so the Access
-     Token box showed empty). Only fetched while the sheet is open. */
-  const { data: credentials } = useGetDeviceCredentialsQuery(
-    workspaceId ?? "", PRODUCT_KEY, device?.id ?? "", !!open,
-  );
-  const updateCredentials = useUpdateDeviceCredentialsMutation();
-  const [security, setSecurity] = useState<SecurityValue>(() => securityFromCredentials(credentials));
   const [shared, setShared] = useState<string[]>(device?.sharedUsers || []);
 
   useEffect(() => {
@@ -1657,12 +1617,6 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
     setShared(device?.sharedUsers || []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [device, open]);
-
-  /* Re-seeded when the credentials arrive (and when the sheet reopens), so
-     edits aren't overwritten by a later refetch of the same values. */
-  const seeded = useMemo(() => securityFromCredentials(credentials), [credentials]);
-  useEffect(() => setSecurity(seeded), [seeded, open]);
-  const credentialsChanged = JSON.stringify(security) !== JSON.stringify(seeded);
 
   const addTag = () => {
     const v = tagInput.trim();
@@ -1707,10 +1661,9 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
               />
             </div>
           </div>
-          <div>
-            <Label className="mb-2 block">{t("credentialsSecurity")}</Label>
-            <SecurityConfig value={security} onChange={setSecurity} />
-          </div>
+          {/* Credentials are not editable here: replacing them cuts off
+              whatever is connected with the old ones. They are shown, read
+              only, on the Settings tab. */}
           <div>
             <Label className="mb-2 block">{t("shareWithUsers")}</Label>
             <ShareWithUsers value={shared} onChange={setShared} />
@@ -1718,19 +1671,13 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
         </div>
         <SheetFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("cancel")}</Button>
-          {/* PUT /devices/{ws}/{pk} takes name, label and description; the
-              credential block goes to PUT /credentials/{ws}/{pk}/{deviceId},
-              and only when it was actually changed. Tags and sharing still
-              have no endpoint, so they are not saved. */}
+          {/* PUT /devices/{ws}/{pk} takes name, label and description. Tags
+              and sharing still have no endpoint, so they are not saved. */}
           <Button
-            disabled={editDevice.isPending || updateCredentials.isPending || !name.trim()}
+            disabled={editDevice.isPending || !name.trim()}
             onClick={async () => {
               if (!workspaceId) {
                 toast({ title: t("error"), description: t("noWorkspaceSelected"), variant: "destructive" });
-                return;
-              }
-              if (credentialsChanged && !credentialsComplete(security)) {
-                toast({ title: t("error"), description: t("fillAllRequiredFields"), variant: "destructive" });
                 return;
               }
               try {
@@ -1742,16 +1689,6 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
                   label: name.trim(),
                   description: desc || undefined,
                 });
-                /* Replacing credentials cuts off anything connected with the
-                   old ones, so it is sent only when the user changed them. */
-                if (credentialsChanged) {
-                  await updateCredentials.mutateAsync({
-                    workspaceId,
-                    productKey: PRODUCT_KEY,
-                    deviceId: device.id,
-                    ...credentialsRequestFor(security),
-                  });
-                }
                 toast({ title: t("editDeviceTitle") });
                 onOpenChange(false);
               } catch (error) {
