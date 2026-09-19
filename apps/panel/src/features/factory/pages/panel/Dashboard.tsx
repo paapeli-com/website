@@ -421,7 +421,7 @@ const Dashboard = () => {
   // EMPTY STATE
   if (items.filter((d) => !d.archived).length === 0 && filter !== "archived") {
     return (
-      <>
+      <div data-uniform-type>
         <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-foreground">{tt("dashboards")}</h1>
@@ -479,12 +479,15 @@ const Dashboard = () => {
             {tt("learnMore")} <HelpCircle className="h-4 w-4" />
           </button>
         </Card>
-      </>
+      </div>
     );
   }
 
+  /* data-uniform-type: the page is written in Tailwind steps and should
+     read at those sizes in every language — see src/index.css for what
+     it is holding off. */
   return (
-    <>
+    <div data-uniform-type>
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
         <div>
@@ -827,7 +830,7 @@ const Dashboard = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 };
 
