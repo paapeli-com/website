@@ -138,6 +138,7 @@ const DICT: Record<string, Record<Lang, string>> = {
   deleteSelectedQ: { en: "Delete selected dashboards?", ar: "حذف لوحات التحكم المحددة؟", fa: "داشبوردهای انتخاب‌شده حذف شوند؟" },
   willDelete: { en: "This will permanently delete", ar: "سيؤدي هذا إلى الحذف النهائي لـ", fa: "این کار باعث حذف دائمی" },
   selected: { en: "selected", ar: "المحددة", fa: "انتخاب‌شده" },
+  selectAll: { en: "Select all", ar: "تحديد الكل", fa: "انتخاب همه" },
   dashboardDeleted: { en: "Dashboard deleted", ar: "تم حذف لوحة التحكم", fa: "داشبورد حذف شد" },
   dashboardDuplicated: { en: "Dashboard duplicated", ar: "تم تكرار لوحة التحكم", fa: "داشبورد تکرار شد" },
   dashboardArchived: { en: "Dashboard archived", ar: "تمت أرشفة لوحة التحكم", fa: "داشبورد آرشیو شد" },
@@ -251,13 +252,29 @@ const RowActions = ({ d, onAction, lang }: { d: DashboardItem; onAction: (kind: 
   </DropdownMenu>
 );
 
-const DashboardCard = ({ d, compact, onOpen, onAction, lang, timeAgo }: {
-  d: DashboardItem; compact?: boolean; onOpen: () => void; onAction: (k: string, d: DashboardItem) => void; lang: Lang; timeAgo: (ts: number) => string;
+const DashboardCard = ({ d, compact, selected, onToggleSelect, onOpen, onAction, lang, timeAgo }: {
+  d: DashboardItem; compact?: boolean; selected?: boolean;
+  onToggleSelect?: (checked: boolean | "indeterminate") => void;
+  onOpen: () => void; onAction: (k: string, d: DashboardItem) => void; lang: Lang; timeAgo: (ts: number) => string;
 }) => (
   <Card
     onClick={onOpen}
-    className={`group p-3 cursor-pointer hover:border-primary/60 hover:shadow-sm transition-all flex ${compact ? "gap-3" : "flex-col gap-3"}`}
+    className={`group relative p-3 cursor-pointer hover:border-primary/60 hover:shadow-sm transition-all flex ${
+      selected ? "border-primary ring-1 ring-primary/30" : ""
+    } ${compact ? "gap-3" : "flex-col gap-3"}`}
   >
+    {onToggleSelect && (
+      /* The same selection the table view has, in the card's corner, so a
+         bulk action can be built up without switching views. It sits over the
+         thumbnail, so it carries its own background to stay legible on a dark
+         one, and swallows the click that would otherwise open the dashboard. */
+      <span
+        onClick={(e) => e.stopPropagation()}
+        className="absolute top-2 z-10 rounded-md bg-background/90 p-1 shadow-sm ltr:left-2 rtl:right-2"
+      >
+        <Checkbox checked={!!selected} onCheckedChange={onToggleSelect} aria-label={d.name} />
+      </span>
+    )}
     {compact ? <Thumb d={d} size="md" /> : <Thumb d={d} size="lg" />}
     <div className="flex-1 min-w-0">
       <div className="flex items-start justify-between gap-2">
@@ -590,7 +607,7 @@ const Dashboard = () => {
           <p className="text-xs text-muted-foreground mb-3">{tt("pinnedDesc")}</p>
           <div className={`grid gap-4 ${view === "card" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"}`}>
             {pinned.map((d) => (
-              <DashboardCard key={d.id} d={d} compact={view === "grid"} onOpen={() => handleAction("open", d)} onAction={handleAction} lang={lang} timeAgo={timeAgo} />
+              <DashboardCard key={d.id} d={d} compact={view === "grid"} selected={selectedIds.has(d.id)} onToggleSelect={(checked) => toggleRowSelection(d.id, checked)} onOpen={() => handleAction("open", d)} onAction={handleAction} lang={lang} timeAgo={timeAgo} />
             ))}
           </div>
         </div>
@@ -598,10 +615,23 @@ const Dashboard = () => {
 
       {view !== "table" && (
         <div className="flex items-center gap-2 mb-3">
+          {/* Select-all for the cards below, the same one the table header
+              carries, and over the same page of rows. */}
+          {paged.length > 0 && (
+            <Checkbox
+              checked={allVisibleSelected ? true : someVisibleSelected ? "indeterminate" : false}
+              onCheckedChange={toggleVisibleSelection}
+              aria-label={tt("selectAll")}
+              className="me-1"
+            />
+          )}
           <h2 className="text-base font-semibold text-foreground">
             {filter === "archived" ? tt("archivedDashboards") : tt("allDashboards")}
           </h2>
           <Badge variant="secondary" className="font-normal">{all.length} {tt("dashboardsLower")}</Badge>
+          {selectedCount > 0 && (
+            <span className="text-xs text-muted-foreground">{selectedCount} {tt("selected")}</span>
+          )}
         </div>
       )}
 
@@ -624,7 +654,7 @@ const Dashboard = () => {
           {view === "card" && (
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {paged.map((d) => (
-                <DashboardCard key={d.id} d={d} onOpen={() => handleAction("open", d)} onAction={handleAction} lang={lang} timeAgo={timeAgo} />
+                <DashboardCard key={d.id} d={d} selected={selectedIds.has(d.id)} onToggleSelect={(checked) => toggleRowSelection(d.id, checked)} onOpen={() => handleAction("open", d)} onAction={handleAction} lang={lang} timeAgo={timeAgo} />
               ))}
             </div>
           )}
@@ -632,7 +662,7 @@ const Dashboard = () => {
           {view === "grid" && (
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {paged.map((d) => (
-                <DashboardCard key={d.id} d={d} compact onOpen={() => handleAction("open", d)} onAction={handleAction} lang={lang} timeAgo={timeAgo} />
+                <DashboardCard key={d.id} d={d} compact selected={selectedIds.has(d.id)} onToggleSelect={(checked) => toggleRowSelection(d.id, checked)} onOpen={() => handleAction("open", d)} onAction={handleAction} lang={lang} timeAgo={timeAgo} />
               ))}
             </div>
           )}
