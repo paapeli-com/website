@@ -48,6 +48,23 @@ export function Layout() {
       ? trackNav
       : factoryNav;
 
+  /* Home sits above every product, so there is no product nav to show beside
+     it — it gets the full width instead of an unrelated sidebar. */
+  const sidebarless = location.pathname === "/Home" || location.pathname.startsWith("/Home/");
+
+  if (sidebarless) {
+    return (
+      <div className="flex h-screen flex-col overflow-hidden bg-background">
+        <Header onMenu={toggleSidebar} />
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <main>
+            <Outlet />
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       <Header onMenu={toggleSidebar} />

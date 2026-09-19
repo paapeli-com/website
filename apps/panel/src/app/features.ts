@@ -13,6 +13,7 @@ import { lazy } from "react";
  * Loaders live at module scope so React.lazy's memoised factory is created
  * once, not on every render of the route element.
  */
+export const homeRoutes = lazy(() => import("@/features/home/routes"));
 export const factoryRoutes = lazy(() => import("@/features/factory/routes"));
 export const trackRoutes = lazy(() => import("@/features/track/routes"));
 export const cloudManagementRoutes = lazy(() => import("@/features/cloud-management/routes"));
