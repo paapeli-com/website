@@ -1,4 +1,5 @@
 import { useState, useEffect, Fragment as FragmentWithKey } from "react";
+import { formatDate } from "@/shared/lib/formatDate";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
@@ -146,7 +147,7 @@ const formatRelative = (iso: string | undefined, t: (k: any) => string, fmt?: (n
   if (m < 60) return t('minAgo').replace('{n}', num(m));
   const h = Math.floor(m / 60);
   if (h < 24) return (h === 1 ? t('hourAgo') : t('hoursAgo').replace('{n}', num(h)));
-  return new Date(iso).toLocaleDateString();
+  return formatDate(iso);
 };
 
 const ExpandField = ({ label, value }: { label: string; value: string }) => (

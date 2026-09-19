@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { formatDate } from "@/shared/lib/formatDate";
 import { useNavigate } from "react-router-dom";
 import { LocationCell } from "@/features/factory/components/panel/LocationCell";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
@@ -199,7 +200,7 @@ const makeTimeAgo = (lang: Lang) => (ts: number) => {
   const d = Math.floor(h / 24);
   if (d === 1) return DICT.yesterday[lang];
   if (d < 7) return `${d} ${DICT.daysAgo[lang]}`;
-  return new Date(ts).toLocaleDateString(lang === "fa" ? "fa-IR" : lang === "ar" ? "ar" : "en-US");
+  return formatDate(ts, lang);
 };
 
 const PlaceholderThumb = () => (

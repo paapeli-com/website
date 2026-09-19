@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { formatDateTime } from "@/shared/lib/formatDate";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { NoData, NoDataValue } from "@/features/factory/components/NoData";
@@ -86,8 +87,9 @@ const AIoTDetectAnomalies = () => {
     return t("daysAgo").replace("{n}", formatNumber(Math.floor(h / 24)));
   };
 
-  const formatDate = (iso?: string) =>
-    iso ? new Date(iso).toLocaleString(language === "en" ? "en-US" : language) : "—";
+  /* Was toLocaleString(language): "fa" happens to default to the Persian
+     calendar, "ar" does not. The shared helper spells both out. */
+  const formatDate = (iso?: string) => formatDateTime(iso);
 
 
   const [tab, setTab] = useState("overview");

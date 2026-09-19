@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatDateTime } from "@/shared/lib/formatDate";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useToast } from "@/features/factory/hooks/use-toast";
@@ -171,7 +172,7 @@ const WorkOrderDetails = () => {
             <Row label={t("status")} value={<Badge className={STATUS_BADGE[wo.status]}>{statusLabel(wo.status)}</Badge>} />
             <Row label={t("assignedTeam")} value={teamLabel(wo.assignedTeam)} />
             <Row label={t("createdByLabel")} value={wo.createdBy === "You" ? t("you") : wo.createdBy} />
-            <Row label={t("createdAt")} value={new Date(wo.createdAt).toLocaleString(language === "fa" ? "fa-IR" : language === "ar" ? "ar-EG" : "en-US")} />
+            <Row label={t("createdAt")} value={formatDateTime(wo.createdAt, language)} />
             {wo.anomalyId && (
               <Row
                 label={t("sourceAnomaly")}

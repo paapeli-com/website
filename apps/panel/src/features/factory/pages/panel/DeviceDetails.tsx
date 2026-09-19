@@ -5,7 +5,7 @@ import { useDevices, UserDevice } from "@/features/factory/hooks/useDevices";
 import { useGateways } from "@/features/factory/hooks/useGateways";
 import { useToast } from "@/features/factory/hooks/use-toast";
 import { LocationCell } from "@/features/factory/components/panel/LocationCell";
-import { formatDate, formatDateTime } from "@/features/factory/lib/formatDate";
+import { formatDate, formatDateTime } from "@/shared/lib/formatDate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/features/factory/components/ui/card";
 import { Button } from "@/features/factory/components/ui/button";
 import { Input } from "@/features/factory/components/ui/input";
@@ -2247,7 +2247,7 @@ const RawDataDialog = ({ open, onOpenChange, channels, seed }: any) => {
     const data = generateSeries(c, 20, seed + ci);
     data.forEach((d, i) => {
       rows.push({
-        time: new Date(now - (data.length - i) * 60_000).toLocaleString(),
+        time: formatDateTime(now - (data.length - i) * 60_000),
         key: c.key,
         value: `${d.v} ${c.unit}`,
       });

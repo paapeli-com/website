@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { formatDateTime, formatTime } from "@/shared/lib/formatDate";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
@@ -310,7 +311,7 @@ const AIoTCoPilot = () => {
     if (!active) return;
     const lines = active.messages.map(
       (m) =>
-        `[${new Date(m.ts).toLocaleString()}] ${m.role.toUpperCase()}: ${m.content}`,
+        `[${formatDateTime(m.ts)}] ${m.role.toUpperCase()}: ${m.content}`,
     );
     const blob = new Blob([lines.join("\n\n")], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -491,7 +492,7 @@ const AIoTCoPilot = () => {
                         {preview}
                       </p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {new Date(th.updatedAt).toLocaleString()}
+                        {formatDateTime(th.updatedAt)}
                       </p>
                     </div>
                     <DropdownMenu>
@@ -651,7 +652,7 @@ const AIoTCoPilot = () => {
                       m.role === "user" ? "justify-end" : ""
                     }`}
                   >
-                    <span>{new Date(m.ts).toLocaleTimeString()}</span>
+                    <span>{formatTime(m.ts)}</span>
                     <button
                       className="hover:text-foreground inline-flex items-center gap-1"
                       onClick={() => copyMsg(m.content)}

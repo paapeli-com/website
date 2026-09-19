@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/features/factory/components/ui/card";
+import { formatDateTime } from "@/shared/lib/formatDate";
 import { Badge } from "@/features/factory/components/ui/badge";
 import { Button } from "@/features/factory/components/ui/button";
 import { Progress } from "@/features/factory/components/ui/progress";
@@ -51,7 +52,7 @@ export const RolloutsList = ({ rollouts, onUpdate }: Props) => {
                     <Badge variant="secondary">{t(`otaStrat${r.strategy.charAt(0).toUpperCase() + r.strategy.slice(1)}` as any)}</Badge>
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {r.deviceType} · {new Date(r.createdAt).toLocaleString()} · {r.author}
+                    {r.deviceType} · {formatDateTime(r.createdAt)} · {r.author}
                   </div>
                 </div>
                 <div className="flex gap-2">

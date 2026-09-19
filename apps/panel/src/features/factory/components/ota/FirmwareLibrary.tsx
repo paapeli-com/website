@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/features/factory/components/ui/card";
+import { formatDate } from "@/shared/lib/formatDate";
 import { Badge } from "@/features/factory/components/ui/badge";
 import { Button } from "@/features/factory/components/ui/button";
 import { Input } from "@/features/factory/components/ui/input";
@@ -120,7 +121,7 @@ export const FirmwareLibrary = ({ firmwares, onCompare, onDeploy }: Props) => {
                   </div>
                   <div>
                     <div className="text-muted-foreground text-xs">{t("otaReleased")}</div>
-                    <div className="font-medium">{new Date(fw.releaseDate).toLocaleDateString()}</div>
+                    <div className="font-medium">{formatDate(fw.releaseDate)}</div>
                   </div>
                 </div>
 

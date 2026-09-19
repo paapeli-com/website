@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { formatDateTime } from "@/shared/lib/formatDate";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useToast } from "@/features/factory/hooks/use-toast";
@@ -206,7 +207,7 @@ const AIoTAnomalyDetails = () => {
             <Row label={t("assetLabel")} value={anomaly.asset} />
             <Row label={t("locationLabel")} value={anomaly.location} mono />
             <Row label={t("severity")} value={<Badge className={SEV_BADGE[anomaly.severity]}>{sevLabel(anomaly.severity)}</Badge>} />
-            <Row label={t("detected")} value={new Date(anomaly.detectedAt).toLocaleString()} />
+            <Row label={t("detected")} value={formatDateTime(anomaly.detectedAt)} />
             <Row label={t("confidence")} value={`${formatNumber(anomaly.confidence)}%`} />
             <Row label={t("status")} value={<Badge className={STATUS_BADGE[anomaly.status]}>{statusLabel(anomaly.status)}</Badge>} />
           </CardContent>
@@ -390,7 +391,7 @@ const AIoTAnomalyDetails = () => {
                       <div className="min-w-0 flex-1">
                         <div className="font-medium truncate">{w.action}</div>
                         <div className="text-xs text-muted-foreground">
-                          {w.id} · {w.assignedTeam} · {new Date(w.createdAt).toLocaleString()}
+                          {w.id} · {w.assignedTeam} · {formatDateTime(w.createdAt)}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
