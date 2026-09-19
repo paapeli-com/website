@@ -5,6 +5,7 @@ import { useDevices, UserDevice } from "@/features/factory/hooks/useDevices";
 import { useGateways } from "@/features/factory/hooks/useGateways";
 import { useToast } from "@/features/factory/hooks/use-toast";
 import { LocationCell } from "@/features/factory/components/panel/LocationCell";
+import { formatDate, formatDateTime } from "@/features/factory/lib/formatDate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/features/factory/components/ui/card";
 import { Button } from "@/features/factory/components/ui/button";
 import { Input } from "@/features/factory/components/ui/input";
@@ -557,17 +558,22 @@ const DeviceDetails = () => {
                   <InfoRow label={t("protocol")} value={device.protocol} />
                   <InfoRow label={t("gateway")} value={device.gateway || "—"} />
                   <InfoRow label={t("location")} value={<LocationCell path={device.location} />} />
-                  <InfoRow label={t("created")} value={new Date(device.createdAt).toLocaleDateString()} />
-                  <div className="flex items-start gap-3">
-                    <span className="text-muted-foreground w-24 shrink-0">{t("tags")}</span>
-                    <div className="flex flex-wrap gap-1">
-                      {deviceTags.length === 0
-                        ? <span className="text-muted-foreground">—</span>
-                        : deviceTags.map((tg) => (
-                          <Badge key={tg} variant="secondary" className={fa(tg)}>{tg}</Badge>
-                        ))}
-                    </div>
-                  </div>
+                  <InfoRow label={t("created")} value={formatDate(device.createdAt, language)} />
+                  {/* Through InfoRow like every other row, rather than a
+                      hand-rolled copy of it that missed the RTL handling and
+                      left this one line running the wrong way. */}
+                  <InfoRow
+                    label={t("tags")}
+                    value={
+                      <span className={`flex flex-wrap gap-1 ${isRTL ? "justify-end" : ""}`}>
+                        {deviceTags.length === 0
+                          ? <span className="text-muted-foreground">—</span>
+                          : deviceTags.map((tg) => (
+                            <Badge key={tg} variant="secondary" className={fa(tg)}>{tg}</Badge>
+                          ))}
+                      </span>
+                    }
+                  />
                   <InfoRow label={t("description")} value={device.description || "—"} className={fa(device.description || "")} />
                 </CardContent>
               </Card>
@@ -594,7 +600,7 @@ const DeviceDetails = () => {
                             <div key={r.id} className={`flex items-center justify-between gap-3 py-2.5 ${isRTL ? "flex-row-reverse" : ""}`}>
                               <span className="min-w-0">
                                 <span className="block text-sm text-muted-foreground truncate">{r.key}</span>
-                                <span className="block text-xs text-muted-foreground/70" dir="ltr">{fmtDateTime(r.at)}</span>
+                                <span className="block text-xs text-muted-foreground/70">{fmtDateTime(r.at, language)}</span>
                               </span>
                               <span className="text-sm font-semibold text-foreground shrink-0 tabular-nums">{r.value}</span>
                             </div>
@@ -690,7 +696,7 @@ const DeviceDetails = () => {
             </div>
 
             <div className="text-xs text-muted-foreground px-1">
-              {t("created")}: {new Date(device.createdAt).toLocaleString()} &nbsp;·&nbsp;
+              {t("created")}: {formatDateTime(device.createdAt, language)} &nbsp;·&nbsp;
               {t("lastUpdate")}: {formatRelativeTime(device.lastActivity || device.createdAt, t, formatNumber)}
             </div>
           </TabsContent>
@@ -982,7 +988,14 @@ const CredentialRow = ({ label, value, mask, onCopy, copied }: { label: string; 
    pagination, delete strategy, and "show on widget → add to dashboard".
    Rows come from the device's time-series history endpoint. */
 
-const fmtDateTime = (ms: number) => {
+/* Telemetry timestamps, down to the second, in the reader's own calendar —
+   this used to assemble a Gregorian YYYY-MM-DD by hand. */
+const fmtDateTime = (ms: number, language: string) => formatDateTime(ms, language, { seconds: true });
+
+/* The export keeps that Gregorian YYYY-MM-DD. A CSV is read by a spreadsheet
+   as often as by a person, and a Jalali date in a date column parses as
+   nothing at all — the calendar belongs on screen, not in the file. */
+const fmtDateTimeIso = (ms: number) => {
   const d = new Date(ms);
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
@@ -1070,6 +1083,7 @@ function TeleGauge({ label, pct, value }: { label: string; pct: number; value: s
 /* Preview shown in the "Add to Widget" dialog — switches on the chosen
    widget bundle (Tables / Charts / Cards / Analogue gauges / Alarm widgets). */
 function TeleWidgetPreview({ type, keys, rows, timestampLabel }: { type: string; keys: string[]; rows: PreviewRow[]; timestampLabel: string }) {
+  const { language } = useLanguage();
   const numericKeys = keys.filter((k) => rows.some((r) => r.key === k && toNumber(r.value) !== null));
   // The real points of the selected keys, merged on timestamp, oldest first.
   const series = useMemo(() => {
@@ -1106,7 +1120,7 @@ function TeleWidgetPreview({ type, keys, rows, timestampLabel }: { type: string;
             <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
             <XAxis dataKey="t" hide />
             <YAxis width={32} tick={{ fontSize: 11 }} />
-            <RTooltip labelFormatter={(ts) => fmtDateTime(Number(ts))} />
+            <RTooltip labelFormatter={(ts) => fmtDateTime(Number(ts), language)} />
             {numericKeys.map((k, i) => (
               <Area key={k} type="monotone" dataKey={k} connectNulls stroke={WIDGET_COLORS[i % WIDGET_COLORS.length]} strokeWidth={2} fill={`url(#tg-${i})`} isAnimationActive animationDuration={900} />
             ))}
@@ -1176,7 +1190,7 @@ function TeleWidgetPreview({ type, keys, rows, timestampLabel }: { type: string;
         <TableBody>
           {tableTimes.map((ts) => (
             <TableRow key={ts}>
-              <TableCell className="whitespace-nowrap text-muted-foreground">{fmtDateTime(ts)}</TableCell>
+              <TableCell className="whitespace-nowrap text-muted-foreground">{fmtDateTime(ts, language)}</TableCell>
               {keys.map((k) => <TableCell key={k}>{rows.find((x) => x.key === k && x.updatedAt === ts)?.value ?? "—"}</TableCell>)}
             </TableRow>
           ))}
@@ -1271,7 +1285,7 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
   const exportCsv = () => {
     const esc = (s: string) => `"${String(s).replace(/"/g, '""')}"`;
     const header = [L.timestamp, L.key, L.value].map(esc).join(",");
-    const body = filtered.map((r) => [fmtDateTime(r.updatedAt), r.key, r.value].map(esc).join(",")).join("\n");
+    const body = filtered.map((r) => [fmtDateTimeIso(r.updatedAt), r.key, r.value].map(esc).join(",")).join("\n");
     const blob = new Blob(["﻿" + header + "\n" + body], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1348,7 +1362,7 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
               {pageRows.map((r) => (
                 <TableRow key={r.id} data-state={selected.has(r.id) ? "selected" : undefined}>
                   <TableCell><Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggleOne(r.id)} /></TableCell>
-                  <TableCell className="whitespace-nowrap text-muted-foreground">{fmtDateTime(r.updatedAt)}</TableCell>
+                  <TableCell className="whitespace-nowrap text-muted-foreground">{fmtDateTime(r.updatedAt, language)}</TableCell>
                   <TableCell className="font-medium">{r.key}</TableCell>
                   <TableCell className="tabular-nums">{r.value}</TableCell>
                   <TableCell>
@@ -1413,7 +1427,7 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
           <AlertDialogHeader>
             <AlertDialogTitle>{L.deleteOneTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              {L.deleteOneDesc} <span className="font-medium text-foreground">{confirmRow ? `${confirmRow.key} · ${fmtDateTime(confirmRow.updatedAt)}` : ""}</span>
+              {L.deleteOneDesc} <span className="font-medium text-foreground">{confirmRow ? `${confirmRow.key} · ${fmtDateTime(confirmRow.updatedAt, language)}` : ""}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
