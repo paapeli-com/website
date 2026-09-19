@@ -131,7 +131,9 @@ function Leaf({ item, onNavigate, collapsed, activePath }: RowProps) {
           )}
           <Icon className={cn("h-4 w-4 shrink-0", isActive && "text-primary")} />
           {!collapsed && <span className="flex-1 truncate text-start">{t(title)}</span>}
-          {!collapsed && chevron && <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />}
+          {/* Marks a row that leaves this nav for another product's; it points
+              the way the text runs, so it flips in RTL like the group's. */}
+          {!collapsed && chevron && <ChevronRight className="size-3.5 shrink-0 text-muted-foreground rtl:rotate-180" />}
         </>
       )}
     </NavLink>
@@ -185,7 +187,14 @@ function Group({ item, onNavigate, collapsed, onExpand, activePath }: RowProps &
         {!collapsed && (
           <>
             <span className={cn("flex-1 truncate text-start", open && "font-bold")}>{t(item.title)}</span>
-            <ChevronRight className={cn("size-3.5 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")} />
+            <ChevronRight
+              className={cn(
+                "size-3.5 shrink-0 text-muted-foreground transition-transform",
+                /* Closed, it points the way the text runs, which is left in
+                   RTL. Open, it points down, the same turn either way. */
+                open ? "rotate-90" : "rtl:rotate-180",
+              )}
+            />
           </>
         )}
       </button>
@@ -215,7 +224,9 @@ export function SidebarContent({ section, onNavigate, collapsed, onExpand }: Sid
   const location = useLocation();
   const activePath = activeNavPath(location.pathname, [...section.items, ...footerItems]);
   return (
-    <div className="flex h-full flex-col bg-card">
+    /* data-sidebar-nav: one row size per language — see the matching block in
+       src/index.css for what was pulling the group rows out of line. */
+    <div data-sidebar-nav className="flex h-full flex-col bg-card">
       <div className="px-2 pt-3">
         <div
           title={collapsed ? t(section.title) : undefined}

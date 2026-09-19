@@ -252,6 +252,21 @@ html[lang="fa"] body {
 [data-quick-create] .text-\[11px\] { font-size: 11px !important; line-height: 1.25 !important; }
 [data-quick-create] h3 { font-size: 0.875rem !important; line-height: 1.25rem !important; }
 
+/* Sidebar rows: one size per language.
+
+   A row that navigates is an <a>, and the unscoped [lang="fa"] / [lang="ar"]
+   rules above set every <a> to 0.945rem. A row that opens a group is a
+   <button>, which those rules do not name, so it kept its designed 13px — and
+   "Assets" ended up visibly smaller than "Overview" right next to it. Both are
+   set here instead, so the list reads as one list whatever a row does. */
+[lang="fa"] [data-sidebar-nav] a,
+[lang="fa"] [data-sidebar-nav] button,
+[lang="ar"] [data-sidebar-nav] a,
+[lang="ar"] [data-sidebar-nav] button {
+  font-size: 0.945rem;
+  line-height: 1.6;
+}
+
 /* Home (/Home): keep the designed type scale in FA/AR, matching English.
 
    Without this the page falls through the unscoped [lang="fa"]/[lang="ar"]
