@@ -62,7 +62,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useDashboards, useViewMode, DashboardItem } from "@/features/factory/hooks/useDashboards";
+import { useDashboards, useViewMode, dashboardDescription, DashboardItem } from "@/features/factory/hooks/useDashboards";
 import { toast } from "sonner";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 
@@ -257,7 +257,9 @@ const DashboardCard = ({ d, compact, selected, onToggleSelect, onOpen, onAction,
   d: DashboardItem; compact?: boolean; selected?: boolean;
   onToggleSelect?: (checked: boolean | "indeterminate") => void;
   onOpen: () => void; onAction: (k: string, d: DashboardItem) => void; lang: Lang; timeAgo: (ts: number) => string;
-}) => (
+}) => {
+  const describe = (item: DashboardItem) => dashboardDescription(item, lang);
+  return (
   <Card
     onClick={onOpen}
     className={`group relative p-3 cursor-pointer hover:border-primary/60 hover:shadow-sm transition-all flex ${
@@ -284,7 +286,7 @@ const DashboardCard = ({ d, compact, selected, onToggleSelect, onOpen, onAction,
             <h3 className="font-semibold text-sm text-foreground truncate">{d.name}</h3>
             {d.pinned && <Star className="h-3.5 w-3.5 text-primary fill-primary shrink-0" />}
           </div>
-          {d.description && <p className={`text-xs text-muted-foreground mt-0.5 ${compact ? "line-clamp-1" : "line-clamp-2"}`}>{d.description}</p>}
+          {describe(d) && <p className={`text-xs text-muted-foreground mt-0.5 ${compact ? "line-clamp-1" : "line-clamp-2"}`}>{describe(d)}</p>}
         </div>
         <RowActions d={d} onAction={onAction} lang={lang} />
       </div>
@@ -307,7 +309,8 @@ const DashboardCard = ({ d, compact, selected, onToggleSelect, onOpen, onAction,
       </div>
     </div>
   </Card>
-);
+  );
+};
 
 const Dashboard = () => {
   const { language, isRTL } = useLanguage();
@@ -337,7 +340,7 @@ const Dashboard = () => {
       const s = search.toLowerCase();
       list = list.filter((d) =>
         d.name.toLowerCase().includes(s) ||
-        d.description?.toLowerCase().includes(s) ||
+        dashboardDescription(d, lang).toLowerCase().includes(s) ||
         d.category?.toLowerCase().includes(s)
       );
     }
@@ -715,7 +718,7 @@ const Dashboard = () => {
                                 <span className="font-medium text-foreground truncate">{d.name}</span>
                                 {d.pinned && <Star className="h-3.5 w-3.5 text-primary fill-primary" />}
                               </div>
-                              {d.description && <p className="text-xs text-muted-foreground truncate max-w-[280px]">{d.description}</p>}
+                              {dashboardDescription(d, lang) && <p className="text-xs text-muted-foreground truncate max-w-[280px]">{dashboardDescription(d, lang)}</p>}
                             </div>
                           </div>
                         </td>

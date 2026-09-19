@@ -81,6 +81,32 @@ const buildDefaults = (): DashboardItem[] => {
   ];
 };
 
+/* The built-in dashboards' descriptions, translated.
+ *
+ * Their names stay English on purpose — "AI Executive Dashboard" is what the
+ * product is called — but the sentence underneath is ordinary prose and reads
+ * as untranslated UI next to a Persian page.
+ *
+ * Translated at render rather than at seed time: the description is stored in
+ * localStorage when the dashboard is first created, so a seeded string would
+ * be frozen in whatever language the user happened to be in that day. Keyed
+ * by id, so a dashboard someone wrote themselves is never touched.
+ */
+const BUILT_IN_DESCRIPTIONS: Record<string, { ar: string; fa: string }> = {
+  [AI_EXECUTIVE_DASHBOARD_ID]: {
+    fa: "نمای کلی مدیریتی داخلی: شاخص‌های کلیدی، بینش‌های هوش مصنوعی، پیش‌بینی‌ها، پیشنهادها، وضعیت سیستم و اقدامات سریع.",
+    ar: "نظرة تنفيذية مدمجة: مؤشرات الأداء، ورؤى الذكاء الاصطناعي، والتنبؤات، والتوصيات، وحالة النظام، والإجراءات السريعة.",
+  },
+  [AI_MANAGERS_DASHBOARD_ID]: {
+    fa: "مرکز عملیات هوش مصنوعی مدیریتی: بینش لحظه‌ای دربارهٔ ریسک‌ها، ناهنجاری‌ها و فرصت‌ها. بهینه‌شده برای نمایش روی رایانه و تلویزیون.",
+    ar: "مركز عمليات الذكاء الاصطناعي التنفيذي: رؤى لحظية حول المخاطر والحالات الشاذة والفرص. محسّن للعرض على الحاسوب والتلفاز.",
+  },
+};
+
+/** A dashboard's description in the reader's language, English as written. */
+export const dashboardDescription = (d: Pick<DashboardItem, "id" | "description">, language: string): string =>
+  (language === "fa" || language === "ar" ? BUILT_IN_DESCRIPTIONS[d.id]?.[language] : undefined) ?? d.description ?? "";
+
 const sampleCategories = ["Operations", "Utilities", "AI Analytics", "Energy", "Quality", "Safety", "Maintenance", "Executive"];
 
 const seedData = (): DashboardItem[] => {
