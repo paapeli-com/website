@@ -1,3 +1,5 @@
+import { formatDate } from "@/shared/lib/formatDate";
+
 export const formatRelativeTime = (
   iso: string | undefined,
   t: (k: any) => string,
@@ -15,5 +17,7 @@ export const formatRelativeTime = (
   if (m < 60) return t('minAgo').replace('{n}', num(m));
   const h = Math.floor(m / 60);
   if (h < 24) return h === 1 ? t('hourAgo') : t('hoursAgo').replace('{n}', num(h));
-  return new Date(iso).toLocaleDateString();
+  /* Past a day it stops being relative and becomes a date, which is
+     where the reader's calendar starts to matter. */
+  return formatDate(iso);
 };

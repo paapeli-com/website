@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { dateLocale } from "@/shared/lib/formatDate";
 import { Button } from "@/features/factory/components/ui/button";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { 
@@ -65,8 +66,7 @@ export const DashboardCanvas = ({ dashboard, onBack }: DashboardCanvasProps) => 
     setWidgetPickerOpen(true);
   };
 
-  const localeMap: Record<string, string> = { en: 'en-US', ar: 'ar-EG', fa: 'fa-IR' };
-  const currentDate = new Date().toLocaleString(localeMap[language] || 'en-US', {
+  const currentDate = new Date().toLocaleString(dateLocale(language), {
     month: 'short',
     day: '2-digit',
     year: 'numeric',

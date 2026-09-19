@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { formatDateTime } from "@/shared/lib/formatDate";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useToast } from "@/features/factory/hooks/use-toast";
@@ -404,7 +405,7 @@ const AIoTForecastDetails = () => {
                       <div className="min-w-0 flex-1">
                         <div className="font-medium truncate">{w.action}</div>
                         <div className="text-xs text-muted-foreground">
-                          {w.id} · {w.assignedTeam} · {new Date(w.createdAt).toLocaleString()}
+                          {w.id} · {w.assignedTeam} · {formatDateTime(w.createdAt)}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">

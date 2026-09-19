@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { dateLocale, formatDate, formatTime } from "@/shared/lib/formatDate";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
@@ -142,21 +143,19 @@ const fmtBytes = (b?: number) => {
   if (b < 1024 * 1024) return `${(b/1024).toFixed(1)} KB`;
   return `${(b/1024/1024).toFixed(2)} MB`;
 };
-const fmtDate = (iso?: string) => iso ? new Date(iso).toLocaleDateString() : "—";
+const fmtDate = (iso?: string) => formatDate(iso);
 
 const useFmtDate = () => {
   const { language } = useLanguage();
   return (iso?: string) => {
     if (!iso) return "—";
     const d = new Date(iso);
-    const locale =
-      language === "fa" ? "fa-IR-u-nu-arabext" :
-      language === "ar" ? "ar-EG-u-nu-arab" :
-      "en-US";
+    /* ar-EG was Gregorian with Arabic digits — localised digits on the
+       wrong year. dateLocale carries the calendar too. */
     try {
-      return new Intl.DateTimeFormat(locale, { year: "numeric", month: "numeric", day: "numeric" }).format(d);
+      return new Intl.DateTimeFormat(dateLocale(language), { year: "numeric", month: "numeric", day: "numeric" }).format(d);
     } catch {
-      return d.toLocaleDateString();
+      return formatDate(d, language);
     }
   };
 };
@@ -417,7 +416,7 @@ const OTAPage = () => {
                   <div className="text-xs text-muted-foreground mb-1">{t("logsLabel")}</div>
                   <div className="rounded-md border bg-muted/30 p-3 space-y-1 max-h-60 overflow-y-auto">
                     {deploymentDetails.logs.map((l, i) => (
-                      <div key={i} className="text-xs flex gap-2"><span className="text-muted-foreground">{new Date(l.ts).toLocaleTimeString()}</span><span>{l.msg}</span></div>
+                      <div key={i} className="text-xs flex gap-2"><span className="text-muted-foreground">{formatTime(l.ts)}</span><span>{l.msg}</span></div>
                     ))}
                   </div>
                 </div>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { formatTime } from "@/shared/lib/formatDate";
 import { Pause, Play } from "lucide-react";
 import { useDevices } from "@/features/track/contexts/DeviceContext";
 import { getTrack, GEOFENCES } from "@/features/track/data/mockData";
@@ -121,7 +122,7 @@ export default function Playback() {
         </div>
         <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
           <span>{num(head + 1)} / {num(trail.length)} {t("points")}</span>
-          <span>{point ? new Date(point.at).toLocaleTimeString() : ""}</span>
+          <span>{point ? formatTime(point.at) : ""}</span>
         </div>
       </div>
     </div>

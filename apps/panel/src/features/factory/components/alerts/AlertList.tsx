@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { formatDateTime } from "@/shared/lib/formatDate";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { LocationCell } from "@/features/factory/components/panel/LocationCell";
 import { Badge } from "@/features/factory/components/ui/badge";
@@ -631,7 +632,7 @@ const AlertDetailPanel = ({ alert, tt, busy, onAck, onClear }: {
           </>} />
           <DetailRow label={tt("locations")} value={alert.locationName || tt("noData")} />
           <DetailRow label={tt("alertTriggerCondition")} value={alert.triggerCondition || "—"} />
-          <DetailRow label={tt("alertStartTime")} value={<span dir="ltr">{new Date(alert.startTime).toLocaleString()}</span>} />
+          <DetailRow label={tt("alertStartTime")} value={formatDateTime(alert.startTime)} />
           <DetailRow label={tt("alertDuration")} value={alert.duration || "—"} />
           <DetailRow label={tt("alertAssignedTo")} value={alert.assignedTo || "—"} />
           <DetailRow label={tt("alertEscalationLevel")} value={alert.status === "escalated" ? "L2" : "L1"} />
@@ -687,7 +688,7 @@ const TimelineItem = ({ time, title, user }: { time: string; title: string; user
     </div>
     <div className="flex-1 -mt-0.5">
       <div className="font-medium text-sm text-foreground">{title}</div>
-      <div className="text-xs text-muted-foreground"><span dir="ltr">{new Date(time).toLocaleString()}</span> {user && `· ${user}`}</div>
+      <div className="text-xs text-muted-foreground"><span>{formatDateTime(time)}</span> {user && `· ${user}`}</div>
     </div>
   </div>
 );

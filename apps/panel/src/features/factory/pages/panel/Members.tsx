@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { formatDate } from "@/shared/lib/formatDate";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
@@ -108,7 +109,7 @@ const useFmtRel = () => {
     if (d < 7) return t("daysAgo").replace("{n}", formatNumber(d));
     if (d < 14) return t("oneWeekAgo");
     if (d < 30) return t("weeksAgo").replace("{n}", formatNumber(Math.floor(d / 7)));
-    return new Date(iso).toLocaleDateString();
+    return formatDate(iso);
   };
 };
 

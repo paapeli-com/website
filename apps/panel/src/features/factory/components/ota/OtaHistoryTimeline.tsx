@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/features/factory/components/ui/card";
+import { formatDateTime } from "@/shared/lib/formatDate";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { HistoryEntry } from "@/features/factory/types/ota";
 import { CheckCircle2, FileBadge2, PlayCircle, Undo2 } from "lucide-react";
@@ -40,7 +41,7 @@ export const OtaHistoryTimeline = ({ history }: Props) => {
                       <span className="text-xs text-muted-foreground">· {h.deviceType}</span>
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5">
-                      {new Date(h.timestamp).toLocaleString()} · {h.author}
+                      {formatDateTime(h.timestamp)} · {h.author}
                       {h.affectedDevices > 0 && ` · ${h.affectedDevices} ${t("otaDevices")}`}
                     </div>
                     {h.notes && <div className="text-sm text-muted-foreground mt-1 italic">{h.notes}</div>}

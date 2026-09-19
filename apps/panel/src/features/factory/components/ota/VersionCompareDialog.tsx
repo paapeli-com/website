@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/features/factory/components/ui/card";
+import { formatDate } from "@/shared/lib/formatDate";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/features/factory/components/ui/dialog";
 import { Badge } from "@/features/factory/components/ui/badge";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
@@ -60,7 +61,7 @@ export const VersionCompareDialog = ({ open, onOpenChange, fwA, fwB }: Props) =>
                   <Badge variant="outline">{fw.deviceType}</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {new Date(fw.releaseDate).toLocaleDateString()} · {fw.size}
+                  {formatDate(fw.releaseDate)} · {fw.size}
                 </p>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">

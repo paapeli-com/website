@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { dateLocale } from "@/shared/lib/formatDate";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/features/factory/components/ui/card";
 import { Badge } from "@/features/factory/components/ui/badge";
@@ -136,7 +137,7 @@ const DICT: Record<string, Record<Lang, string>> = {
 
 
 const formatLocaleDate = (d: Date, lang: Lang) =>
-  d.toLocaleDateString(lang === "fa" ? "fa-IR" : lang === "ar" ? "ar" : "en-US", {
+  d.toLocaleDateString(dateLocale(lang), {
     month: "short", day: "numeric", year: "numeric",
   });
 
