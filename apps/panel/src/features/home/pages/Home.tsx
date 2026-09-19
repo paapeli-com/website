@@ -220,9 +220,9 @@ export default function Home() {
   const greeting = user?.name ? `${welcome}${isRTLLanguage(lang) ? "، " : ", "}${user.name}` : welcome;
 
   return (
-    /* data-home-page: keeps the designed type scale in Persian and Arabic —
+    /* data-uniform-type: keeps the designed type scale in Persian and Arabic —
        see the matching block in src/index.css for why it is needed. */
-    <div data-home-page className="relative mx-auto w-full max-w-[1340px] px-4 py-8 sm:px-6">
+    <div data-uniform-type className="relative mx-auto w-full max-w-[1340px] px-4 py-8 sm:px-6">
       <TopoBackdrop />
 
       <div className="relative z-[1]">
