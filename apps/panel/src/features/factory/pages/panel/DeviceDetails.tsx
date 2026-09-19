@@ -141,13 +141,16 @@ const deviceStatus = (d: UserDevice): "online" | "offline" =>
 const StatCard = ({
   icon: Icon, label, value, tone = "primary", trailing, onClick,
 }: any) => {
-  const { isRTL } = useLanguage();
   return (
   <Card
     className={onClick ? "cursor-pointer hover:shadow-md transition-shadow" : ""}
     onClick={onClick}
   >
-    <CardContent className={`p-4 flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+    {/* No flex-row-reverse in RTL: a row already runs right to left there, so
+        reversing it flipped the card back and put the icon on the far left,
+        away from the title it belongs to. Plain `row` gives the icon beside
+        the title on the right and leaves the chevron out on the left. */}
+    <CardContent className="p-4 flex items-center gap-3">
       <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
         tone === "primary" ? "bg-primary/10 text-primary"
           : tone === "blue" ? "bg-sky-500/10 text-sky-500"
