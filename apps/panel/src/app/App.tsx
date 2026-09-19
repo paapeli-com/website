@@ -42,7 +42,12 @@ export default function App() {
                 </RequireAuth>
               }
             >
-              <Route index element={<Navigate to={`${solutionPath("SmartFactory")}/`} replace />} />
+              {/* The root lands on Home, not inside a product. It is also
+                  where signing in ends up whenever the login page carried a
+                  redirect of "/" — which is every sign-in that started from
+                  the bare domain, since goToLogin() puts the current path in
+                  the query and LoginPage's own default never gets a say. */}
+              <Route index element={<Navigate to="/Home" replace />} />
               <Route path="AIoT" element={<Navigate to={`${solutionPath("SmartFactory")}/`} replace />} />
 
               {/* The account's front door — every product on the account, and
