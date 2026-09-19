@@ -115,19 +115,20 @@ const DashboardTemplates = () => {
   const { create } = useDashboards();
 
   const useTemplate = (tpl: Template) => {
-    create({
+    const created = create({
       name: tpl.nameEn,
       description: tpl.descEn,
       category: tpl.category,
       location: tpl.location,
       access: "team",
       refreshInterval: "Manual",
-      timeRange: "Last 24 Hours",
+      timeRange: "Last hour",
       timezone: "(UTC) Coordinated Universal Time",
       tags: [],
     });
     toast.success(`"${tt(tpl.nameKey)}" ${tt("created")}`);
-    navigate(lp("/dashboard"));
+    /* Straight into the new dashboard, the same as building one by hand. */
+    navigate(lp(`/dashboard/${created.id}`));
   };
 
   return (
