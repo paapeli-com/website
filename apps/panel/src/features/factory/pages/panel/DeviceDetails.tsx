@@ -1306,7 +1306,12 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
 
   return (
     <>
-      <Card>
+      {/* dir spelled out on the card rather than left to inherit: the tab's
+          contents were rendering left-to-right inside a right-to-left page,
+          which put the card title and the checkbox column on the wrong side.
+          Stating it here makes the whole card mirror as one — header, table
+          columns and all — and is a no-op in English. */}
+      <Card dir={isRTL ? "rtl" : "ltr"}>
         {/* Toolbar (search + export), matching the Events tab */}
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
           <CardTitle className="text-base">{L.title}</CardTitle>
@@ -1369,7 +1374,9 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
                   <TableCell><Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggleOne(r.id)} /></TableCell>
                   <TableCell className="whitespace-nowrap text-muted-foreground">{fmtDateTime(r.updatedAt, language)}</TableCell>
                   <TableCell className="font-medium">{r.key}</TableCell>
-                  <TableCell className="tabular-nums">{r.value}</TableCell>
+                  {/* A reading is a number, and a lone "-3" in an RTL cell
+                      renders with the sign on the wrong end. */}
+                  <TableCell className="tabular-nums" dir="ltr">{r.value}</TableCell>
                   <TableCell>
                     <button onClick={() => setConfirmKey(r.id)} className="text-muted-foreground hover:text-destructive" aria-label={L.del}><Trash2 className="h-4 w-4" /></button>
                   </TableCell>
