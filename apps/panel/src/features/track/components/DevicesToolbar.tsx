@@ -13,7 +13,6 @@ import {
   Table,
   X,
 } from "lucide-react";
-import { AssetType } from "@/features/track/data/types";
 import { useLanguage } from "@/features/track/i18n/LanguageContext";
 import { TranslationKey } from "@/features/track/i18n/translations";
 import { cn } from "@/shared/lib/utils";
@@ -24,8 +23,8 @@ import { cn } from "@/shared/lib/utils";
 
 export type SortKey = "nameAsc" | "nameDesc" | "updated" | "status";
 export type StatusFilter = "all" | "online" | "offline";
-export type PosFilter = "all" | "GPS" | "LBS" | "WiFi";
-export type TypeFilterV = "all" | AssetType;
+/** "all", or a device-type key from the product catalog. */
+export type TypeFilterV = string;
 export type ViewMode = "table" | "tree";
 
 type Props = {
@@ -39,8 +38,8 @@ type Props = {
   setFStatus: (v: StatusFilter) => void;
   fType: TypeFilterV;
   setFType: (v: TypeFilterV) => void;
-  fPos: PosFilter;
-  setFPos: (v: PosFilter) => void;
+  /** Device types present in the list, for the type filter. */
+  typeOptions: { value: string; label: string }[];
   onClear: () => void;
   onRefresh: () => void;
 };
@@ -57,7 +56,7 @@ const selectCls =
 export function DevicesToolbar(props: Props) {
   const { t } = useLanguage();
   const [menu, setMenu] = useState<null | "filters" | "sort" | "actions">(null);
-  const filtersActive = props.fStatus !== "all" || props.fType !== "all" || props.fPos !== "all";
+  const filtersActive = props.fStatus !== "all" || props.fType !== "all";
 
   const SORTS: { key: SortKey; labelKey: TranslationKey }[] = [
     { key: "nameAsc", labelKey: "sortNameAz" },
@@ -132,20 +131,11 @@ export function DevicesToolbar(props: Props) {
             </label>
             <label className="block space-y-1.5">
               <span className="text-xs font-medium text-muted-foreground">{t("type")}</span>
-              <select className={selectCls} value={props.fType} onChange={(e) => props.setFType(e.target.value as TypeFilterV)}>
+              <select className={selectCls} value={props.fType} onChange={(e) => props.setFType(e.target.value)}>
                 <option value="all">{t("all")}</option>
-                <option value="pet">{t("pet")}</option>
-                <option value="person">{t("person")}</option>
-                <option value="vehicle">{t("vehicle")}</option>
-              </select>
-            </label>
-            <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">{t("positioning")}</span>
-              <select className={selectCls} value={props.fPos} onChange={(e) => props.setFPos(e.target.value as PosFilter)}>
-                <option value="all">{t("all")}</option>
-                <option value="GPS">GPS</option>
-                <option value="LBS">LBS</option>
-                <option value="WiFi">WiFi</option>
+                {props.typeOptions.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
               </select>
             </label>
             <button

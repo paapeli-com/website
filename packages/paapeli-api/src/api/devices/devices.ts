@@ -53,6 +53,11 @@ export interface CreateDeviceRequest {
     type: string;
     /** Unique device name, such as the tracker IMEI. */
     name: string;
+    /**
+     * Tracker IMEI. Sent ahead of backend support — the endpoint currently
+     * ignores it.
+     */
+    imei?: string;
     description?: string;
     /** Whether this device acts as a gateway. */
     isGateway?: boolean;
@@ -77,6 +82,8 @@ export interface CreateDeviceResponse {
 export interface DeviceResponse {
     id: string;
     name: string;
+    /** Tracker IMEI. Not returned yet — the backend doesn't store it. */
+    imei?: string;
     type: string;
     label: string;
     protocol: string;

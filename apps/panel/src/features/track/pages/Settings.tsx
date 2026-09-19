@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Building2, ChevronRight, Info, KeyRound, LogOut, Map, Palette, Plus, ShieldCheck } from "lucide-react";
+import { Building2, ChevronRight, Info, KeyRound, Loader2, LogOut, Map, Palette, Plus, ShieldCheck } from "lucide-react";
 import { getCurrentUser } from "@paapeli/brand/session";
 import { signOut as endSession } from "@paapeli/brand/session";
-import { useWorkspace } from "@/features/track/contexts/WorkspaceContext";
+import { useWorkspace } from "@/features/track/lib/workspace";
 import { useLanguage } from "@/features/track/i18n/LanguageContext";
 import { useTheme } from "@paapeli/brand/theme";
 import { useBrand } from "@/shell/BrandProvider";
@@ -13,6 +13,7 @@ import { Language } from "@/features/track/i18n/translations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/features/track/components/ui/card";
 import { Switch } from "@/features/track/components/ui/switch";
 import { Button } from "@/features/track/components/ui/button";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 import { cn } from "@/shared/lib/utils";
 
 const LANGS: { code: Language; label: string }[] = [
@@ -36,13 +37,18 @@ export default function Settings() {
   const { t, language, setLanguage } = useLanguage();
   const { dark, toggle } = useTheme();
   const { brand, setTenant } = useBrand();
-  const { workspaces, activeId, setActive, addWorkspace, canAdd } = useWorkspace();
+  const { workspaces, activeId, isLoading, setActive, addWorkspace, isAdding, canAdd } = useWorkspace();
   const navigate = useNavigate();
   const [newWs, setNewWs] = useState("");
   const soon = () => toast(t("comingSoon"));
 
-  const handleAddWorkspace = () => {
-    if (addWorkspace(newWs)) setNewWs("");
+  const handleAddWorkspace = async () => {
+    if (isAdding) return;
+    try {
+      if (await addWorkspace(newWs)) setNewWs("");
+    } catch (error) {
+      toast.error(apiErrorMessage(error, t("failedToAddWorkspace")));
+    }
   };
 
   return (
@@ -72,6 +78,7 @@ export default function Settings() {
         </CardHeader>
         <CardContent className="flex flex-col gap-3 pt-0">
           <div className="flex flex-col gap-2">
+            {isLoading && <Loader2 className="size-5 animate-spin self-center text-muted-foreground" />}
             {workspaces.map((ws) => {
               const isActive = ws.id === activeId;
               return (
@@ -102,8 +109,8 @@ export default function Settings() {
                 placeholder={t("workspaceName")}
                 className="h-10 flex-1 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:border-primary"
               />
-              <Button onClick={handleAddWorkspace} disabled={!newWs.trim()}>
-                <Plus className="size-4" />
+              <Button onClick={handleAddWorkspace} disabled={!newWs.trim() || isAdding}>
+                {isAdding ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
                 {t("create")}
               </Button>
             </div>

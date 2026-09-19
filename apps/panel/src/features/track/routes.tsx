@@ -1,7 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { LanguageProvider } from "./i18n/LanguageContext";
 import { AuthProvider } from "./contexts/AuthContext";
-import { WorkspaceProvider } from "./contexts/WorkspaceContext";
 import { DeviceProvider } from "./contexts/DeviceContext";
 import { AppShell } from "./components/layout/AppShell";
 import LiveMap from "./pages/LiveMap";
@@ -24,30 +23,28 @@ export default function TrackRoutes() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <WorkspaceProvider>
-          <DeviceProvider>
-            <Routes>
-              {/* Login is product-agnostic (the panel's /login). Targets here
-                  are ROUTE-RELATIVE on purpose: an absolute "/" would resolve
-                  against the whole app root (→ redirects to Smart Factory),
-                  not this feature's mount. ".." / "." resolve to
-                  /AIoT/GPSTracking. */}
-              <Route path="/login" element={<Navigate to=".." replace />} />
-              <Route path="/" element={<AppShell />}>
-                <Route index element={<LiveMap />} />
-                <Route path="devices" element={<Devices />} />
-                {/* Before ":id" so "new" is not read as a device id. */}
-                <Route path="devices/new" element={<DeviceForm />} />
-                <Route path="devices/:id" element={<DeviceDetail />} />
-                <Route path="geofences" element={<Geofences />} />
-                <Route path="playback" element={<Playback />} />
-                <Route path="alerts" element={<Alerts />} />
-                <Route path="settings" element={<Settings />} />
-              </Route>
-              <Route path="*" element={<Navigate to="." replace />} />
-            </Routes>
-          </DeviceProvider>
-        </WorkspaceProvider>
+        <DeviceProvider>
+          <Routes>
+            {/* Login is product-agnostic (the panel's /login). Targets here
+                are ROUTE-RELATIVE on purpose: an absolute "/" would resolve
+                against the whole app root (→ redirects to Smart Factory),
+                not this feature's mount. ".." / "." resolve to
+                /AIoT/GPSTracking. */}
+            <Route path="/login" element={<Navigate to=".." replace />} />
+            <Route path="/" element={<AppShell />}>
+              <Route index element={<LiveMap />} />
+              <Route path="devices" element={<Devices />} />
+              {/* Before ":id" so "new" is not read as a device id. */}
+              <Route path="devices/new" element={<DeviceForm />} />
+              <Route path="devices/:id" element={<DeviceDetail />} />
+              <Route path="geofences" element={<Geofences />} />
+              <Route path="playback" element={<Playback />} />
+              <Route path="alerts" element={<Alerts />} />
+              <Route path="settings" element={<Settings />} />
+            </Route>
+            <Route path="*" element={<Navigate to="." replace />} />
+          </Routes>
+        </DeviceProvider>
       </AuthProvider>
     </LanguageProvider>
   );

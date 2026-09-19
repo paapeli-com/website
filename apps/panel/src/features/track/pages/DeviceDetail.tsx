@@ -1,17 +1,31 @@
 import { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send } from "lucide-react";
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
-import { DEVICES, GEOFENCES, getHealth, getTrack, getTrips } from "@/features/track/data/mockData";
+import { ArrowLeft, Cpu, Loader2, Send } from "lucide-react";
 import { useLanguage } from "@/features/track/i18n/LanguageContext";
+import { useTracker } from "@/features/track/lib/useTracker";
+import { latestBattery, latestRows, latestSpeed, positionTrail } from "@/features/track/lib/telemetry";
 import { LeafletMap } from "@/features/track/components/map/LeafletMap";
 import { CommandDrawer } from "@/features/track/components/CommandDrawer";
-import { Battery, Signal, StatusPill, TypeAvatar } from "@/features/track/components/DeviceBits";
+import { DeviceEvents } from "@/features/track/components/DeviceEvents";
+import { Battery, StatusPill } from "@/features/track/components/DeviceBits";
 import { Button } from "@/features/track/components/ui/button";
 import { Card } from "@/features/track/components/ui/card";
 import { NoData, NoDataValue } from "@/features/track/components/NoData";
 import { TranslationKey } from "@/features/track/i18n/translations";
+import { LoadFailed } from "@/shared/components/LoadFailed";
+import { PageSkeleton } from "@/shared/components/PageSkeleton";
+import { usePageLoad } from "@/shared/hooks/usePageLoad";
 import { cn } from "@/shared/lib/utils";
+
+/* One tracker, from the API: its record (GET /devices/.../device/{id}), its
+ * last 24 hours of telemetry, its activity feed and its credentials.
+ *
+ * The mock page this replaces also had Health and Trips tabs and a
+ * pet/person/vehicle split; nothing in the API backs those, so they are gone
+ * rather than shown empty. Position, battery and speed come from telemetry
+ * when the tracker reports them — see lib/telemetry.ts for the keys read. */
+
+const TABS: TranslationKey[] = ["overview", "telemetry", "activity", "info"];
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -22,50 +36,72 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+function BackButton() {
+  const navigate = useNavigate();
+  return (
+    <button onClick={() => navigate(-1)} className="rounded-xl p-2 hover:bg-muted">
+      <ArrowLeft className="size-5 rtl:rotate-180" />
+    </button>
+  );
+}
+
 export default function DeviceDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { t, num, relTime, label: tl } = useLanguage();
-  /* No device list yet, so no device to open. This used to fall back to
-     DEVICES[0] when the route id matched nothing, which meant a stale or
-     mistyped link silently showed a different tracker's page. */
-  const device = useMemo(() => DEVICES.find((d) => d.id === id) ?? null, [id]);
+  const { t, num, relTime } = useLanguage();
+  const tracker = useTracker(id);
+  const { device, workspaceId, telemetry } = tracker;
   const [cmdOpen, setCmdOpen] = useState(false);
-
-  const isVehicle = device?.type === "vehicle";
-  const tabs: TranslationKey[] = ["overview", isVehicle ? "trips" : "activity", ...(isVehicle ? [] : (["health"] as TranslationKey[])), "info"];
   const [tab, setTab] = useState<TranslationKey>("overview");
 
-  const health = device ? getHealth(device) : null;
-  const trips = device ? getTrips(device) : [];
-  const trail = device ? getTrack(device) : [];
-  const geofences = device ? GEOFENCES.filter((g) => g.deviceIds.includes(device.id)) : [];
-  const activityData = (health?.activityByHour ?? []).map((v, h) => ({ h: `${h}`, v }));
+  const pageLoad = usePageLoad({
+    loading: tracker.load.loading || !workspaceId,
+    failed: tracker.load.failed && !tracker.notFound,
+    onRetry: tracker.refetchDevice,
+  });
 
-  if (!device) {
+  const trail = useMemo(() => positionTrail(telemetry), [telemetry]);
+  const rows = useMemo(() => latestRows(telemetry), [telemetry]);
+  const battery = latestBattery(telemetry);
+  const speed = latestSpeed(telemetry);
+  const lastReport = rows[0]?.ts;
+
+  if (tracker.notFound) {
     return (
       <div className="mx-auto max-w-5xl p-4 lg:p-6">
-        <button onClick={() => navigate(-1)} className="mb-5 rounded-xl p-2 hover:bg-muted">
-          <ArrowLeft className="size-5 rtl:rotate-180" />
-        </button>
+        <div className="mb-5"><BackButton /></div>
         <NoData size="lg" className="rounded-2xl border border-border bg-card" />
       </div>
     );
   }
+  if (pageLoad.status === "loading") return <PageSkeleton />;
+  if (pageLoad.status === "failed" || !device) return <LoadFailed onRetry={pageLoad.retry} />;
+
+  const status = device.active ? "online" : "offline";
+  const telemetryEmpty = (
+    <div className="rounded-2xl border border-border bg-card p-6">
+      {tracker.telemetryLoading ? (
+        <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
+      ) : tracker.telemetryFailed ? (
+        <LoadFailed onRetry={() => void tracker.refetchTelemetry()} />
+      ) : (
+        <NoData title={t("noTelemetry")} />
+      )}
+    </div>
+  );
 
   return (
     <div className="mx-auto max-w-5xl p-4 lg:p-6">
       {/* Header */}
       <div className="mb-5 flex flex-wrap items-center gap-3">
-        <button onClick={() => navigate(-1)} className="rounded-xl p-2 hover:bg-muted">
-          <ArrowLeft className="size-5 rtl:rotate-180" />
-        </button>
-        <TypeAvatar type={device.type} size={48} />
-        <div className="flex-1">
-          <h1 className="text-xl font-bold">{device.name}</h1>
+        <BackButton />
+        <span className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <Cpu className="size-6" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h1 dir="auto" className="truncate text-xl font-bold">{device.name}</h1>
           <div className="mt-0.5 flex items-center gap-2">
-            <StatusPill status={device.status} />
-            <span className="text-sm text-muted-foreground">{tl(device.subtitle)} · {relTime(device.updatedAt)}</span>
+            <StatusPill status={status} />
+            <span className="text-sm text-muted-foreground">{tracker.typeLabel} · {relTime(device.updatedAt)}</span>
           </div>
         </div>
         <Button onClick={() => setCmdOpen(true)}>
@@ -75,13 +111,13 @@ export default function DeviceDetail() {
       </div>
 
       {/* Tabs */}
-      <div className="mb-4 inline-flex rounded-xl bg-muted p-1">
-        {tabs.map((tb) => (
+      <div className="mb-4 inline-flex max-w-full overflow-x-auto rounded-xl bg-muted p-1">
+        {TABS.map((tb) => (
           <button
             key={tb}
             onClick={() => setTab(tb)}
             className={cn(
-              "rounded-lg px-4 py-1.5 text-sm font-medium transition-colors",
+              "shrink-0 rounded-lg px-4 py-1.5 text-sm font-medium transition-colors",
               tab === tb ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -92,88 +128,85 @@ export default function DeviceDetail() {
 
       {tab === "overview" && (
         <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-          <LeafletMap devices={[device]} selectedId={device.id} geofences={geofences} trail={trail} className="aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border" />
-          <div className="grid grid-cols-2 gap-3">
-            <Stat label={t("battery")} value={<Battery level={device.battery} />} />
-            <Stat label={t("signal")} value={<Signal bars={device.signal} />} />
-            <Stat label={t("accuracy")} value={device.positioning} />
-            <Stat
-              label={isVehicle ? t("speed") : t("steps")}
-              value={isVehicle ? `${num(device.speedKmh)} km/h` : health ? num(health.steps) : <NoDataValue />}
-            />
+          {trail.length > 0 ? (
+            <LeafletMap devices={[]} trail={trail} className="aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border" />
+          ) : (
+            <div className="flex aspect-[4/3] w-full items-center justify-center rounded-2xl border border-border bg-card">
+              {tracker.telemetryLoading ? (
+                <Loader2 className="size-5 animate-spin text-muted-foreground" />
+              ) : (
+                <NoData title={t("noPosition")} />
+              )}
+            </div>
+          )}
+          <div className="grid grid-cols-2 content-start gap-3">
+            <Stat label={t("battery")} value={battery ? <Battery level={battery.value} /> : <NoDataValue />} />
+            <Stat label={t("speed")} value={speed ? `${num(speed.value)} km/h` : <NoDataValue />} />
+            <Stat label={t("status")} value={<StatusPill status={status} />} />
+            <Stat label={t("protocol")} value={device.protocol || <NoDataValue />} />
             <div className="col-span-2">
-              <Stat label={t("lastUpdate")} value={<span className="text-sm font-medium">{relTime(device.updatedAt)} · {device.address}</span>} />
+              <Stat
+                label={t("lastReport")}
+                value={
+                  lastReport
+                    ? <span className="text-sm font-medium">{relTime(new Date(lastReport).toISOString())}</span>
+                    : <NoDataValue />
+                }
+              />
             </div>
           </div>
         </div>
+      )}
+
+      {tab === "telemetry" && (
+        rows.length === 0 ? telemetryEmpty : (
+          <Card className="divide-y divide-border">
+            <div className="grid grid-cols-[1fr_1fr_auto] gap-4 px-5 py-3 text-xs font-medium text-muted-foreground">
+              <span>{t("key")}</span>
+              <span>{t("value")}</span>
+              <span>{t("updated")}</span>
+            </div>
+            {rows.map((r) => (
+              <div key={r.key} className="grid grid-cols-[1fr_1fr_auto] items-center gap-4 px-5 py-3 text-sm">
+                <span dir="ltr" className="truncate font-mono text-xs">{r.key}</span>
+                <span dir="ltr" className="truncate font-medium">{r.value}</span>
+                <span className="text-xs text-muted-foreground">{relTime(new Date(r.ts).toISOString())}</span>
+              </div>
+            ))}
+          </Card>
+        )
       )}
 
       {tab === "activity" && (
-        <Card className="p-5">
-          <p className="mb-4 text-sm font-semibold">{t("todayActivity")}</p>
-          {activityData.length === 0 && <NoData />}
-          {activityData.length > 0 && (
-          <div className="h-56 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={activityData}>
-                <XAxis dataKey="h" tickLine={false} axisLine={false} fontSize={10} interval={3} />
-                <Tooltip cursor={{ fill: "hsl(var(--secondary))" }} contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))", fontSize: 12 }} />
-                <Bar dataKey="v" radius={[4, 4, 0, 0]} fill="hsl(var(--primary))" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          )}
-          <div className="mt-4 grid grid-cols-3 gap-3">
-            <Stat label={t("steps")} value={health ? num(health.steps) : <NoDataValue />} />
-            <Stat label={t("distance")} value={health ? `${num(health.distanceKm)} km` : <NoDataValue />} />
-            <Stat label={t("heartRate")} value={health ? `${num(health.heartRate)} bpm` : <NoDataValue />} />
-          </div>
-        </Card>
-      )}
-
-      {tab === "health" && (
-        <div className="grid grid-cols-3 gap-3">
-          <Stat label={t("steps")} value={health ? num(health.steps) : <NoDataValue />} />
-          <Stat label={t("distance")} value={health ? `${num(health.distanceKm)} km` : <NoDataValue />} />
-          <Stat label={t("heartRate")} value={health ? `${num(health.heartRate)} bpm` : <NoDataValue />} />
-        </div>
-      )}
-
-      {tab === "trips" && (
-        <Card className="divide-y divide-border">
-          <p className="p-5 pb-3 text-sm font-semibold">{t("recentTrips")}</p>
-          {trips.length === 0 && <NoData />}
-          {trips.map((tr) => (
-            <div key={tr.id} className="flex items-center justify-between px-5 py-3 text-sm">
-              <span className="text-muted-foreground">{relTime(tr.at)}</span>
-              <span className="flex gap-4">
-                <span>{num(tr.distanceKm)} km</span>
-                <span className="text-muted-foreground">{num(tr.durationMin)} min</span>
-                <span className="font-medium">{num(tr.maxSpeedKmh)} km/h</span>
-              </span>
-            </div>
-          ))}
-        </Card>
+        <DeviceEvents workspaceId={workspaceId} deviceId={device.id} deviceName={device.name} />
       )}
 
       {tab === "info" && (
         <Card className="divide-y divide-border">
           {([
-            [t("model"), device.model],
+            [t("deviceId"), device.id],
             [t("imei"), device.imei],
-            [t("iccid"), device.iccid],
-            [t("firmware"), device.firmware],
-            [t("reportingInterval"), `${num(device.reportingIntervalMin)} min`],
-          ] as [string, string][]).map(([k, v]) => (
-            <div key={k} className="flex items-center justify-between px-5 py-3 text-sm">
-              <span className="text-muted-foreground">{k}</span>
-              <span className="font-medium">{v}</span>
+            [t("deviceType"), tracker.typeLabel],
+            [t("protocol"), device.protocol],
+            [t("credentialType"), tracker.credentialType],
+            [t("clientId"), tracker.mqtt?.clientId],
+            [t("username"), tracker.mqtt?.username],
+            [t("createdAt"), device.createdAt && new Date(device.createdAt).toLocaleString()],
+            [t("updated"), device.updatedAt && new Date(device.updatedAt).toLocaleString()],
+          ] as [string, string | undefined][]).map(([k, v]) => (
+            <div key={k} className="flex items-center justify-between gap-4 px-5 py-3 text-sm">
+              <span className="shrink-0 text-muted-foreground">{k}</span>
+              <span dir="ltr" className="min-w-0 truncate font-medium">{v || <NoDataValue />}</span>
             </div>
           ))}
         </Card>
       )}
 
-      <CommandDrawer open={cmdOpen} onClose={() => setCmdOpen(false)} device={device} />
+      <CommandDrawer
+        open={cmdOpen}
+        onClose={() => setCmdOpen(false)}
+        device={{ id: device.id, name: device.name, type: device.type }}
+      />
     </div>
   );
 }

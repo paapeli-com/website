@@ -14,13 +14,13 @@ const PAD: Record<Size, string> = { sm: "py-6 gap-1.5", md: "py-10 gap-2", lg: "
  * for the map markers, device rows, alerts and trip history until the gateway
  * serves them.
  */
-export const NoData = ({ size = "md", className }: { size?: Size; className?: string }) => {
+export const NoData = ({ size = "md", className, title }: { size?: Size; className?: string; title?: string }) => {
   const { t } = useLanguage();
 
   return (
     <div className={cn("flex flex-col items-center justify-center text-center", PAD[size], className)}>
       <DatabaseZap className={cn("text-muted-foreground/40", ICON[size])} />
-      <p className={cn("text-muted-foreground", TEXT[size])}>{t("noData")}</p>
+      <p className={cn("text-muted-foreground", TEXT[size])}>{title ?? t("noData")}</p>
     </div>
   );
 };

@@ -1,50 +1,70 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-import { Boxes, ChevronRight, Plus } from "lucide-react";
-import { useDevices } from "@/features/track/contexts/DeviceContext";
+import { Boxes, ChevronRight, Cpu, Plus } from "lucide-react";
 import { useLanguage } from "@/features/track/i18n/LanguageContext";
-import { AssetType } from "@/features/track/data/types";
-import { ASSET_META, Battery, Signal, StatusPill, TypeAvatar } from "@/features/track/components/DeviceBits";
+import { useTrackers } from "@/features/track/lib/useTrackers";
+import { StatusPill } from "@/features/track/components/DeviceBits";
 import { Button } from "@/features/track/components/ui/button";
 import { NoData } from "@/features/track/components/NoData";
 import {
   DevicesToolbar,
-  PosFilter,
   SortKey,
   StatusFilter,
   TypeFilterV,
   ViewMode,
 } from "@/features/track/components/DevicesToolbar";
-import { TranslationKey } from "@/features/track/i18n/translations";
+import { LoadFailed } from "@/shared/components/LoadFailed";
+import { PageSkeleton } from "@/shared/components/PageSkeleton";
+import { usePageLoad } from "@/shared/hooks/usePageLoad";
 import { cn } from "@/shared/lib/utils";
 import { trackPath } from "@/features/track/lib/trackPath";
 
+function TrackerAvatar({ size = 40 }: { size?: number }) {
+  return (
+    <span
+      className="flex shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+      style={{ width: size, height: size }}
+    >
+      <Cpu className="size-1/2" />
+    </span>
+  );
+}
+
 export default function Devices() {
-  const { devices } = useDevices();
-  const { t, num, relTime, label } = useLanguage();
+  const { trackers, total, load, noWorkspace, isFetching, refetch } = useTrackers();
+  const { t, num, relTime } = useLanguage();
   const navigate = useNavigate();
+  const pageLoad = usePageLoad({
+    loading: load.loading || noWorkspace,
+    failed: load.failed,
+    onRetry: refetch,
+  });
 
   const [view, setView] = useState<ViewMode>("table");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("updated");
   const [fStatus, setFStatus] = useState<StatusFilter>("all");
   const [fType, setFType] = useState<TypeFilterV>("all");
-  const [fPos, setFPos] = useState<PosFilter>("all");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
+  // Only the types actually present, so the filter never offers an empty result.
+  const typeOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const d of trackers) if (!seen.has(d.type)) seen.set(d.type, d.typeLabel);
+    return [...seen].map(([value, label]) => ({ value, label }));
+  }, [trackers]);
+
   const list = useMemo(() => {
-    let r = devices.slice();
+    let r = trackers.slice();
     if (fType !== "all") r = r.filter((d) => d.type === fType);
     if (fStatus !== "all") r = r.filter((d) => d.status === fStatus);
-    if (fPos !== "all") r = r.filter((d) => d.positioning === fPos);
     const q = search.trim().toLowerCase();
     if (q) {
       r = r.filter(
         (d) =>
           d.name.toLowerCase().includes(q) ||
-          d.model.toLowerCase().includes(q) ||
-          d.subtitle.toLowerCase().includes(q),
+          d.label.toLowerCase().includes(q) ||
+          d.typeLabel.toLowerCase().includes(q),
       );
     }
     r.sort((a, b) => {
@@ -54,23 +74,22 @@ export default function Devices() {
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
     return r;
-  }, [devices, fType, fStatus, fPos, search, sort]);
+  }, [trackers, fType, fStatus, search, sort]);
 
   const clearFilters = () => {
     setFStatus("all");
     setFType("all");
-    setFPos("all");
   };
 
   const isOpen = (k: string) => !collapsed[k];
   const toggle = (k: string) => setCollapsed((c) => ({ ...c, [k]: !c[k] }));
 
-  const groups: { key: AssetType; labelKey: TranslationKey; items: typeof list }[] = [
-    { key: "pet", labelKey: "pets", items: list.filter((d) => d.type === "pet") },
-    { key: "person", labelKey: "people", items: list.filter((d) => d.type === "person") },
-    { key: "vehicle", labelKey: "vehicles", items: list.filter((d) => d.type === "vehicle") },
-  ];
-  const shownGroups = groups.filter((g) => g.items.length > 0);
+  const groups = typeOptions
+    .map((o) => ({ key: o.value, label: o.label, items: list.filter((d) => d.type === o.value) }))
+    .filter((g) => g.items.length > 0);
+
+  if (pageLoad.status === "loading") return <PageSkeleton />;
+  if (pageLoad.status === "failed") return <LoadFailed onRetry={pageLoad.retry} />;
 
   return (
     <div className="mx-auto max-w-6xl p-4 lg:p-6">
@@ -97,38 +116,40 @@ export default function Devices() {
           setFStatus={setFStatus}
           fType={fType}
           setFType={setFType}
-          fPos={fPos}
-          setFPos={setFPos}
+          typeOptions={typeOptions}
           onClear={clearFilters}
-          onRefresh={() => toast(t("refresh"))}
+          onRefresh={() => void refetch()}
         />
       </div>
 
-      {/* -------- Tree view -------- */}
-      {view === "tree" ? (
-        <div className="rounded-2xl border border-border bg-card p-2">
-          {/* Root */}
-          <button onClick={() => toggle("root")} className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-start transition-colors hover:bg-muted">
-            <ChevronRight className={cn("size-4 text-muted-foreground transition-transform", isOpen("root") && "rotate-90")} />
-            <Boxes className="size-4 text-primary" />
-            <span className="text-sm font-semibold">{t("allDevices")}</span>
-            <span className="text-xs text-muted-foreground">({num(list.length)})</span>
-          </button>
+      {total > trackers.length && (
+        <p className="mb-3 text-xs text-muted-foreground">
+          {t("showingFirstDevices").replace("{shown}", num(trackers.length)).replace("{total}", num(total))}
+        </p>
+      )}
 
-          {isOpen("root") && shownGroups.length === 0 && <NoData size="sm" />}
+      <div className={cn("transition-opacity", isFetching && "opacity-60")}>
+        {/* -------- Tree view -------- */}
+        {view === "tree" ? (
+          <div className="rounded-2xl border border-border bg-card p-2">
+            {/* Root */}
+            <button onClick={() => toggle("root")} className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-start transition-colors hover:bg-muted">
+              <ChevronRight className={cn("size-4 text-muted-foreground transition-transform", isOpen("root") && "rotate-90")} />
+              <Boxes className="size-4 text-primary" />
+              <span className="text-sm font-semibold">{t("allDevices")}</span>
+              <span className="text-xs text-muted-foreground">({num(list.length)})</span>
+            </button>
 
-          {isOpen("root") &&
-            shownGroups.map((g) => {
-              const meta = ASSET_META[g.key];
-              return (
+            {isOpen("root") && groups.length === 0 && <NoData size="sm" />}
+
+            {isOpen("root") &&
+              groups.map((g) => (
                 <div key={g.key} className="border-border ltr:ml-4 ltr:border-l ltr:pl-1 rtl:mr-4 rtl:border-r rtl:pr-1">
-                  {/* Group */}
+                  {/* Group — one per device type */}
                   <button onClick={() => toggle(g.key)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start transition-colors hover:bg-muted">
                     <ChevronRight className={cn("size-4 text-muted-foreground transition-transform", isOpen(g.key) && "rotate-90")} />
-                    <span className={cn("flex size-6 items-center justify-center rounded-md", meta.tint)}>
-                      <meta.Icon className={cn("size-4", meta.text)} />
-                    </span>
-                    <span className="text-sm font-medium">{t(g.labelKey)}</span>
+                    <TrackerAvatar size={24} />
+                    <span className="text-sm font-medium">{g.label}</span>
                     <span className="text-xs text-muted-foreground">({num(g.items.length)})</span>
                   </button>
 
@@ -141,59 +162,60 @@ export default function Devices() {
                           onClick={() => navigate(trackPath(`/devices/${d.id}`))}
                           className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-start transition-colors hover:bg-muted"
                         >
-                          <TypeAvatar type={d.type} size={28} />
+                          <TrackerAvatar size={28} />
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">{d.name}</p>
-                            <p className="truncate text-xs text-muted-foreground">{label(d.subtitle)} · {relTime(d.updatedAt)}</p>
+                            <p dir="auto" className="truncate text-sm font-medium">{d.name}</p>
+                            <p className="truncate text-xs text-muted-foreground">{d.protocol} · {relTime(d.updatedAt)}</p>
                           </div>
                           <StatusPill status={d.status} />
-                          <span className="hidden sm:block"><Battery level={d.battery} /></span>
                           <ChevronRight className="size-4 text-muted-foreground rtl:rotate-180" />
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
-              );
-            })}
-        </div>
-      ) : (
-        /* -------- Table view -------- */
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
-          <div className="hidden grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-4 border-b border-border px-5 py-3 text-xs font-medium text-muted-foreground lg:grid">
-            <span>{t("deviceName")}</span>
-            <span>{t("type")}</span>
-            <span>{t("status")}</span>
-            <span>{t("battery")}</span>
-            <span>{t("updated")}</span>
-            <span className="w-8" />
+              ))}
           </div>
-          {list.length === 0 ? (
-            <NoData />
-          ) : (
-            list.map((d) => (
-              <button
-                key={d.id}
-                onClick={() => navigate(trackPath(`/devices/${d.id}`))}
-                className="flex w-full flex-col gap-3 border-b border-border p-4 text-start transition-colors last:border-0 hover:bg-muted lg:grid lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] lg:items-center lg:gap-4 lg:px-5"
-              >
-                <div className="flex items-center gap-3">
-                  <TypeAvatar type={d.type} size={40} />
-                  <div>
-                    <p className="text-sm font-semibold">{d.name}</p>
-                    <p className="text-xs text-muted-foreground">{d.model}</p>
+        ) : (
+          /* -------- Table view -------- */
+          <div className="overflow-hidden rounded-2xl border border-border bg-card">
+            <div className="hidden grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-4 border-b border-border px-5 py-3 text-xs font-medium text-muted-foreground lg:grid">
+              <span>{t("deviceName")}</span>
+              <span>{t("deviceType")}</span>
+              <span>{t("status")}</span>
+              <span>{t("protocol")}</span>
+              <span>{t("updated")}</span>
+              <span className="w-8" />
+            </div>
+            {list.length === 0 ? (
+              <NoData />
+            ) : (
+              list.map((d) => (
+                <button
+                  key={d.id}
+                  onClick={() => navigate(trackPath(`/devices/${d.id}`))}
+                  className="flex w-full flex-col gap-3 border-b border-border p-4 text-start transition-colors last:border-0 hover:bg-muted lg:grid lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] lg:items-center lg:gap-4 lg:px-5"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <TrackerAvatar />
+                    <div className="min-w-0">
+                      <p dir="auto" className="truncate text-sm font-semibold">{d.name}</p>
+                      {d.label && d.label !== d.name && (
+                        <p dir="auto" className="truncate text-xs text-muted-foreground">{d.label}</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <span className="text-sm text-muted-foreground">{label(d.subtitle)}</span>
-                <span><StatusPill status={d.status} /></span>
-                <span className="flex items-center gap-2"><Battery level={d.battery} /><Signal bars={d.signal} /></span>
-                <span className="text-sm text-muted-foreground">{relTime(d.updatedAt)}</span>
-                <ChevronRight className="hidden size-4 text-muted-foreground rtl:rotate-180 lg:block" />
-              </button>
-            ))
-          )}
-        </div>
-      )}
+                  <span className="text-sm text-muted-foreground">{d.typeLabel}</span>
+                  <span><StatusPill status={d.status} /></span>
+                  <span className="text-sm text-muted-foreground">{d.protocol || "—"}</span>
+                  <span className="text-sm text-muted-foreground">{relTime(d.updatedAt)}</span>
+                  <ChevronRight className="hidden size-4 text-muted-foreground rtl:rotate-180 lg:block" />
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

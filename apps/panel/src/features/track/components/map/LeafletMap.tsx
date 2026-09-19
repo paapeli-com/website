@@ -1,18 +1,18 @@
 import { useEffect, useRef } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Car, Dog, User } from "lucide-react";
+import { Car, Cpu, Dog, User } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { AssetType, Device, Geofence, TrackPoint } from "@/features/track/data/types";
+import { AssetType, Geofence, TrackPoint } from "@/features/track/data/types";
 import { cn } from "@/shared/lib/utils";
 
 /* ------------------------------------------------------------------ */
 /* Real OSM (Leaflet) map for GPS Tracking.                           */
 /* Real streets + type-coloured markers + geofence circles, and an     */
 /* optional route trail with a moving playhead (for Playback / Detail).*/
-/* Data (lat/lng) is mock for now; later it streams from the gateway   */
-/* (which fronts ThingsBoard). Swap the tile URL for a self-hosted OSM  */
-/* server for on-prem.                                                 */
+/* Live Map and Device Detail feed it real telemetry fixes; Playback    */
+/* and Geofences still pass mock data. Swap the tile URL for a          */
+/* self-hosted OSM server for on-prem.                                  */
 /* ------------------------------------------------------------------ */
 
 const COLOR: Record<AssetType, string> = {
@@ -30,15 +30,20 @@ const ICON_SVG: Record<AssetType, string> = {
 };
 
 const PRIMARY = "hsl(28, 100%, 50%)";
+const TRACKER_SVG = renderToStaticMarkup(<Cpu color="#fff" size={19} strokeWidth={2.2} />);
 
-function makeIcon(type: AssetType, selected: boolean) {
+/** Anything with a position. `type` picks the pet/person/vehicle marker;
+    without it (real trackers — the API has no such kind) a generic one. */
+export type MapDevice = { id: string; lat: number; lng: number; type?: AssetType };
+
+function makeIcon(type: AssetType | undefined, selected: boolean) {
   const size = selected ? 42 : 34;
   const shadow = selected
     ? `border:3px solid #fff;box-shadow:0 0 0 3px ${PRIMARY},0 3px 10px rgba(0,0,0,.35)`
     : "border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)";
   return L.divIcon({
     className: "",
-    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${COLOR[type]};display:flex;align-items:center;justify-content:center;${shadow}">${ICON_SVG[type]}</div>`,
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${type ? COLOR[type] : PRIMARY};display:flex;align-items:center;justify-content:center;${shadow}">${type ? ICON_SVG[type] : TRACKER_SVG}</div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   });
@@ -60,7 +65,7 @@ export function LeafletMap({
   playhead,
   className,
 }: {
-  devices: Device[];
+  devices: MapDevice[];
   selectedId?: string;
   onSelect?: (id: string) => void;
   geofences?: Geofence[];
@@ -74,6 +79,7 @@ export function LeafletMap({
   const geoRef = useRef<L.Layer[]>([]);
   const lineRef = useRef<L.Polyline | null>(null);
   const headRef = useRef<L.Marker | null>(null);
+  const fittedRef = useRef(false);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
 
@@ -88,18 +94,15 @@ export function LeafletMap({
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map);
 
-    devices.forEach((d) => {
-      const m = L.marker([d.lat, d.lng], { icon: makeIcon(d.type, d.id === selectedId) })
-        .addTo(map)
-        .on("click", () => onSelectRef.current?.(d.id));
-      markersRef.current[d.id] = m;
-    });
-
+    // Markers are placed by the sync effect below, which also fits the view
+    // to them once they first arrive. A trail fits itself in its own effect.
     const initialPts = trail?.length
       ? trail.map((p) => [p.lat, p.lng] as [number, number])
       : devices.map((d) => [d.lat, d.lng] as [number, number]);
-    if (initialPts.length) map.fitBounds(L.latLngBounds(initialPts), { padding: [50, 50], maxZoom: 16 });
-    else map.setView([40.782, -73.965], 14);
+    if (initialPts.length) {
+      map.fitBounds(L.latLngBounds(initialPts), { padding: [50, 50], maxZoom: 16 });
+      fittedRef.current = true;
+    } else map.setView([40.782, -73.965], 14);
 
     setTimeout(() => map.invalidateSize(), 100);
 
@@ -107,6 +110,7 @@ export function LeafletMap({
       map.remove();
       mapRef.current = null;
       markersRef.current = {};
+      fittedRef.current = false;
       lineRef.current = null;
       headRef.current = null;
     };
@@ -135,15 +139,47 @@ export function LeafletMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geofences]);
 
-  // Selection: restyle markers + pan.
+  // Devices: add, move and remove markers as the list changes, since on the
+  // Live Map positions arrive after mount and keep refreshing.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    devices.forEach((d) => markersRef.current[d.id]?.setIcon(makeIcon(d.type, d.id === selectedId)));
-    const sel = devices.find((d) => d.id === selectedId);
-    if (sel && !trail) map.panTo([sel.lat, sel.lng], { animate: true });
+    const live = new Set(devices.map((d) => d.id));
+    for (const [id, m] of Object.entries(markersRef.current)) {
+      if (!live.has(id)) {
+        m.remove();
+        delete markersRef.current[id];
+      }
+    }
+    devices.forEach((d) => {
+      const icon = makeIcon(d.type, d.id === selectedId);
+      const existing = markersRef.current[d.id];
+      if (existing) {
+        existing.setLatLng([d.lat, d.lng]).setIcon(icon);
+      } else {
+        markersRef.current[d.id] = L.marker([d.lat, d.lng], { icon })
+          .addTo(map)
+          .on("click", () => onSelectRef.current?.(d.id));
+      }
+    });
+    // Fit to the fleet once, the first time there is one — never again, so a
+    // refresh doesn't undo the user's pan and zoom.
+    if (!fittedRef.current && !trail?.length && devices.length) {
+      map.fitBounds(L.latLngBounds(devices.map((d) => [d.lat, d.lng] as [number, number])), { padding: [50, 50], maxZoom: 16 });
+      fittedRef.current = true;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId, devices]);
+  }, [devices, selectedId]);
+
+  // Selection: pan to the newly selected device — only when the selection
+  // changes, not on every position refresh.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || trail) return;
+    const sel = devices.find((d) => d.id === selectedId);
+    if (sel) map.panTo([sel.lat, sel.lng], { animate: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
 
   // Trail changed (e.g. a different device in Playback): (re)create line + head.
   useEffect(() => {

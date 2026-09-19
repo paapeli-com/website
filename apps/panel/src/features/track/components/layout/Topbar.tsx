@@ -6,7 +6,7 @@ import paapeliLogoDark from "@paapeli/brand/logo-dark.svg";
 import { useLanguage } from "@/features/track/i18n/LanguageContext";
 import { getCurrentUser } from "@paapeli/brand/session";
 import { signOut as endSession } from "@paapeli/brand/session";
-import { useWorkspace } from "@/features/track/contexts/WorkspaceContext";
+import { useWorkspace } from "@/features/track/lib/workspace";
 import { useBrand } from "@/shell/BrandProvider";
 import { useTheme } from "@paapeli/brand/theme";
 import { Button } from "@/features/track/components/ui/button";
