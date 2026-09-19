@@ -219,9 +219,11 @@ export default function Home() {
   const greeting = user?.name ? `${welcome}${isRTLLanguage(lang) ? "، " : ", "}${user.name}` : welcome;
 
   return (
-    <div className="mx-auto w-full max-w-[1340px] px-4 py-8 sm:px-6">
+    /* data-home-page: keeps the designed type scale in Persian and Arabic —
+       see the matching block in src/index.css for why it is needed. */
+    <div data-home-page className="mx-auto w-full max-w-[1340px] px-4 py-8 sm:px-6">
       <header className="flex flex-col gap-1.5">
-        <h1 className="text-[32px] font-bold leading-tight text-foreground">{greeting}</h1>
+        <h1 className="text-2xl font-bold leading-tight text-foreground">{greeting}</h1>
         <p className="text-sm text-muted-foreground">
           {t("Pick a product to continue, or activate a new one. Everything on this account lives here.")}
         </p>
@@ -309,8 +311,8 @@ export default function Home() {
                 >
                   <IconTile icon={item.icon} tone="blue" />
                   <span className="flex min-w-0 flex-col gap-0.5">
-                    <span className="truncate text-[15px] font-semibold text-foreground">{t(item.title)}</span>
-                    <span className="truncate text-[13px] text-muted-foreground">{t(item.description)}</span>
+                    <span className="truncate text-sm font-semibold text-foreground">{t(item.title)}</span>
+                    <span className="truncate text-xs text-muted-foreground">{t(item.description)}</span>
                   </span>
                 </button>
               ))}
@@ -335,7 +337,7 @@ export default function Home() {
                     className="-mx-1.5 flex items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-start transition-colors hover:bg-muted"
                   >
                     <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
-                    <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-foreground">
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
                       {t(visit.title)}
                     </span>
                     <span className="shrink-0 text-xs text-muted-foreground">{t(visit.section)}</span>
@@ -380,7 +382,7 @@ export default function Home() {
                       <span className="flex min-w-0 flex-col gap-0.5">
                         <span
                           className={cn(
-                            "truncate text-[13.5px] font-semibold",
+                            "truncate text-sm font-semibold",
                             critical ? "text-destructive" : "text-foreground",
                           )}
                         >
@@ -403,7 +405,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => navigate("/CloudManagement/billing")}
-                className="text-[13px] font-semibold text-primary hover:underline"
+                className="text-sm font-semibold text-primary hover:underline"
               >
                 {t("Billing")}
               </button>
@@ -433,7 +435,7 @@ export default function Home() {
 function UsageRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between gap-2 text-[13px]">
+      <div className="flex items-center justify-between gap-2 text-sm">
         <span className="text-muted-foreground">{label}</span>
         <span className="font-semibold text-foreground">{value}</span>
       </div>
@@ -480,10 +482,10 @@ function ProductCard({
         <IconTile icon={icon} />
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-[15px] font-bold text-foreground">{title}</h3>
+            <h3 className="text-base font-semibold text-foreground">{title}</h3>
             {tag && <Tag tone={variant === "featured" ? "brand" : "gray"}>{tag}</Tag>}
           </div>
-          <p className="text-[13.5px] leading-relaxed text-muted-foreground">{description}</p>
+          <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
         </div>
       </div>
 
@@ -511,7 +513,7 @@ function ProductCard({
             <button
               type="button"
               onClick={onAction}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 text-[13px] font-semibold text-foreground transition-colors hover:bg-muted"
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
             >
               {action}
               <ChevronRight className="size-4 text-muted-foreground rtl:rotate-180" />
@@ -520,7 +522,7 @@ function ProductCard({
             <button
               type="button"
               disabled
-              className="inline-flex h-9 cursor-not-allowed items-center rounded-xl border border-border bg-card px-3.5 text-[13px] font-semibold text-muted-foreground"
+              className="inline-flex h-9 cursor-not-allowed items-center rounded-xl border border-border bg-card px-3.5 text-sm font-semibold text-muted-foreground"
             >
               {action}
             </button>

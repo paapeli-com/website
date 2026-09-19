@@ -88,13 +88,13 @@ export function WaitlistDialog({
 
         <h2 className="text-base font-bold text-foreground">{t("Join the waitlist")}</h2>
         <p className="mt-0.5 text-sm font-semibold text-primary">{t(product)}</p>
-        <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           {t("Leave your email and we will get in touch when it is ready.")}
         </p>
 
         <form onSubmit={submit} className="mt-4 flex flex-col gap-3">
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-foreground">{t("Email address")}</span>
+            <span className="text-sm font-medium text-foreground">{t("Email address")}</span>
             <input
               ref={inputRef}
               type="email"
