@@ -668,7 +668,11 @@ const DeviceDetails = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              {/* dir spelled out, as on the Latest Data card: the tab's
+                  contents render left to right inside a right-to-left page,
+                  which left the title on the wrong side and the table in
+                  English column order. No-op in English. */}
+              <Card dir={isRTL ? "rtl" : "ltr"}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0">
                   <CardTitle className="text-base">{t("recentAlarms")}</CardTitle>
                   <Button variant="link" className="text-primary h-auto p-0" onClick={() => setActiveTab("alarms")}>{t("viewAll")}</Button>
