@@ -722,7 +722,11 @@ const DeviceDetails = () => {
 
           {/* EVENTS */}
           <TabsContent value="events" className="space-y-4 mt-4">
-            <Card>
+            {/* Same dir treatment as the Alarms and Latest Data cards. The
+                Settings tab below deliberately doesn't get it: its rows are
+                InfoRows, which already flip themselves by hand, and turning
+                the card would flip them back. */}
+            <Card dir={isRTL ? "rtl" : "ltr"}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-base">{t("activityHistory")}</CardTitle>
                 <div className="flex items-center gap-2">
@@ -1523,7 +1527,7 @@ const Checkmark = ({ on }: { on: boolean }) => (
 const DeviceAlarms = ({ device }: { device: UserDevice }) => {
   const [severity, setSeverity] = useState("all");
   const [status, setStatus] = useState("all");
-  const { t, formatNumber } = useLanguage();
+  const { t, isRTL, formatNumber } = useLanguage();
   const workspaceId = useWorkspaceId();
   const { rows, isLoading } = useDeviceAlarmRows(device?.id);
   const ackAlarm = useAckAlarmMutation();
@@ -1566,7 +1570,10 @@ const DeviceAlarms = ({ device }: { device: UserDevice }) => {
     }
   };
   return (
-    <Card>
+    /* dir spelled out, as on this page's other cards: the tab's contents
+       render left to right inside a right-to-left page, which left the title
+       on the wrong side and the table in English column order. */
+    <Card dir={isRTL ? "rtl" : "ltr"}>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
         <CardTitle className="text-base">{t("alarms")}</CardTitle>
         <div className="flex gap-2">
