@@ -9,7 +9,7 @@ import { Layout } from "@/shell/Layout";
 import { RequireAuth } from "@/shell/RequireAuth";
 import { PAAPELI_API_BASE_URL } from "@/shared/config";
 import { Feature } from "./Feature";
-import { cloudManagementRoutes, factoryRoutes, trackRoutes } from "./features";
+import { cloudManagementRoutes, factoryRoutes, homeRoutes, trackRoutes } from "./features";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +44,11 @@ export default function App() {
             >
               <Route index element={<Navigate to={`${solutionPath("SmartFactory")}/`} replace />} />
               <Route path="AIoT" element={<Navigate to={`${solutionPath("SmartFactory")}/`} replace />} />
+
+              {/* The account's front door — every product on the account, and
+                  where signing in lands. Not scoped to a workspace product, so
+                  no productKey: it has to render before any is subscribed. */}
+              <Route path="Home/*" element={<Feature name="Home" routes={homeRoutes} />} />
 
               {/* Each feature is one lazily-imported chunk (see ./features.ts).
                   React Router hands it the "*" splat, so the feature owns every

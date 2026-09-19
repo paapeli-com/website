@@ -23,7 +23,9 @@ import { useAppLanguage } from "@/shared/i18n/appLanguage";
    header's switcher translates this page instead of navigating away from it,
    and the choice is still there after signing in. */
 
-const DEFAULT_REDIRECT = "/AIoT/SmartFactory";
+/* Signing in lands on the account's Home page (src/features/home), not inside
+   one product: which product to open is the first thing Home asks. */
+const DEFAULT_REDIRECT = "/Home";
 
 /** Where to land after signing in — never back onto this page. */
 function redirectTarget(): string {

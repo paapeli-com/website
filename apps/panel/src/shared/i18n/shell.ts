@@ -104,6 +104,43 @@ const fa: Record<string, string> = {
   Invoices: "فاکتورها",
   "Billing & payment settings": "تنظیمات صورتحساب و پرداخت",
 
+  // Home
+  "Welcome back": "خوش آمدید",
+  "Pick a product to continue, or activate a new one. Everything on this account lives here.":
+    "یک محصول را برای ادامه انتخاب کنید یا محصول تازه‌ای را فعال کنید. هر چیزی که به این حساب مربوط است همین‌جاست.",
+  "AI Infra": "زیرساخت هوش مصنوعی",
+  Platform: "پلتفرم",
+  "Assets, alarms, work orders and OTA for production lines.":
+    "دارایی‌ها، هشدارها، دستور کارها و به‌روزرسانی از راه دور برای خطوط تولید.",
+  "Live fleet positions, geofences and trip history.":
+    "موقعیت زندهٔ ناوگان، محدوده‌های جغرافیایی و تاریخچهٔ سفرها.",
+  "AI Inference": "استنتاج هوش مصنوعی",
+  "Serve open models behind a managed endpoint. Pay per token, autoscaled.":
+    "مدل‌های متن‌باز را پشت یک اندپوینت مدیریت‌شده سرو کنید. پرداخت به ازای توکن، با مقیاس‌پذیری خودکار.",
+  "OpenAI-compatible API": "API سازگار با OpenAI",
+  "AI Agent Maker": "سازندهٔ عامل هوش مصنوعی",
+  "Build tool-using agents on your own data and connect them to Paapeli products.":
+    "عامل‌های ابزارمحور را روی دادهٔ خودتان بسازید و به محصولات پاپلی وصل کنید.",
+  "Visual flow builder": "سازندهٔ جریان بصری",
+  "Runs on AI Inference": "اجرا روی استنتاج هوش مصنوعی",
+  New: "جدید",
+  "Phase 2": "فاز ۲",
+  Open: "باز کردن",
+  "Join waitlist": "ثبت‌نام در لیست انتظار",
+  "Clusters, storage, billing": "کلاسترها، ذخیره‌سازی، صورتحساب",
+  "API keys, docs, support": "کلیدهای API، مستندات، پشتیبانی",
+  "Invite teammates and manage roles": "دعوت هم‌تیمی‌ها و مدیریت نقش‌ها",
+  "Recently visited": "بازدیدهای اخیر",
+  "Needs attention": "نیازمند توجه",
+  "Usage this month": "مصرف این ماه",
+  "Data ingest": "دریافت داده",
+  "Inference tokens": "توکن‌های استنتاج",
+  "Not active": "فعال نیست",
+  devices: "دستگاه",
+  locations: "مکان",
+  trackers: "ردیاب",
+  "open alarms": "هشدار باز",
+
   // Account menu
   "Loading…": "در حال بارگذاری…",
   "No workspaces yet.": "هنوز فضای کاری ندارید.",
@@ -229,6 +266,43 @@ const ar: Record<string, string> = {
   Transactions: "المعاملات",
   Invoices: "الفواتير",
   "Billing & payment settings": "إعدادات الفوترة والدفع",
+
+  // Home
+  "Welcome back": "مرحباً بعودتك",
+  "Pick a product to continue, or activate a new one. Everything on this account lives here.":
+    "اختر منتجاً للمتابعة أو فعّل منتجاً جديداً. كل ما يخص هذا الحساب موجود هنا.",
+  "AI Infra": "بنية الذكاء الاصطناعي",
+  Platform: "المنصة",
+  "Assets, alarms, work orders and OTA for production lines.":
+    "الأصول والإنذارات وأوامر العمل والتحديث عن بُعد لخطوط الإنتاج.",
+  "Live fleet positions, geofences and trip history.":
+    "مواقع الأسطول المباشرة والأسيجة الجغرافية وسجل الرحلات.",
+  "AI Inference": "استدلال الذكاء الاصطناعي",
+  "Serve open models behind a managed endpoint. Pay per token, autoscaled.":
+    "شغّل النماذج المفتوحة خلف نقطة نهاية مُدارة. الدفع لكل رمز، مع توسّع تلقائي.",
+  "OpenAI-compatible API": "واجهة متوافقة مع OpenAI",
+  "AI Agent Maker": "منشئ وكلاء الذكاء الاصطناعي",
+  "Build tool-using agents on your own data and connect them to Paapeli products.":
+    "ابنِ وكلاء يستخدمون الأدوات على بياناتك واربطهم بمنتجات بابلي.",
+  "Visual flow builder": "منشئ تدفق مرئي",
+  "Runs on AI Inference": "يعمل على استدلال الذكاء الاصطناعي",
+  New: "جديد",
+  "Phase 2": "المرحلة ٢",
+  Open: "فتح",
+  "Join waitlist": "الانضمام إلى قائمة الانتظار",
+  "Clusters, storage, billing": "العناقيد والتخزين والفوترة",
+  "API keys, docs, support": "مفاتيح API والوثائق والدعم",
+  "Invite teammates and manage roles": "دعوة الزملاء وإدارة الأدوار",
+  "Recently visited": "تمت زيارتها مؤخراً",
+  "Needs attention": "يحتاج إلى انتباه",
+  "Usage this month": "الاستخدام هذا الشهر",
+  "Data ingest": "استيعاب البيانات",
+  "Inference tokens": "رموز الاستدلال",
+  "Not active": "غير مفعّل",
+  devices: "جهاز",
+  locations: "موقع",
+  trackers: "متعقب",
+  "open alarms": "إنذار مفتوح",
 
   // Account menu
   "Loading…": "جارٍ التحميل…",
