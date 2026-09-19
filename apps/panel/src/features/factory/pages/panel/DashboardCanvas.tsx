@@ -937,8 +937,11 @@ const SETTING_TIME_RANGE: Record<string, string> = {
 };
 const refreshFromSetting = (v?: string) =>
   v && REFRESH_OPTS.some((o) => o.v === v) ? v : SETTING_REFRESH[v ?? ""] ?? "manual";
+/* Falls back to the last hour, which is also what a new dashboard is created
+   with (see DashboardForm's EMPTY_FORM). A dashboard that saved a wider range
+   on purpose still opens on it — this only covers one that saved nothing. */
 const rangeFromSetting = (v?: string) =>
-  v && TIME_OPTS.some((o) => o.v === v) ? v : SETTING_TIME_RANGE[v ?? ""] ?? "24h";
+  v && TIME_OPTS.some((o) => o.v === v) ? v : SETTING_TIME_RANGE[v ?? ""] ?? "1h";
 
 /* Times are shown in the reader's zone: Tehran for Persian, Qatar for Arabic,
    UTC for English. UTC is also what every dashboard's settings start with, so

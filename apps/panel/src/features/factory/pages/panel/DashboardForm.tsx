@@ -152,7 +152,9 @@ const initial: FormState = {
   access: "only_me",
   shareWith: [],
   refreshInterval: "Manual",
-  timeRange: "Last 24 Hours",
+  /* A new dashboard opens on the last hour. Anything wider buries a live
+     reading in yesterday's data before you have added a single panel. */
+  timeRange: "Last hour",
   timezone: "(UTC) Coordinated Universal Time",
   tags: [],
 };
@@ -247,14 +249,18 @@ const DashboardForm = () => {
       toast.error(tt("nameRequired"));
       return;
     }
+    /* Saving opens the dashboard, not the list you came from: you came here
+       to build one, and the next thing you want is to look at it. `create`
+       hands back the item it made, so the new one has an id to open. */
     if (isEdit && existing) {
       update(existing.id, { ...form });
       toast.success(tt("dashboardUpdated"));
+      navigate(lp(`/dashboard/${existing.id}`));
     } else {
-      create({ ...form });
+      const created = create({ ...form });
       toast.success(tt("dashboardCreated"));
+      navigate(lp(`/dashboard/${created.id}`));
     }
-    navigate(lp("/dashboard"));
   };
 
   const optionalLabel = tt("optional");
