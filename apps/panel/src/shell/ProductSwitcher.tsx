@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Check, ChevronDown, House, LayoutGrid } from "lucide-react";
 import { PRODUCTS, solutionPath } from "@paapeli/brand/config";
+import { AI_INFERENCE_BASE } from "@/shell/nav/aiInferenceNav";
 import { cn } from "@/shared/lib/utils";
 import { useShellT } from "@/shared/i18n/shell";
 
@@ -23,8 +24,10 @@ const HOME_PATH = "/Home";
  * `featured` is the one being launched next. It shows in its tag and nothing
  * else: an outline around the row reads as the selected state, which these
  * rows can never be. */
-const AI_INFRA: { id: string; name: string; tag: string; featured?: boolean }[] = [
-  { id: "AIInference", name: "AI Inference", tag: "New", featured: true },
+const AI_INFRA: { id: string; name: string; tag: string; featured?: boolean; path?: string }[] = [
+  /* AI Inference has a product now, so its row opens it. AI Agent Maker
+     still has nowhere to go and stays an announcement. */
+  { id: "AIInference", name: "AI Inference", tag: "New", featured: true, path: AI_INFERENCE_BASE },
   { id: "AIAgentMaker", name: "AI Agent Maker", tag: "Soon" },
 ];
 
@@ -145,11 +148,25 @@ export function ProductSwitcher() {
                     );
                   })}
 
-                  {announcements.map((a) => (
-                    /* Not a button: there is nowhere for it to go yet. */
-                    <div
+                  {announcements.map((a) => {
+                    /* A row with a path is a product you can open; one without
+                       is still only an announcement, and stays inert. */
+                    const Row = a.path ? "button" : "div";
+                    return (
+                    <Row
                       key={a.id}
-                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-foreground"
+                      {...(a.path
+                        ? {
+                            onClick: () => {
+                              setOpen(false);
+                              navigate(a.path!);
+                            },
+                          }
+                        : {})}
+                      className={cn(
+                        "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-foreground",
+                        a.path && "hover:bg-muted",
+                      )}
                     >
                       <span className="flex-1 text-start">{t(a.name)}</span>
                       <span
@@ -160,8 +177,9 @@ export function ProductSwitcher() {
                       >
                         {t(a.tag)}
                       </span>
-                    </div>
-                  ))}
+                    </Row>
+                    );
+                  })}
                 </div>
               </div>
             );

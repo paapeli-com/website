@@ -17,3 +17,4 @@ export const homeRoutes = lazy(() => import("@/features/home/routes"));
 export const factoryRoutes = lazy(() => import("@/features/factory/routes"));
 export const trackRoutes = lazy(() => import("@/features/track/routes"));
 export const cloudManagementRoutes = lazy(() => import("@/features/cloud-management/routes"));
+export const aiInferenceRoutes = lazy(() => import("@/features/ai-inference/routes"));
