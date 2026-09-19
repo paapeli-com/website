@@ -9,7 +9,7 @@ import { Layout } from "@/shell/Layout";
 import { RequireAuth } from "@/shell/RequireAuth";
 import { PAAPELI_API_BASE_URL } from "@/shared/config";
 import { Feature } from "./Feature";
-import { cloudManagementRoutes, factoryRoutes, homeRoutes, trackRoutes } from "./features";
+import { aiInferenceRoutes, cloudManagementRoutes, factoryRoutes, homeRoutes, trackRoutes } from "./features";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +69,14 @@ export default function App() {
                 path="AIoT/GPSTracking/*"
                 element={<Feature name="GPS Tracking" productKey={productKeyFor("GPSTracking")} routes={trackRoutes} />}
               />
+              {/* AI Infra's first product. No productKey: it is not an
+                  AIoT workspace product, so there is no subscription to
+                  confirm before it can render. */}
+              <Route
+                path="AIInfra/AIInference/*"
+                element={<Feature name="AI Inference" routes={aiInferenceRoutes} />}
+              />
+
               {/* Independent of any AIoT product/solution — workspace/account
                   administration, reached from a product's sidebar footer. */}
               <Route

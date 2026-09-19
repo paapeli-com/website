@@ -11,6 +11,7 @@ import { SidebarContent } from "./Sidebar";
 import { factoryNav } from "@/shell/nav/factoryNav";
 import { trackNav } from "@/shell/nav/trackNav";
 import { cloudManagementNav } from "@/shell/nav/cloudManagementNav";
+import { AI_INFERENCE_BASE, aiInferenceNav } from "@/shell/nav/aiInferenceNav";
 
 /* Persistent shell: header on top, [sidebar | content] below. The sidebar's
    item set follows whichever solution's URL prefix is currently active —
@@ -56,9 +57,11 @@ export function Layout() {
 
   const navSection = location.pathname.startsWith("/CloudManagement")
     ? cloudManagementNav
-    : location.pathname.startsWith(solutionPath("GPSTracking"))
-      ? trackNav
-      : factoryNav;
+    : location.pathname.startsWith(AI_INFERENCE_BASE)
+      ? aiInferenceNav
+      : location.pathname.startsWith(solutionPath("GPSTracking"))
+        ? trackNav
+        : factoryNav;
 
   /* Home sits above every product, so there is no product nav to show beside
      it — it gets the full width instead of an unrelated sidebar.
