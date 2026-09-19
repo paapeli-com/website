@@ -11,7 +11,6 @@ import {
   Download,
   Users,
   Code2,
-  Settings,
   TrendingUp,
   AlertTriangle,
   Activity,
@@ -58,7 +57,10 @@ const items = [
     icon: Wrench,
     children: [{ title: "Work Orders", icon: ClipboardList, path: p("/work-orders") }],
   },
-  { title: "Settings", icon: Settings, path: p("/account-settings") },
+  /* No Settings row here. It pointed at /account-settings, which is the
+     account, not the product — and the account menu in the header already
+     reaches it. GPS Tracking keeps its own Settings, which is a different
+     page. */
 ];
 
 /* Pinned to the bottom of the sidebar — workspace- and account-level rows
