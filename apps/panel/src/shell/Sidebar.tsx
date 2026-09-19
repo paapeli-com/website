@@ -41,14 +41,17 @@ const activeNavPath = (pathname: string, items: NavItem[]) => {
   return best;
 };
 
-/* `outline-none` is Tailwind's transparent outline, not `outline: none`: the
-   browser's own focus ring is what drew a black box around a row after you
-   clicked it and then pressed a key (Chrome re-reads the focused element as
-   keyboard-focused on any keydown, Escape included). These rows had no focus
-   style of their own, so that default was all there was. A transparent outline
-   still resolves to a visible one under forced colours, which is the setting
-   that most needs it. */
-const rowBase = "flex items-center gap-3 text-[13px] outline-none transition-colors";
+/* These rows had no focus style of their own, so the browser's default ring
+   was all there was — a black box drawn around a row after you clicked it and
+   then pressed a key, since Chrome re-reads the focused element as
+   keyboard-focused on any keydown, Escape included.
+
+   Replaced with the panel's own: a faint brand ring instead of the black box,
+   and only for keyboard focus, so a click leaves nothing behind. `outline-none`
+   is Tailwind's transparent outline rather than `outline: none`, so it still
+   resolves to a visible one under forced colours. */
+const rowFocus = "outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
+const rowBase = `flex items-center gap-3 text-[13px] transition-colors ${rowFocus}`;
 /* Square tile on the rail; a full-width padded row otherwise. */
 const rowShape = (collapsed?: boolean) =>
   collapsed ? "mx-auto size-9 justify-center rounded-xl" : "w-full rounded-lg px-3 py-1.5";
@@ -104,9 +107,10 @@ function Leaf({ item, onNavigate, collapsed, activePath }: RowProps) {
       onClick={onNavigate}
       title={collapsed ? t(title) : undefined}
       className={cn(
-        /* Same as rowBase's outline-none, and for the same reason — this row
-           spells its own classes out rather than sharing them. */
-        "group relative flex items-center gap-3 text-[13px] outline-none transition-colors",
+        /* This row spells its own classes out rather than sharing rowBase, so
+           it takes the same focus treatment explicitly. */
+        "group relative flex items-center gap-3 text-[13px] transition-colors",
+        rowFocus,
         collapsed ? "mx-auto size-9 justify-center rounded-xl" : "w-full rounded-lg px-3 py-2",
         isActive
           ? "bg-primary/10 font-semibold text-primary"

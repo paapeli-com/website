@@ -130,6 +130,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
+import { TopoBackdrop } from "@/shared/components/TopoBackdrop";
 
 type Lang = "en" | "ar" | "fa";
 
@@ -1612,9 +1613,13 @@ const DashboardCanvas = () => {
   }
 
   return (
-    <>
-      <div ref={containerRef}>{body}</div>
-    </>
+    /* Same contour pattern Home carries, anchored to this container rather
+       than the viewport so it stays out of the sidebar. The canvas is given
+       z-1 so widgets sit above the lines. */
+    <div className="relative">
+      <TopoBackdrop anchor="container" />
+      <div ref={containerRef} className="relative z-[1]">{body}</div>
+    </div>
   );
 };
 

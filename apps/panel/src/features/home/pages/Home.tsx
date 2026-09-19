@@ -36,6 +36,7 @@ import {
 } from "@/shared/lib/userHistory";
 import { Card, IconTile, Pill, PillSkeleton, SectionLabel, Tag } from "@/features/home/ui";
 import { WaitlistDialog } from "@/features/home/WaitlistDialog";
+import { TopoBackdrop } from "@/shared/components/TopoBackdrop";
 
 /* The account's front door: every product on the account in one place, plus
    what needs looking at right now. Reached at /Home, and where signing in
@@ -433,49 +434,6 @@ export default function Home() {
         />
       )}
     </div>
-  );
-}
-
-/* Decoration, and nothing else: a topographic contour pattern (public/topo.svg)
-   with a fade over it, so the lines only read in the lower half of the viewport
-   and stay out of the way behind the header and the first row of cards.
- *
- * Fixed rather than absolute on purpose — the pattern holds still while the
- * page scrolls, and fills the empty space on a tall monitor. Both layers are
- * pointer-events: none, so they never take a click, and they sit at z-0 under
- * the content's z-1.
- *
- * The fade is mixed from the theme's own --background rather than a literal
- * #F9FAFB: that hex is the light page colour, and hardcoding it would lay a
- * light grey wash over the page in dark mode. This way the top of the
- * gradient is whatever the page already is, in either theme.
- */
-function TopoBackdrop() {
-  return (
-    <>
-      <div
-        aria-hidden
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "url(/topo.svg) center bottom / cover no-repeat",
-          opacity: 0.4,
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      />
-      <div
-        aria-hidden
-        style={{
-          position: "fixed",
-          inset: 0,
-          background:
-            "linear-gradient(hsl(var(--background)) 0%, hsl(var(--background) / 0.72) 38%, hsl(var(--background) / 0) 100%)",
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      />
-    </>
   );
 }
 
