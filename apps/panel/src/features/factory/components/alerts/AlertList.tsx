@@ -16,7 +16,9 @@ import {
   CircleDot, ListFilter, Download, Pencil, UserPlus, Trash2,
 } from "lucide-react";
 import { ListToolbar, type ActionItem, type FilterField, type SortOption } from "@/features/factory/components/panel/ListToolbar";
-import { NoData } from "@/features/factory/components/NoData";
+import { AddFirst } from "@/features/factory/components/AddFirst";
+import { useNavigate } from "react-router-dom";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import type { Alert, AlertSeverity, AlertStatus } from "@/features/factory/types/alerts";
 import { cn } from "@/shared/lib/utils";
@@ -123,8 +125,10 @@ const toAlert = (a: WorkspaceAlarmItem, locationPath: string | undefined): Alert
 type StatusChip = "active" | "unacknowledged" | "acknowledged" | "escalated" | "archived";
 
 export const AlertList = () => {
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, language } = useLanguage();
   const tt = t as (k: string) => string;
+  const navigate = useNavigate();
+  const lp = (path: string) => localizedPath(path, language);
 
   const { toast } = useToast();
   const workspaceId = useWorkspaceId();
@@ -419,10 +423,16 @@ export const AlertList = () => {
             ) : paged.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={10}>
-                  {/* Nothing to show at all is "no data"; nothing matching the
-                      current filters keeps the clearable empty state. */}
+                  {/* An empty alarm list means no rule has fired — and with no
+                      rule there is nothing that ever could, so the way out is
+                      to write one. Nothing matching the current filters keeps
+                      the clearable empty state instead. */}
                   {alerts.length === 0 ? (
-                    <NoData size="lg" />
+                    <AddFirst
+                      icon={Bell}
+                      label={tt("addYourFirstRule")}
+                      onAction={() => navigate(lp("/alarms/rules/new"))}
+                    />
                   ) : (
                     <div className="py-12 text-center">
                       <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">

@@ -76,6 +76,7 @@ const MOCK_GATEWAYS: Gateway[] = [
 
 import { formatRelativeTime } from "@/features/factory/lib/relativeTime";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
+import { AddFirst } from "@/features/factory/components/AddFirst";
 
 const statusVariant = (s: Gateway["status"]) =>
   s === "online" ? "default" : s === "offline" ? "secondary" : "destructive";
@@ -326,110 +327,115 @@ const Gateways = () => {
             selectionCount={selected.length}
           />
 
-          {gateways.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-4 py-16">
-              <Router className="h-12 w-12 text-muted-foreground/50" />
-              <p className="text-muted-foreground">{t("noGatewaysYet")}</p>
-              <Button onClick={() => navigate(lp("/devices/gateways/new"))} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                <Plus className="h-4 w-4 me-2" />
-                {t("addGateway")}
-              </Button>
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">{t("noGatewaysMatch") || "No gateways match the current filters"}</p>
-            </div>
-          ) : (
-            <div className="rounded-lg border overflow-hidden mt-4 text-sm [&_th]:text-xs [&_td]:text-sm [&_th]:h-10 [&_td]:p-3">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10">
-                      <Checkbox
-                        checked={paged.length > 0 && selected.length === paged.length}
-                        onCheckedChange={(c) => toggleAll(!!c)}
+          {/* The columns stay on screen when the list is empty — the empty
+              state goes in the body, not in place of it. */}
+          <div className="rounded-lg border overflow-hidden mt-4 text-sm [&_th]:text-xs [&_td]:text-sm [&_th]:h-10 [&_td]:p-3">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={paged.length > 0 && selected.length === paged.length}
+                      onCheckedChange={(c) => toggleAll(!!c)}
+                    />
+                  </TableHead>
+                  <TableHead>{t("name") || "Name"}</TableHead>
+                  <TableHead>{t("gatewayId") || "Gateway ID"}</TableHead>
+                  <TableHead>{t("protocol") || "Protocol"}</TableHead>
+                  <TableHead>{t("location") || "Location"}</TableHead>
+                  <TableHead>{t("status") || "Status"}</TableHead>
+                  <TableHead className="text-center">{t("devices") || "Devices"}</TableHead>
+                  <TableHead>{t("lastSeen") || "Last seen"}</TableHead>
+                  <TableHead className="w-10"></TableHead>
+                </TableRow>
+
+              </TableHeader>
+              <TableBody>
+                {gateways.length === 0 ? (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={10}>
+                      <AddFirst
+                        icon={Router}
+                        label={t("addYourFirstGateway")}
+                        onAction={() => navigate(lp("/devices/gateways/new"))}
                       />
-                    </TableHead>
-                    <TableHead>{t("name") || "Name"}</TableHead>
-                    <TableHead>{t("gatewayId") || "Gateway ID"}</TableHead>
-                    <TableHead>{t("protocol") || "Protocol"}</TableHead>
-                    <TableHead>{t("location") || "Location"}</TableHead>
-                    <TableHead>{t("status") || "Status"}</TableHead>
-                    <TableHead className="text-center">{t("devices") || "Devices"}</TableHead>
-                    <TableHead>{t("lastSeen") || "Last seen"}</TableHead>
-                    <TableHead className="w-10"></TableHead>
+                    </TableCell>
                   </TableRow>
-
-                </TableHeader>
-                <TableBody>
-                  {paged.map((g) => (
-                    <TableRow key={g.id} className="cursor-pointer" onClick={() => navigate(lp(`/devices/gateways/${g.gatewayId}`))}>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={selected.includes(g.gatewayId)}
-                          onCheckedChange={(c) => toggleOne(g.gatewayId, !!c)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2 font-medium">
-                          <span className="h-7 w-7 rounded-md bg-primary/10 text-primary inline-flex items-center justify-center">
-                            <Router className="h-4 w-4" />
-                          </span>
-                          <span className="text-sm">{g.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">{g.gatewayId}</TableCell>
-                      <TableCell className="text-sm">{g.protocol}</TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}><LocationCell path={g.location} /></TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center gap-1.5 text-sm">
-                          <span className={`h-2 w-2 rounded-full ${g.status === "online" ? "bg-emerald-500" : g.status === "offline" ? "bg-muted-foreground/50" : "bg-red-500"}`} />
-                          {g.status === "online" ? t("online") : g.status === "offline" ? t("offline") : t("errorStatus")}
+                ) : filtered.length === 0 ? (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={10}>
+                      <p className="py-12 text-center text-muted-foreground">
+                        {t("noGatewaysMatch") || "No gateways match the current filters"}
+                      </p>
+                    </TableCell>
+                  </TableRow>
+                ) : paged.map((g) => (
+                  <TableRow key={g.id} className="cursor-pointer" onClick={() => navigate(lp(`/devices/gateways/${g.gatewayId}`))}>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selected.includes(g.gatewayId)}
+                        onCheckedChange={(c) => toggleOne(g.gatewayId, !!c)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 font-medium">
+                        <span className="h-7 w-7 rounded-md bg-primary/10 text-primary inline-flex items-center justify-center">
+                          <Router className="h-4 w-4" />
                         </span>
-                      </TableCell>
-                      <TableCell className="text-center text-sm">{formatNumber(g.connectedDevices)}</TableCell>
-                      <TableCell className="text-muted-foreground">{formatRelativeTime(g.lastSeen, t, formatNumber)}</TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 gap-1 text-xs"
-                            onClick={() => navigate(lp(`/devices/gateways/${g.gatewayId}`))}
-                          >
-                            <Eye className="h-3.5 w-3.5" /> {t("view")}
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => navigate(lp(`/devices/gateways/${g.gatewayId}`))}>
-                                <Eye className="h-4 w-4 me-2" /> {t("view")}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => navigate(lp(`/devices/gateways/${g.gatewayId}`))}>
-                                <Pencil className="h-4 w-4 me-2" /> {t("edit")}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => { setSelected([g.gatewayId]); setDeleteOpen(true); }}
-                              >
-                                <Trash2 className="h-4 w-4 me-2" /> {t("delete")}
-                              </DropdownMenuItem>
+                        <span className="text-sm">{g.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">{g.gatewayId}</TableCell>
+                    <TableCell className="text-sm">{g.protocol}</TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}><LocationCell path={g.location} /></TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center gap-1.5 text-sm">
+                        <span className={`h-2 w-2 rounded-full ${g.status === "online" ? "bg-emerald-500" : g.status === "offline" ? "bg-muted-foreground/50" : "bg-red-500"}`} />
+                        {g.status === "online" ? t("online") : g.status === "offline" ? t("offline") : t("errorStatus")}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center text-sm">{formatNumber(g.connectedDevices)}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatRelativeTime(g.lastSeen, t, formatNumber)}</TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 gap-1 text-xs"
+                          onClick={() => navigate(lp(`/devices/gateways/${g.gatewayId}`))}
+                        >
+                          <Eye className="h-3.5 w-3.5" /> {t("view")}
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => navigate(lp(`/devices/gateways/${g.gatewayId}`))}>
+                              <Eye className="h-4 w-4 me-2" /> {t("view")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => navigate(lp(`/devices/gateways/${g.gatewayId}`))}>
+                              <Pencil className="h-4 w-4 me-2" /> {t("edit")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => { setSelected([g.gatewayId]); setDeleteOpen(true); }}
+                            >
+                              <Trash2 className="h-4 w-4 me-2" /> {t("delete")}
+                            </DropdownMenuItem>
 
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </TableCell>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
 
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
 
           {totalPages > 1 && (
             <div className="mt-4">
