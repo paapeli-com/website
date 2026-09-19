@@ -4,6 +4,8 @@ import { X } from "lucide-react";
 import { startIdleWatch } from "@paapeli/brand/session";
 import { solutionPath } from "@paapeli/brand/config";
 import { cn } from "@/shared/lib/utils";
+import { recordVisit } from "@/shared/lib/userHistory";
+import { resolveNavEntry } from "@/shell/nav/resolveNavEntry";
 import { Header } from "./Header";
 import { SidebarContent } from "./Sidebar";
 import { factoryNav } from "@/shell/nav/factoryNav";
@@ -22,6 +24,16 @@ export function Layout() {
   const [collapsed, setCollapsed] = useState(() => window.localStorage.getItem(COLLAPSED_KEY) === "1");
 
   useEffect(() => startIdleWatch(), []);
+
+  /* Home's "Recently visited" list, recorded here because this is the one
+     component every in-app navigation passes through. Only pages the sidebar
+     names are kept, so the list reads in the same words the nav does; a
+     detail view resolves to null and is skipped. Nothing leaves the browser
+     — see src/shared/lib/userHistory.ts. */
+  useEffect(() => {
+    const entry = resolveNavEntry(location.pathname);
+    if (entry) recordVisit({ path: entry.path, title: entry.title, section: entry.section });
+  }, [location.pathname]);
 
   /* One header button, two jobs: below lg the sidebar is a drawer that has to
      be opened before it can be anything, and at lg and up it's always on
@@ -49,8 +61,13 @@ export function Layout() {
       : factoryNav;
 
   /* Home sits above every product, so there is no product nav to show beside
-     it — it gets the full width instead of an unrelated sidebar. */
-  const sidebarless = location.pathname === "/Home" || location.pathname.startsWith("/Home/");
+     it — it gets the full width instead of an unrelated sidebar.
+
+     Case-insensitively, because React Router matches routes that way: /home
+     renders Home just as /Home does, and an exact string compare here left
+     the lowercase URL with a Smart Factory sidebar next to it. */
+  const path = location.pathname.toLowerCase();
+  const sidebarless = path === "/home" || path.startsWith("/home/");
 
   if (sidebarless) {
     return (

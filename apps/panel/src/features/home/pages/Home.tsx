@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -17,6 +18,7 @@ import {
   useGetAssetRootQuery,
   useGetTenantDevicesQuery,
   useGetWorkspaceAlarmsQueries,
+  useListActiveWorkspacesQuery,
   useListWorkspaceProductsQuery,
   type WorkspaceAlarmItem,
 } from "@paapeli/api";
@@ -26,24 +28,38 @@ import { useActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { cn } from "@/shared/lib/utils";
 import { useShellT } from "@/shared/i18n/shell";
 import { isRTLLanguage, localizeDigits, useAppLanguage } from "@/shared/i18n/appLanguage";
+import {
+  getRecentVisits,
+  hasVisitedBefore,
+  isEstablishedAccount,
+  markVisited,
+} from "@/shared/lib/userHistory";
 import { Card, IconTile, Pill, PillSkeleton, SectionLabel, Tag } from "@/features/home/ui";
+import { WaitlistDialog } from "@/features/home/WaitlistDialog";
 
 /* The account's front door: every product on the account in one place, plus
    what needs looking at right now. Reached at /Home, and where signing in
    lands (see src/login/LoginPage.tsx).
  *
- * What is real here and what is not:
- *   - The product bands, their copy and the platform row are the catalogue,
- *     written here. AI Infra is not in @paapeli/brand/config's PRODUCTS (the
- *     header's switcher owns that list), so it is described locally and its
- *     cards have no destination yet.
- *   - The figures on the AIoT cards, the attention list and the device count
- *     come from the workspace's own endpoints, and are skipped entirely for a
- *     product the active workspace isn't subscribed to.
- *   - "Recently visited" has no endpoint and nothing client-side records it,
- *     and neither data ingest nor inference tokens is metered anywhere yet.
- *     Those keep their place in the layout and report no data rather than
+ * Where each figure comes from:
+ *   - Assets, locations, trackers and the attention list are the workspace's
+ *     own endpoints. A product the workspace isn't subscribed to holds
+ *     nothing, and its endpoints 404, so its counts read zero without a
+ *     request being made.
+ *   - Pending work orders come from the same browser-local store the Smart
+ *     Factory pages write to (paapeli.anomalies.workorders.v1). There is no
+ *     work-order endpoint on the gateway yet.
+ *   - Geofences have no backend and no local store anywhere in the panel yet
+ *     (see features/track/data/mockData.ts), so that count is always zero.
+ *   - "Recently visited" is recorded by the shell as you navigate, per user
+ *     and per browser — see src/shared/lib/userHistory.ts.
+ *   - Usage quotas, data ingest and inference tokens are metered nowhere, so
+ *     they keep their place in the layout and report no data rather than
  *     showing a plausible-looking figure nobody measured.
+ *
+ * AI Infra is not in @paapeli/brand/config's PRODUCTS (the header's switcher
+ * owns that list), so it is described locally and its cards collect an email
+ * instead of navigating.
  */
 
 const FACTORY = "SmartFactory";
@@ -62,6 +78,24 @@ const isUnacknowledged = (a: WorkspaceAlarmItem) => {
 };
 
 const isCritical = (a: WorkspaceAlarmItem) => a.severity?.toUpperCase() === "CRITICAL";
+
+/* Work orders live in localStorage, not on the gateway: the Smart Factory
+   pages write this key (see features/factory/hooks/useWorkOrders.ts). Read
+   by key rather than through that hook, which belongs to another lazy chunk
+   and would pull the whole factory feature in behind it. */
+const WORK_ORDERS_KEY = "paapeli.anomalies.workorders.v1";
+
+function countPendingWorkOrders(): number {
+  try {
+    const raw = window.localStorage.getItem(WORK_ORDERS_KEY);
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return 0;
+    return parsed.filter((w) => w?.status === "Open" || w?.status === "In Progress").length;
+  } catch {
+    return 0;
+  }
+}
 
 type Waiting = { title: string; tag: string; description: string; icon: LucideIcon; pills: string[] };
 
@@ -103,8 +137,14 @@ export default function Home() {
      below is gated on it: those endpoints 404 without a subscription, and
      Home is a catalogue, so unlike ProductGate it must not subscribe on the
      user's behalf just because they looked at the page. */
-  const { data: workspaceProducts } = useListWorkspaceProductsQuery(workspaceId, !!workspaceId);
+  const { data: workspaceProducts, isPending: productsPending } = useListWorkspaceProductsQuery(
+    workspaceId,
+    !!workspaceId,
+  );
   const owned = new Set((workspaceProducts ?? []).map((p) => p.productKey));
+  /* Until this answers, "not subscribed" and "still asking" look identical,
+     and every count below would flash a zero it hasn't confirmed. */
+  const subscriptionsUnknown = !workspaceId || productsPending;
 
   const factoryKey = productKeyFor(FACTORY) ?? "";
   const trackingKey = productKeyFor(TRACKING) ?? "";
@@ -137,6 +177,33 @@ export default function Home() {
   };
   const openAlarmsOf = (key: string) => alarmsOf(key).filter(isUnacknowledged).length;
 
+  /* Counts for the product tags. A product the workspace hasn't subscribed to
+     holds nothing at all, so it reads zero rather than staying blank — its
+     endpoints are never called, since without a subscription they 404. */
+  const factoryAssets = hasFactory ? (factoryDevices.data?.totalElements ?? 0) : 0;
+  const factoryLocationCount = hasFactory ? (factoryLocations.data?.totalElements ?? 0) : 0;
+  const trackerCount = hasTracking ? (trackingDevices.data?.totalElements ?? 0) : 0;
+  const [pendingWorkOrders] = useState(countPendingWorkOrders);
+  /* Nothing in the panel stores a geofence yet. Kept as a tag so the card
+     reads the same once the gateway serves them. */
+  const geofenceCount = 0;
+
+  /* The greeting. "Welcome back" has to be earned: this browser has seen the
+     user before, or the account itself predates today. Everyone else is new
+     and gets "Welcome". Read once on mount, so marking them seen a moment
+     later doesn't change the wording under them. */
+  const { data: workspaces } = useListActiveWorkspacesQuery(!!workspaceId);
+  const [seenBefore] = useState(hasVisitedBefore);
+  const establishedAccount = isEstablishedAccount(
+    (workspaceProducts ?? []).map((p) => p.createdAt),
+  );
+  const returning = seenBefore || establishedAccount;
+  useEffect(markVisited, []);
+
+  const [recent] = useState(() => getRecentVisits(4));
+  const [waitlistFor, setWaitlistFor] = useState<string | null>(null);
+  const activeWorkspaceName = workspaces?.find((w) => w.workspaceId === workspaceId)?.workspaceName;
+
   const productOf = (key: string) => (key === trackingKey ? t("GPS Tracking") : t("Smart Factory"));
   const attention = alarmKeys
     .flatMap((key) => alarmsOf(key).filter(isUnacknowledged).map((alarm) => ({ alarm, key })))
@@ -148,9 +215,8 @@ export default function Home() {
   const deviceTotalKnown =
     (hasFactory && factoryDevices.isSuccess) || (hasTracking && trackingDevices.isSuccess);
 
-  const greeting = user?.name
-    ? `${t("Welcome back")}${isRTLLanguage(lang) ? "، " : ", "}${user.name}`
-    : t("Welcome back");
+  const welcome = returning ? t("Welcome back") : t("Welcome");
+  const greeting = user?.name ? `${welcome}${isRTLLanguage(lang) ? "، " : ", "}${user.name}` : welcome;
 
   return (
     <div className="mx-auto w-full max-w-[1340px] px-4 py-8 sm:px-6">
@@ -172,23 +238,19 @@ export default function Home() {
                 description={t("Assets, alarms, work orders and OTA for production lines.")}
                 action={t("Open")}
                 onAction={() => navigate(`${solutionPath(FACTORY)}/`)}
-                pending={hasFactory && (factoryDevices.isPending || factoryLocations.isPending)}
-                pills={
-                  hasFactory
-                    ? [
-                        factoryDevices.isSuccess && {
-                          text: `${n(factoryDevices.data.totalElements)} ${t("devices")}`,
-                        },
-                        factoryLocations.isSuccess && {
-                          text: `${n(factoryLocations.data.totalElements)} ${t("locations")}`,
-                        },
-                        openAlarmsOf(factoryKey) > 0 && {
-                          text: `${n(openAlarmsOf(factoryKey))} ${t("open alarms")}`,
-                          tone: "bad" as const,
-                        },
-                      ]
-                    : []
-                }
+                pending={subscriptionsUnknown || (hasFactory && (factoryDevices.isPending || factoryLocations.isPending))}
+                pills={[
+                  { text: `${n(factoryAssets)} ${t("assets")}` },
+                  { text: `${n(factoryLocationCount)} ${t("locations")}` },
+                  {
+                    text: `${n(pendingWorkOrders)} ${t("pending orders")}`,
+                    tone: pendingWorkOrders > 0 ? ("bad" as const) : ("gray" as const),
+                  },
+                  openAlarmsOf(factoryKey) > 0 && {
+                    text: `${n(openAlarmsOf(factoryKey))} ${t("open alarms")}`,
+                    tone: "bad" as const,
+                  },
+                ]}
               />
               <ProductCard
                 icon={MapPin}
@@ -196,20 +258,15 @@ export default function Home() {
                 description={t("Live fleet positions, geofences and trip history.")}
                 action={t("Open")}
                 onAction={() => navigate(`${solutionPath(TRACKING)}/`)}
-                pending={hasTracking && trackingDevices.isPending}
-                pills={
-                  hasTracking
-                    ? [
-                        trackingDevices.isSuccess && {
-                          text: `${n(trackingDevices.data.totalElements)} ${t("trackers")}`,
-                        },
-                        openAlarmsOf(trackingKey) > 0 && {
-                          text: `${n(openAlarmsOf(trackingKey))} ${t("open alarms")}`,
-                          tone: "bad" as const,
-                        },
-                      ]
-                    : []
-                }
+                pending={subscriptionsUnknown || (hasTracking && trackingDevices.isPending)}
+                pills={[
+                  { text: `${n(trackerCount)} ${t("trackers")}` },
+                  { text: `${n(geofenceCount)} ${t("geofences")}` },
+                  openAlarmsOf(trackingKey) > 0 && {
+                    text: `${n(openAlarmsOf(trackingKey))} ${t("open alarms")}`,
+                    tone: "bad" as const,
+                  },
+                ]}
               />
             </div>
           </section>
@@ -228,6 +285,7 @@ export default function Home() {
                   variant={i === 0 ? "featured" : "planned"}
                   description={t(product.description)}
                   action={t("Join waitlist")}
+                  onAction={() => setWaitlistFor(product.title)}
                   pills={product.pills.map((text, pi) => ({
                     text: t(text),
                     tone: i === 0 && pi === 0 ? ("brand" as const) : ("gray" as const),
@@ -263,8 +321,28 @@ export default function Home() {
         <aside className="flex flex-col gap-4">
           <Card className="flex flex-col gap-3">
             <h2 className="text-sm font-bold text-foreground">{t("Recently visited")}</h2>
-            {/* Nothing records navigation history, on the server or here. */}
-            <p className="py-6 text-center text-sm text-muted-foreground">{t("No data")}</p>
+            {recent.length === 0 ? (
+              /* A first visit has nothing behind it yet — the shell starts
+                 recording from the next page they open. */
+              <p className="py-6 text-center text-sm text-muted-foreground">{t("Nothing here yet.")}</p>
+            ) : (
+              <div className="flex flex-col">
+                {recent.map((visit) => (
+                  <button
+                    key={visit.path}
+                    type="button"
+                    onClick={() => navigate(visit.path)}
+                    className="-mx-1.5 flex items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-start transition-colors hover:bg-muted"
+                  >
+                    <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
+                    <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-foreground">
+                      {t(visit.title)}
+                    </span>
+                    <span className="shrink-0 text-xs text-muted-foreground">{t(visit.section)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </Card>
 
           <Card className="flex flex-col gap-3">
@@ -340,6 +418,14 @@ export default function Home() {
           </Card>
         </aside>
       </div>
+
+      {waitlistFor && (
+        <WaitlistDialog
+          product={waitlistFor}
+          workspaceName={activeWorkspaceName}
+          onClose={() => setWaitlistFor(null)}
+        />
+      )}
     </div>
   );
 }
@@ -405,10 +491,9 @@ function ProductCard({
       {(pending || shown.length > 0) && (
         <div className="ms-[54px] mt-3.5 flex flex-wrap gap-2">
           {pending ? (
-            <>
-              <PillSkeleton />
-              <PillSkeleton />
-            </>
+            /* One placeholder per tag the card is about to show, so nothing
+               shifts sideways when the figures land. */
+            Array.from({ length: Math.max(shown.length, 2) }).map((_, i) => <PillSkeleton key={i} />)
           ) : (
             shown.map((pill) => (
               <Pill key={pill.text} tone={pill.tone}>

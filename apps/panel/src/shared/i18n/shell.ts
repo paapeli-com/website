@@ -105,7 +105,8 @@ const fa: Record<string, string> = {
   "Billing & payment settings": "تنظیمات صورتحساب و پرداخت",
 
   // Home
-  "Welcome back": "خوش آمدید",
+  Welcome: "خوش آمدید",
+  "Welcome back": "دوباره خوش آمدید",
   "Pick a product to continue, or activate a new one. Everything on this account lives here.":
     "یک محصول را برای ادامه انتخاب کنید یا محصول تازه‌ای را فعال کنید. هر چیزی که به این حساب مربوط است همین‌جاست.",
   "AI Infra": "زیرساخت هوش مصنوعی",
@@ -137,9 +138,25 @@ const fa: Record<string, string> = {
   "Inference tokens": "توکن‌های استنتاج",
   "Not active": "فعال نیست",
   devices: "دستگاه",
+  assets: "دارایی",
   locations: "مکان",
   trackers: "ردیاب",
+  geofences: "محدودهٔ جغرافیایی",
+  "pending orders": "دستور کار در انتظار",
   "open alarms": "هشدار باز",
+
+  // Waitlist dialog
+  "Join the waitlist": "ثبت‌نام در لیست انتظار",
+  "Leave your email and we will get in touch when it is ready.":
+    "ایمیلتان را بگذارید تا وقتی آماده شد با شما تماس بگیریم.",
+  "Email address": "نشانی ایمیل",
+  Send: "ارسال",
+  "Sending…": "در حال ارسال…",
+  Cancel: "انصراف",
+  Close: "بستن",
+  "Enter a valid email address.": "یک نشانی ایمیل معتبر وارد کنید.",
+  "Thanks. We will get in touch.": "ممنون. با شما تماس می‌گیریم.",
+  "That didn't go through. Please try again.": "ارسال نشد. دوباره تلاش کنید.",
 
   // Account menu
   "Loading…": "در حال بارگذاری…",
@@ -268,6 +285,7 @@ const ar: Record<string, string> = {
   "Billing & payment settings": "إعدادات الفوترة والدفع",
 
   // Home
+  Welcome: "مرحباً بك",
   "Welcome back": "مرحباً بعودتك",
   "Pick a product to continue, or activate a new one. Everything on this account lives here.":
     "اختر منتجاً للمتابعة أو فعّل منتجاً جديداً. كل ما يخص هذا الحساب موجود هنا.",
@@ -300,9 +318,25 @@ const ar: Record<string, string> = {
   "Inference tokens": "رموز الاستدلال",
   "Not active": "غير مفعّل",
   devices: "جهاز",
+  assets: "أصل",
   locations: "موقع",
   trackers: "متعقب",
+  geofences: "سياج جغرافي",
+  "pending orders": "أمر عمل معلق",
   "open alarms": "إنذار مفتوح",
+
+  // Waitlist dialog
+  "Join the waitlist": "الانضمام إلى قائمة الانتظار",
+  "Leave your email and we will get in touch when it is ready.":
+    "اترك بريدك الإلكتروني وسنتواصل معك عند الجاهزية.",
+  "Email address": "البريد الإلكتروني",
+  Send: "إرسال",
+  "Sending…": "جارٍ الإرسال…",
+  Cancel: "إلغاء",
+  Close: "إغلاق",
+  "Enter a valid email address.": "أدخل بريداً إلكترونياً صالحاً.",
+  "Thanks. We will get in touch.": "شكراً. سنتواصل معك.",
+  "That didn't go through. Please try again.": "لم يتم الإرسال. حاول مرة أخرى.",
 
   // Account menu
   "Loading…": "جارٍ التحميل…",
