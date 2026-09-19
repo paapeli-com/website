@@ -41,7 +41,14 @@ const activeNavPath = (pathname: string, items: NavItem[]) => {
   return best;
 };
 
-const rowBase = "flex items-center gap-3 text-[13px] transition-colors";
+/* `outline-none` is Tailwind's transparent outline, not `outline: none`: the
+   browser's own focus ring is what drew a black box around a row after you
+   clicked it and then pressed a key (Chrome re-reads the focused element as
+   keyboard-focused on any keydown, Escape included). These rows had no focus
+   style of their own, so that default was all there was. A transparent outline
+   still resolves to a visible one under forced colours, which is the setting
+   that most needs it. */
+const rowBase = "flex items-center gap-3 text-[13px] outline-none transition-colors";
 /* Square tile on the rail; a full-width padded row otherwise. */
 const rowShape = (collapsed?: boolean) =>
   collapsed ? "mx-auto size-9 justify-center rounded-xl" : "w-full rounded-lg px-3 py-1.5";
@@ -97,7 +104,9 @@ function Leaf({ item, onNavigate, collapsed, activePath }: RowProps) {
       onClick={onNavigate}
       title={collapsed ? t(title) : undefined}
       className={cn(
-        "group relative flex items-center gap-3 text-[13px] transition-colors",
+        /* Same as rowBase's outline-none, and for the same reason — this row
+           spells its own classes out rather than sharing them. */
+        "group relative flex items-center gap-3 text-[13px] outline-none transition-colors",
         collapsed ? "mx-auto size-9 justify-center rounded-xl" : "w-full rounded-lg px-3 py-2",
         isActive
           ? "bg-primary/10 font-semibold text-primary"
