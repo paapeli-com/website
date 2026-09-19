@@ -40,6 +40,8 @@ import {
   DetailPageSkeleton,
   TableRowsSkeleton,
 } from "@/features/factory/components/panel/DetailPageSkeleton";
+import { queryLoad, usePageLoad } from "@/shared/hooks/usePageLoad";
+import { LoadFailed } from "@/shared/components/LoadFailed";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/features/factory/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/features/factory/components/ui/tooltip";
 import { LineChart, Line, Area, AreaChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, Legend } from "recharts";
@@ -254,12 +256,25 @@ const DeviceDetails = () => {
   // Prefer the row already in the cached list; otherwise fetch this one device,
   // which is what a deep link or a page reload hits.
   const listed = devices.find((d) => d.id === deviceId || d.deviceId === deviceId);
-  const { data: fetched, isLoading: deviceLoading } = useGetDeviceByIdQuery(
+  const deviceQuery = useGetDeviceByIdQuery(
     workspaceId ?? "",
     PRODUCT_KEY,
     deviceId ?? "",
     !listed,
   );
+  const fetched = deviceQuery.data;
+  /* A 4xx means the server looked and there is no such device for us, which a
+     retry won't change — that is "not found". Anything else (5xx, network,
+     timeout) is a load failure worth retrying. 408/429 are transient. */
+  const fetchStatus = (deviceQuery.error as { response?: { status?: number } } | null)?.response?.status;
+  const fetchNotFound = !!fetchStatus && fetchStatus >= 400 && fetchStatus < 500 && fetchStatus !== 408 && fetchStatus !== 429;
+  const deviceLoad = queryLoad(deviceQuery);
+  // Without a workspace the query is disabled — that is still loading, not missing.
+  const pageLoad = usePageLoad({
+    loading: !listed && (deviceLoad.loading || !workspaceId),
+    failed: !listed && deviceLoad.failed && !fetchNotFound,
+    onRetry: deviceQuery.refetch,
+  });
 
   const device = useMemo<UserDevice | null>(() => {
     if (listed) return listed;
@@ -297,8 +312,11 @@ const DeviceDetails = () => {
 
   if (!device) {
     // Don't call it missing until the fetch has actually come back.
-    if (deviceLoading) {
+    if (pageLoad.status === "loading") {
       return <DetailPageSkeleton />;
+    }
+    if (pageLoad.status === "failed") {
+      return <LoadFailed onRetry={pageLoad.retry} />;
     }
     return (
       <>

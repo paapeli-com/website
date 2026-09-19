@@ -126,7 +126,7 @@ export function SkeletonList({
         )}
       </div>
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <span className="rounded-full bg-background/70 p-2 shadow-sm backdrop-blur-sm">
+        <span className="rounded-full bg-background p-2 shadow-sm">
           <Loader2 className="size-4 animate-spin text-muted-foreground" />
         </span>
       </div>

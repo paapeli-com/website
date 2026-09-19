@@ -1,5 +1,5 @@
 import { Skeleton } from "@/features/factory/components/ui/skeleton";
-import { LoadingSpinner } from "@/shared/components/LoadingSpinner";
+import { LoadingOverlay } from "@/shared/components/LoadingOverlay";
 import { TableCell, TableRow } from "@/features/factory/components/ui/table";
 
 /**
@@ -77,11 +77,7 @@ export function DetailPageSkeleton({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-0 flex items-start justify-center pt-32">
-        <div className="rounded-full bg-background/70 p-4 shadow-sm backdrop-blur-sm">
-          <LoadingSpinner size="lg" />
-        </div>
-      </div>
+      <LoadingOverlay />
     </div>
   );
 }
