@@ -38,7 +38,7 @@ export function LocationTreeSkeleton() {
       </div>
 
       <div className="pointer-events-none absolute inset-0 flex items-start justify-center pt-16">
-        <div className="rounded-full bg-background/70 p-3 shadow-sm backdrop-blur-sm">
+        <div className="rounded-full bg-background p-3 shadow-sm">
           <LoadingSpinner size="sm" />
         </div>
       </div>

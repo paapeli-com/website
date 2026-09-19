@@ -1,5 +1,5 @@
 import { Skeleton } from "@/features/factory/components/ui/skeleton";
-import { LoadingSpinner } from "@/shared/components/LoadingSpinner";
+import { LoadingOverlay } from "@/shared/components/LoadingOverlay";
 
 interface ListPageSkeletonProps {
   /** Number of skeleton table rows to render */
@@ -88,11 +88,7 @@ export function ListPageSkeleton({
       </div>
 
       {/* Centered Paapeli spinner on top */}
-      <div className="pointer-events-none absolute inset-0 flex items-start justify-center pt-32">
-        <div className="rounded-full bg-background/70 backdrop-blur-sm p-4 shadow-sm">
-          <LoadingSpinner size="lg" />
-        </div>
-      </div>
+      <LoadingOverlay />
     </div>
   );
 }

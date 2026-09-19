@@ -53,6 +53,9 @@ const fa: Record<string, string> = {
   // Shared
   "Coming Soon": "به‌زودی",
   "Coming soon.": "به‌زودی.",
+  "Couldn't load this page": "بارگذاری این صفحه ممکن نشد",
+  "Something went wrong or it took too long. Please try again.": "مشکلی پیش آمد یا بارگذاری بیش از حد طول کشید. لطفاً دوباره تلاش کنید.",
+  Retry: "تلاش دوباره",
 
   // Header
   Search: "جستجو",
@@ -233,6 +236,9 @@ const ar: Record<string, string> = {
   // Shared
   "Coming Soon": "قريباً",
   "Coming soon.": "قريباً.",
+  "Couldn't load this page": "تعذّر تحميل هذه الصفحة",
+  "Something went wrong or it took too long. Please try again.": "حدث خطأ أو استغرق التحميل وقتًا طويلًا. يُرجى المحاولة مرة أخرى.",
+  Retry: "إعادة المحاولة",
 
   // Header
   Search: "بحث",
