@@ -57,6 +57,7 @@ import { KpiSection } from "@/features/factory/components/panel/KpiSection";
 import { Wifi, WifiOff, AlertTriangle } from "lucide-react";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { NoDataValue } from "@/features/factory/components/NoData";
+import { AddFirst } from "@/features/factory/components/AddFirst";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 
 
@@ -665,173 +666,173 @@ const Devices = () => {
                       selectionCount={selectedDevices.length}
                     />
 
-              {/* Table */}
-              {mergedDevices.length === 0 ? (
-                <div className="flex flex-col items-center justify-center gap-4 py-16">
-                  <Smartphone className="h-12 w-12 text-muted-foreground/50" />
-                  <Button onClick={() => { goToAddDevice(); }} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                    <Plus className="h-4 w-4 mr-2" />{t("addYourFirstDevice")}
-                  </Button>
-                </div>
-              ) : filteredDevices.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">{t("noDevicesFound")}</p>
-                </div>
-              ) : (
-                <div className="rounded-lg border overflow-hidden text-sm [&_th]:text-xs [&_td]:text-sm [&_th]:h-10 [&_td]:p-3">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/40 hover:bg-muted/40">
-                        <TableHead className="w-[44px] text-center">
-                          <div className="flex justify-center">
-                            <Checkbox
-                              checked={selectedDevices.length === paginatedDevices.length && paginatedDevices.length > 0}
-                              onCheckedChange={handleSelectAll}
-                            />
-                          </div>
-                        </TableHead>
-                        <TableHead className="w-[36px]"></TableHead>
-                        <TableHead>{t("name")}</TableHead>
-                        <TableHead>{t("status")}</TableHead>
-                        <TableHead>{t("location")}</TableHead>
-                        <TableHead>{t("protocol")}</TableHead>
-                        <TableHead>
-                          <button
-                            onClick={() => setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc')}
-                            className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
-                          >
-                            {t("updated")}
-                            {sortDirection === 'desc' ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
-                          </button>
-                        </TableHead>
-                        <TableHead className="text-right">{t("actions")}</TableHead>
+              {/* Table. The columns stay on screen when the list is empty —
+                  the empty state goes in the body, not in place of it. */}
+              <div className="rounded-lg border overflow-hidden text-sm [&_th]:text-xs [&_td]:text-sm [&_th]:h-10 [&_td]:p-3">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40 hover:bg-muted/40">
+                      <TableHead className="w-[44px] text-center">
+                        <div className="flex justify-center">
+                          <Checkbox
+                            checked={selectedDevices.length === paginatedDevices.length && paginatedDevices.length > 0}
+                            onCheckedChange={handleSelectAll}
+                          />
+                        </div>
+                      </TableHead>
+                      <TableHead className="w-[36px]"></TableHead>
+                      <TableHead>{t("name")}</TableHead>
+                      <TableHead>{t("status")}</TableHead>
+                      <TableHead>{t("location")}</TableHead>
+                      <TableHead>{t("protocol")}</TableHead>
+                      <TableHead>
+                        <button
+                          onClick={() => setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc')}
+                          className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+                        >
+                          {t("updated")}
+                          {sortDirection === 'desc' ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
+                        </button>
+                      </TableHead>
+                      <TableHead className="text-right">{t("actions")}</TableHead>
 
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mergedDevices.length === 0 ? (
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={8}>
+                          <AddFirst icon={Smartphone} label={t("addYourFirstDevice")} onAction={goToAddDevice} />
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginatedDevices.map((device) => {
-                        const deviceId = device.deviceId || device.device_id || device.deviceID || device.id || device._id || '';
-                        const rowKey = device.id || device._id || deviceId;
-                        const createdAt = device.created_at || device.createdAt || device.created;
-                        const lastActivity = device.last_activity || device.lastActivity || device.lastSeen;
-                        const meta = getDeviceMeta(device, t);
-                        const isExpanded = expandedRows.includes(rowKey);
-                        const toggleExpand = () =>
-                          setExpandedRows((prev) => prev.includes(rowKey) ? prev.filter(k => k !== rowKey) : [...prev, rowKey]);
-                        const formattedUpdated = formatRelative(lastActivity || createdAt, t, formatNumber);
+                    ) : filteredDevices.length === 0 ? (
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={8}>
+                          <p className="py-12 text-center text-muted-foreground">{t("noDevicesFound")}</p>
+                        </TableCell>
+                      </TableRow>
+                    ) : paginatedDevices.map((device) => {
+                      const deviceId = device.deviceId || device.device_id || device.deviceID || device.id || device._id || '';
+                      const rowKey = device.id || device._id || deviceId;
+                      const createdAt = device.created_at || device.createdAt || device.created;
+                      const lastActivity = device.last_activity || device.lastActivity || device.lastSeen;
+                      const meta = getDeviceMeta(device, t);
+                      const isExpanded = expandedRows.includes(rowKey);
+                      const toggleExpand = () =>
+                        setExpandedRows((prev) => prev.includes(rowKey) ? prev.filter(k => k !== rowKey) : [...prev, rowKey]);
+                      const formattedUpdated = formatRelative(lastActivity || createdAt, t, formatNumber);
 
-                        return (
-                          <FragmentWithKey key={rowKey}>
-                            <TableRow
-                              className="cursor-pointer hover:bg-muted/30 border-b"
-                              onClick={toggleExpand}
-                            >
-                              <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                                <div className="flex justify-center">
-                                  <Checkbox
-                                    checked={selectedDevices.includes(deviceId)}
-                                    onCheckedChange={(checked) => handleSelectDevice(deviceId, checked as boolean)}
-                                  />
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                {isExpanded
-                                  ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                                  : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2 font-medium">
-                                  <span className="h-7 w-7 rounded-md bg-primary/10 text-primary inline-flex items-center justify-center">
-                                    <Box className="h-4 w-4" />
-                                  </span>
-                                  <span className={`text-sm ${persianTextClass(device.name)}`}>{device.name}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <span className="inline-flex items-center gap-1.5 text-sm">
-                                  <span className={`h-2 w-2 rounded-full ${meta.statusColor}`} />
-                                  {meta.statusLabel}
+                      return (
+                        <FragmentWithKey key={rowKey}>
+                          <TableRow
+                            className="cursor-pointer hover:bg-muted/30 border-b"
+                            onClick={toggleExpand}
+                          >
+                            <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex justify-center">
+                                <Checkbox
+                                  checked={selectedDevices.includes(deviceId)}
+                                  onCheckedChange={(checked) => handleSelectDevice(deviceId, checked as boolean)}
+                                />
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {isExpanded
+                                ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                                : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2 font-medium">
+                                <span className="h-7 w-7 rounded-md bg-primary/10 text-primary inline-flex items-center justify-center">
+                                  <Box className="h-4 w-4" />
                                 </span>
-                              </TableCell>
-                              <TableCell onClick={(e) => e.stopPropagation()}>
-                                <LocationCell path={device.location} />
-                              </TableCell>
-                              <TableCell className="text-sm">{device.protocol}</TableCell>
-                              <TableCell className="text-sm text-muted-foreground">{formattedUpdated}</TableCell>
-                              <TableCell onClick={(e) => e.stopPropagation()}>
-                                <div className="flex items-center justify-end gap-1">
-                                  <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => handleDeviceClick(deviceId)}>
-                                    <Eye className="h-3.5 w-3.5" /> {t("view")}
+                                <span className={`text-sm ${persianTextClass(device.name)}`}>{device.name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="inline-flex items-center gap-1.5 text-sm">
+                                <span className={`h-2 w-2 rounded-full ${meta.statusColor}`} />
+                                {meta.statusLabel}
+                              </span>
+                            </TableCell>
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <LocationCell path={device.location} />
+                            </TableCell>
+                            <TableCell className="text-sm">{device.protocol}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{formattedUpdated}</TableCell>
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-end gap-1">
+                                <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => handleDeviceClick(deviceId)}>
+                                  <Eye className="h-3.5 w-3.5" /> {t("view")}
 
-                                  </Button>
-                                  <DropdownMenu modal={false}>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                                        <MoreHorizontal className="h-4 w-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="bg-background z-[100] w-48">
-                                      <DropdownMenuItem onClick={() => setSendCmdDevice(device)}>
-                                        <RefreshCw className="h-4 w-4 mr-2" />{t("sendCommand") || "Send Command"}
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => navigate(lp("/firmware?tab=devices"))}>
-                                        <ArrowUpDown className="h-4 w-4 mr-2" />{t("updateFirmware") || "Update Firmware"}
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => setEditDevice(device)}>
-                                        <Pencil className="h-4 w-4 mr-2" />{t("editDevice") || "Edit Device"}
-                                      </DropdownMenuItem>
+                                </Button>
+                                <DropdownMenu modal={false}>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="bg-background z-[100] w-48">
+                                    <DropdownMenuItem onClick={() => setSendCmdDevice(device)}>
+                                      <RefreshCw className="h-4 w-4 mr-2" />{t("sendCommand") || "Send Command"}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => navigate(lp("/firmware?tab=devices"))}>
+                                      <ArrowUpDown className="h-4 w-4 mr-2" />{t("updateFirmware") || "Update Firmware"}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setEditDevice(device)}>
+                                      <Pencil className="h-4 w-4 mr-2" />{t("editDevice") || "Edit Device"}
+                                    </DropdownMenuItem>
 
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem
-                                        className="text-destructive focus:text-destructive"
-                                        onClick={() => { setSelectedDevices([deviceId]); setDeleteDialogOpen(true); }}
-                                      >
-                                        <Trash2 className="h-4 w-4 mr-2" />{t("deleteDevice") || "Delete Device"}
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-destructive focus:text-destructive"
+                                      onClick={() => { setSelectedDevices([deviceId]); setDeleteDialogOpen(true); }}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />{t("deleteDevice") || "Delete Device"}
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                          {isExpanded && (
+                            <TableRow key={`${rowKey}-expand`} className="bg-muted/20 hover:bg-muted/20">
+                              <TableCell colSpan={8} className="p-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                  <ExpandField label={t("deviceId")} value={deviceId || t('noData')} />
+                                  <ExpandField label={t("deviceTypeLabel")} value={meta.deviceType} />
+                                  <ExpandField label={t("gateway")} value={meta.gateway} />
+                                  <ExpandField label={t("channels")} value={meta.sensorType} />
                                 </div>
+                                <div className="mt-3">
+                                  <div className="rounded-lg border bg-background px-4 py-3">
+                                    <div className="text-xs text-muted-foreground mb-2">{t("tagsLabel")}</div>
+                                    {meta.tags.length > 0 ? (
+                                      <div className="flex flex-wrap gap-2">
+                                        {meta.tags.map((tag) => (
+                                          <span key={tag} className={`inline-flex items-center rounded bg-primary/10 text-primary px-2 py-0.5 text-xs ${persianTextClass(tag)}`}>{tag}</span>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <div className="text-xs text-muted-foreground italic">—</div>
+                                    )}
+                                  </div>
+                                </div>
+                                {meta.description && (
+                                  <div className="mt-3 rounded-lg border bg-background px-4 py-3">
+                                    <div className="text-xs text-muted-foreground mb-1">{t("descriptionLabel")}</div>
+                                    <div className={`text-sm ${persianTextClass(meta.description)}`}>{meta.description}</div>
+                                  </div>
+                                )}
                               </TableCell>
                             </TableRow>
-                            {isExpanded && (
-                              <TableRow key={`${rowKey}-expand`} className="bg-muted/20 hover:bg-muted/20">
-                                <TableCell colSpan={8} className="p-4">
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                                    <ExpandField label={t("deviceId")} value={deviceId || t('noData')} />
-                                    <ExpandField label={t("deviceTypeLabel")} value={meta.deviceType} />
-                                    <ExpandField label={t("gateway")} value={meta.gateway} />
-                                    <ExpandField label={t("channels")} value={meta.sensorType} />
-                                  </div>
-                                  <div className="mt-3">
-                                    <div className="rounded-lg border bg-background px-4 py-3">
-                                      <div className="text-xs text-muted-foreground mb-2">{t("tagsLabel")}</div>
-                                      {meta.tags.length > 0 ? (
-                                        <div className="flex flex-wrap gap-2">
-                                          {meta.tags.map((tag) => (
-                                            <span key={tag} className={`inline-flex items-center rounded bg-primary/10 text-primary px-2 py-0.5 text-xs ${persianTextClass(tag)}`}>{tag}</span>
-                                          ))}
-                                        </div>
-                                      ) : (
-                                        <div className="text-xs text-muted-foreground italic">—</div>
-                                      )}
-                                    </div>
-                                  </div>
-                                  {meta.description && (
-                                    <div className="mt-3 rounded-lg border bg-background px-4 py-3">
-                                      <div className="text-xs text-muted-foreground mb-1">{t("descriptionLabel")}</div>
-                                      <div className={`text-sm ${persianTextClass(meta.description)}`}>{meta.description}</div>
-                                    </div>
-                                  )}
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </FragmentWithKey>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
+                          )}
+                        </FragmentWithKey>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
 
               {/* Pagination */}
               {filteredDevices.length > itemsPerPage && (
