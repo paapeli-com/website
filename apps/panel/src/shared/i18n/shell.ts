@@ -173,6 +173,7 @@ const fa: Record<string, string> = {
   "Switch Product": "تغییر محصول",
   "Manage Products": "مدیریت محصولات",
   soon: "به‌زودی",
+  Soon: "به‌زودی",
 
   // Create-new menu
   "New Items": "مورد جدید",
@@ -356,6 +357,7 @@ const ar: Record<string, string> = {
   "Switch Product": "تبديل المنتج",
   "Manage Products": "إدارة المنتجات",
   soon: "قريباً",
+  Soon: "قريباً",
 
   // Create-new menu
   "New Items": "عنصر جديد",

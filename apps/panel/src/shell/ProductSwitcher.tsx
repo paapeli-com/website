@@ -20,11 +20,12 @@ const HOME_PATH = "/Home";
  * or routed to yet. They are announcements in this menu and nothing more, so
  * they live in this menu. Their names match the cards on /Home.
  *
- * `featured` is the one being launched next; it carries the outlined
- * treatment the Home page gives the same product. */
+ * `featured` is the one being launched next. It shows in its tag and nothing
+ * else: an outline around the row reads as the selected state, which these
+ * rows can never be. */
 const AI_INFRA: { id: string; name: string; tag: string; featured?: boolean }[] = [
   { id: "AIInference", name: "AI Inference", tag: "New", featured: true },
-  { id: "AIAgentMaker", name: "AI Agent Maker", tag: "Phase 2" },
+  { id: "AIAgentMaker", name: "AI Agent Maker", tag: "Soon" },
 ];
 
 export function ProductSwitcher() {
@@ -148,10 +149,7 @@ export function ProductSwitcher() {
                     /* Not a button: there is nowhere for it to go yet. */
                     <div
                       key={a.id}
-                      className={cn(
-                        "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-foreground",
-                        a.featured && "border border-primary/40",
-                      )}
+                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-foreground"
                     >
                       <span className="flex-1 text-start">{t(a.name)}</span>
                       <span
