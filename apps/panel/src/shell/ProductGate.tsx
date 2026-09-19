@@ -7,7 +7,9 @@ import {
   useSubscribeWorkspaceProductMutation,
 } from "@paapeli/api";
 import { useActiveWorkspaceId } from "@paapeli/brand/workspace";
-import { LoadingSpinner } from "@/shared/components/LoadingSpinner";
+import { LoadFailed } from "@/shared/components/LoadFailed";
+import { PageSkeleton } from "@/shared/components/PageSkeleton";
+import { queryLoad, usePageLoad } from "@/shared/hooks/usePageLoad";
 
 interface Props {
   /** Human-readable feature name, used in messages. */
@@ -61,13 +63,15 @@ export function ProductGate({ name, productKey, children }: Props) {
   // The workspace list is already fetched by the account menu — this shares
   // react-query's cache. We read it only to tell "still loading" apart from
   // "this user genuinely has no workspace", which would otherwise spin forever.
-  const { data: workspaces, isLoading: workspacesLoading } = useListActiveWorkspacesQuery(!!productKey);
+  const workspacesQuery = useListActiveWorkspacesQuery(!!productKey);
+  const { data: workspaces, isLoading: workspacesLoading } = workspacesQuery;
 
   // What the workspace actually has, rather than what a POST's status implies.
-  const { data: products, isFetching: productsFetching } = useListWorkspaceProductsQuery(
+  const productsQuery = useListWorkspaceProductsQuery(
     workspaceId ?? "",
     !!key && !ready,
   );
+  const { data: products, isFetching: productsFetching } = productsQuery;
 
   const subscribe = useSubscribeWorkspaceProductMutation();
 
@@ -116,6 +120,15 @@ export function ProductGate({ name, productKey, children }: Props) {
     setAttempt((a) => a + 1);
   }, []);
 
+  // Either lookup failing leaves nothing to wait on, so the fallback offers a
+  // retry of whichever did instead of spinning forever.
+  const lookupFailed = workspaceId ? queryLoad(productsQuery).failed : queryLoad(workspacesQuery).failed;
+  const retryLookup = useCallback(() => {
+    if (workspaceId) void productsQuery.refetch();
+    else void workspacesQuery.refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceId]);
+
   // No product scope — pass straight through.
   if (!productKey) return <>{children}</>;
 
@@ -159,18 +172,21 @@ export function ProductGate({ name, productKey, children }: Props) {
         </div>
       );
     }
-    return <FeatureFallback />;
+    return <FeatureFallback failed={lookupFailed} onRetry={retryLookup} />;
   }
 
-  if (productsFetching || subscribe.isPending) return <FeatureFallback />;
+  if (productsFetching || subscribe.isPending) return <FeatureFallback onRetry={retryLookup} />;
 
-  return <FeatureFallback />;
+  return <FeatureFallback failed={lookupFailed} onRetry={retryLookup} />;
 }
 
-/* Shown while a feature's chunk loads and while its product is being enabled —
-   the branded loader rather than bare text, since it fills the whole pane. */
-export const FeatureFallback = () => (
-  <div className="flex h-full min-h-[60vh] items-center justify-center p-8">
-    <LoadingSpinner size="lg" />
-  </div>
-);
+const reloadPage = () => window.location.reload();
+
+/* Shown while a feature's chunk loads and while its product is being enabled:
+   a page skeleton with the branded spinner on top, and — if that fails or
+   outlasts the load timeout — a retry. A stuck chunk has nothing to refetch,
+   so without an `onRetry` the retry reloads the page. */
+export const FeatureFallback = ({ failed = false, onRetry = reloadPage }: { failed?: boolean; onRetry?: () => void }) => {
+  const { status, retry } = usePageLoad({ loading: !failed, failed, onRetry });
+  return status === "failed" ? <LoadFailed onRetry={retry} /> : <PageSkeleton />;
+};

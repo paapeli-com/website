@@ -9,6 +9,7 @@ import {
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { useAssetLocations } from "./useAssetLocations";
+import { queryLoad } from "@/shared/hooks/usePageLoad";
 
 /**
  * The device list for the active workspace, straight from
@@ -132,6 +133,8 @@ export const useDevices = () => {
     items,
     isLoading: query.isLoading,
     isError: query.isError,
+    /** Page-level load state for usePageLoad — see queryLoad. */
+    load: queryLoad(query),
     /** No workspace picked yet — the query is disabled, not empty. */
     noWorkspace: !workspaceId,
     refetch: query.refetch,

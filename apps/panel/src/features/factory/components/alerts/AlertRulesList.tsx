@@ -25,6 +25,9 @@ import { useToast } from "@/features/factory/hooks/use-toast";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { apiErrorMessage } from "@/shared/lib/apiError";
+import { queryLoad, usePageLoad } from "@/shared/hooks/usePageLoad";
+import { LoadFailed } from "@/shared/components/LoadFailed";
+import { LoadingOverlay } from "@/shared/components/LoadingOverlay";
 import { SEVERITY_RANK, apiSeverityToUi } from "./alarmRuleMapping";
 
 /* One request covers the workspace: the API clamps page size to 1–100. Page 0
@@ -119,10 +122,17 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
   // Creating and deleting are asynchronous server-side, so poll while any
   // rule is still on its way in or out.
   const [inFlight, setInFlight] = useState(false);
-  const { data, isLoading, isError, error, isFetching, refetch } = useGetWorkspaceAlarmRulesQuery(
+  const rulesQuery = useGetWorkspaceAlarmRulesQuery(
     workspaceId ?? "", PRODUCT_KEY, RULES_PAGE, RULES_PAGE_SIZE,
     { refetchInterval: inFlight ? 5000 : false },
   );
+  const { data, isLoading, isError, error, isFetching, refetch } = rulesQuery;
+  const rulesLoad = queryLoad(rulesQuery);
+  const pageLoad = usePageLoad({
+    loading: rulesLoad.loading || !workspaceId,
+    failed: rulesLoad.failed,
+    onRetry: refetch,
+  });
   const rules = useMemo(() => (data?.data ?? []).map(toRow), [data]);
   // A failed load surfaces as a toast, once per failure, rather than as a
   // table row; the table falls through to its empty state.
@@ -245,6 +255,8 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
   const currentPage = Math.min(page, totalPages);
   const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  if (pageLoad.status === "failed") return <LoadFailed onRetry={pageLoad.retry} />;
+
   return (
     <div className="space-y-4" dir={isRTL ? "rtl" : "ltr"}>
       <div className="flex justify-between items-center">
@@ -268,7 +280,8 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
         selectionCount={0}
       />
 
-      <div className="rounded-lg border bg-card overflow-hidden">
+      <div className="relative rounded-lg border bg-card overflow-hidden">
+        {pageLoad.status === "loading" && <LoadingOverlay className="items-center pt-0" />}
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40">
@@ -281,8 +294,8 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading && <TableRowsSkeleton rows={4} columns={6} />}
-            {!isLoading && paged.length === 0 && (
+            {pageLoad.status === "loading" && <TableRowsSkeleton rows={4} columns={6} />}
+            {pageLoad.status === "ready" && paged.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="p-0">
                   {/* Nothing on the server is "no data"; nothing matching the
@@ -295,7 +308,7 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
                 </TableCell>
               </TableRow>
             )}
-            {!isLoading && paged.map((rule) => {
+            {pageLoad.status === "ready" && paged.map((rule) => {
               const TypeIcon = rule.triggerType ? triggerIcons[rule.triggerType] : Zap;
               return (
                 <TableRow key={rule.id}>

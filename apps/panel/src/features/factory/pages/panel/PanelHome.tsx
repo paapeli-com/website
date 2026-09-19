@@ -23,6 +23,10 @@ import { useDashboards } from "@/features/factory/hooks/useDashboards";
 import { useWorkOrders } from "@/features/factory/hooks/useWorkOrders";
 import { NoData, NoDataValue } from "@/features/factory/components/NoData";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
+import { Skeleton } from "@/features/factory/components/ui/skeleton";
+import { queryLoad, usePageLoad } from "@/shared/hooks/usePageLoad";
+import { LoadFailed } from "@/shared/components/LoadFailed";
+import { LoadingOverlay } from "@/shared/components/LoadingOverlay";
 
 type Lang = "en" | "ar" | "fa";
 
@@ -109,6 +113,34 @@ function countLocations(): number {
   }
 }
 
+/* Same grid as the page below — summary cards, then two rows of panels — so
+   the swap to real content doesn't shift. */
+const OverviewSkeleton = () => (
+  <div className="relative">
+    <div className="space-y-6" aria-hidden="true">
+      <Skeleton className="h-7 w-32" />
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="space-y-2 rounded-lg border bg-card p-4">
+            <Skeleton className="h-9 w-9 rounded-lg" />
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-7 w-14" />
+          </div>
+        ))}
+      </div>
+      <div className="grid lg:grid-cols-3 gap-4">
+        <Skeleton className="h-48 rounded-lg lg:col-span-2" />
+        <Skeleton className="h-48 rounded-lg" />
+      </div>
+      <div className="grid lg:grid-cols-2 gap-4">
+        <Skeleton className="h-56 rounded-lg" />
+        <Skeleton className="h-56 rounded-lg" />
+      </div>
+    </div>
+    <LoadingOverlay />
+  </div>
+);
+
 export default function PanelHome() {
   const { language, formatNumber, isRTL } = useLanguage();
   const navigate = useNavigate();
@@ -117,16 +149,15 @@ export default function PanelHome() {
   const fn = (n: number) => formatNumber(n);
   const noDataText = tr("noData");
 
-  const { items: devices } = useDevices();
+  const { items: devices, load: devicesLoad, noWorkspace, refetch: refetchDevices } = useDevices();
   const { items: dashboards } = useDashboards();
   const { items: workOrders } = useWorkOrders();
 
   /* Alarms for this workspace product — the Attention card lists the
      unacknowledged ones, and the alarm count below is how many there are. */
   const workspaceId = useWorkspaceId();
-  const { data: alarms, isLoading: alarmsLoading } = useGetWorkspaceAlarmsQuery(
-    workspaceId ?? "", PRODUCT_KEY,
-  );
+  const alarmsQuery = useGetWorkspaceAlarmsQuery(workspaceId ?? "", PRODUCT_KEY);
+  const { data: alarms, isLoading: alarmsLoading } = alarmsQuery;
   const attention = useMemo(
     () => (alarms ?? [])
       .filter(isUnacknowledged)
@@ -134,6 +165,18 @@ export default function PanelHome() {
     [alarms],
   );
   const alarmsPending = alarmsLoading || !workspaceId;
+
+  /* The page's counts come from devices and alarms; until both are in it shows
+     a skeleton rather than zeros, and if either can't load it offers a retry. */
+  const alarmsLoad = queryLoad(alarmsQuery);
+  const pageLoad = usePageLoad({
+    loading: devicesLoad.loading || alarmsLoad.loading || noWorkspace,
+    failed: devicesLoad.failed || alarmsLoad.failed,
+    onRetry: () => {
+      if (devicesLoad.failed) void refetchDevices();
+      if (alarmsLoad.failed) void alarmsQuery.refetch();
+    },
+  });
 
   /* --- Counts from sources of truth ---
      Assets, locations, dashboards, work orders and alarms come from real
@@ -177,6 +220,9 @@ export default function PanelHome() {
      re-rendered identically on every visit. They stay as empty panels until
      there is a feed behind them. Attention now reads real alarms. */
   const Chevron = () => <ChevronRight className={`h-4 w-4 text-muted-foreground shrink-0 ${isRTL ? "rotate-180" : ""}`} />;
+
+  if (pageLoad.status === "loading") return <OverviewSkeleton />;
+  if (pageLoad.status === "failed") return <LoadFailed onRetry={pageLoad.retry} />;
 
   return (
     <>

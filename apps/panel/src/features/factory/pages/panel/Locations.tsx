@@ -31,7 +31,8 @@ import {
 } from "@/features/factory/components/locations/LocationsSkeleton";
 import { toast } from "sonner";
 import { PageHeader } from "@/features/factory/components/PageHeader";
-import { DataState } from "@/features/factory/components/DataState";
+import { queryLoad, usePageLoad } from "@/shared/hooks/usePageLoad";
+import { LoadFailed } from "@/shared/components/LoadFailed";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { nodeDisplayName } from "@/features/factory/lib/locationLabels";
@@ -165,7 +166,8 @@ const Locations = () => {
   // keeps the queries below disabled (see @paapeli/brand/workspace).
   const workspaceId = useWorkspaceId();
 
-  const { data: apiTree, isLoading: treeLoading, isError: treeError, error: treeErrorObj, refetch: refetchTree } = useGetProductAssetTreeQuery(workspaceId ?? "", PRODUCT_KEY);
+  const treeQuery = useGetProductAssetTreeQuery(workspaceId ?? "", PRODUCT_KEY);
+  const { data: apiTree, error: treeErrorObj, refetch: refetchTree } = treeQuery;
 
   // The backend returns this code when the product simply has no asset tree
   // yet — that's an empty state, not a failure, so don't show an error.
@@ -174,7 +176,14 @@ const Locations = () => {
   /* No workspace yet means the query is still disabled rather than empty, so
      it counts as loading — otherwise the panel would flash its empty state
      before the host has picked a workspace. */
-  const treeIsLoading = treeLoading || !workspaceId;
+  const treeLoad = queryLoad(treeQuery);
+  const treeIsLoading = treeLoad.loading || !workspaceId;
+  // The tree is what the page is; if it can't load, the whole page offers a retry.
+  const pageLoad = usePageLoad({
+    loading: treeIsLoading,
+    failed: treeLoad.failed && !treeNotFound,
+    onRetry: refetchTree,
+  });
 
   const provisionRoot = useProvisionAssetRootMutation();
   const createAssetChild = useCreateAssetChildMutation();
@@ -478,6 +487,9 @@ const Locations = () => {
       {/* Header */}
       <PageHeader title={t("locations")} />
 
+      {pageLoad.status === "failed" ? (
+        <LoadFailed onRetry={pageLoad.retry} />
+      ) : (
       <div className="flex gap-4 h-[calc(100vh-220px)]">
         {/* Left: Tree */}
         <Card dir={isRTL ? "rtl" : "ltr"} className={`${isRTL ? "w-[340px]" : "w-80"} shrink-0 flex flex-col`}>
@@ -501,12 +513,10 @@ const Locations = () => {
           </CardHeader>
           <ScrollArea className="flex-1 px-2 pb-2">
             {/* Loading gets the tree-shaped skeleton (spinner included, see
-                LocationsSkeleton); DataState still owns the error case. The
+                LocationsSkeleton); a failed load replaces the whole page. The
                 no-workspace-yet case is folded into treeIsLoading above. */}
             {treeIsLoading ? (
               <LocationTreeSkeleton />
-            ) : treeError && !treeNotFound ? (
-              <DataState error onRetry={() => refetchTree()} size="sm" />
             ) : treeNotFound ? (
               <div className="py-10 text-center text-sm text-muted-foreground">{t("noLocationTree")}</div>
             ) : (
@@ -567,6 +577,7 @@ const Locations = () => {
           </ScrollArea>
         </Card>
       </div>
+      )}
 
       {/* Dialogs */}
       <AddNodeDialog

@@ -20,6 +20,10 @@ import {
 } from "@/features/factory/components/ui/alert-dialog";
 import { Plus, Edit, Clock, Users, ArrowRight, Trash2 } from "lucide-react";
 import { NoData } from "@/features/factory/components/NoData";
+import { Skeleton } from "@/features/factory/components/ui/skeleton";
+import { queryLoad, usePageLoad } from "@/shared/hooks/usePageLoad";
+import { LoadFailed } from "@/shared/components/LoadFailed";
+import { LoadingOverlay } from "@/shared/components/LoadingOverlay";
 import { useToast } from "@/features/factory/hooks/use-toast";
 
 /* The chain API is addressed by rule id, not chain id, so each card keeps it. */
@@ -77,15 +81,23 @@ export const EscalationPolicies = ({ onCreateClick, onEditClick }: EscalationPol
      for each active one's chain (only an active rule can have one). Rules
      without a chain, and failed requests, simply contribute no card. */
   const workspaceId = useWorkspaceId();
-  const { data: rulesPage, isLoading: rulesLoading } = useGetWorkspaceAlarmRulesQuery(
+  const rulesQuery = useGetWorkspaceAlarmRulesQuery(
     workspaceId ?? "", PRODUCT_KEY, RULES_PAGE, RULES_PAGE_SIZE,
   );
+  const rulesPage = rulesQuery.data;
+  const rulesLoad = queryLoad(rulesQuery);
   const activeRules = useMemo(
     () => (rulesPage?.data ?? []).filter((r) => r.provisioningState === "ACTIVE"),
     [rulesPage],
   );
   const chainQueries = useGetEscalationChainsQueries(workspaceId ?? "", PRODUCT_KEY, activeRules.map((r) => r.id));
-  const chainsLoading = rulesLoading || !workspaceId || chainQueries.some((q) => q.isLoading);
+  const chainsLoading = rulesLoad.loading || !workspaceId || chainQueries.some((q) => q.isLoading);
+  // Only the rules list can fail the tab; a failed chain request just drops its card.
+  const pageLoad = usePageLoad({
+    loading: chainsLoading,
+    failed: rulesLoad.failed,
+    onRetry: rulesQuery.refetch,
+  });
   const chainsVersion = chainQueries.map((q) => q.dataUpdatedAt).join(",");
   const policies: ChainPolicy[] = useMemo(
     () => activeRules.flatMap((rule, i) => {
@@ -137,7 +149,26 @@ export const EscalationPolicies = ({ onCreateClick, onEditClick }: EscalationPol
       </div>
 
 
-      {policies.length === 0 && <NoData message={tt("alertNoEscalationsCreateFirst")} />}
+      {pageLoad.status === "failed" ? (
+        <LoadFailed onRetry={pageLoad.retry} />
+      ) : pageLoad.status === "loading" ? (
+        <div className="relative space-y-4">
+          <div className="grid gap-4" aria-hidden="true">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="space-y-3 rounded-lg border bg-card p-4">
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-3.5 w-72 max-w-full" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-8 w-28" />
+                  <Skeleton className="h-8 w-28" />
+                  <Skeleton className="h-8 w-28" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <LoadingOverlay className="items-center pt-0" />
+        </div>
+      ) : policies.length === 0 && <NoData message={tt("alertNoEscalationsCreateFirst")} />}
 
       <div className="grid gap-4">
         {policies.map(policy => {

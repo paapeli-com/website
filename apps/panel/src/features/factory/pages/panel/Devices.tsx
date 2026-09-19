@@ -19,6 +19,8 @@ import { ListPageSkeleton } from "@/features/factory/components/panel/ListPageSk
 import { Checkbox } from "@/features/factory/components/ui/checkbox";
 import { useToast } from "@/features/factory/hooks/use-toast";
 import { useDevices } from "@/features/factory/hooks/useDevices";
+import { usePageLoad } from "@/shared/hooks/usePageLoad";
+import { LoadFailed } from "@/shared/components/LoadFailed";
 import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
 import { deviceCredentialsService } from "@paapeli/api";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
@@ -172,9 +174,14 @@ const Devices = () => {
     create: createUserDevice,
     remove: removeUserDevice,
     refetch: refetchDevices,
-    isLoading: devicesLoading,
+    load: devicesLoad,
     noWorkspace,
   } = useDevices();
+  const pageLoad = usePageLoad({
+    loading: devicesLoad.loading || noWorkspace,
+    failed: devicesLoad.failed,
+    onRetry: refetchDevices,
+  });
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -486,8 +493,10 @@ const Devices = () => {
 
   return (
     <>
-      {devicesLoading || noWorkspace ? (
+      {pageLoad.status === 'loading' ? (
         <ListPageSkeleton rows={9} columns={8} toolbarButtons={3} showPrimaryCta />
+      ) : pageLoad.status === 'failed' ? (
+        <LoadFailed onRetry={pageLoad.retry} />
       ) : viewMode === 'details' && selectedDeviceId ? (
         <DeviceDetailsContent deviceId={selectedDeviceId} onBack={handleBackToList} />
       ) : (
@@ -673,7 +682,6 @@ const Devices = () => {
                       </TableHead>
                       <TableHead className="w-[36px]"></TableHead>
                       <TableHead>{t("name")}</TableHead>
-                      <TableHead>{t("sensorType")}</TableHead>
                       <TableHead>{t("status")}</TableHead>
                       <TableHead>{t("location")}</TableHead>
                       <TableHead>{t("protocol")}</TableHead>
@@ -693,13 +701,13 @@ const Devices = () => {
                   <TableBody>
                     {mergedDevices.length === 0 ? (
                       <TableRow className="hover:bg-transparent">
-                        <TableCell colSpan={9}>
+                        <TableCell colSpan={8}>
                           <AddFirst icon={Smartphone} label={t("addYourFirstDevice")} onAction={goToAddDevice} />
                         </TableCell>
                       </TableRow>
                     ) : filteredDevices.length === 0 ? (
                       <TableRow className="hover:bg-transparent">
-                        <TableCell colSpan={9}>
+                        <TableCell colSpan={8}>
                           <p className="py-12 text-center text-muted-foreground">{t("noDevicesFound")}</p>
                         </TableCell>
                       </TableRow>
@@ -741,7 +749,6 @@ const Devices = () => {
                                 <span className={`text-sm ${persianTextClass(device.name)}`}>{device.name}</span>
                               </div>
                             </TableCell>
-                            <TableCell className="text-sm">{meta.sensorType}</TableCell>
                             <TableCell>
                               <span className="inline-flex items-center gap-1.5 text-sm">
                                 <span className={`h-2 w-2 rounded-full ${meta.statusColor}`} />
@@ -790,7 +797,7 @@ const Devices = () => {
                           </TableRow>
                           {isExpanded && (
                             <TableRow key={`${rowKey}-expand`} className="bg-muted/20 hover:bg-muted/20">
-                              <TableCell colSpan={9} className="p-4">
+                              <TableCell colSpan={8} className="p-4">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                                   <ExpandField label={t("deviceId")} value={deviceId || t('noData')} />
                                   <ExpandField label={t("deviceTypeLabel")} value={meta.deviceType} />

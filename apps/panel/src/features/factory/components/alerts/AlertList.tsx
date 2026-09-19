@@ -23,6 +23,9 @@ import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import type { Alert, AlertSeverity, AlertStatus } from "@/features/factory/types/alerts";
 import { cn } from "@/shared/lib/utils";
 import { apiErrorMessage } from "@/shared/lib/apiError";
+import { queryLoad, usePageLoad } from "@/shared/hooks/usePageLoad";
+import { LoadFailed } from "@/shared/components/LoadFailed";
+import { LoadingOverlay } from "@/shared/components/LoadingOverlay";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
 import {
   useAckAlarmMutation,
@@ -138,7 +141,12 @@ export const AlertList = () => {
      KPI and export below works off this one array. Without a workspace the
      query is disabled, which still counts as loading. */
   const alarmsQuery = useGetWorkspaceAlarmsQuery(workspaceId ?? "", PRODUCT_KEY);
-  const alertsLoading = alarmsQuery.isLoading || !workspaceId;
+  const alarmsLoad = queryLoad(alarmsQuery);
+  const pageLoad = usePageLoad({
+    loading: alarmsLoad.loading || !workspaceId,
+    failed: alarmsLoad.failed,
+    onRetry: alarmsQuery.refetch,
+  });
   // A failed load surfaces as a toast, once per failure, rather than as inline
   // text; the table just renders empty.
   useEffect(() => {
@@ -279,6 +287,8 @@ export const AlertList = () => {
     { key: "archived", label: tt("chipArchived"), count: counts.archived, color: "bg-muted-foreground" },
   ];
 
+  if (pageLoad.status === "failed") return <LoadFailed onRetry={pageLoad.retry} />;
+
   return (
     <div className="space-y-4" dir={isRTL ? "rtl" : "ltr"}>
 
@@ -394,7 +404,8 @@ export const AlertList = () => {
 
 
       {/* Table */}
-      <div className="rounded-lg border bg-card overflow-hidden text-sm [&_th]:text-xs [&_td]:text-sm [&_th]:h-10 [&_td]:p-3">
+      <div className="relative rounded-lg border bg-card overflow-hidden text-sm [&_th]:text-xs [&_td]:text-sm [&_th]:h-10 [&_td]:p-3">
+        {pageLoad.status === "loading" && <LoadingOverlay className="items-center pt-0" />}
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40">
@@ -418,7 +429,7 @@ export const AlertList = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {alertsLoading && alerts.length === 0 ? (
+            {pageLoad.status === "loading" ? (
               <TableRowsSkeleton rows={5} columns={10} />
             ) : paged.length === 0 ? (
               <TableRow>
