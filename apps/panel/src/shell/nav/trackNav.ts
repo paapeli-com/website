@@ -14,8 +14,13 @@ const items = [
   { title: "Geofences", icon: Radar, path: p("/geofences") },
   { title: "Playback", icon: History, path: p("/playback") },
   { title: "Alerts", icon: Bell, path: p("/alerts") },
+];
+
+/* Account-level destinations, pinned under a divider at the bottom of the
+   sidebar — same arrangement as factoryNav's footerItems. */
+const footerItems = [
   { title: "Cloud Management", icon: Cloud, path: "/CloudManagement" },
   { title: "Settings", icon: Settings, path: p("/settings") },
 ];
 
-export const trackNav: NavSection = { title: "GPS Tracking", icon: MapPin, items };
+export const trackNav: NavSection = { title: "GPS Tracking", icon: MapPin, items, footerItems };

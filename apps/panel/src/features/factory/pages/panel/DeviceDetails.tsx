@@ -1228,7 +1228,7 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
   );
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [sortAsc, setSortAsc] = useState(true);
+  const [newestFirst, setNewestFirst] = useState(true);
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -1247,8 +1247,10 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
     const q = query.trim().toLowerCase();
     return [...rows]
       .filter((r) => !q || r.key.toLowerCase().includes(q))
-      .sort((a, b) => (sortAsc ? a.key.localeCompare(b.key) : b.key.localeCompare(a.key)) || b.updatedAt - a.updatedAt);
-  }, [rows, sortAsc, query]);
+      // One timeline across every key, not a block per key; the key only
+      // breaks ties so points sharing a timestamp keep a stable order.
+      .sort((a, b) => (newestFirst ? b.updatedAt - a.updatedAt : a.updatedAt - b.updatedAt) || a.key.localeCompare(b.key));
+  }, [rows, newestFirst, query]);
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const page = Math.min(currentPage, totalPages);
@@ -1351,12 +1353,12 @@ const TelemetryTab = ({ deviceId }: { deviceId: string }) => {
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-muted/40">
                 <TableHead className="w-10"><Checkbox checked={allOnPageChecked} onCheckedChange={toggleAll} /></TableHead>
-                <TableHead>{L.timestamp}</TableHead>
                 <TableHead>
-                  <button className="inline-flex items-center gap-1" onClick={() => setSortAsc((a) => !a)}>
-                    {L.key} {sortAsc ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
+                  <button className="inline-flex items-center gap-1" onClick={() => setNewestFirst((n) => !n)}>
+                    {L.timestamp} {newestFirst ? <ArrowDown className="h-3.5 w-3.5" /> : <ArrowUp className="h-3.5 w-3.5" />}
                   </button>
                 </TableHead>
+                <TableHead>{L.key}</TableHead>
                 <TableHead>{L.value}</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
