@@ -17,11 +17,12 @@ import {
 } from "@/features/factory/components/ui/breadcrumb";
 import { Send, X, Mail, ShieldCheck, MessageSquare } from "lucide-react";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
+import { INVITES_STORAGE_KEY } from "@/features/factory/data/workspaceMembers";
 
 type AiotRole = "Full Access" | "Manager" | "Editor" | "Operator" | "Viewer";
 const AIOT_ROLES: AiotRole[] = ["Full Access", "Manager", "Editor", "Operator", "Viewer"];
 
-const LS_INVITES = "paapeli.members.invites";
+const LS_INVITES = INVITES_STORAGE_KEY;
 const loadLS = <T,>(k: string, fb: T): T => {
   try { const r = localStorage.getItem(k); return r ? JSON.parse(r) as T : fb; } catch { return fb; }
 };

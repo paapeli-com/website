@@ -33,9 +33,10 @@ import {
 } from "lucide-react";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 import {
-  MEMBERS_STORAGE_KEY, MOCK_MEMBERS, mkInitials,
+  MEMBERS_STORAGE_KEY, INVITES_STORAGE_KEY, mkInitials,
   type AiotRole, type Member, type MemberStatus,
 } from "@/features/factory/data/workspaceMembers";
+import { AddFirst } from "@/features/factory/components/AddFirst";
 
 // ---------------- Types ----------------
 type InviteStatus = "Pending" | "Accepted" | "Expired" | "Cancelled";
@@ -52,21 +53,18 @@ interface Invitation {
 // ---------------- Storage ----------------
 const LS = {
   members: MEMBERS_STORAGE_KEY,
-  invites: "paapeli.members.invites.v3",
+  invites: INVITES_STORAGE_KEY,
 };
 const loadLS = <T,>(k: string, fb: T): T => {
   try { const r = localStorage.getItem(k); return r ? JSON.parse(r) as T : fb; } catch { return fb; }
 };
 const saveLS = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 
-// ---------------- Mock seeds ----------------
-// The member seed lives in data/workspaceMembers, shared with channel pickers.
-const MOCK_INVITES: Invitation[] = [
-  { id: "i-1", email: "ali.tehrani@company.com", role: "Editor", invitedBy: "Armin Rajabi", sentAt: new Date(Date.now() - 2 * 86400 * 1000).toISOString(), status: "Pending" },
-  { id: "i-2", email: "leila.kazemi@company.com", role: "Viewer", invitedBy: "Armin Rajabi", sentAt: new Date(Date.now() - 5 * 86400 * 1000).toISOString(), status: "Pending" },
-  { id: "i-3", email: "reza.aghaei@company.com", role: "Operator", invitedBy: "Sara Mohammadi", sentAt: new Date(Date.now() - 20 * 86400 * 1000).toISOString(), status: "Expired" },
-  { id: "i-4", email: "shirin.mansour@company.com", role: "Manager", invitedBy: "Armin Rajabi", sentAt: new Date(Date.now() - 30 * 86400 * 1000).toISOString(), status: "Accepted" },
-];
+/* Both lists start empty. They used to be seeded with sample colleagues and
+   sample invitations at company.com, which read as a real roster of a real
+   tenant: four people invited on specific dates by named colleagues, one of
+   them expired. Until there is an endpoint behind either list, an empty one
+   is the only honest thing to show. */
 
 // ---------------- Helpers ----------------
 const useRoleLabel = () => {
@@ -182,8 +180,8 @@ const MembersPage = () => {
   }, [tabParam]);
 
   // Data
-  const [members, setMembers] = useState<Member[]>(() => loadLS(LS.members, MOCK_MEMBERS));
-  const [invites, setInvites] = useState<Invitation[]>(() => loadLS(LS.invites, MOCK_INVITES));
+  const [members, setMembers] = useState<Member[]>(() => loadLS<Member[]>(LS.members, []));
+  const [invites, setInvites] = useState<Invitation[]>(() => loadLS<Invitation[]>(LS.invites, []));
   useEffect(() => saveLS(LS.members, members), [members]);
   useEffect(() => saveLS(LS.invites, invites), [invites]);
 
@@ -364,7 +362,16 @@ const MembersPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pagedMembers.length === 0 ? (
+                {/* An empty roster and a roster filtered to nothing are
+                    different things: the first offers the way to start one,
+                    the second says the filter found nobody. */}
+                {members.length === 0 ? (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={6}>
+                      <AddFirst icon={UsersIcon} label={t("addYourFirstMember")} onAction={() => navigate(lp("/members/invite"))} />
+                    </TableCell>
+                  </TableRow>
+                ) : pagedMembers.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
                       {t("noMembersFound")}
@@ -464,7 +471,13 @@ const MembersPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pagedInvites.length === 0 ? (
+                {invites.length === 0 ? (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={6}>
+                      <AddFirst icon={Mail} label={t("addYourFirstInvitation")} onAction={() => navigate(lp("/members/invite"))} />
+                    </TableCell>
+                  </TableRow>
+                ) : pagedInvites.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
                       {t("noInvitations")}
