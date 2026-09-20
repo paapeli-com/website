@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/features/track/compo
 import { Button } from "@/features/track/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/features/track/components/ui/select";
 import { ImeiScanner } from "@/features/track/components/ImeiScanner";
+import { TRACKER_ICONS, type TrackerIconKey } from "@/features/track/lib/trackerIcons";
 import { DeviceCredentialsModal, type CreatedDevice } from "@/features/track/components/DeviceCredentialsModal";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 import { cn } from "@/shared/lib/utils";
@@ -99,6 +100,7 @@ export default function DeviceForm() {
 
   const [name, setName] = useState("");
   const [imei, setImei] = useState("");
+  const [icon, setIcon] = useState<TrackerIconKey | null>(null);
   const [scanning, setScanning] = useState(false);
   const [clientId, setClientId] = useState(() => randomToken());
   const [username, setUsername] = useState(() => "dev-" + randomToken(8).toLowerCase());
@@ -125,6 +127,7 @@ export default function DeviceForm() {
     setCreated(null);
     setName("");
     setImei("");
+    setIcon(null);
     setClientId(randomToken());
     setUsername("dev-" + randomToken(8).toLowerCase());
     setPassword(randomToken());
@@ -134,6 +137,7 @@ export default function DeviceForm() {
     if (busy) return;
     if (!name.trim()) return void toast.error(t("deviceNameRequired"));
     if (!IMEI_PATTERN.test(imei)) return void toast.error(t("imeiInvalid"));
+    if (!icon) return void toast.error(t("iconRequired"));
     if (!workspaceId) return void toast.error(t("noWorkspaceSelected"));
 
     setBusy(true);
@@ -150,8 +154,8 @@ export default function DeviceForm() {
         workspaceId,
         productKey: PRODUCT_KEY,
         name: name.trim(),
-        // The API requires a label and this form has no separate field for it.
-        label: name.trim(),
+        // The API has no icon field; the label carries it (see lib/trackerIcons).
+        label: icon,
         // The backend doesn't accept imei yet; sent now so it lands once it does.
         imei,
         type: deviceType || FALLBACK_DEVICE_TYPE,
@@ -202,6 +206,31 @@ export default function DeviceForm() {
               <p className="mt-1.5 text-xs text-muted-foreground">{t("noDeviceTypesHint")}</p>
             )}
           </div>
+          <div className="min-w-0">
+            <label id="tracker-icon-label" className="mb-1.5 block text-sm font-medium">{t("trackerIcon")}</label>
+            <div role="radiogroup" aria-labelledby="tracker-icon-label" className="grid grid-cols-5 gap-2">
+              {TRACKER_ICONS.map(({ key, labelKey, Icon }) => {
+                const active = icon === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setIcon(key)}
+                    className={cn(
+                      "flex min-w-0 flex-col items-center gap-1.5 rounded-xl border px-1 py-2.5 text-xs font-medium transition-colors",
+                      active ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    <Icon className="size-6" />
+                    <span className="w-full truncate text-center">{t(labelKey)}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-xs text-muted-foreground">{t("trackerIconHint")}</p>
+          </div>
           <Field
             label={t("deviceName")}
             hint={t("deviceNameHint")}
@@ -233,7 +262,7 @@ export default function DeviceForm() {
       </Card>
 
       <div className="flex gap-2">
-        <Button onClick={handleCreate} disabled={busy || deviceTypesLoading || !name.trim() || !IMEI_PATTERN.test(imei)} className={cn(busy && "opacity-70")}>
+        <Button onClick={handleCreate} disabled={busy || deviceTypesLoading || !icon || !name.trim() || !IMEI_PATTERN.test(imei)} className={cn(busy && "opacity-70")}>
           {busy ? <Loader2 className="size-4 animate-spin" /> : null}
           {busy ? t("creating") : t("create")}
         </Button>

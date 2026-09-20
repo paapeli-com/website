@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { getCurrentUser } from "@paapeli/brand/session";
 import { signOut as endSession } from "@paapeli/brand/session";
+import { endServerSession } from "@paapeli/api";
 import { useAuth } from "@/features/factory/store/authStore";
 import { useWorkspace } from "@/features/factory/store/workspaceStore";
 import { PageHeader } from "@/features/factory/components/PageHeader";
@@ -95,6 +96,7 @@ const AccountSettings = () => {
   };
 
   const handleLogout = async () => {
+    await endServerSession();
     try { await signOut(); } catch {}
     endSession();
     window.location.href = "/login";

@@ -5,12 +5,7 @@
     "description": "Edge gateway and facade in front of ThingsBoard",
     "version": "0.0.1"
   },
-  "servers": [
-    {
-      "url": "http://gateway-mini.paapeli.me",
-      "description": "Generated server url"
-    }
-  ],
+  "servers": [{ "url": "/", "description": "Current host" }],
   "security": [{ "bearerAuth": [] }],
   "tags": [
     {
@@ -44,6 +39,10 @@
     },
     { "name": "Time series", "description": "Device telemetry history" },
     {
+      "name": "User contact methods",
+      "description": "Contact methods owned by the authenticated user"
+    },
+    {
       "name": "Assets",
       "description": "Lazy-loaded workspace product asset trees"
     },
@@ -61,6 +60,72 @@
     }
   ],
   "paths": {
+    "/api/v1/aiot/users/me/contact-methods/phone": {
+      "get": {
+        "tags": ["User contact methods"],
+        "summary": "Get my phone number",
+        "operationId": "getPhone",
+        "responses": {
+          "200": {
+            "description": "Phone contact returned",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/UserPhoneResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "No enabled phone contact exists",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/UserPhoneResponse" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["User contact methods"],
+        "summary": "Set my phone number",
+        "description": "Creates or replaces the authenticated user's phone contact.\nThe phone number must use E.164 format, including the leading +.\n",
+        "operationId": "setPhone",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserPhoneRequest" },
+              "example": { "phone": "+989121234567" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Phone contact stored",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/UserPhoneResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid phone number",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/UserPhoneResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "*/*": {
+                "schema": { "$ref": "#/components/schemas/UserPhoneResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/aiot/products/{productKey}/device-types/{deviceType}": {
       "put": {
         "tags": ["Product device types"],
@@ -1230,6 +1295,164 @@
         }
       }
     },
+    "/api/v1/aiot/alarms/{workspaceId}/{productKey}/rule/{alarmRuleId}/escalation-chain": {
+      "get": {
+        "tags": ["Alarms"],
+        "summary": "Get an alarm escalation chain",
+        "description": "Returns the configured escalation chain for an alarm rule,\npreserving step and action order.\n",
+        "operationId": "getChain",
+        "parameters": [
+          {
+            "name": "alarmRuleId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Escalation chain returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmEscalationChainResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ADMINISTER product access required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmEscalationChainResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Alarm rule or escalation chain not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmEscalationChainResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Alarms"],
+        "summary": "Create or replace an alarm escalation chain",
+        "description": "Creates or replaces the escalation chain for an active alarm rule.\nSteps and actions execute in the order supplied. delaySeconds is the\nwait before executing that step. Each action targets an active member\nof the same workspace. Replacing a chain is atomic.\n",
+        "operationId": "putChain",
+        "parameters": [
+          {
+            "name": "alarmRuleId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlarmEscalationChainRequest"
+              },
+              "example": {
+                "enabled": true,
+                "steps": [
+                  {
+                    "delaySeconds": 0,
+                    "actions": [
+                      {
+                        "actionType": "CALL",
+                        "userId": "d26cb81c-7861-4e41-8a6e-e98e70449336"
+                      }
+                    ]
+                  },
+                  {
+                    "delaySeconds": 300,
+                    "actions": [
+                      {
+                        "actionType": "CALL",
+                        "userId": "18ce6118-24c3-49e9-b564-289d5807fb55"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Escalation chain stored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmEscalationChainResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid chain or inactive/non-member target",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmEscalationChainResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ADMINISTER product access required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmEscalationChainResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Alarm rule not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmEscalationChainResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Alarms"],
+        "summary": "Delete an alarm escalation chain",
+        "description": "Deletes the escalation chain for an alarm rule. The operation is\nidempotent when the alarm rule exists but has no escalation chain.\n",
+        "operationId": "deleteChain",
+        "parameters": [
+          {
+            "name": "alarmRuleId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Escalation chain deleted or already absent"
+          },
+          "403": { "description": "ADMINISTER product access required" },
+          "404": { "description": "Alarm rule not found" }
+        }
+      }
+    },
     "/api/v1/aiot/workspaces": {
       "get": {
         "tags": ["Workspaces"],
@@ -2283,6 +2506,44 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/aiot/auth/refresh": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Refresh a session",
+        "description": "Rotates the HttpOnly refresh-token cookie and returns a new access token.",
+        "operationId": "refresh",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliAuthenticationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/auth/logout": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Sign out this session",
+        "description": "Revokes the current refresh-token family and clears its cookie.",
+        "operationId": "logout",
+        "responses": { "204": { "description": "No Content" } }
+      }
+    },
+    "/api/v1/aiot/auth/logout-all": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Sign out all sessions",
+        "description": "Revokes every refresh-token family belonging to the authenticated user.",
+        "operationId": "logoutAll",
+        "responses": { "204": { "description": "No Content" } }
       }
     },
     "/api/v1/aiot/auth/login": {
@@ -3568,6 +3829,70 @@
         }
       }
     },
+    "/api/v1/aiot/alarms/{workspaceId}/{productKey}": {
+      "get": {
+        "tags": ["Alarms"],
+        "summary": "List workspace-product alarms",
+        "description": "Returns the locally recorded alarms for every device in the\nauthorized workspace product. Current status is derived from\nALARM_TRIGGERED, ALARM_ACKNOWLEDGED, and ALARM_CLEARED\nactivities. Assignment is reserved in the response and is\nnull until alarm assignment is implemented.\n",
+        "operationId": "getWorkspaceProductAlarms",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "One-based page number. Values below 1 are treated as 1.",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" },
+            "example": 1
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Requested page size. Values are clamped to the range 1-100.",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" },
+            "example": 25
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workspace-product alarms returned",
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": [
+                    {
+                      "id": "75504b82-d74e-4153-af2e-8221d764f70b",
+                      "alarmName": "High temperature",
+                      "severity": "CRITICAL",
+                      "status": "ACTIVE_ACK",
+                      "deviceId": "2ce7b35c-e5dc-47f7-8f17-626501507503",
+                      "deviceName": "Tracker 102",
+                      "assetId": "7bc846ea-08fe-4c43-a53e-3d7ae31c8177",
+                      "assetName": "Tehran Fleet",
+                      "createdAt": "2026-09-14T16:34:50Z",
+                      "assignedTo": null
+                    }
+                  ],
+                  "totalPages": 1,
+                  "totalElements": 1,
+                  "hasNext": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "READ product access required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseWorkspaceProductAlarmItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/aiot/alarms/{workspaceId}/{productKey}/rule": {
       "get": {
         "tags": ["Alarms"],
@@ -3751,6 +4076,25 @@
   },
   "components": {
     "schemas": {
+      "UserPhoneRequest": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^\\+[1-9][0-9]{7,14}$"
+          }
+        },
+        "required": ["phone"]
+      },
+      "UserPhoneResponse": {
+        "type": "object",
+        "properties": {
+          "phone": { "type": "string" },
+          "enabled": { "type": "boolean" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
       "UpdateProductDeviceTypeRequest": {
         "type": "object",
         "properties": {
@@ -3830,12 +4174,11 @@
               "STRING"
             ]
           },
-          "string": { "type": "boolean" },
-          "integralNumber": { "type": "boolean" },
-          "floatingPointNumber": { "type": "boolean" },
-          "missingNode": { "type": "boolean" },
           "valueNode": { "type": "boolean" },
           "container": { "type": "boolean" },
+          "missingNode": { "type": "boolean" },
+          "string": { "type": "boolean" },
+          "integralNumber": { "type": "boolean" },
           "pojo": { "type": "boolean" },
           "short": { "type": "boolean" },
           "int": { "type": "boolean" },
@@ -3846,6 +4189,7 @@
           "textual": { "type": "boolean", "deprecated": true },
           "boolean": { "type": "boolean" },
           "binary": { "type": "boolean" },
+          "floatingPointNumber": { "type": "boolean" },
           "number": { "type": "boolean" },
           "embeddedValue": { "type": "boolean" }
         }
@@ -4210,6 +4554,53 @@
           "updatedAt": { "type": "string", "format": "date-time" },
           "hasChildren": { "type": "boolean" }
         }
+      },
+      "Action": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "position": { "type": "integer", "format": "int32" },
+          "actionType": { "type": "string", "enum": ["CALL"] },
+          "userId": { "type": "string", "format": "uuid" }
+        }
+      },
+      "AlarmEscalationChainResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "alarmRuleId": { "type": "string", "format": "uuid" },
+          "enabled": { "type": "boolean" },
+          "steps": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Step" }
+          },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Step": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "position": { "type": "integer", "format": "int32" },
+          "delaySeconds": { "type": "integer", "format": "int64" },
+          "actions": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Action" }
+          }
+        }
+      },
+      "AlarmEscalationChainRequest": {
+        "type": "object",
+        "properties": {
+          "enabled": { "type": "boolean" },
+          "steps": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Step" },
+            "minItems": 1
+          }
+        },
+        "required": ["enabled", "steps"]
       },
       "WorkspaceRequest": {
         "type": "object",
@@ -4887,6 +5278,43 @@
           "totalPages": { "type": "integer", "format": "int32" },
           "totalElements": { "type": "integer", "format": "int64" },
           "hasNext": { "type": "boolean" }
+        }
+      },
+      "Assignee": {
+        "type": "object",
+        "properties": {
+          "userId": { "type": "string", "format": "uuid" },
+          "displayName": { "type": "string" },
+          "email": { "type": "string" }
+        }
+      },
+      "PageResponseWorkspaceProductAlarmItem": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceProductAlarmItem"
+            }
+          },
+          "totalPages": { "type": "integer", "format": "int32" },
+          "totalElements": { "type": "integer", "format": "int64" },
+          "hasNext": { "type": "boolean" }
+        }
+      },
+      "WorkspaceProductAlarmItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "alarmName": { "type": "string" },
+          "severity": { "type": "string" },
+          "status": { "type": "string" },
+          "deviceId": { "type": "string", "format": "uuid" },
+          "deviceName": { "type": "string" },
+          "assetId": { "type": "string", "format": "uuid" },
+          "assetName": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "assignedTo": { "$ref": "#/components/schemas/Assignee" }
         }
       },
       "AlarmRuleItem": {

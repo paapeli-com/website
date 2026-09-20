@@ -26,7 +26,7 @@
    "call yourself". */
 const configured = import.meta.env.PAAPELI_API_BASE_URL?.trim();
 
-export const PAAPELI_API_BASE_URL = configured || "https://api.paapeli.com";
+export const PAAPELI_API_BASE_URL = configured || "https://api.paapeli.me";
 
 /* Google Identity Services client ID for the sign-in button on /login.
    A public value by design — it is sent to Google in the browser and is not a

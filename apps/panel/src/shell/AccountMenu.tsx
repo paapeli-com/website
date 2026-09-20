@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, ChevronDown, LayoutGrid, LogOut, Plus, Settings, SlidersHorizontal } from "lucide-react";
-import { useListActiveWorkspacesQuery } from "@paapeli/api";
+import { endServerSession, useListActiveWorkspacesQuery } from "@paapeli/api";
 import { getCurrentUser, signOut as endSession } from "@paapeli/brand/session";
 import { setActiveWorkspaceId, useActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { cn } from "@/shared/lib/utils";
@@ -146,7 +146,8 @@ export function AccountMenu() {
               {t("Account Settings")}
             </button>
             <button
-              onClick={() => {
+              onClick={async () => {
+                await endServerSession();
                 endSession();
                 window.location.href = "/login";
               }}

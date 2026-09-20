@@ -6,6 +6,7 @@ import paapeliLogoDark from "@paapeli/brand/logo-dark.svg";
 import { useLanguage } from "@/features/track/i18n/LanguageContext";
 import { getCurrentUser } from "@paapeli/brand/session";
 import { signOut as endSession } from "@paapeli/brand/session";
+import { endServerSession } from "@paapeli/api";
 import { useWorkspace } from "@/features/track/lib/workspace";
 import { useBrand } from "@/shell/BrandProvider";
 import { useTheme } from "@paapeli/brand/theme";
@@ -122,7 +123,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
               {t("settings")}
             </button>
             <button
-              onClick={() => { endSession(); window.location.href = "/login"; }}
+              onClick={async () => { await endServerSession(); endSession(); window.location.href = "/login"; }}
               className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted"
             >
               <LogOut className="size-4" />

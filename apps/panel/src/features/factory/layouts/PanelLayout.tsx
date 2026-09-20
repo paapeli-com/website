@@ -48,6 +48,7 @@ import {
 import { useWorkspace } from "@/features/factory/store/workspaceStore";
 import { getCurrentUser } from "@paapeli/brand/session";
 import { signOut as endSession, startIdleWatch } from "@paapeli/brand/session";
+import { endServerSession } from "@paapeli/api";
 import {
   Tooltip,
   TooltipContent,
@@ -285,6 +286,7 @@ export const PanelLayout = ({ children }: PanelLayoutProps) => {
   };
 
   const handleLogout = async () => {
+    await endServerSession();
     try { await signOut(false); } catch {}
     endSession();
     window.location.href = "/login";

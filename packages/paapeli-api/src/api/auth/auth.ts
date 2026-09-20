@@ -45,10 +45,14 @@ export interface ResetPasswordRequest {
 }
 
 export const authService = {
+    /* Login, signup and Google sign-in send credentials so the browser keeps
+       the HttpOnly refresh-token cookie their responses set — without it,
+       `refresh` below has nothing to present. */
     async login(req: LoginRequest): Promise<LoginResponse> {
         const { data } = await napiHttpHandler.post<LoginResponse>(
             '/api/v1/aiot/auth/login',
             req,
+            { withCredentials: true },
         );
         return data;
     },
@@ -56,6 +60,7 @@ export const authService = {
         const { data } = await napiHttpHandler.post<{ data: SignupResponse }>(
             '/api/v1/aiot/user/signup',
             req,
+            { withCredentials: true },
         );
         return data.data;
     },
@@ -65,10 +70,35 @@ export const authService = {
      * active account, and one matching an existing password account links
      * that account to the Google identity.
      */
+    /**
+     * Rotates the HttpOnly refresh-token cookie and returns a new access
+     * token. The cookie is the credential, so it is sent cross-origin.
+     */
+    async refresh(): Promise<LoginResponse> {
+        const { data } = await napiHttpHandler.post<LoginResponse>(
+            '/api/v1/aiot/auth/refresh',
+            undefined,
+            { withCredentials: true },
+        );
+        return data;
+    },
+    /** Revokes this session's refresh-token family and clears its cookie (204). */
+    async logout(): Promise<void> {
+        await napiHttpHandler.post('/api/v1/aiot/auth/logout', undefined, {
+            withCredentials: true,
+        });
+    },
+    /** Revokes every refresh-token family of the signed-in user (204). */
+    async logoutAll(): Promise<void> {
+        await napiHttpHandler.post('/api/v1/aiot/auth/logout-all', undefined, {
+            withCredentials: true,
+        });
+    },
     async googleSignIn(req: GoogleSignInRequest): Promise<LoginResponse> {
         const { data } = await napiHttpHandler.post<LoginResponse>(
             '/api/v1/aiot/auth/google',
             req,
+            { withCredentials: true },
         );
         return data;
     },
@@ -98,3 +128,17 @@ export const authService = {
         return data;
     },
 };
+
+/**
+ * Ends the server side of the session: revokes this browser's refresh-token
+ * family and clears its cookie. Best-effort and never throws — signing out
+ * locally must not wait on, or fail with, the network. Call before clearing
+ * the local session; the access token is still needed to reach the endpoint.
+ */
+export async function endServerSession(): Promise<void> {
+    try {
+        await authService.logout();
+    } catch {
+        /* offline, or already signed out server-side — nothing to undo */
+    }
+}

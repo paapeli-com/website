@@ -18,6 +18,7 @@ import { PageSkeleton } from "@/shared/components/PageSkeleton";
 import { usePageLoad } from "@/shared/hooks/usePageLoad";
 import { cn } from "@/shared/lib/utils";
 import { trackPath } from "@/features/track/lib/trackPath";
+import { trackerIconOf } from "@/features/track/lib/trackerIcons";
 
 function TrackerAvatar({ size = 40 }: { size?: number }) {
   return (
@@ -200,7 +201,7 @@ export default function Devices() {
                     <TrackerAvatar />
                     <div className="min-w-0">
                       <p dir="auto" className="truncate text-sm font-semibold">{d.name}</p>
-                      {d.label && d.label !== d.name && (
+                      {d.label && d.label !== d.name && !trackerIconOf(d.label) && (
                         <p dir="auto" className="truncate text-xs text-muted-foreground">{d.label}</p>
                       )}
                     </div>

@@ -97,6 +97,27 @@ export function getCurrentUserId(): string | null {
   return null;
 }
 
+/** Swap in a rotated access token (see the refresh flow in @paapeli/api's
+ *  napiHttpHandler), keeping the rest of the session as it is. */
+export function updateToken(token: string): void {
+  const s = getSession();
+  if (!s) return;
+  s.token = token;
+  try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
+}
+
+/** Called with the session's token whenever ANOTHER tab changes it — a
+ *  refresh there rotates the token here too. `storage` events never fire in
+ *  the tab that made the change. Returns an unsubscribe function. */
+export function subscribeToken(listener: (token: string | null) => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === KEY) listener(getToken());
+  };
+  window.addEventListener("storage", onStorage);
+  return () => window.removeEventListener("storage", onStorage);
+}
+
 export function isAuthenticated(): boolean {
   return getSession() !== null;
 }

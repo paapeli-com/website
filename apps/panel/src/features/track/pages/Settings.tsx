@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Building2, ChevronRight, Info, KeyRound, Loader2, LogOut, Map, Palette, Plus, ShieldCheck } from "lucide-react";
 import { getCurrentUser } from "@paapeli/brand/session";
 import { signOut as endSession } from "@paapeli/brand/session";
+import { endServerSession } from "@paapeli/api";
 import { useWorkspace } from "@/features/track/lib/workspace";
 import { useLanguage } from "@/features/track/i18n/LanguageContext";
 import { useTheme } from "@paapeli/brand/theme";
@@ -181,7 +182,7 @@ export default function Settings() {
       <Button
         variant="outline"
         className="w-full text-destructive"
-        onClick={() => { endSession(); window.location.href = "/login"; }}
+        onClick={async () => { await endServerSession(); endSession(); window.location.href = "/login"; }}
       >
         <LogOut className="size-4" />
         {t("logout")}
