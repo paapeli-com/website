@@ -244,6 +244,8 @@ const fa: Record<string, string> = {
   "Manage Products": "مدیریت محصولات",
   soon: "به‌زودی",
   Soon: "به‌زودی",
+  Beta: "بتا",
+  Alpha: "آلفا",
 
   // Create-new menu
   "New Items": "مورد جدید",
@@ -498,6 +500,8 @@ const ar: Record<string, string> = {
   "Manage Products": "إدارة المنتجات",
   soon: "قريباً",
   Soon: "قريباً",
+  Beta: "بيتا",
+  Alpha: "ألفا",
 
   // Create-new menu
   "New Items": "عنصر جديد",
