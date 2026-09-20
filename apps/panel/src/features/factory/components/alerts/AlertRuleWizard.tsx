@@ -362,7 +362,12 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
   const NextIcon = isRTL ? ChevronLeft : ChevronRight;
 
   const inner = (
-    <>
+    /* data-uniform-type on the wizard itself, not just on the page around it:
+       the type scale is a property of this form, and it reads the same wherever
+       the form is rendered. Without it the unscoped [lang="fa"]/[lang="ar"]
+       rules in src/index.css outrank the Tailwind steps and every card here
+       comes out a size larger in Persian and Arabic. */
+    <div data-uniform-type>
         {!inline && (
           <SheetHeader>
             <SheetTitle>{t("alertCreateRule")}</SheetTitle>
@@ -455,7 +460,10 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
           {/* Step 2: Conditions */}
           {currentStep === 1 && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">{t("alertConditionBuilderDesc")}</p>
+              {/* A Label, like every other step opens with. It used to be a
+                  muted paragraph, which left this one step reading lighter and
+                  greyer than the five around it. */}
+              <Label>{t("alertConditionBuilderDesc")}</Label>
               {conditionGroups.map((group, gi) => (
                 <div key={group.id} className="border rounded-lg p-3 space-y-3 bg-muted/30">
                   {gi > 0 && (
@@ -699,7 +707,7 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
             )}
           </div>
         )}
-    </>
+    </div>
   );
 
   if (inline) {

@@ -129,8 +129,9 @@ function Leaf({ item, onNavigate, collapsed, activePath }: RowProps) {
           {isActive && !collapsed && (
             <span
               aria-hidden
-              className="absolute top-1 bottom-1 left-0 w-[3px] rounded-full bg-primary"
-              style={{left:'1px'}}
+              /* On the side the row starts on: the right in Persian and
+                 Arabic, the left in English. */
+              className="absolute top-1 bottom-1 w-[3px] rounded-full bg-primary ltr:left-px rtl:right-px"
             />
           )}
           <Icon className={cn("h-4 w-4 shrink-0", isActive && "text-primary")} />
