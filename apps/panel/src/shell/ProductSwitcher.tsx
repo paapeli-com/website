@@ -199,6 +199,17 @@ function MenuRow({
   const interactive = !!onSelect && !disabled;
   const Element = interactive ? "button" : "div";
 
+  /* The longest name, "AI Inference (MaaS)", runs past the row once it is
+     translated. Measure rather than guess at a character count: the same
+     name is a different width in every language, and a row that already
+     reads in full should not pop a tooltip repeating what is on screen. */
+  const labelRef = useRef<HTMLSpanElement>(null);
+  const [truncated, setTruncated] = useState(false);
+  useEffect(() => {
+    const el = labelRef.current;
+    if (el) setTruncated(el.scrollWidth > el.clientWidth + 1);
+  }, [label]);
+
   return (
     <Element
       {...(interactive ? { type: "button" as const, onClick: onSelect } : {})}
@@ -220,7 +231,13 @@ function MenuRow({
       >
         <Icon className="size-4" />
       </span>
-      <span className="min-w-0 flex-1 truncate">{label}</span>
+      <span
+        ref={labelRef}
+        title={truncated ? label : undefined}
+        className="min-w-0 flex-1 truncate"
+      >
+        {label}
+      </span>
       {tag && (
         <span
           className={cn(
