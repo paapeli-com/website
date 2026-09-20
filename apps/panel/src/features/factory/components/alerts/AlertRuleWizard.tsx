@@ -19,6 +19,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/features/factory
 import { Plus, Trash2, ChevronLeft, ChevronRight, DatabaseZap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { AlertRuleWizardStep, ConditionOperator, AlertSeverity, RuleType, LogicOperator } from "@/features/factory/types/alerts";
+import type { TranslationKey } from "@/features/factory/i18n/translations";
 import { useChannelsStore, useEscalationsStore } from "@/features/factory/hooks/useAlertStore";
 import { useToast } from "@/features/factory/hooks/use-toast";
 import { useDevices } from "@/features/factory/hooks/useDevices";
@@ -50,6 +51,20 @@ const severityColors: Record<string, string> = {
 };
 
 const STEPS: AlertRuleWizardStep[] = ['scope', 'conditions', 'severity', 'escalation', 'notifications', 'assignment'];
+
+/* Each rule type paired with the English term it is named after. Threshold,
+   Heartbeat and the rest are what the docs and the API call them, so in
+   Persian the dropdown carries both: the translation to read, and the
+   English to recognise it by. */
+const RULE_TYPES: { value: RuleType; key: TranslationKey; en: string }[] = [
+  { value: 'threshold', key: 'alertTypeThreshold', en: 'Threshold' },
+  { value: 'condition', key: 'alertTypeCondition', en: 'Condition' },
+  { value: 'time_window', key: 'alertTypeTimeWindow', en: 'Time Window' },
+  { value: 'device_state', key: 'alertTypeDeviceState', en: 'Device State' },
+  { value: 'heartbeat', key: 'alertTypeHeartbeat', en: 'Heartbeat' },
+  { value: 'anomaly', key: 'alertTypeAnomaly', en: 'AI Anomaly' },
+  { value: 'cross_device', key: 'alertTypeCrossDevice', en: 'Cross-Device' },
+];
 
 interface AlertRuleWizardProps {
   open?: boolean;
@@ -353,23 +368,33 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
 
 
 
-        {/* Step Indicators */}
-        <div className="flex items-center gap-1 mt-2 mb-4 overflow-x-auto pb-1">
+        {/* Step Indicators. Each one jumps to its step: Next never gated a
+            step either, and the form is checked on Create, which sends you
+            back to whichever step is short. The number and the label are one
+            button, so the whole thing is a target and reachable by keyboard. */}
+        <nav className="flex items-center gap-1 mt-2 mb-4 overflow-x-auto pb-1" aria-label={t("alertCreateRule")}>
           {STEPS.map((_, i) => (
             <div key={i} className="flex items-center gap-1">
-              <div className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-medium shrink-0 ${
-                i === currentStep ? 'bg-primary text-primary-foreground' :
-                i < currentStep ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
-              }`}>
-                {i + 1}
-              </div>
-              <span className={`text-xs whitespace-nowrap hidden sm:inline ${i === currentStep ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
-                {stepLabels[i]}
-              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentStep(i)}
+                aria-current={i === currentStep ? 'step' : undefined}
+                className="flex items-center gap-1 cursor-pointer rounded-full transition-opacity hover:opacity-75 outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                <span className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-medium shrink-0 ${
+                  i === currentStep ? 'bg-primary text-primary-foreground' :
+                  i < currentStep ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+                }`}>
+                  {i + 1}
+                </span>
+                <span className={`text-xs whitespace-nowrap hidden sm:inline ${i === currentStep ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                  {stepLabels[i]}
+                </span>
+              </button>
               {i < STEPS.length - 1 && <div className="w-4 h-px bg-border shrink-0" />}
             </div>
           ))}
-        </div>
+        </nav>
 
         {/* Step Content */}
         <div className="space-y-3">
@@ -389,13 +414,14 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
                 <Select value={ruleType} onValueChange={v => setRuleType(v as RuleType)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="threshold">{t("alertTypeThreshold")}</SelectItem>
-                    <SelectItem value="condition">{t("alertTypeCondition")}</SelectItem>
-                    <SelectItem value="time_window">{t("alertTypeTimeWindow")}</SelectItem>
-                    <SelectItem value="device_state">{t("alertTypeDeviceState")}</SelectItem>
-                    <SelectItem value="heartbeat">{t("alertTypeHeartbeat")}</SelectItem>
-                    <SelectItem value="anomaly">{t("alertTypeAnomaly")}</SelectItem>
-                    <SelectItem value="cross_device">{t("alertTypeCrossDevice")}</SelectItem>
+                    {RULE_TYPES.map(rt => {
+                      const label = t(rt.key);
+                      return (
+                        <SelectItem key={rt.value} value={rt.value}>
+                          {language === 'fa' ? `${label} (${rt.en})` : label}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
