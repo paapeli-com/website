@@ -553,7 +553,7 @@ const DeviceDetails = () => {
           <TabsContent value="overview" className="space-y-4 mt-4">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* Device Information */}
-              <Card>
+              <Card dir={isRTL ? "rtl" : "ltr"}>
                 <CardHeader><CardTitle className="text-base">{t("deviceInformation")}</CardTitle></CardHeader>
                 <CardContent className="space-y-2.5 text-sm">
                   <InfoRow label={t("deviceId")} value={device.deviceId} />
@@ -568,7 +568,7 @@ const DeviceDetails = () => {
                   <InfoRow
                     label={t("tags")}
                     value={
-                      <span className={`flex flex-wrap gap-1 ${isRTL ? "justify-end" : ""}`}>
+                      <span className="flex flex-wrap gap-1">
                         {deviceTags.length === 0
                           ? <span className="text-muted-foreground">—</span>
                           : deviceTags.map((tg) => (
@@ -646,7 +646,10 @@ const DeviceDetails = () => {
 
             {/* Recent rows */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Card>
+              {/* dir spelled out: in an LTR paragraph the leading digit of
+                  "6 hours ago" lands to the left of the words after it, so
+                  the time column read back to front. */}
+              <Card dir={isRTL ? "rtl" : "ltr"}>
                 <CardHeader><CardTitle className="text-base">{t("recentActivity")}</CardTitle></CardHeader>
                 <CardContent>
                   <Table>
@@ -766,7 +769,10 @@ const DeviceDetails = () => {
 
           {/* SETTINGS */}
           <TabsContent value="settings" className="space-y-4 mt-4">
-            <Card>
+            {/* dir spelled out, as on the Overview cards: the tab renders
+                left to right inside a right-to-left page, which left the
+                title, the tag row and the buttons on the wrong side. */}
+            <Card dir={isRTL ? "rtl" : "ltr"}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-base">{t("basicSettings")}</CardTitle>
                 <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
@@ -793,7 +799,7 @@ const DeviceDetails = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card dir={isRTL ? "rtl" : "ltr"}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-base flex items-center gap-2"><Lock className="h-4 w-4" /> {t("credentialsSecurity")}</CardTitle>
               </CardHeader>
@@ -927,12 +933,15 @@ const OfflineNotice = ({ compact = false }: { compact?: boolean }) => {
 };
 
 const InfoRow = ({ label, value, className = "" }: { label: string; value: React.ReactNode; className?: string }) => {
-  const { language, isRTL } = useLanguage();
+  const { language } = useLanguage();
   const size = language === "en" ? "text-sm" : "text-[15px]";
+  /* No hand-flipping here: the row inherits its direction from its card,
+     and text-start keeps the value against the label either way. A card
+     holding InfoRows has to spell its dir out — see the ones below. */
   return (
-    <div className={`flex items-start gap-3 ${isRTL ? "flex-row-reverse" : ""} ${size}`}>
+    <div className={`flex items-start gap-3 ${size}`}>
       <span className="text-muted-foreground w-24 shrink-0">{label}</span>
-      <span className={`flex-1 ${isRTL ? "text-right" : ""} ${className}`}>{value}</span>
+      <span className={`flex-1 text-start ${className}`}>{value}</span>
     </div>
   );
 };
