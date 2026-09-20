@@ -118,11 +118,12 @@ const fa: Record<string, string> = {
     "دارایی‌ها، هشدارها، دستور کارها و به‌روزرسانی از راه دور برای خطوط تولید.",
   "Live fleet positions, geofences and trip history.":
     "موقعیت زندهٔ ناوگان، محدوده‌های جغرافیایی و تاریخچهٔ سفرها.",
-  "AI Inference": "استنتاج هوش مصنوعی",
+  "AI Inference": "مدل‌های هوش مصنوعی",
+  "AI Inference (MaaS)": "مدل‌های هوش مصنوعی (MaaS)",
   "Serve open models behind a managed endpoint. Pay per token, autoscaled.":
     "مدل‌های متن‌باز را پشت یک اندپوینت مدیریت‌شده سرو کنید. پرداخت به ازای توکن، با مقیاس‌پذیری خودکار.",
   "OpenAI-compatible API": "API سازگار با OpenAI",
-  "AI Agent Maker": "سازندهٔ عامل هوش مصنوعی",
+  "AI Agent Maker": "عامل هوش مصنوعی",
   "Build tool-using agents on your own data and connect them to Paapeli products.":
     "عامل‌های ابزارمحور را روی دادهٔ خودتان بسازید و به محصولات پاپلی وصل کنید.",
   "Visual flow builder": "سازندهٔ جریان بصری",
@@ -399,11 +400,12 @@ const ar: Record<string, string> = {
     "الأصول والإنذارات وأوامر العمل والتحديث عن بُعد لخطوط الإنتاج.",
   "Live fleet positions, geofences and trip history.":
     "مواقع الأسطول المباشرة والأسيجة الجغرافية وسجل الرحلات.",
-  "AI Inference": "استدلال الذكاء الاصطناعي",
+  "AI Inference": "نماذج الذكاء الاصطناعي",
+  "AI Inference (MaaS)": "نماذج الذكاء الاصطناعي (MaaS)",
   "Serve open models behind a managed endpoint. Pay per token, autoscaled.":
     "شغّل النماذج المفتوحة خلف نقطة نهاية مُدارة. الدفع لكل رمز، مع توسّع تلقائي.",
   "OpenAI-compatible API": "واجهة متوافقة مع OpenAI",
-  "AI Agent Maker": "منشئ وكلاء الذكاء الاصطناعي",
+  "AI Agent Maker": "وكيل الذكاء الاصطناعي",
   "Build tool-using agents on your own data and connect them to Paapeli products.":
     "ابنِ وكلاء يستخدمون الأدوات على بياناتك واربطهم بمنتجات بابلي.",
   "Visual flow builder": "منشئ تدفق مرئي",

@@ -13,7 +13,7 @@ import { useAppLanguage, type AppLanguage } from "@/shared/i18n/appLanguage";
 
 const fa: Record<string, string> = {
   "AI Infra": "زیرساخت هوش مصنوعی",
-  "AI Inference": "استنتاج هوش مصنوعی",
+  "AI Inference": "مدل‌های هوش مصنوعی",
 
   // Nav
   Overview: "نمای کلی",
@@ -270,7 +270,7 @@ const fa: Record<string, string> = {
 
 const ar: Record<string, string> = {
   "AI Infra": "بنية الذكاء الاصطناعي",
-  "AI Inference": "استدلال الذكاء الاصطناعي",
+  "AI Inference": "نماذج الذكاء الاصطناعي",
 
   Overview: "نظرة عامة",
   Models: "النماذج",
