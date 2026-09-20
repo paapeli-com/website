@@ -16,6 +16,12 @@ export interface NavItem {
   comingSoon?: boolean;
   /** Trailing chevron on a leaf — signals it navigates into another area's own nav (e.g. a product). */
   chevron?: boolean;
+  /**
+   * Active for anything under `path`, not only for `path` itself. The footer's
+   * product rows use it: they say which area you are in, so they stay lit
+   * while a page row inside that area is lit too.
+   */
+  activeOnPrefix?: boolean;
 }
 
 /** One sidebar's full contents — the banner at the top plus its nav items. */

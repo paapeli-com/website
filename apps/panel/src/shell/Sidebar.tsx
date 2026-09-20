@@ -73,8 +73,9 @@ function ComingSoonLeaf({ item, collapsed }: RowProps) {
 }
 
 function Leaf({ item, onNavigate, collapsed, activePath }: RowProps) {
-  const { title, icon: Icon, path, href, comingSoon, chevron } = item;
+  const { title, icon: Icon, path, href, comingSoon, chevron, activeOnPrefix } = item;
   const t = useShellT();
+  const location = useLocation();
 
   if (comingSoon) return <ComingSoonLeaf item={item} collapsed={collapsed} />;
 
@@ -98,8 +99,11 @@ function Leaf({ item, onNavigate, collapsed, activePath }: RowProps) {
   }
 
   // NavLink's own isActive is true for every ancestor path too, so the row
-  // uses the single most specific match worked out for the whole menu.
-  const isActive = path === activePath;
+  // uses the single most specific match worked out for the whole menu — except
+  // where the row names an area rather than a page, and stays lit throughout it.
+  const here = normalizePath(location.pathname);
+  const mine = normalizePath(path!);
+  const isActive = path === activePath || (!!activeOnPrefix && (here === mine || here.startsWith(`${mine}/`)));
   return (
     <NavLink
       to={path!}
@@ -223,6 +227,15 @@ export function SidebarContent({ section, onNavigate, collapsed, onExpand }: Sid
   const footerItems = section.footerItems ?? [];
   const location = useLocation();
   const activePath = activeNavPath(location.pathname, [...section.items, ...footerItems]);
+  /* A footer row is a shortcut, not a place. When the page it points at
+     already has its own row in the list above, that row is the one that
+     lights, so the sidebar never marks the same page twice. A row that names
+     an area rather than a page (activeOnPrefix) is exempt: saying which area
+     you are in is the whole point of it. */
+  const mainPaths = new Set(
+    section.items.flatMap((i) => [i, ...(i.children ?? [])]).flatMap((i) => (i.path ? [i.path] : [])),
+  );
+  const footerActivePath = activePath && mainPaths.has(activePath) ? undefined : activePath;
   return (
     /* data-sidebar-nav: one row size per language — see the matching block in
        src/index.css for what was pulling the group rows out of line. */
@@ -254,7 +267,7 @@ export function SidebarContent({ section, onNavigate, collapsed, onExpand }: Sid
         <div className="border-t border-border">
           <div className="space-y-1 px-2 py-3">
             {footerItems.map((item) => (
-              <Leaf key={item.title} item={item} onNavigate={onNavigate} collapsed={collapsed} activePath={activePath} />
+              <Leaf key={item.title} item={item} onNavigate={onNavigate} collapsed={collapsed} activePath={footerActivePath} />
             ))}
           </div>
         </div>
