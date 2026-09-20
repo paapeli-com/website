@@ -808,7 +808,7 @@ const DeviceDetails = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card dir={isRTL ? "rtl" : "ltr"}>
               <CardHeader><CardTitle className="text-base">{t("shareWithUsers")}</CardTitle></CardHeader>
               <CardContent>
                 <ShareWithUsers value={device.sharedUsers || []} readOnly />
@@ -816,7 +816,7 @@ const DeviceDetails = () => {
             </Card>
 
             <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-              <Card>
+              <Card dir={isRTL ? "rtl" : "ltr"}>
                 <CollapsibleTrigger asChild>
                   <CardHeader className="cursor-pointer flex flex-row items-center justify-between space-y-0">
                     <CardTitle className="text-base flex items-center gap-2">
