@@ -1,9 +1,16 @@
 /* The workspace's member roster, shared by the Members page and anything that
    picks people from it (e.g. alarm notification channels).
 
-   There is no endpoint that lists a workspace's members yet, so the roster is
-   the Members page's own browser-stored list, seeded with sample members until
-   it is first saved. When a members API exists, this is the one place to swap. */
+   There is no endpoint that lists a workspace's members yet — you can invite
+   one, but you cannot read the roster back — so the roster is only ever what
+   the Members page has been told locally, and it starts empty.
+
+   It used to be seeded with eight sample colleagues at company.com, which
+   filled the members table and every recipient picker with people who cannot
+   be reached at all. That seed was written to storage on the first visit, so
+   the key carries a version: v4 starts clean rather than inheriting it.
+
+   When a members API exists, this is the one place to swap. */
 
 export type AiotRole = "Full Access" | "Manager" | "Editor" | "Operator" | "Viewer" | "Custom";
 export type MemberStatus = "Active" | "Pending" | "Disabled";
@@ -21,7 +28,13 @@ export interface Member {
   avatarTone?: string;
 }
 
-export const MEMBERS_STORAGE_KEY = "paapeli.members.list.v3";
+export const MEMBERS_STORAGE_KEY = "paapeli.members.list.v4";
+
+/* Invitations the Members page lists and the invite form writes. Each
+   had its own string and the two had drifted apart, so an invitation
+   was written to one key and looked for under another. It lives here
+   now, next to the roster it belongs with. */
+export const INVITES_STORAGE_KEY = "paapeli.members.invites.v4";
 
 export const TONES = [
   "bg-rose-500/15 text-rose-600",
@@ -36,24 +49,3 @@ export const TONES = [
 
 export const mkInitials = (name: string) =>
   name.split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
-
-export const MOCK_MEMBERS: Member[] = [
-  { id: "m-1", name: "Armin Rajabi", email: "armin.rajabi@company.com", role: "Full Access", status: "Active", lastLogin: new Date(Date.now() - 2 * 3600 * 1000).toISOString() },
-  { id: "m-2", name: "محمدعرفان شمس", email: "erfan.shams@company.com", role: "Manager", status: "Active", lastLogin: new Date(Date.now() - 24 * 3600 * 1000).toISOString() },
-  { id: "m-3", name: "Mehdi Hoseini", email: "mehdi.hoseini@company.com", role: "Operator", status: "Active", lastLogin: new Date(Date.now() - 3 * 86400 * 1000).toISOString() },
-  { id: "m-4a", name: "حامد فضایلی", email: "hamed.fazaeli@company.com", role: "Editor", status: "Active", lastLogin: new Date(Date.now() - 5 * 86400 * 1000).toISOString() },
-  { id: "m-5", name: "Fatemeh Hosseini", email: "fatemeh.hosseini@company.com", role: "Operator", status: "Disabled", lastLogin: new Date(Date.now() - 7 * 86400 * 1000).toISOString() },
-  { id: "m-6", name: "امیرکیان عدل", email: "amirkian.adl@company.com", role: "Manager", status: "Active", lastLogin: new Date(Date.now() - 7 * 86400 * 1000).toISOString() },
-  { id: "m-7", name: "Peyman Karimi", email: "peyman.karimi@company.com", role: "Viewer", status: "Disabled", lastLogin: new Date(Date.now() - 14 * 86400 * 1000).toISOString() },
-  { id: "m-8", name: "علیرضا طاهری‌نژاد", email: "alireza.taheri@company.com", role: "Operator", status: "Active", lastLogin: new Date(Date.now() - 14 * 86400 * 1000).toISOString() },
-].map((m, i) => ({ ...m, initials: mkInitials(m.name), avatarTone: TONES[i % TONES.length] })) as Member[];
-
-/** The roster as the Members page last saved it, or the seed if it never has. */
-export const loadMembers = (): Member[] => {
-  try {
-    const raw = localStorage.getItem(MEMBERS_STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Member[]) : MOCK_MEMBERS;
-  } catch {
-    return MOCK_MEMBERS;
-  }
-};
