@@ -49,7 +49,7 @@ const SOLUTION_TAGS: Record<string, string> = {
 /* AI Infra's rows, for the same reason: neither can be subscribed to, and
    only one of them can be opened. */
 const AI_INFRA_ROWS: Row[] = [
-  { id: "AIInference", name: "AI Inference", icon: Server, tag: "Alpha", path: AI_INFERENCE_BASE },
+  { id: "AIInference", name: "AI Inference (MaaS)", icon: Server, tag: "Alpha", path: AI_INFERENCE_BASE },
   { id: "AIAgentMaker", name: "AI Agent Maker", icon: Sparkles, tag: "Soon" },
 ];
 
@@ -85,7 +85,7 @@ export function ProductSwitcher() {
   const activeSolutionName =
     activeProduct.solutions?.find((s) => s.id === activeSolution)?.name ?? activeProduct.name;
 
-  const triggerLabel = onHome ? t("Home") : onAiInference ? t("AI Inference") : t(activeSolutionName);
+  const triggerLabel = onHome ? t("Home") : onAiInference ? t("AI Inference (MaaS)") : t(activeSolutionName);
 
   const go = (to: string) => {
     setOpen(false);
