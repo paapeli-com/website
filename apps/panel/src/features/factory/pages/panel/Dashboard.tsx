@@ -427,7 +427,7 @@ const Dashboard = () => {
       <div data-uniform-type>
         <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">{tt("dashboards")}</h1>
+            <h1 className="text-xl font-bold text-foreground">{tt("dashboards")}</h1>
             <p className="text-sm text-muted-foreground mt-1">{tt("pageDesc")}</p>
           </div>
           <DropdownMenu>
@@ -495,7 +495,7 @@ const Dashboard = () => {
       <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-foreground">{tt("dashboards")}</h1>
+            <h1 className="text-xl font-bold text-foreground">{tt("dashboards")}</h1>
             <Badge variant="secondary" className="font-normal">{items.filter(d => !d.archived).length} {tt("dashboards")}</Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">{tt("pageDesc")}</p>

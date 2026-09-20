@@ -105,7 +105,10 @@ export default function AiInferenceRoutes() {
     <LanguageProvider>
       <TooltipProvider delayDuration={150}>
         <ProjectContext.Provider value={project}>
-          <div dir={isRTL ? "rtl" : "ltr"} className="min-h-full">
+          {/* data-uniform-type: every page here is written in Tailwind
+              steps, and reads at those steps in all three languages.
+              See the block in src/index.css. */}
+          <div data-uniform-type dir={isRTL ? "rtl" : "ltr"} className="min-h-full">
             <Breadcrumbs />
             {/* Keyed on the path so a page's own state — a prompt, a filter,
                 a selection — never leaks into the next one. */}
