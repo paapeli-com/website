@@ -61,7 +61,7 @@ apps:
   panel:
     enabled: true
     repository: paapeli/panel
-    tag: v0.2.33
+    tag: v0.2.34
     port: 8080
     # The panel container exposes a real health endpoint; the others only have
     # `/`, which returns their shell whether or not the app is actually ready.
