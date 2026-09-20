@@ -20,15 +20,34 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
-import { Camera, Mail, User as UserIcon, Shield, LogOut, Building2, Plus, Check } from "lucide-react";
+import { Camera, Mail, User as UserIcon, Shield, LogOut, Building2, Plus, Check, Palette, Paintbrush } from "lucide-react";
+import { Switch } from "@/features/factory/components/ui/switch";
+import { useTheme } from "@paapeli/brand/theme";
+import { useBrand, type AccentId } from "@/shell/BrandProvider";
+import type { Language } from "@/features/factory/i18n/translations";
 import sinaProfileImg from "@/features/factory/assets/sina-profile.png";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 const AVATAR_STORAGE_KEY = "paapeli.profile.avatar.";
 
+/* Each language in its own script: someone looking for Persian is looking
+   for the Persian word, whatever the panel is set to right now. */
+const LANGS: { code: Language; label: string }[] = [
+  { code: "en", label: "English" },
+  { code: "fa", label: "فارسی" },
+  { code: "ar", label: "العربية" },
+];
+
+const ACCENTS: AccentId[] = ["paapeli", "green"];
+
 const AccountSettings = () => {
-  const { t, isRTL, language } = useLanguage();
+  const { t, isRTL, language, setLanguage } = useLanguage();
   const { signOut } = useAuth();
+  /* Dark mode and the accent are account preferences, not product ones.
+     They used to live on GPS Tracking's own settings page, which is why
+     they were unreachable from anywhere else. */
+  const { dark, toggle: toggleDark } = useTheme();
+  const { accent, setAccent, accentColor } = useBrand();
   /* Real workspaces (GET /api/v1/aiot/workspaces); the selection is the same
      one the panel host's account menu drives, and is what scopes this
      product's API calls. */
@@ -218,6 +237,61 @@ const AccountSettings = () => {
               {t("saveChanges")}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Appearance */}
+      <Card className="mt-4">
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Palette className="h-4 w-4" />
+            {t("appearance")}
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm font-medium">{t("darkMode")}</span>
+            <Switch checked={dark} onCheckedChange={toggleDark} />
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm font-medium">{t("languageLabel")}</span>
+            <div className="inline-flex rounded-xl bg-muted p-1">
+              {LANGS.map((l) => (
+                <button
+                  key={l.code}
+                  onClick={() => setLanguage(l.code)}
+                  className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${
+                    language === l.code ? "bg-card shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Panel colour */}
+      <Card className="mt-4">
+        <CardContent className="pt-6 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Paintbrush className="h-4 w-4" />
+            {t("panelColor")}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {ACCENTS.map((id) => (
+              <button
+                key={id}
+                onClick={() => setAccent(id)}
+                className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-colors ${
+                  accent === id ? "border-primary bg-primary/10" : "border-border hover:bg-muted"
+                }`}
+              >
+                <span className="size-4 rounded-full" style={{ background: `hsl(${accentColor(id)})` }} />
+                {id === "paapeli" ? t("panelColorPaapeli") : t("panelColorGreen")}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">{t("panelColorNote")}</p>
         </CardContent>
       </Card>
 

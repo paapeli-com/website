@@ -1,4 +1,4 @@
-import { Bell, Cloud, History, MapPin, Radar, Settings, Smartphone } from "lucide-react";
+import { Bell, Cloud, Code2, History, MapPin, Radar, Smartphone } from "lucide-react";
 import { solutionPath } from "@paapeli/brand/config";
 import type { NavSection } from "./types";
 
@@ -14,8 +14,16 @@ const items = [
   { title: "Geofences", icon: Radar, path: p("/geofences") },
   { title: "Playback", icon: History, path: p("/playback") },
   { title: "Alerts", icon: Bell, path: p("/alerts") },
-  { title: "Cloud Management", icon: Cloud, path: "/CloudManagement" },
-  { title: "Settings", icon: Settings, path: p("/settings") },
 ];
 
-export const trackNav: NavSection = { title: "GPS Tracking", icon: MapPin, items };
+/* Pinned to the bottom under a divider, as on the other products. Cloud
+   Management used to sit in the scrolling list above, and Settings held
+   the account's own preferences — dark mode, language, the panel colour —
+   which are not a property of GPS Tracking and now live in Account
+   Settings, where the header menu already points. */
+const footerItems = [
+  { title: "Dev Center & Help", icon: Code2, href: "https://docs.paapeli.com/" },
+  { title: "Cloud Management", icon: Cloud, path: "/CloudManagement" },
+];
+
+export const trackNav: NavSection = { title: "GPS Tracking", icon: MapPin, items, footerItems };

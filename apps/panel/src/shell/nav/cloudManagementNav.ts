@@ -1,4 +1,4 @@
-import { Building2, Cloud, FileText, Gauge, Home, Key, Package, Shield, Users, Wallet } from "lucide-react";
+import { Building2, Cloud, Code2, FileText, Gauge, Home, Key, Package, Shield, Users, Wallet } from "lucide-react";
 import type { NavItem, NavSection } from "./types";
 
 const base = "/CloudManagement";
@@ -32,4 +32,15 @@ const items: NavItem[] = [
   { title: "Security", icon: Shield, path: p("/security") },
 ];
 
-export const cloudManagementNav: NavSection = { title: "Cloud Management", icon: Cloud, items };
+/* The same three rows every product pins to the bottom of its sidebar, so
+   the block does not vanish when you step into Cloud Management. Members is
+   Organisation here, which is where this product keeps them, and the Cloud
+   Management row stays lit for the whole area rather than only its front
+   page — it says where you are. */
+const footerItems: NavItem[] = [
+  { title: "Members", icon: Users, path: p("/organisation") },
+  { title: "Dev Center & Help", icon: Code2, href: "https://docs.paapeli.com/" },
+  { title: "Cloud Management", icon: Cloud, path: base, activeOnPrefix: true },
+];
+
+export const cloudManagementNav: NavSection = { title: "Cloud Management", icon: Cloud, items, footerItems };

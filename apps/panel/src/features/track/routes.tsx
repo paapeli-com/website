@@ -10,7 +10,6 @@ import DeviceDetail from "./pages/DeviceDetail";
 import Geofences from "./pages/Geofences";
 import Playback from "./pages/Playback";
 import Alerts from "./pages/Alerts";
-import Settings from "./pages/Settings";
 import "./track.css";
 
 /* GPS Tracking, mounted at /AIoT/GPSTracking/*.
@@ -40,7 +39,6 @@ export default function TrackRoutes() {
               <Route path="geofences" element={<Geofences />} />
               <Route path="playback" element={<Playback />} />
               <Route path="alerts" element={<Alerts />} />
-              <Route path="settings" element={<Settings />} />
             </Route>
             <Route path="*" element={<Navigate to="." replace />} />
           </Routes>
