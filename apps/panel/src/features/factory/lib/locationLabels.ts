@@ -1,6 +1,8 @@
 // Maps seed location node ids to translation keys so the tree, breadcrumbs
 // and detail panel show localized names in FA/AR while preserving English.
 
+import { ROOT_LOCATION_NAME } from "@/features/factory/hooks/useAssetLocations";
+
 const NODE_NAME_KEYS: Record<string, string> = {
   // The root is deliberately unmapped, but no longer for the reason this note
   // used to give ("its own editable name, the user can rename it") — that was
@@ -39,18 +41,16 @@ export const localizedNodeName = (
  * PUT .../{assetId} rejects the ROOT node — so a friendly name can only exist
  * on this side. The real name stays on the node, so any request that carries a
  * name still carries the server's.
+ *
+ * The root's name stays English in every language: it stands in for a
+ * server-side name, and a translated root read oddly mid-path next to the
+ * untranslated names below it (e.g. "پوشه اصلی > Asset2 > Unit").
  */
 export const nodeDisplayName = (
   node: { id: string; name: string; type: string },
   t: (k: any) => string,
-): string => {
-  if (node.type === "organization") {
-    const v = t("mainDirectory");
-    // A missing key comes back as the key itself.
-    return v && v !== "mainDirectory" ? v : "Main Directory";
-  }
-  return localizedNodeName(node.id, node.name, t);
-};
+): string =>
+  node.type === "organization" ? ROOT_LOCATION_NAME : localizedNodeName(node.id, node.name, t);
 
 export const localizedKindLabel = (
   kind: "device" | "gateway" | "other",

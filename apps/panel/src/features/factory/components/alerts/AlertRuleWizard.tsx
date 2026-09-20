@@ -283,9 +283,12 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
       ...(windowMinutes > 0 ? { duration: Math.ceil(windowMinutes), unit: 'MINUTES' as const } : {}),
     };
     const name = ruleName.trim() || "Untitled Rule";
+    // Description is optional here; an empty one is omitted, because the
+    // gateway rejects the field when it is present but blank.
+    const description = ruleDescription.trim();
     const body = {
       name,
-      description: ruleDescription,
+      ...(description ? { description } : {}),
       createRules: { [UI_TO_API_SEVERITY[severity]]: rule },
     };
 

@@ -934,7 +934,6 @@ export const translations = {
     manageHierarchyAndAssets: "Manage your industrial hierarchy and assets",
     noAssetsInLocation: "No assets in this location yet",
     rootOrganization: "Root Organization",
-    mainDirectory: "Main Directory",
     refreshLocations: "Refresh",
 
     // Alerts Module
@@ -3123,7 +3122,6 @@ export const translations = {
     manageHierarchyAndAssets: "إدارة التسلسل الهرمي الصناعي والمعدات",
     noAssetsInLocation: "لا توجد معدات في هذا الموقع بعد",
     rootOrganization: "المنظمة الرئيسية",
-    mainDirectory: "الدليل الرئيسي",
     refreshLocations: "تحديث",
 
     // Alerts Module
@@ -5299,7 +5297,6 @@ export const translations = {
     manageHierarchyAndAssets: "مدیریت سلسله‌مراتب صنعتی و تجهیزات",
     noAssetsInLocation: "هنوز تجهیزی در این مکان وجود ندارد",
     rootOrganization: "سازمان اصلی",
-    mainDirectory: "پوشه اصلی",
     refreshLocations: "بازخوانی",
 
     // Alerts Module
