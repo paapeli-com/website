@@ -226,7 +226,11 @@ export default function PanelHome() {
 
   return (
     <>
-      <div className="space-y-6" dir={isRTL ? "rtl" : "ltr"}>
+      {/* data-uniform-type: the page is written in Tailwind steps and
+          should read at those steps in every language. Without it the
+          unscoped [lang="fa"]/[lang="ar"] rules in src/index.css set the
+          title to 1.74rem and every section heading with it. */}
+      <div data-uniform-type className="space-y-6" dir={isRTL ? "rtl" : "ltr"}>
         <h1 className="text-xl font-bold text-foreground text-start">{tr("overview")}</h1>
 
         {/* Summary cards */}

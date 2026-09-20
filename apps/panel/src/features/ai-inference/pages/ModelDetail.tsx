@@ -49,7 +49,7 @@ export default function ModelDetail() {
     <Page>
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-foreground">{model.name}</h1>
+          <h1 className="text-xl font-bold text-foreground">{model.name}</h1>
           <p className="mt-1 font-mono text-sm text-muted-foreground" dir="ltr">
             {model.modelId}
           </p>
