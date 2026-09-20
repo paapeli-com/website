@@ -187,6 +187,38 @@ const fa: Record<string, string> = {
   smartFactory: "کارخانه هوشمند",
   gpsTracking: "ردیابی GPS",
 
+  // Subscriptions (Cloud Management)
+  "Product subscriptions are live. Plan, entitlements, add-ons and renewal have no billing backend yet.":
+    "اشتراک محصولات فعال است. طرح، امکانات، افزونه‌ها و تمدید هنوز بک‌اند صورتحساب ندارند.",
+  "Compare plans": "مقایسهٔ طرح‌ها",
+  "Add subscription": "افزودن اشتراک",
+  "Which products this workspace can use. This section is live.":
+    "محصولاتی که این فضای کاری می‌تواند استفاده کند. این بخش فعال است.",
+  "Select a workspace on the Workspaces page first.":
+    "اول در صفحهٔ فضاهای کاری یک فضا را انتخاب کنید.",
+  "Subscribe one below to get started.": "برای شروع، از پایین یکی را مشترک شوید.",
+  "Subscribe a product": "اشتراک یک محصول",
+  "Every product this panel ships is subscribed.": "همهٔ محصولات این پنل مشترک شده‌اند.",
+  "Subscribed to {product}": "اشتراک {product} فعال شد",
+  "Could not subscribe to {product}": "اشتراک {product} فعال نشد",
+  "Change plan": "تغییر طرح",
+  "Plan entitlements": "امکانات طرح",
+  "Add-on": "افزونه",
+  Quantity: "تعداد",
+  "Unit price": "قیمت واحد",
+  Monthly: "ماهانه",
+  "Add-ons": "افزونه‌ها",
+  "Add add-on": "افزودن افزونه",
+  "Estimated next invoice": "برآورد صورتحساب بعدی",
+  "Renewal settings": "تنظیمات تمدید",
+  "Auto-renew subscription": "تمدید خودکار اشتراک",
+  "Notify 30 days before renewal": "اطلاع ۳۰ روز پیش از تمدید",
+  "Allow overage beyond plan": "اجازهٔ مصرف بیش از طرح",
+  "Need more capacity?": "ظرفیت بیشتری لازم دارید؟",
+  "Enterprise adds unlimited assets, dedicated ingestion and a 99.95% SLA.":
+    "طرح سازمانی دارایی نامحدود، دریافت داده اختصاصی و SLA با ۹۹٫۹۵٪ در اختیار می‌گذارد.",
+  "Talk to sales": "تماس با تیم فروش",
+
   // Central API keys
   "One key can reach several Paapeli products. They all live here.":
     "یک کلید می‌تواند به چند محصول پاپلی دسترسی داشته باشد. همهٔ آن‌ها همین‌جا نگهداری می‌شوند.",
@@ -468,6 +500,38 @@ const ar: Record<string, string> = {
   FAILED: "فشل",
   smartFactory: "المصنع الذكي",
   gpsTracking: "تتبع GPS",
+
+  // Subscriptions (Cloud Management)
+  "Product subscriptions are live. Plan, entitlements, add-ons and renewal have no billing backend yet.":
+    "اشتراكات المنتجات فعّالة. أما الخطة والمزايا والملحقات والتجديد فلا خدمة فوترة خلفها بعد.",
+  "Compare plans": "مقارنة الخطط",
+  "Add subscription": "إضافة اشتراك",
+  "Which products this workspace can use. This section is live.":
+    "المنتجات التي يمكن لمساحة العمل هذه استخدامها. هذا القسم فعّال.",
+  "Select a workspace on the Workspaces page first.":
+    "اختر مساحة عمل من صفحة مساحات العمل أولاً.",
+  "Subscribe one below to get started.": "اشترك في واحد من الأسفل للبدء.",
+  "Subscribe a product": "الاشتراك في منتج",
+  "Every product this panel ships is subscribed.": "جميع منتجات هذه اللوحة مشترك بها.",
+  "Subscribed to {product}": "تم الاشتراك في {product}",
+  "Could not subscribe to {product}": "تعذر الاشتراك في {product}",
+  "Change plan": "تغيير الخطة",
+  "Plan entitlements": "مزايا الخطة",
+  "Add-on": "ملحق",
+  Quantity: "الكمية",
+  "Unit price": "سعر الوحدة",
+  Monthly: "شهرياً",
+  "Add-ons": "الملحقات",
+  "Add add-on": "إضافة ملحق",
+  "Estimated next invoice": "الفاتورة التالية المقدّرة",
+  "Renewal settings": "إعدادات التجديد",
+  "Auto-renew subscription": "تجديد الاشتراك تلقائياً",
+  "Notify 30 days before renewal": "التنبيه قبل التجديد بـ ٣٠ يوماً",
+  "Allow overage beyond plan": "السماح بالتجاوز فوق الخطة",
+  "Need more capacity?": "تحتاج سعة أكبر؟",
+  "Enterprise adds unlimited assets, dedicated ingestion and a 99.95% SLA.":
+    "تضيف خطة المؤسسات أصولاً غير محدودة، واستقبال بيانات مخصصاً، واتفاقية مستوى خدمة ٩٩٫٩٥٪.",
+  "Talk to sales": "التحدث إلى المبيعات",
 
   // Central API keys
   "One key can reach several Paapeli products. They all live here.":

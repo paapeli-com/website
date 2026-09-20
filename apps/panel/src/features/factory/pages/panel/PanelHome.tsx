@@ -33,14 +33,17 @@ type Lang = "en" | "ar" | "fa";
 const D: Record<string, Record<Lang, string>> = {
   overview: { en: "Overview", ar: "نظرة عامة", fa: "نمای کلی" },
   assets: { en: "Assets", ar: "الأصول", fa: "تجهیزات" },
-  totalAssets: { en: "Total assets", ar: "إجمالي الأصول", fa: "کل تجهیزات" },
+  totalAssets: { en: "Total assets", ar: "إجمالي الأصول", fa: "تجهیز" },
   locations: { en: "Locations", ar: "المواقع", fa: "مکان‌ها" },
-  totalLocations: { en: "Total locations", ar: "إجمالي المواقع", fa: "کل مکان‌ها" },
+  totalLocations: { en: "Total locations", ar: "إجمالي المواقع", fa: "مکان" },
   activeAlarms: { en: "Active Alarms", ar: "إنذارات نشطة", fa: "هشدارهای فعال" },
+  /* The alarm card is the one that used its own title twice; the
+     caption under the number needs the counted form instead. */
+  activeAlarmsSub: { en: "Active Alarms", ar: "إنذارات نشطة", fa: "هشدار" },
   workOrders: { en: "Work Orders", ar: "أوامر العمل", fa: "دستورکارها" },
-  pendingOrders: { en: "Pending orders", ar: "أوامر معلقة", fa: "دستورکارهای در انتظار" },
+  pendingOrders: { en: "Pending orders", ar: "أوامر معلقة", fa: "دستورکار در انتظار" },
   aiFindings: { en: "AI Findings", ar: "نتائج الذكاء الاصطناعي", fa: "یافته‌های هوش مصنوعی" },
-  openFindings: { en: "Open findings", ar: "نتائج مفتوحة", fa: "یافته‌های باز" },
+  openFindings: { en: "Open findings", ar: "نتائج مفتوحة", fa: "یافته باز" },
 
   quickAccess: { en: "Quick Access", ar: "الوصول السريع", fa: "دسترسی سریع" },
   devices: { en: "Devices", ar: "الأجهزة", fa: "دستگاه‌ها" },
@@ -52,6 +55,15 @@ const D: Record<string, Record<Lang, string>> = {
   campaigns: { en: "Campaigns", ar: "حملات", fa: "کمپین" },
   findings: { en: "Findings", ar: "نتائج", fa: "یافته" },
   active: { en: "Active", ar: "نشط", fa: "فعال" },
+
+  /* Counted nouns, for the lines that read "13 assets". Persian does
+     not pluralise a noun that follows a number — «۱۳ تجهیز», never
+     «۱۳ تجهیزات» — so those lines cannot borrow the plural names
+     above, which are card titles and count nothing. English and
+     Arabic keep the wording they already had. */
+  assetsCounted: { en: "Assets", ar: "الأصول", fa: "تجهیز" },
+  dashboardsCounted: { en: "Dashboards", ar: "لوحات", fa: "داشبورد" },
+  workOrdersCounted: { en: "Work Orders", ar: "أوامر العمل", fa: "دستورکار" },
 
   systemHealth: { en: "System Health", ar: "صحة النظام", fa: "سلامت سیستم" },
 
@@ -200,19 +212,19 @@ export default function PanelHome() {
   const summary: { key: string; icon: typeof Box; value: number | null; label: string; sub: string; color: string; bg: string; to: string }[] = [
     { key: "assets", icon: Box, value: assetCount, label: tr("assets"), sub: tr("totalAssets"), color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30", to: "/devices" },
     { key: "locations", icon: MapPin, value: locationCount, label: tr("locations"), sub: tr("totalLocations"), color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30", to: "/locations" },
-    { key: "alarms", icon: Bell, value: activeAlarmCount, label: tr("activeAlarms"), sub: tr("activeAlarms"), color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/30", to: "/alarms" },
+    { key: "alarms", icon: Bell, value: activeAlarmCount, label: tr("activeAlarms"), sub: tr("activeAlarmsSub"), color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/30", to: "/alarms" },
     { key: "workOrders", icon: ClipboardList, value: openWorkOrders, label: tr("workOrders"), sub: tr("pendingOrders"), color: "text-sky-600", bg: "bg-sky-50 dark:bg-sky-950/30", to: "/work-orders" },
     { key: "ai", icon: Lightbulb, value: aiFindings, label: tr("aiFindings"), sub: tr("openFindings"), color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30", to: "/aiot/forecast-failures" },
   ];
 
   // Quick Access — navigation shortcuts only (Devices, Dashboards, Alarms, AI Analytics, OTA, Operations)
   const quick = [
-    { icon: FileText, label: tr("devices"), sub: `${fn(assetCount)} ${tr("assets")}`, to: "/devices", color: "text-slate-600", bg: "bg-slate-100 dark:bg-slate-800" },
-    { icon: LayoutGrid, label: tr("dashboards"), sub: `${fn(dashboardCount)} ${tr("dashboards")}`, to: "/dashboard", color: "text-violet-600", bg: "bg-violet-50 dark:bg-violet-950/30" },
+    { icon: FileText, label: tr("devices"), sub: `${fn(assetCount)} ${tr("assetsCounted")}`, to: "/devices", color: "text-slate-600", bg: "bg-slate-100 dark:bg-slate-800" },
+    { icon: LayoutGrid, label: tr("dashboards"), sub: `${fn(dashboardCount)} ${tr("dashboardsCounted")}`, to: "/dashboard", color: "text-violet-600", bg: "bg-violet-50 dark:bg-violet-950/30" },
     { icon: Bell, label: tr("alarms"), sub: activeAlarmCount === null ? noDataText : `${fn(activeAlarmCount)} ${tr("active")}`, to: "/alarms", color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/30" },
     { icon: Sparkles, label: tr("aiAnalytics"), sub: aiFindings === null ? noDataText : `${fn(aiFindings)} ${tr("findings")}`, to: "/aiot/analyze-trends", color: "text-fuchsia-600", bg: "bg-fuchsia-50 dark:bg-fuchsia-950/30" },
     { icon: Upload, label: tr("ota"), sub: otaCampaigns === null ? noDataText : `${fn(otaCampaigns)} ${tr("campaigns")}`, to: "/firmware", color: "text-orange-600", bg: "bg-orange-50 dark:bg-orange-950/30" },
-    { icon: Operations, label: tr("operations"), sub: `${fn(openWorkOrders)} ${tr("workOrders")}`, to: "/work-orders", color: "text-sky-600", bg: "bg-sky-50 dark:bg-sky-950/30" },
+    { icon: Operations, label: tr("operations"), sub: `${fn(openWorkOrders)} ${tr("workOrdersCounted")}`, to: "/work-orders", color: "text-sky-600", bg: "bg-sky-50 dark:bg-sky-950/30" },
   ];
 
   /* Activity and System Health had no source at all: the five rows in each
