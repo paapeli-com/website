@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Cpu, Loader2, RefreshCw, ScanBarcode } from "lucide-react";
+import { ArrowLeft, Cpu, Loader2, ScanBarcode } from "lucide-react";
 import {
   useCreateDeviceMutation,
   useGetAssetRootQuery,
@@ -52,18 +52,19 @@ const randomToken = (n = 20) =>
   ).join("");
 
 function Field({
-  label, hint, value, onChange, placeholder, onGenerate, onScan, scanLabel, inputMode, dir = "ltr",
+  label, hint, value, onChange, placeholder, onScan, scanLabel, inputMode, mono = true, dir = "ltr",
 }: {
   label: string;
   hint?: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
-  onGenerate?: () => void;
   onScan?: () => void;
   scanLabel?: string;
   inputMode?: "text" | "numeric";
-  dir?: "ltr" | "rtl";
+  /** Identifiers read better monospaced; a name does not. */
+  mono?: boolean;
+  dir?: "ltr" | "rtl" | "auto";
 }) {
   return (
     <div className="min-w-0">
@@ -75,13 +76,11 @@ function Field({
           placeholder={placeholder}
           inputMode={inputMode}
           dir={dir}
-          className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-card px-3.5 font-mono text-xs text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+          className={cn(
+            "h-11 min-w-0 flex-1 rounded-xl border border-border bg-card px-3.5 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary",
+            mono ? "font-mono text-xs" : "text-sm",
+          )}
         />
-        {onGenerate && (
-          <Button type="button" variant="outline" className="h-11 w-11 shrink-0 p-0" onClick={onGenerate}>
-            <RefreshCw className="size-4" />
-          </Button>
-        )}
         {onScan && (
           <Button type="button" variant="outline" className="h-11 w-11 shrink-0 p-0" onClick={onScan} aria-label={scanLabel}>
             <ScanBarcode className="size-4" />
@@ -102,6 +101,9 @@ export default function DeviceForm() {
   const [imei, setImei] = useState("");
   const [icon, setIcon] = useState<TrackerIconKey | null>(null);
   const [scanning, setScanning] = useState(false);
+  /* MQTT_BASIC credentials the tracker connects with. The form doesn't ask
+     for them — they are generated here and shown once, after the device is
+     created (DeviceCredentialsModal). */
   const [clientId, setClientId] = useState(() => randomToken());
   const [username, setUsername] = useState(() => "dev-" + randomToken(8).toLowerCase());
   const [password, setPassword] = useState(() => randomToken());
@@ -236,7 +238,9 @@ export default function DeviceForm() {
             hint={t("deviceNameHint")}
             value={name}
             onChange={setName}
-            placeholder="861971080061526"
+            placeholder={t("deviceNamePlaceholder")}
+            mono={false}
+            dir="auto"
           />
           <Field
             label={t("imei")}
@@ -248,16 +252,6 @@ export default function DeviceForm() {
             onScan={() => setScanning(true)}
             scanLabel={t("scanImei")}
           />
-        </CardContent>
-      </Card>
-
-      <Card className="mb-4">
-        <CardHeader><CardTitle>{t("mqttCredentials")}</CardTitle></CardHeader>
-        <CardContent className="space-y-4 pt-0">
-          <p className="text-xs text-muted-foreground">{t("mqttCredentialsHint")}</p>
-          <Field label={t("clientId")} value={clientId} onChange={setClientId} onGenerate={() => setClientId(randomToken())} />
-          <Field label={t("username")} value={username} onChange={setUsername} onGenerate={() => setUsername("dev-" + randomToken(8).toLowerCase())} />
-          <Field label={t("password")} value={password} onChange={setPassword} onGenerate={() => setPassword(randomToken())} />
         </CardContent>
       </Card>
 

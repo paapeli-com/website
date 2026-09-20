@@ -1,5 +1,5 @@
 import type { SVGProps } from "react";
-import { Car, Cat, Dog, PersonStanding, type LucideIcon } from "lucide-react";
+import { Car, Cat, Cpu, Dog, PersonStanding, type LucideIcon } from "lucide-react";
 import type { TranslationKey } from "@/features/track/i18n/translations";
 import { cn } from "@/shared/lib/utils";
 
@@ -14,16 +14,18 @@ export type TrackerIconKey = "cat" | "dog" | "car" | "motor" | "human";
 
 /** Lucide has no motorcycle, so this one is drawn in its style (24px grid,
     2px round strokes, currentColor) to sit alongside the others. */
-function Motorcycle({ className, ...props }: SVGProps<SVGSVGElement>) {
+type IconProps = Omit<SVGProps<SVGSVGElement>, "size"> & { size?: number | string };
+
+function Motorcycle({ className, size = 24, color = "currentColor", strokeWidth = 2, ...props }: IconProps) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      width={24}
-      height={24}
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
+      stroke={color}
+      strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
       className={cn("lucide", className)}
@@ -38,7 +40,10 @@ function Motorcycle({ className, ...props }: SVGProps<SVGSVGElement>) {
   );
 }
 
-export const TRACKER_ICONS: { key: TrackerIconKey; labelKey: TranslationKey; Icon: LucideIcon | typeof Motorcycle }[] = [
+/** Same call signature as a lucide icon, so callers can pass size/color. */
+export type TrackerIconComponent = LucideIcon | typeof Motorcycle;
+
+export const TRACKER_ICONS: { key: TrackerIconKey; labelKey: TranslationKey; Icon: TrackerIconComponent }[] = [
   { key: "cat", labelKey: "iconCat", Icon: Cat },
   { key: "dog", labelKey: "iconDog", Icon: Dog },
   { key: "car", labelKey: "iconCar", Icon: Car },
@@ -49,3 +54,26 @@ export const TRACKER_ICONS: { key: TrackerIconKey; labelKey: TranslationKey; Ico
 /** The icon a device's `label` names, or undefined for any other label
     (devices registered before this existed carry their name there). */
 export const trackerIconOf = (label: string | undefined) => TRACKER_ICONS.find((i) => i.key === label);
+
+/** The tinted square a tracker is shown as in lists and headers, carrying its
+    own icon. Falls back to a generic one for devices registered before the
+    icon picker, whose label is their name. */
+export function TrackerAvatar({
+  label,
+  size = 40,
+  className,
+}: {
+  label?: string;
+  size?: number;
+  className?: string;
+}) {
+  const Icon = trackerIconOf(label)?.Icon ?? Cpu;
+  return (
+    <span
+      className={cn("flex shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary", className)}
+      style={{ width: size, height: size }}
+    >
+      <Icon className="size-1/2" />
+    </span>
+  );
+}
