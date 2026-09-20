@@ -1,34 +1,56 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Check, ChevronDown, House, LayoutGrid } from "lucide-react";
+import { Check, ChevronDown, Factory, House, LayoutGrid, MapPin, Server, Sparkles } from "lucide-react";
 import { PRODUCTS, solutionPath } from "@paapeli/brand/config";
 import { AI_INFERENCE_BASE } from "@/shell/nav/aiInferenceNav";
 import { cn } from "@/shared/lib/utils";
 import { useShellT } from "@/shared/i18n/shell";
 
-/* Adapted from apps/product/aiot/track/src/components/layout/ProductSwitcher.tsx.
-   Unlike the per-remote copies it replaces, the active solution is derived
-   from the URL (the host owns routing for every solution) and switching is
-   a client-side navigate() — no full page reload. */
+/* The product switcher.
+ *
+ * Rows borrow the create menu's hover and selected treatment — a transparent
+ * border that turns brand-coloured over a tinted background — because this is
+ * the same kind of thing: a short list of destinations picked from a header
+ * popover. One hover state for both rather than two that nearly match.
+ *
+ * Home sits above the products behind its own divider: it is the account, not
+ * a product. AIoT and AI Infra are divided the same way, so the two families
+ * read as two families rather than one long list.
+ *
+ * The active solution is derived from the URL — the shell owns routing for
+ * every product — and switching is a client-side navigate(), no page reload.
+ */
 
 const HOME_PATH = "/Home";
 
-/* The AI Infra rows.
- *
- * Deliberately NOT added to @paapeli/brand/config's PRODUCTS: that list is
- * also what Cloud Management's Subscriptions page offers to subscribe to
- * (see its SUBSCRIBABLE), and neither of these can be subscribed to, opened
- * or routed to yet. They are announcements in this menu and nothing more, so
- * they live in this menu. Their names match the cards on /Home.
- *
- * `featured` is the one being launched next. It shows in its tag and nothing
- * else: an outline around the row reads as the selected state, which these
- * rows can never be. */
-const AI_INFRA: { id: string; name: string; tag: string; featured?: boolean; path?: string }[] = [
-  /* AI Inference has a product now, so its row opens it. AI Agent Maker
-     still has nowhere to go and stays an announcement. */
-  { id: "AIInference", name: "AI Inference", tag: "New", featured: true, path: AI_INFERENCE_BASE },
-  { id: "AIAgentMaker", name: "AI Agent Maker", tag: "Soon" },
+type Row = {
+  id: string;
+  name: string;
+  icon: ComponentType<{ className?: string }>;
+  tag?: string;
+  /** Absent means the row is an announcement: nowhere to go yet. */
+  path?: string;
+};
+
+const SOLUTION_ICONS: Record<string, ComponentType<{ className?: string }>> = {
+  GPSTracking: MapPin,
+  SmartFactory: Factory,
+};
+
+/* Maturity tags live here rather than in @paapeli/brand/config's PRODUCTS.
+   That list is also what Cloud Management's Subscriptions page offers to
+   subscribe to, and "Beta" is a statement about these rows, not a property of
+   a subscribable product. */
+const SOLUTION_TAGS: Record<string, string> = {
+  GPSTracking: "Beta",
+  SmartFactory: "Beta",
+};
+
+/* AI Infra's rows, for the same reason: neither can be subscribed to, and
+   only one of them can be opened. */
+const AI_INFRA_ROWS: Row[] = [
+  { id: "AIInference", name: "AI Inference", icon: Server, tag: "Alpha", path: AI_INFERENCE_BASE },
+  { id: "AIAgentMaker", name: "AI Agent Maker", icon: Sparkles, tag: "Soon" },
 ];
 
 export function ProductSwitcher() {
@@ -47,9 +69,11 @@ export function ProductSwitcher() {
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [open]);
 
-  /* Home is a place you can be, like a solution — lowercase, because React
-     Router matches routes case-insensitively and /home is the same page. */
-  const onHome = location.pathname.toLowerCase().startsWith("/home");
+  /* Lowercase, because React Router matches routes that way: /home is the
+     same page as /Home. */
+  const path = location.pathname.toLowerCase();
+  const onHome = path.startsWith("/home");
+  const onAiInference = path.startsWith(AI_INFERENCE_BASE.toLowerCase());
 
   const allSolutions = PRODUCTS.flatMap((p) => p.solutions ?? []);
   const activeSolution = allSolutions.find((s) => location.pathname.startsWith(solutionPath(s.id)))?.id;
@@ -61,18 +85,19 @@ export function ProductSwitcher() {
   const activeSolutionName =
     activeProduct.solutions?.find((s) => s.id === activeSolution)?.name ?? activeProduct.name;
 
+  const triggerLabel = onHome ? t("Home") : onAiInference ? t("AI Inference") : t(activeSolutionName);
+
+  const go = (to: string) => {
+    setOpen(false);
+    navigate(to);
+  };
+
   const selectSolution = (id: string, disabled?: boolean) => {
     if (disabled) return;
     setOpen(false);
     window.localStorage.setItem("paapeli_solution", id);
     if (id === activeSolution) return;
     navigate(solutionPath(id));
-  };
-
-  const selectHome = () => {
-    setOpen(false);
-    if (onHome) return;
-    navigate(HOME_PATH);
   };
 
   return (
@@ -85,101 +110,57 @@ export function ProductSwitcher() {
         )}
       >
         <LayoutGrid className="size-4 text-primary" />
-        <span className="flex-1 whitespace-nowrap text-start">
-          {onHome ? t("Home") : t(activeSolutionName)}
-        </span>
+        <span className="flex-1 whitespace-nowrap text-start">{triggerLabel}</span>
         <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")} />
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-72 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-border bg-popover py-1.5 shadow-lg ltr:left-0 rtl:right-0">
-          <div className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="absolute z-50 mt-1 w-[19rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-border bg-popover p-2 shadow-lg ltr:left-0 rtl:right-0">
+          <div className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {t("Switch Product")}
           </div>
 
-          {/* Home sits above the products rather than inside one: it is the
-              account, not a product you subscribe to. */}
-          <button
-            onClick={selectHome}
-            className={cn(
-              "flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors",
-              onHome ? "bg-primary/10 font-semibold text-foreground" : "text-foreground hover:bg-muted",
-            )}
-          >
-            <House className={cn("size-4", onHome ? "text-primary" : "text-muted-foreground")} />
-            <span className="flex-1 text-start">{t("Home")}</span>
-            {onHome && <Check className="size-4 text-primary" />}
-          </button>
+          <MenuRow icon={House} label={t("Home")} active={onHome} onSelect={() => go(HOME_PATH)} />
 
-          {PRODUCTS.map((p) => {
-            /* AIoT's solutions ship and route; AI Infra's are the local rows
-               above, which don't. */
-            const solutions = p.solutions ?? [];
-            const announcements = p.id === "ai" ? AI_INFRA : [];
+          <div className="my-2 border-t border-border" />
+
+          {PRODUCTS.map((product, index) => {
+            const solutions = product.solutions ?? [];
+            const announcements = product.id === "ai" ? AI_INFRA_ROWS : [];
             if (solutions.length === 0 && announcements.length === 0) return null;
 
             return (
-              <div key={p.id} className="mt-1">
-                <div className="flex items-center gap-2.5 px-3 py-1.5 text-sm font-medium text-foreground">
+              <div key={product.id}>
+                {index > 0 && <div className="my-2 border-t border-border" />}
+
+                <div className="flex items-center gap-2.5 px-2 py-1.5">
                   <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
-                  <span className="flex-1 text-start">{t(p.name)}</span>
+                  <span className="text-sm font-semibold text-foreground">{t(product.name)}</span>
                 </div>
 
-                <div className="space-y-0.5 px-2 pb-0.5 ms-[18px]">
-                  {solutions.map((s) => {
-                    const isActive = s.id === activeSolution && !onHome;
-                    return (
-                      <button
-                        key={s.id}
-                        onClick={() => selectSolution(s.id, s.disabled)}
-                        disabled={s.disabled}
-                        className={cn(
-                          "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors",
-                          s.disabled
-                            ? "cursor-not-allowed text-muted-foreground/50"
-                            : isActive
-                              ? "bg-primary/10 font-semibold text-foreground"
-                              : "text-foreground hover:bg-muted",
-                        )}
-                      >
-                        <span className="flex-1 text-start">{t(s.name)}</span>
-                        {isActive && <Check className="size-4 shrink-0 text-primary" />}
-                      </button>
-                    );
-                  })}
+                <div className="space-y-0.5">
+                  {solutions.map((s) => (
+                    <MenuRow
+                      key={s.id}
+                      icon={SOLUTION_ICONS[s.id] ?? LayoutGrid}
+                      label={t(s.name)}
+                      tag={SOLUTION_TAGS[s.id]}
+                      active={s.id === activeSolution && !onHome && !onAiInference}
+                      disabled={s.disabled}
+                      onSelect={() => selectSolution(s.id, s.disabled)}
+                    />
+                  ))}
 
-                  {announcements.map((a) => {
-                    /* A row with a path is a product you can open; one without
-                       is still only an announcement, and stays inert. */
-                    const Row = a.path ? "button" : "div";
-                    return (
-                    <Row
-                      key={a.id}
-                      {...(a.path
-                        ? {
-                            onClick: () => {
-                              setOpen(false);
-                              navigate(a.path!);
-                            },
-                          }
-                        : {})}
-                      className={cn(
-                        "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-foreground",
-                        a.path && "hover:bg-muted",
-                      )}
-                    >
-                      <span className="flex-1 text-start">{t(a.name)}</span>
-                      <span
-                        className={cn(
-                          "shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-semibold",
-                          a.featured ? "text-primary" : "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {t(a.tag)}
-                      </span>
-                    </Row>
-                    );
-                  })}
+                  {announcements.map((row) => (
+                    <MenuRow
+                      key={row.id}
+                      icon={row.icon}
+                      label={t(row.name)}
+                      tag={row.tag}
+                      active={!!row.path && row.path === AI_INFERENCE_BASE && onAiInference}
+                      onSelect={row.path ? () => go(row.path!) : undefined}
+                    />
+                  ))}
                 </div>
               </div>
             );
@@ -187,5 +168,70 @@ export function ProductSwitcher() {
         </div>
       )}
     </div>
+  );
+}
+
+/** Brand for what is being launched next, quiet for everything else. */
+const TAG_TONE: Record<string, string> = {
+  Alpha: "bg-primary/10 text-primary",
+  Beta: "bg-muted text-muted-foreground",
+  Soon: "bg-muted text-muted-foreground",
+};
+
+function MenuRow({
+  icon: Icon,
+  label,
+  tag,
+  active,
+  disabled,
+  onSelect,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  tag?: string;
+  active?: boolean;
+  disabled?: boolean;
+  /** Absent for a row with nowhere to go: it renders inert rather than as a
+      button that does nothing when clicked. */
+  onSelect?: () => void;
+}) {
+  const t = useShellT();
+  const interactive = !!onSelect && !disabled;
+  const Element = interactive ? "button" : "div";
+
+  return (
+    <Element
+      {...(interactive ? { type: "button" as const, onClick: onSelect } : {})}
+      className={cn(
+        "flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-start text-sm transition-colors",
+        active
+          ? "border-primary/40 bg-primary/10 font-semibold text-foreground"
+          : interactive
+            ? "border-transparent text-foreground hover:border-primary/30 hover:bg-primary/5"
+            : "border-transparent text-foreground",
+        disabled && "cursor-not-allowed text-muted-foreground/60",
+      )}
+    >
+      <span
+        className={cn(
+          "flex size-8 shrink-0 items-center justify-center rounded-lg",
+          active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+        )}
+      >
+        <Icon className="size-4" />
+      </span>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {tag && (
+        <span
+          className={cn(
+            "shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-semibold",
+            TAG_TONE[tag] ?? TAG_TONE.Soon,
+          )}
+        >
+          {t(tag)}
+        </span>
+      )}
+      {active && <Check className="size-4 shrink-0 text-primary" />}
+    </Element>
   );
 }
