@@ -53,9 +53,9 @@ const severityColors: Record<string, string> = {
 const STEPS: AlertRuleWizardStep[] = ['scope', 'conditions', 'severity', 'escalation', 'notifications', 'assignment'];
 
 /* Each rule type paired with the English term it is named after. Threshold,
-   Heartbeat and the rest are what the docs and the API call them, so in
-   Persian the dropdown carries both: the translation to read, and the
-   English to recognise it by. */
+   Heartbeat and the rest are what the docs and the API call them, so outside
+   English the dropdown carries both: the translation to read, and the English
+   to recognise it by. */
 const RULE_TYPES: { value: RuleType; key: TranslationKey; en: string }[] = [
   { value: 'threshold', key: 'alertTypeThreshold', en: 'Threshold' },
   { value: 'condition', key: 'alertTypeCondition', en: 'Condition' },
@@ -421,7 +421,7 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
                       const label = t(rt.key);
                       return (
                         <SelectItem key={rt.value} value={rt.value}>
-                          {language === 'fa' ? `${label} (${rt.en})` : label}
+                          {language === 'en' ? label : `${label} (${rt.en})`}
                         </SelectItem>
                       );
                     })}

@@ -164,7 +164,7 @@ const fa: Record<string, string> = {
 
   // Workspaces (Cloud Management)
   "Workspaces you belong to, and the products subscribed to the active one.":
-    "فضاهای کاری، و محصولاتی که فضای فعال مشترک شده.",
+    "فضاهای کاری و محصولاتی که در هر فضای کاری فعال شده است",
   "Create your first workspace to get started.":
     "برای شروع، اولین فضای کاری خود را بسازید.",
   "Select a workspace to see its subscribed products.":
@@ -218,6 +218,41 @@ const fa: Record<string, string> = {
   "Enterprise adds unlimited assets, dedicated ingestion and a 99.95% SLA.":
     "طرح سازمانی دارایی نامحدود، دریافت داده اختصاصی و SLA با ۹۹٫۹۵٪ در اختیار می‌گذارد.",
   "Talk to sales": "تماس با تیم فروش",
+
+  // Cloud home (Cloud Management overview)
+  "Cloud home": "نمای کلی",
+  "Everything about your Paapeli cloud account: products, spending and settings.":
+    "همه‌چیز دربارهٔ حساب ابری شما در پاپلی: محصولات، هزینه‌ها و تنظیمات.",
+  "Everything about {workspace}'s Paapeli cloud account: products, spending and settings.":
+    "همه‌چیز دربارهٔ حساب ابری {workspace} در پاپلی: محصولات، هزینه‌ها و تنظیمات.",
+  "Assets, alarms, AI analytics, OTA and operations.":
+    "تجهیزات، هشدارها، تحلیل هوش مصنوعی، OTA و عملیات.",
+  "Messages this month": "پیام‌های این ماه",
+  Renews: "تمدید",
+  "This month": "این ماه",
+  "Wallet balance": "موجودی کیف پول",
+  "Subscriptions & plans": "اشتراک‌ها و طرح‌ها",
+  "Manage subscriptions": "مدیریت اشتراک‌ها",
+  "Plan tier, seats, renewal date and add-ons for each subscription.":
+    "سطح طرح، تعداد کاربر، تاریخ تمدید و افزونه‌های هر اشتراک.",
+  "View invoices": "مشاهدهٔ فاکتورها",
+  "Download invoices, see payment status and set the billing profile.":
+    "دریافت فاکتورها، دیدن وضعیت پرداخت و تنظیم مشخصات صورتحساب.",
+  "View usage": "مشاهدهٔ مصرف",
+  "Track messages, storage and API calls against your plan limits.":
+    "پیگیری پیام‌ها، فضای ذخیره‌سازی و فراخوانی‌های API در برابر محدودیت‌های طرح شما.",
+  "Organisation & access": "سازمان و دسترسی",
+  "Manage access": "مدیریت دسترسی",
+  "Members, roles, API keys and single sign-on for your tenant.":
+    "اعضا، نقش‌ها، کلیدهای API و ورود یکپارچه برای سازمان شما.",
+  Invoice: "فاکتور",
+  Period: "دوره",
+  Amount: "مبلغ",
+  "Recent invoices": "فاکتورهای اخیر",
+  "Needs your attention": "موارد نیازمند توجه",
+  "Platform status": "وضعیت پلتفرم",
+  Operational: "سالم",
+  Degraded: "دچار اختلال",
 
   // Central API keys
   "One key can reach several Paapeli products. They all live here.":
@@ -532,6 +567,41 @@ const ar: Record<string, string> = {
   "Enterprise adds unlimited assets, dedicated ingestion and a 99.95% SLA.":
     "تضيف خطة المؤسسات أصولاً غير محدودة، واستقبال بيانات مخصصاً، واتفاقية مستوى خدمة ٩٩٫٩٥٪.",
   "Talk to sales": "التحدث إلى المبيعات",
+
+  // Cloud home (Cloud Management overview)
+  "Cloud home": "نظرة عامة",
+  "Everything about your Paapeli cloud account: products, spending and settings.":
+    "كل ما يخص حسابك السحابي في بابلي: المنتجات والإنفاق والإعدادات.",
+  "Everything about {workspace}'s Paapeli cloud account: products, spending and settings.":
+    "كل ما يخص حساب {workspace} السحابي في بابلي: المنتجات والإنفاق والإعدادات.",
+  "Assets, alarms, AI analytics, OTA and operations.":
+    "الأصول والإنذارات وتحليلات الذكاء الاصطناعي وOTA والعمليات.",
+  "Messages this month": "رسائل هذا الشهر",
+  Renews: "التجديد",
+  "This month": "هذا الشهر",
+  "Wallet balance": "رصيد المحفظة",
+  "Subscriptions & plans": "الاشتراكات والخطط",
+  "Manage subscriptions": "إدارة الاشتراكات",
+  "Plan tier, seats, renewal date and add-ons for each subscription.":
+    "مستوى الخطة والمقاعد وتاريخ التجديد والملحقات لكل اشتراك.",
+  "View invoices": "عرض الفواتير",
+  "Download invoices, see payment status and set the billing profile.":
+    "تنزيل الفواتير، ومتابعة حالة الدفع، وضبط بيانات الفوترة.",
+  "View usage": "عرض الاستخدام",
+  "Track messages, storage and API calls against your plan limits.":
+    "تتبع الرسائل والتخزين واستدعاءات API مقابل حدود خطتك.",
+  "Organisation & access": "المؤسسة والوصول",
+  "Manage access": "إدارة الوصول",
+  "Members, roles, API keys and single sign-on for your tenant.":
+    "الأعضاء والأدوار ومفاتيح API والدخول الموحد لمؤسستك.",
+  Invoice: "الفاتورة",
+  Period: "الفترة",
+  Amount: "المبلغ",
+  "Recent invoices": "الفواتير الأخيرة",
+  "Needs your attention": "يحتاج إلى انتباهك",
+  "Platform status": "حالة المنصة",
+  Operational: "يعمل",
+  Degraded: "متدهور",
 
   // Central API keys
   "One key can reach several Paapeli products. They all live here.":

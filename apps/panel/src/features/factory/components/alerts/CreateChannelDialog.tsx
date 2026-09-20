@@ -10,7 +10,7 @@ import { Checkbox } from "@/features/factory/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/features/factory/components/ui/popover";
 import { Mail, MessageSquare, Bell, Phone, X, ChevronDown } from "lucide-react";
 import { getCurrentUser } from "@paapeli/brand/session";
-import { loadMembers, type Member } from "@/features/factory/data/workspaceMembers";
+import type { Member } from "@/features/factory/data/workspaceMembers";
 import type { NotificationChannelType } from "@/features/factory/types/alerts";
 import { useChannelsStore } from "@/features/factory/hooks/useAlertStore";
 import { useToast } from "@/features/factory/hooks/use-toast";
@@ -54,6 +54,28 @@ const recipientKinds: Record<NotificationChannelType, RecipientKind | null> = {
 const contactOf = (m: Member, kind: RecipientKind) =>
   (kind === "email" ? m.email : m.phone)?.trim() || undefined;
 
+/* Who this workspace can reach.
+
+   There is no endpoint that lists a workspace's members: you can invite one
+   (POST /workspaces/{id}/invitations) but you cannot read the roster back.
+   So the only address the panel actually knows is the signed-in account's
+   own, and the hint under the field says how to get anyone else onto this
+   list. The roster used to come from the Members page's sample data, which
+   offered colleagues at company.com who cannot be reached at all.
+
+   When a list-members endpoint exists, this is the one place to swap. */
+const workspacePeople = (): Member[] => {
+  const me = getCurrentUser();
+  if (!me) return [];
+  return [{
+    id: "self",
+    name: me.name || me.email,
+    email: me.email,
+    role: "Full Access",
+    status: "Active",
+  }];
+};
+
 export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, onActionsChange, onCancel, onCreated }: CreateChannelDialogProps) => {
 
   const { t } = useLanguage();
@@ -61,13 +83,8 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
   const { create: createChannel } = useChannelsStore();
   const [name, setName] = useState("");
   const [channelType, setChannelType] = useState<NotificationChannelType>("email");
-  // Recipients are picked from the workspace's active members, never typed.
-  const [members] = useState<Member[]>(() => {
-    const self = getCurrentUser()?.email.toLowerCase();
-    const active = loadMembers().filter((m) => m.status === "Active");
-    // The signed-in user comes first, as the most likely recipient.
-    return [...active.filter((m) => m.email.toLowerCase() === self), ...active.filter((m) => m.email.toLowerCase() !== self)];
-  });
+  // Recipients are picked from the workspace's members, never typed.
+  const [members] = useState<Member[]>(workspacePeople);
   const selfEmail = getCurrentUser()?.email.toLowerCase();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -94,6 +111,7 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
     return !q || m.name.toLowerCase().includes(q) || (kind && contactOf(m, kind)?.toLowerCase().includes(q));
   });
   const anyReachable = !!kind && members.some((m) => contactOf(m, kind));
+  const onlySelf = members.length <= 1;
   const config: Record<string, string> = kind && chosen.length ? { to: chosen.map((m) => contactOf(m, kind)).join(", ") } : {};
 
   const handleCreate = () => {
@@ -250,7 +268,9 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
                 </PopoverContent>
               </Popover>
               <p className="text-xs text-muted-foreground">
-                {anyReachable ? t("membersOnlyHint") : t("noMemberPhones")}
+                {/* Nobody but you on the list means there is nobody to pick,
+                    so say what to do about it rather than restate the rule. */}
+                {onlySelf ? t("inviteMemberFirstHint") : anyReachable ? t("membersOnlyHint") : t("noMemberPhones")}
               </p>
             </div>
           </div>

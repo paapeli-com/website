@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Cpu, FileText, Gauge, Package, Users } from "lucide-react";
 import { useWorkspaceSelection } from "@/features/cloud-management/contexts/WorkspaceContext";
 import { Card, IconTile, NoData, NoDataValue, PageHeader, Table } from "@/features/cloud-management/ui";
+import { useShellT } from "@/shared/i18n/shell";
 
 /* Nothing on this page except workspace identity has a backend.
 
@@ -24,18 +25,21 @@ const PLATFORM_STATUS: { name: string; ok: boolean }[] = [];
 
 export default function Overview() {
   const navigate = useNavigate();
+  const t = useShellT();
   const { selected } = useWorkspaceSelection();
 
+  /* The workspace name sits inside the sentence rather than in front of it,
+     because Persian and Arabic put it somewhere English would not. */
+  const description = selected
+    ? t("Everything about {workspace}'s Paapeli cloud account: products, spending and settings.")
+        .replace("{workspace}", selected.workspaceName)
+    : t("Everything about your Paapeli cloud account: products, spending and settings.");
+
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <PageHeader
-        title="Cloud home"
-        description={
-          selected
-            ? `Everything about ${selected.workspaceName}'s Paapeli cloud account — products, spending and settings.`
-            : "Everything about your Paapeli cloud account — products, spending and settings."
-        }
-      />
+    /* data-uniform-type: the page is written in Tailwind steps and reads at
+       those steps in every language, like Workspaces and Home. */
+    <div data-uniform-type className="flex flex-col gap-6 p-6">
+      <PageHeader title={t("Cloud home")} description={description} />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_340px]">
         <Card className="flex flex-wrap items-center gap-5 sm:flex-nowrap">
@@ -47,12 +51,12 @@ export default function Overview() {
               <h2 className="text-lg font-bold text-foreground">AIoT</h2>
             </div>
             <p className="text-[13.5px] text-muted-foreground">
-              Assets, alarms, AI analytics, OTA and operations.
+              {t("Assets, alarms, AI analytics, OTA and operations.")}
             </p>
             <div className="mt-1 flex flex-wrap gap-6">
               {["Assets", "Messages this month", "Renews"].map((label) => (
                 <div key={label}>
-                  <div className="text-xs text-muted-foreground">{label}</div>
+                  <div className="text-xs text-muted-foreground">{t(label)}</div>
                   <div className="text-sm font-semibold text-foreground"><NoDataValue /></div>
                 </div>
               ))}
@@ -61,45 +65,45 @@ export default function Overview() {
         </Card>
 
         <Card className="flex flex-col gap-3">
-          <h2 className="text-sm font-bold text-foreground">This month</h2>
+          <h2 className="text-sm font-bold text-foreground">{t("This month")}</h2>
           <div className="flex items-baseline gap-2">
             <span className="text-[28px] font-bold leading-none text-foreground"><NoDataValue /></span>
           </div>
           <div className="h-px bg-border" />
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Wallet balance</span>
+            <span className="text-muted-foreground">{t("Wallet balance")}</span>
             <span className="font-semibold text-foreground"><NoDataValue /></span>
           </div>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <IconTile icon={Package} title="Subscriptions & plans" cta="Manage subscriptions" onClick={() => navigate("subscriptions")}>
-          Plan tier, seats, renewal date and add-ons for each subscription.
+        <IconTile icon={Package} title={t("Subscriptions & plans")} cta={t("Manage subscriptions")} onClick={() => navigate("subscriptions")}>
+          {t("Plan tier, seats, renewal date and add-ons for each subscription.")}
         </IconTile>
-        <IconTile icon={FileText} title="Billing & invoices" cta="View invoices" onClick={() => navigate("billing")}>
-          Download invoices, see payment status and set the billing profile.
+        <IconTile icon={FileText} title={t("Billing & invoices")} cta={t("View invoices")} onClick={() => navigate("billing")}>
+          {t("Download invoices, see payment status and set the billing profile.")}
         </IconTile>
-        <IconTile icon={Gauge} title="Usage & quotas" cta="View usage" onClick={() => navigate("usage")}>
-          Track messages, storage and API calls against your plan limits.
+        <IconTile icon={Gauge} title={t("Usage & quotas")} cta={t("View usage")} onClick={() => navigate("usage")}>
+          {t("Track messages, storage and API calls against your plan limits.")}
         </IconTile>
-        <IconTile icon={Users} title="Organisation & access" cta="Manage access" onClick={() => navigate("organisation")}>
-          Members, roles, API keys and single sign-on for your tenant.
+        <IconTile icon={Users} title={t("Organisation & access")} cta={t("Manage access")} onClick={() => navigate("organisation")}>
+          {t("Members, roles, API keys and single sign-on for your tenant.")}
         </IconTile>
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <Table
-          columns={["Invoice", "Period", "Amount"]}
+          columns={[t("Invoice"), t("Period"), t("Amount")]}
           head={
             <>
-              <h2 className="text-sm font-bold text-foreground">Recent invoices</h2>
+              <h2 className="text-sm font-bold text-foreground">{t("Recent invoices")}</h2>
               <button
                 type="button"
                 onClick={() => navigate("billing")}
                 className="text-[13px] font-semibold text-primary hover:underline"
               >
-                See all
+                {t("See all")}
               </button>
             </>
           }
@@ -107,15 +111,15 @@ export default function Overview() {
         />
 
         <Card className="flex flex-col gap-4">
-          <h2 className="text-sm font-bold text-foreground">Needs your attention</h2>
+          <h2 className="text-sm font-bold text-foreground">{t("Needs your attention")}</h2>
           {ATTENTION.length === 0 && <NoData />}
           {ATTENTION.map((a) => (
             <div key={a.text} className="flex items-start gap-3">
               <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" />
               <div className="flex flex-col gap-0.5">
-                <span className="text-[13.5px] text-foreground">{a.text}</span>
+                <span className="text-[13.5px] text-foreground">{t(a.text)}</span>
                 <button type="button" onClick={() => navigate(a.to)} className="text-start text-xs font-semibold text-primary hover:underline">
-                  {a.cta}
+                  {t(a.cta)}
                 </button>
               </div>
             </div>
@@ -123,7 +127,7 @@ export default function Overview() {
         </Card>
 
         <Card className="flex flex-col gap-3">
-          <h2 className="text-sm font-bold text-foreground">Platform status</h2>
+          <h2 className="text-sm font-bold text-foreground">{t("Platform status")}</h2>
           {PLATFORM_STATUS.length === 0 && <NoData />}
           {PLATFORM_STATUS.map((s) => (
             <div key={s.name} className="flex items-center justify-between">
@@ -131,7 +135,9 @@ export default function Overview() {
                 <span className={`size-2 rounded-full ${s.ok ? "bg-emerald-600" : "bg-orange-500"}`} />
                 {s.name}
               </div>
-              <span className={`text-xs ${s.ok ? "text-emerald-600" : "text-orange-600"}`}>{s.ok ? "Operational" : "Degraded"}</span>
+              <span className={`text-xs ${s.ok ? "text-emerald-600" : "text-orange-600"}`}>
+                {s.ok ? t("Operational") : t("Degraded")}
+              </span>
             </div>
           ))}
         </Card>

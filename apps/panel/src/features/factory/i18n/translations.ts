@@ -1681,6 +1681,7 @@ export const translations = {
     membersOnlyHint: "Only members of this workspace can be selected",
     noPhoneNumber: "No mobile number",
     noMemberPhones: "No member of this workspace has a mobile number yet",
+    inviteMemberFirstHint: "To reach anyone else, add them to your workspace first.",
     slaUnit: "SLA: {n} minutes",
 
     // FirmwareForm
@@ -3864,6 +3865,7 @@ export const translations = {
     membersOnlyHint: "يمكن اختيار أعضاء مساحة العمل هذه فقط",
     noPhoneNumber: "لا يوجد رقم جوال",
     noMemberPhones: "لا يملك أي عضو في مساحة العمل هذه رقم جوال بعد",
+    inviteMemberFirstHint: "للوصول إلى شخص آخر، أضفه إلى مساحة عملك أولاً.",
     slaUnit: "SLA: {n} دقيقة",
 
     // FirmwareForm
@@ -6039,6 +6041,7 @@ export const translations = {
     membersOnlyHint: "فقط اعضای این فضای کاری قابل انتخاب هستند",
     noPhoneNumber: "شماره موبایل ثبت نشده",
     noMemberPhones: "هنوز هیچ عضوی از این فضای کاری شماره موبایل ندارد",
+    inviteMemberFirstHint: "برای فرستادن به کسی دیگر، اول او را به فضای کاری خود اضافه کنید.",
     slaUnit: "SLA: {n} دقیقه",
 
     // FirmwareForm
