@@ -17,6 +17,7 @@ import {
   CircleDot, ListFilter, Download, Pencil, UserPlus, Trash2,
 } from "lucide-react";
 import { ListToolbar, type ActionItem, type FilterField, type SortOption } from "@/features/factory/components/panel/ListToolbar";
+import { Card, CardContent } from "@/features/factory/components/ui/card";
 import { AddFirst } from "@/features/factory/components/AddFirst";
 import { useNavigate } from "react-router-dom";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
@@ -325,7 +326,11 @@ export const AlertList = () => {
 
 
 
-      {/* Standardized toolbar */}
+      {/* Toolbar, table and pagination in one card, the shape every other
+          list page on the panel uses. */}
+      <Card>
+        <CardContent className="pt-6">
+
       {(() => {
         const filterFields: FilterField[] = [
           {
@@ -557,7 +562,7 @@ export const AlertList = () => {
 
       {/* Pagination */}
       {filtered.length > pageSize && (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm mt-4 pt-4">
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground">{tt("alertRowsPerPage")}</span>
             <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
@@ -573,6 +578,9 @@ export const AlertList = () => {
           <SmartPagination currentPage={currentPage} totalPages={totalPages} onChange={setPage} />
         </div>
       )}
+
+        </CardContent>
+      </Card>
 
       {/* Detail side panel */}
       <Sheet open={!!opened} onOpenChange={(o) => !o && setOpenId(null)}>

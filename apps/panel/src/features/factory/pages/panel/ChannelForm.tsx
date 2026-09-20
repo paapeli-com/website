@@ -25,7 +25,9 @@ const ChannelForm = () => {
   const [actions, setActions] = useState<{ primary: Action; secondary?: Action } | null>(null);
 
   return (
-    <>
+    /* data-uniform-type: the page is written in Tailwind steps and reads
+       at those steps in every language, like Cloud Management's pages. */
+    <div data-uniform-type>
       <Breadcrumb className="mb-3">
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -71,7 +73,7 @@ const ChannelForm = () => {
           </Button>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

@@ -19,6 +19,7 @@ import { NoData } from "@/features/factory/components/NoData";
 import { TableRowsSkeleton } from "@/features/factory/components/panel/DetailPageSkeleton";
 import type { AlertSeverity } from "@/features/factory/types/alerts";
 import { ListToolbar, type ActionItem, type FilterField, type SortOption } from "@/features/factory/components/panel/ListToolbar";
+import { Card, CardContent } from "@/features/factory/components/ui/card";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import { useDevices } from "@/features/factory/hooks/useDevices";
 import { useToast } from "@/features/factory/hooks/use-toast";
@@ -269,6 +270,11 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
         </Button>
       </div>
 
+      {/* Toolbar, table and pagination in one card, the shape every other
+          list page on the panel uses. */}
+      <Card>
+        <CardContent className="pt-6">
+
       <ListToolbar
         search={{ value: search, onChange: setSearch, placeholder: tt("alertSearchPlaceholder") }}
         view={{ value: listView, onChange: setListView, available: ["table"] }}
@@ -280,7 +286,7 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
         selectionCount={0}
       />
 
-      <div className="relative rounded-lg border bg-card overflow-hidden">
+      <div className="relative rounded-lg border bg-card overflow-hidden text-sm [&_th]:text-xs [&_td]:text-sm [&_th]:h-10 [&_td]:p-3">
         {pageLoad.status === "loading" && <LoadingOverlay className="items-center pt-0" />}
         <Table>
           <TableHeader>
@@ -365,10 +371,13 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
       </div>
 
       {totalPages > 1 && (
-        <div className="flex justify-end">
+        <div className="flex justify-end mt-4 pt-4">
           <SmartPagination currentPage={currentPage} totalPages={totalPages} onChange={setPage} />
         </div>
       )}
+
+        </CardContent>
+      </Card>
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => { if (!o) setConfirmDelete(null); }}>
         <AlertDialogContent dir={isRTL ? "rtl" : "ltr"}>
