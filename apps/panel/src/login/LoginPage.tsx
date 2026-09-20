@@ -444,10 +444,14 @@ export default function LoginPage() {
                 />
               </div>
 
-              <div className="flex justify-end">
+              {/* In English this sits at the end of the line, under the right
+                  edge of the field. In Persian and Arabic `justify-end` is the
+                  left edge, which put it opposite the labels; it belongs on
+                  the same side they are on. */}
+              <div className="flex justify-end rtl:justify-start">
                 <button
                   type="button"
-                  className="text-sm font-medium text-primary hover:underline"
+                  className="text-start text-sm font-medium text-primary hover:underline"
                   onClick={startReset}
                 >
                   {copy.forgotPassword}
