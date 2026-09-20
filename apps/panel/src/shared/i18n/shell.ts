@@ -161,6 +161,31 @@ const fa: Record<string, string> = {
   "Thanks. We will get in touch.": "ممنون. با شما تماس می‌گیریم.",
   "That didn't go through. Please try again.": "ارسال نشد. دوباره تلاش کنید.",
 
+  // Workspaces (Cloud Management)
+  "Workspaces you belong to, and the products subscribed to the active one.":
+    "فضاهای کاری، و محصولاتی که فضای فعال مشترک شده.",
+  "Create your first workspace to get started.":
+    "برای شروع، اولین فضای کاری خود را بسازید.",
+  "Select a workspace to see its subscribed products.":
+    "یک فضای کاری را انتخاب کنید تا محصولات مشترک‌شده‌اش را ببینید.",
+  "No products subscribed": "محصولی مشترک نشده",
+  "Subscribe a product below to get started.":
+    "برای شروع، از پایین یک محصول را مشترک شوید.",
+  "Create workspace": "ساخت فضای کاری",
+  "e.g. Smart Factory Ops": "مثلاً عملیات کارخانه هوشمند",
+  "Failed to create workspace": "ساخت فضای کاری ناموفق بود",
+  OWNER: "مالک",
+  ADMIN: "مدیر",
+  MEMBER: "عضو",
+  VIEWER: "بیننده",
+  ACTIVE: "فعال",
+  INVITED: "دعوت‌شده",
+  SUSPENDED: "معلق",
+  PROVISIONING: "در حال آماده‌سازی",
+  FAILED: "ناموفق",
+  smartFactory: "کارخانه هوشمند",
+  gpsTracking: "ردیابی GPS",
+
   // Central API keys
   "One key can reach several Paapeli products. They all live here.":
     "یک کلید می‌تواند به چند محصول پاپلی دسترسی داشته باشد. همهٔ آن‌ها همین‌جا نگهداری می‌شوند.",
@@ -416,6 +441,31 @@ const ar: Record<string, string> = {
   "Enter a valid email address.": "أدخل بريداً إلكترونياً صالحاً.",
   "Thanks. We will get in touch.": "شكراً. سنتواصل معك.",
   "That didn't go through. Please try again.": "لم يتم الإرسال. حاول مرة أخرى.",
+
+  // Workspaces (Cloud Management)
+  "Workspaces you belong to, and the products subscribed to the active one.":
+    "مساحات العمل التي تنتمي إليها، والمنتجات المشترك بها في المساحة النشطة.",
+  "Create your first workspace to get started.":
+    "أنشئ أول مساحة عمل للبدء.",
+  "Select a workspace to see its subscribed products.":
+    "اختر مساحة عمل لعرض منتجاتها المشترك بها.",
+  "No products subscribed": "لا توجد منتجات مشترك بها",
+  "Subscribe a product below to get started.":
+    "اشترك في منتج من الأسفل للبدء.",
+  "Create workspace": "إنشاء مساحة عمل",
+  "e.g. Smart Factory Ops": "مثلاً عمليات المصنع الذكي",
+  "Failed to create workspace": "تعذر إنشاء مساحة العمل",
+  OWNER: "المالك",
+  ADMIN: "مشرف",
+  MEMBER: "عضو",
+  VIEWER: "مشاهد",
+  ACTIVE: "نشط",
+  INVITED: "مدعو",
+  SUSPENDED: "معلق",
+  PROVISIONING: "قيد التجهيز",
+  FAILED: "فشل",
+  smartFactory: "المصنع الذكي",
+  gpsTracking: "تتبع GPS",
 
   // Central API keys
   "One key can reach several Paapeli products. They all live here.":
