@@ -12,9 +12,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/features/factory
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/features/factory/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/features/factory/components/ui/dropdown-menu";
 import {
-  Search, Bell, AlertOctagon, Users, Zap, User, Clock,
+  Search, Bell, BellOff, AlertOctagon, Users, Zap, User, Clock,
   Bookmark, Archive, CheckCircle2, MoreHorizontal, ChevronLeft, ChevronRight, Eye,
-  CircleDot, ListFilter, Download, Pencil, UserPlus, Trash2,
+  CircleDot, ListFilter, Download, Pencil, UserPlus, Trash2, ArrowRight,
 } from "lucide-react";
 import { ListToolbar, type ActionItem, type FilterField, type SortOption } from "@/features/factory/components/panel/ListToolbar";
 import { Card, CardContent } from "@/features/factory/components/ui/card";
@@ -129,8 +129,15 @@ const toAlert = (a: WorkspaceAlarmItem, locationPath: string | undefined): Alert
 
 type StatusChip = "active" | "unacknowledged" | "acknowledged" | "escalated" | "archived";
 
-export const AlertList = () => {
-  const { t, isRTL, language } = useLanguage();
+interface AlertListProps {
+  /** How many rules stand watch, so an empty list can say why it is empty.
+   *  Null while the count is still unknown. */
+  ruleCount?: number | null;
+  onViewRules?: () => void;
+}
+
+export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}) => {
+  const { t, isRTL, language, formatNumber } = useLanguage();
   const tt = t as (k: string) => string;
   const navigate = useNavigate();
   const lp = (path: string) => localizedPath(path, language);
@@ -315,8 +322,10 @@ export const AlertList = () => {
                 <span className="text-xs font-medium text-muted-foreground truncate">{k.label}</span>
                 <Icon className={cn("h-3.5 w-3.5 shrink-0", k.accent)} />
               </div>
+              {/* Number then unit, as the device and gateway cards read. */}
               <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-xl font-bold text-foreground leading-none">{k.value}</span>
+                <span className="text-xl font-bold leading-none text-foreground">{formatNumber(k.value)}</span>
+                <span className="text-[11px] text-muted-foreground">{tt("alertAlarmsUnit")}</span>
               </div>
             </button>
           );
@@ -427,8 +436,8 @@ export const AlertList = () => {
               <TableHead>{tt("alertAlarm")}</TableHead>
               <TableHead>{tt("alertSeverity")}</TableHead>
               <TableHead>{tt("alertStatus")}</TableHead>
-              <TableHead>{tt("devices")}</TableHead>
-              <TableHead>{tt("locations")}</TableHead>
+              <TableHead>{tt("device")}</TableHead>
+              <TableHead>{tt("location")}</TableHead>
               <TableHead>{tt("alertDuration")}</TableHead>
               <TableHead>{tt("alertAssignedTo")}</TableHead>
               <TableHead className="text-end">{tt("actions")}</TableHead>
@@ -440,16 +449,35 @@ export const AlertList = () => {
             ) : paged.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={10}>
-                  {/* An empty alarm list means no rule has fired — and with no
-                      rule there is nothing that ever could, so the way out is
-                      to write one. Nothing matching the current filters keeps
-                      the clearable empty state instead. */}
-                  {alerts.length === 0 ? (
+                  {/* Three different emptinesses, and they need different
+                      answers. No rules at all: nothing can ever fire, so the
+                      way out is to write one. Rules but no alarms: that is
+                      the system working, so say so and point at the rules
+                      standing watch. Filtered to nothing: offer to clear. */}
+                  {alerts.length === 0 && ruleCount === 0 ? (
                     <AddFirst
                       icon={Bell}
                       label={tt("addYourFirstRule")}
                       onAction={() => navigate(lp("/alarms/rules/new"))}
                     />
+                  ) : alerts.length === 0 ? (
+                    <div className="py-12 text-center">
+                      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                        <BellOff className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <div className="font-medium text-foreground">{tt("alertNoActiveAlarms")}</div>
+                      {ruleCount !== null && (
+                        <div className="mt-1 text-sm text-muted-foreground">
+                          {tt("alertActiveRulesNote").replace("{n}", formatNumber(ruleCount))}
+                        </div>
+                      )}
+                      {onViewRules && (
+                        <Button variant="outline" size="sm" className="mt-4 gap-2" onClick={onViewRules}>
+                          {tt("alertViewRules")}
+                          <ArrowRight className={cn("h-4 w-4", isRTL && "rotate-180")} />
+                        </Button>
+                      )}
+                    </div>
                   ) : (
                     <div className="py-12 text-center">
                       <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">

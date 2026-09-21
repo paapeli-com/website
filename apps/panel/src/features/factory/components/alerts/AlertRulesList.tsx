@@ -14,7 +14,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/features/factory/components/ui/alert-dialog";
-import { Trash2, Plus, Zap, Clock, Repeat, Download } from "lucide-react";
+import { Trash2, Copy, Zap, Clock, Repeat, Download } from "lucide-react";
+import { AlertTemplates } from "@/features/factory/components/alerts/AlertTemplates";
+import { SectionHead } from "@/features/factory/components/alerts/AlertSection";
 import { NoData } from "@/features/factory/components/NoData";
 import { TableRowsSkeleton } from "@/features/factory/components/panel/DetailPageSkeleton";
 import type { AlertSeverity } from "@/features/factory/types/alerts";
@@ -106,11 +108,18 @@ const toRow = (r: AlarmRuleItem): RuleRow => {
 };
 
 interface AlertRulesListProps {
-  onCreateRule: () => void;
+  onCreateRule: (templateId?: string) => void;
+  /** Templates are a way to start a rule, so they open inside this tab. */
+  showTemplates?: boolean;
+  onShowTemplatesChange?: (show: boolean) => void;
 }
 
-export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
-  const { t, isRTL } = useLanguage();
+export const AlertRulesList = ({
+  onCreateRule,
+  showTemplates = false,
+  onShowTemplatesChange,
+}: AlertRulesListProps) => {
+  const { t, isRTL, formatNumber } = useLanguage();
   const tt = t as (k: string) => string;
   const { toast } = useToast();
   const workspaceId = useWorkspaceId();
@@ -256,19 +265,34 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
   const currentPage = Math.min(page, totalPages);
   const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  /* Templates open in place of the list rather than beside it: they are a way
+     to start a rule, not a second kind of thing to look through. */
+  if (showTemplates) {
+    return (
+      <AlertTemplates
+        onBack={() => onShowTemplatesChange?.(false)}
+        onUseTemplate={(templateId) => onCreateRule(templateId)}
+      />
+    );
+  }
+
   if (pageLoad.status === "failed") return <LoadFailed onRetry={pageLoad.retry} />;
 
   return (
     <div className="space-y-4" dir={isRTL ? "rtl" : "ltr"}>
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">
-          {data?.totalElements ?? rules.length} {tt("alertRulesCount")}
-        </p>
-        <Button size="sm" onClick={onCreateRule} className="bg-primary hover:bg-primary/90 text-primary-foreground h-9 px-4 gap-2 rounded-md">
-          <Plus className="h-4 w-4" />
-          {tt("alertCreateRule")}
-        </Button>
-      </div>
+      {/* Creating a rule is the page's primary action and lives in the header;
+          what belongs here is what this tab is, and the shortcut into the
+          templates that start one. */}
+      <SectionHead
+        title={tt("alertTabRules")}
+        subtitle={`${formatNumber(data?.totalElements ?? rules.length)} ${tt("alertRulesCount")}`}
+        actions={
+          <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => onShowTemplatesChange?.(true)}>
+            <Copy className="h-4 w-4" />
+            {tt("alertTemplatesButton")}
+          </Button>
+        }
+      />
 
       {/* Toolbar, table and pagination in one card, the shape every other
           list page on the panel uses. */}

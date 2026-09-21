@@ -10,7 +10,11 @@ import type { EscalationPolicy } from "@/features/factory/types/alerts";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/features/factory/components/ui/card";
+import { Card, CardContent } from "@/features/factory/components/ui/card";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/features/factory/components/ui/table";
+import { AddFirst } from "@/features/factory/components/AddFirst";
 import { Badge } from "@/features/factory/components/ui/badge";
 import { Button } from "@/features/factory/components/ui/button";
 import { Switch } from "@/features/factory/components/ui/switch";
@@ -18,9 +22,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/features/factory/components/ui/alert-dialog";
-import { Plus, Edit, Clock, Users, ArrowRight, Trash2 } from "lucide-react";
-import { NoData } from "@/features/factory/components/NoData";
-import { Skeleton } from "@/features/factory/components/ui/skeleton";
+import { Plus, Edit, Users, ArrowRight, Trash2 } from "lucide-react";
 import { queryLoad, usePageLoad } from "@/shared/hooks/usePageLoad";
 import { LoadFailed } from "@/shared/components/LoadFailed";
 import { LoadingOverlay } from "@/shared/components/LoadingOverlay";
@@ -138,10 +140,7 @@ export const EscalationPolicies = ({ onCreateClick, onEditClick }: EscalationPol
 
   return (
     <div className="space-y-4" dir={isRTL ? "rtl" : "ltr"}>
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">
-          {policies.length} {t("alertEscalationPoliciesCount")}
-        </p>
+      <div className="flex justify-end items-center">
         <Button size="sm" onClick={onCreateClick} disabled={!onCreateClick} className="h-9 px-4 gap-2">
           <Plus className="h-4 w-4" />
           {t("alertCreateEscalation")}
@@ -151,90 +150,106 @@ export const EscalationPolicies = ({ onCreateClick, onEditClick }: EscalationPol
 
       {pageLoad.status === "failed" ? (
         <LoadFailed onRetry={pageLoad.retry} />
-      ) : pageLoad.status === "loading" ? (
-        <div className="relative space-y-4">
-          <div className="grid gap-4" aria-hidden="true">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="space-y-3 rounded-lg border bg-card p-4">
-                <Skeleton className="h-5 w-48" />
-                <Skeleton className="h-3.5 w-72 max-w-full" />
-                <div className="flex gap-2">
-                  <Skeleton className="h-8 w-28" />
-                  <Skeleton className="h-8 w-28" />
-                  <Skeleton className="h-8 w-28" />
-                </div>
-              </div>
-            ))}
-          </div>
-          <LoadingOverlay className="items-center pt-0" />
-        </div>
-      ) : policies.length === 0 && <NoData message={tt("alertNoEscalationsCreateFirst")} />}
-
-      <div className="grid gap-4">
-        {policies.map(policy => {
-          const k = policyI18n[policy.id];
-          const name = k ? tt(k.name) : policy.name;
-          const desc = k ? tt(k.desc) : policy.description;
-          return (
-          <Card key={policy.id}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">{name}</CardTitle>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={isEnabled(policy.id, policy.enabled)}
-                    onCheckedChange={() => togglePolicy(policy.id, isEnabled(policy.id, policy.enabled))}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onEditClick?.(policy.alarmRuleId)}
-                    disabled={!onEditClick}
-                    aria-label={tt("edit")}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground hover:text-destructive"
-                    onClick={() => setConfirmDelete(policy)}
-                    aria-label={tt("delete")}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground">{desc}</p>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2 mb-3">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{t("alertSlaLabel")}: <strong>{policy.slaMinutes} {t("alertMinutesShort")}</strong></span>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {policy.levels.map((level, i) => {
-                  const roleKey = roleI18n[level.role];
-                  const roleLabel = roleKey ? tt(roleKey) : level.role;
-                  return (
-                  <div key={level.level} className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted border border-border">
-                      <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                      <div>
-                        <p className="text-xs font-medium">L{level.level}: {roleLabel}</p>
-                        <p className="text-xs text-muted-foreground">{level.delayMinutes === 0 ? t("alertImmediate") : `+${level.delayMinutes} ${t("alertMinutesShort")}`}</p>
-                      </div>
-                    </div>
-                    {i < policy.levels.length - 1 && <ArrowRight className={`h-4 w-4 text-muted-foreground ${isRTL ? "rotate-180" : ""}`} />}
-                  </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-          );
-        })}
-      </div>
+      ) : (
+        /* The table the alarm and device lists use: one card around it, the
+           shared type scale and row height, and the empty state inside the
+           body so the columns stay on screen. Each policy used to be a card
+           of its own, which left this tab looking unlike every other list. */
+        <Card>
+          <CardContent className="pt-6">
+            <div className="relative rounded-lg border bg-card overflow-hidden text-sm [&_th]:text-xs [&_td]:text-sm [&_th]:h-10 [&_td]:p-3">
+              {pageLoad.status === "loading" && <LoadingOverlay className="items-center pt-0" />}
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead>{tt("name")}</TableHead>
+                    <TableHead className="hidden md:table-cell">{tt("description")}</TableHead>
+                    <TableHead>{tt("alertSlaLabel")}</TableHead>
+                    <TableHead>{tt("alertEscalationSteps")}</TableHead>
+                    <TableHead>{tt("enabled")}</TableHead>
+                    <TableHead className="w-[100px] text-end">{tt("actions")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {policies.length === 0 ? (
+                    pageLoad.status === "loading" ? null : (
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={6}>
+                          <AddFirst icon={Users} label={tt("addYourFirstEscalation")} onAction={() => onCreateClick?.()} />
+                        </TableCell>
+                      </TableRow>
+                    )
+                  ) : policies.map(policy => {
+                    const k = policyI18n[policy.id];
+                    const name = k ? tt(k.name) : policy.name;
+                    const desc = k ? tt(k.desc) : policy.description;
+                    return (
+                      <TableRow key={policy.id}>
+                        <TableCell className="font-medium">{name}</TableCell>
+                        <TableCell className="hidden md:table-cell text-muted-foreground">{desc || "\u2014"}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {policy.slaMinutes} {tt("alertMinutesShort")}
+                        </TableCell>
+                        <TableCell>
+                          {/* The levels kept, but in one cell: who is called,
+                              and how long after the one before. */}
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {policy.levels.length === 0 && <span className="text-muted-foreground">{"\u2014"}</span>}
+                            {policy.levels.map((level, i) => {
+                              const roleKey = roleI18n[level.role];
+                              const roleLabel = roleKey ? tt(roleKey) : level.role;
+                              return (
+                                <span key={level.level} className="inline-flex items-center gap-1.5">
+                                  <Badge variant="outline" className="font-normal">
+                                    L{level.level}
+                                    {roleLabel ? ` \u00b7 ${roleLabel}` : ""}
+                                    {level.delayMinutes > 0 ? ` +${level.delayMinutes}${tt("alertMinutesShort")}` : ""}
+                                  </Badge>
+                                  {i < policy.levels.length - 1 && (
+                                    <ArrowRight className={`h-3 w-3 shrink-0 text-muted-foreground ${isRTL ? "rotate-180" : ""}`} />
+                                  )}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Switch
+                            checked={isEnabled(policy.id, policy.enabled)}
+                            onCheckedChange={() => togglePolicy(policy.id, isEnabled(policy.id, policy.enabled))}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1 justify-end">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onEditClick?.(policy.alarmRuleId)}
+                              disabled={!onEditClick}
+                              aria-label={tt("edit")}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-muted-foreground hover:text-destructive"
+                              onClick={() => setConfirmDelete(policy)}
+                              aria-label={tt("delete")}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => { if (!o) setConfirmDelete(null); }}>
         <AlertDialogContent dir={isRTL ? "rtl" : "ltr"}>

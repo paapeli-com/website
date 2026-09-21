@@ -10,8 +10,9 @@ import {
   Download, Pencil, Archive,
 } from "lucide-react";
 import type { NotificationChannelType } from "@/features/factory/types/alerts";
-import { NoData } from "@/features/factory/components/NoData";
 import { ListToolbar, type ActionItem, type FilterField, type SortOption } from "@/features/factory/components/panel/ListToolbar";
+import { Card, CardContent } from "@/features/factory/components/ui/card";
+import { AddFirst } from "@/features/factory/components/AddFirst";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import { useChannelsStore } from "@/features/factory/hooks/useAlertStore";
 
@@ -142,10 +143,7 @@ export const NotificationChannels = ({ onCreateClick }: NotificationChannelsProp
 
   return (
     <div className="space-y-4" dir={isRTL ? "rtl" : "ltr"}>
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">
-          {channels.length} {t("alertChannelsCount")}
-        </p>
+      <div className="flex justify-end items-center">
         <Button
           size="sm"
           onClick={onCreateClick}
@@ -156,6 +154,11 @@ export const NotificationChannels = ({ onCreateClick }: NotificationChannelsProp
           {t("alertAddChannel")}
         </Button>
       </div>
+
+      {/* Toolbar, table and pagination in one card, the shape every other
+          list on the panel uses. */}
+      <Card>
+        <CardContent className="pt-6">
 
       <ListToolbar
         search={{ value: search, onChange: setSearch, placeholder: tt("search") }}
@@ -172,7 +175,7 @@ export const NotificationChannels = ({ onCreateClick }: NotificationChannelsProp
         selectionCount={0}
       />
 
-      <div className="rounded-lg border bg-card overflow-hidden">
+      <div className="relative rounded-lg border bg-card overflow-hidden text-sm [&_th]:text-xs [&_td]:text-sm [&_th]:h-10 [&_td]:p-3">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40">
@@ -233,12 +236,13 @@ export const NotificationChannels = ({ onCreateClick }: NotificationChannelsProp
               );
             })}
             {paged.length === 0 && (
-              <TableRow>
+              <TableRow className="hover:bg-transparent">
                 <TableCell colSpan={5} className="p-0">
-                  {/* Nothing stored at all is "no data"; nothing matching the
-                      current search/filters is an empty result set. */}
+                  {/* Nothing stored at all offers the way to start; nothing
+                      matching the current search or filters is a different
+                      thing and says so. */}
                   {channels.length === 0 ? (
-                    <NoData message={tt("alertNoChannelsCreateFirst")} />
+                    <AddFirst icon={Bell} label={tt("addYourFirstChannel")} onAction={() => onCreateClick?.()} />
                   ) : (
                     <p className="text-center text-sm text-muted-foreground py-10">{tt("noResults") || "No results"}</p>
                   )}
@@ -250,10 +254,13 @@ export const NotificationChannels = ({ onCreateClick }: NotificationChannelsProp
       </div>
 
       {totalPages > 1 && (
-        <div className="flex justify-end">
+        <div className="flex justify-end mt-4 pt-4">
           <SmartPagination currentPage={currentPage} totalPages={totalPages} onChange={setPage} />
         </div>
       )}
+
+        </CardContent>
+      </Card>
     </div>
   );
 };

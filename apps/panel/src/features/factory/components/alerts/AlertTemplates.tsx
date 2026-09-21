@@ -1,104 +1,66 @@
+import { ArrowLeft, ArrowRight, Droplets, Thermometer } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
-import { Badge } from "@/features/factory/components/ui/badge";
 import { Button } from "@/features/factory/components/ui/button";
 import { Card, CardContent } from "@/features/factory/components/ui/card";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/features/factory/components/ui/tooltip";
-import { Plus, Copy } from "lucide-react";
-import { NoData } from "@/features/factory/components/NoData";
-import type { AlertSeverity, AlertTemplate } from "@/features/factory/types/alerts";
+import { BackLink, SectionHead } from "@/features/factory/components/alerts/AlertSection";
 
-const severityColors: Record<AlertSeverity, string> = {
-  critical: "bg-destructive text-destructive-foreground",
-  high: "bg-orange-500 text-white",
-  medium: "bg-yellow-500 text-white",
-  low: "bg-blue-500 text-white",
-};
+/* Starting points for a rule, not data.
+ *
+ * The four ATPL-* templates that used to render here were invented tenant
+ * records — named, categorised, with conditions nobody had written — and
+ * "Use template" only navigated, so picking one changed nothing. These two
+ * are the opposite: they are ours, not the account's, and choosing one
+ * carries into the rule form, which opens with the tag and the comparison
+ * already set and the device and threshold left to fill in.
+ *
+ * Add a template by adding a row here and a case in the wizard's presets. */
+export const RULE_TEMPLATES: {
+  id: string;
+  icon: LucideIcon;
+  nameKey: string;
+  descKey: string;
+}[] = [
+  { id: "temperature", icon: Thermometer, nameKey: "tplHighTempName", descKey: "tplHighTempDesc" },
+  { id: "humidity", icon: Droplets, nameKey: "tplHighHumidityName", descKey: "tplHighHumidityDesc" },
+];
 
 interface AlertTemplatesProps {
-  onUseTemplate: () => void;
+  onUseTemplate: (templateId: string) => void;
+  onBack: () => void;
 }
 
-const tplI18n: Record<string, { name: string; desc: string; category: string }> = {
-  "ATPL-001": { name: "tplTempThresholdName", desc: "tplTempThresholdDesc", category: "tplCatTemperature" },
-  "ATPL-002": { name: "tplVibrationName", desc: "tplVibrationDesc", category: "tplCatVibration" },
-  "ATPL-003": { name: "tplHeartbeatName", desc: "tplHeartbeatDesc", category: "tplCatConnectivity" },
-  "ATPL-004": { name: "tplPressureName", desc: "tplPressureDesc", category: "tplCatPressure" },
-};
-
-const severityLabelKey: Record<AlertSeverity, string> = {
-  critical: "alertCritical",
-  high: "alertHigh",
-  medium: "alertMedium",
-  low: "alertLow",
-};
-
-const ruleTypeKey: Record<string, string> = {
-  threshold: "ruleTypeThreshold",
-  heartbeat: "ruleTypeHeartbeat",
-};
-
-export const AlertTemplates = ({ onUseTemplate }: AlertTemplatesProps) => {
+export const AlertTemplates = ({ onUseTemplate, onBack }: AlertTemplatesProps) => {
   const { t, isRTL } = useLanguage();
   const tt = t as (k: string) => string;
-
-  /* The four ATPL-* templates that used to render here were invented, and
-     "Use template" never carried the choice into the rule form anyway — it
-     just navigates. Nothing serves templates yet, so the tab says so. */
-  const templates: AlertTemplate[] = [];
+  const Arrow = isRTL ? ArrowLeft : ArrowRight;
 
   return (
     <div className="space-y-4" dir={isRTL ? "rtl" : "ltr"}>
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">
-          {t("alertTemplatesDesc")}
-        </p>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button size="sm" disabled>
-              <Plus className="h-4 w-4 me-1" />
-              {t("alertCreateTemplate")}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{t("settingsComingSoon")}</TooltipContent>
-        </Tooltip>
-      </div>
+      <BackLink label={tt("alertTabRules")} onClick={onBack} />
+      <SectionHead title={tt("alertTemplatesTitle")} subtitle={tt("alertTemplatesSubtitle")} />
 
-      {templates.length === 0 && <NoData />}
-
-      <div className="grid sm:grid-cols-2 gap-4">
-        {templates.map(template => {
-          const k = tplI18n[template.id];
-          const name = k ? tt(k.name) : template.name;
-          const desc = k ? tt(k.desc) : template.description;
-          const category = k ? tt(k.category) : template.category;
-          const ruleType = ruleTypeKey[template.ruleType] ? tt(ruleTypeKey[template.ruleType]) : template.ruleType;
+      <div className="grid gap-3">
+        {RULE_TEMPLATES.map((template) => {
+          const Icon = template.icon;
           return (
-          <Card key={template.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-medium">{name}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{desc}</p>
-                </div>
-                <Badge className={severityColors[template.severity]}>{tt(severityLabelKey[template.severity])}</Badge>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs">{ruleType}</Badge>
-                <Badge variant="outline" className="text-xs">{category}</Badge>
-              </div>
-              <div className="text-xs text-muted-foreground" dir="ltr">
-                {template.conditionGroups[0]?.conditions.map(c => (
-                  <span key={c.id} className="font-mono">
-                    {c.telemetryTag} {c.operator} {c.value}
+            <Card key={template.id} className="transition-colors hover:border-primary/40">
+              <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-6">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Icon className="size-4" />
                   </span>
-                ))}
-              </div>
-              <Button variant="outline" size="sm" className="w-full" onClick={onUseTemplate}>
-                <Copy className="h-3 w-3 me-1" />
-                {t("alertUseTemplate")}
-              </Button>
-            </CardContent>
-          </Card>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-foreground">{tt(template.nameKey)}</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{tt(template.descKey)}</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" className="h-9 shrink-0 gap-2" onClick={() => onUseTemplate(template.id)}>
+                  {tt("alertUseTemplate")}
+                  <Arrow className="h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
           );
         })}
       </div>
