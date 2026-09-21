@@ -2,6 +2,9 @@ import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { Badge } from "@/features/factory/components/ui/badge";
 import { Button } from "@/features/factory/components/ui/button";
 import { Card, CardContent } from "@/features/factory/components/ui/card";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/features/factory/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/features/factory/components/ui/tooltip";
 import { Plus, Copy } from "lucide-react";
 import { NoData } from "@/features/factory/components/NoData";
@@ -48,10 +51,7 @@ export const AlertTemplates = ({ onUseTemplate }: AlertTemplatesProps) => {
 
   return (
     <div className="space-y-4" dir={isRTL ? "rtl" : "ltr"}>
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">
-          {t("alertTemplatesDesc")}
-        </p>
+      <div className="flex justify-end items-center">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button size="sm" disabled>
@@ -63,45 +63,70 @@ export const AlertTemplates = ({ onUseTemplate }: AlertTemplatesProps) => {
         </Tooltip>
       </div>
 
-      {templates.length === 0 && <NoData />}
-
-      <div className="grid sm:grid-cols-2 gap-4">
-        {templates.map(template => {
-          const k = tplI18n[template.id];
-          const name = k ? tt(k.name) : template.name;
-          const desc = k ? tt(k.desc) : template.description;
-          const category = k ? tt(k.category) : template.category;
-          const ruleType = ruleTypeKey[template.ruleType] ? tt(ruleTypeKey[template.ruleType]) : template.ruleType;
-          return (
-          <Card key={template.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-medium">{name}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{desc}</p>
-                </div>
-                <Badge className={severityColors[template.severity]}>{tt(severityLabelKey[template.severity])}</Badge>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs">{ruleType}</Badge>
-                <Badge variant="outline" className="text-xs">{category}</Badge>
-              </div>
-              <div className="text-xs text-muted-foreground" dir="ltr">
-                {template.conditionGroups[0]?.conditions.map(c => (
-                  <span key={c.id} className="font-mono">
-                    {c.telemetryTag} {c.operator} {c.value}
-                  </span>
-                ))}
-              </div>
-              <Button variant="outline" size="sm" className="w-full" onClick={onUseTemplate}>
-                <Copy className="h-3 w-3 me-1" />
-                {t("alertUseTemplate")}
-              </Button>
-            </CardContent>
-          </Card>
-          );
-        })}
-      </div>
+      {/* The table the alarm and device lists use, rather than a grid of
+          cards: one card around it, the shared type scale and row height,
+          and the empty state inside the body so the columns stay on screen.
+          Nothing serves templates yet, so that is what it reports \u2014 there is
+          no "add your first" here, because creating one is not possible. */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="relative rounded-lg border bg-card overflow-hidden text-sm [&_th]:text-xs [&_td]:text-sm [&_th]:h-10 [&_td]:p-3">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead>{tt("name")}</TableHead>
+                  <TableHead>{tt("alertSeverity")}</TableHead>
+                  <TableHead>{tt("triggerType")}</TableHead>
+                  <TableHead className="hidden md:table-cell">{tt("alertTemplateCategory")}</TableHead>
+                  <TableHead className="w-[140px] text-end">{tt("actions")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {templates.length === 0 ? (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={5} className="p-0">
+                      <NoData />
+                    </TableCell>
+                  </TableRow>
+                ) : templates.map(template => {
+                  const k = tplI18n[template.id];
+                  const name = k ? tt(k.name) : template.name;
+                  const desc = k ? tt(k.desc) : template.description;
+                  const category = k ? tt(k.category) : template.category;
+                  const ruleType = ruleTypeKey[template.ruleType] ? tt(ruleTypeKey[template.ruleType]) : template.ruleType;
+                  return (
+                    <TableRow key={template.id}>
+                      <TableCell>
+                        <span className="flex flex-col">
+                          <span className="font-medium">{name}</span>
+                          <span className="text-xs text-muted-foreground">{desc}</span>
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={severityColors[template.severity]}>
+                          {tt(severityLabelKey[template.severity])}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-normal">{ruleType}</Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-muted-foreground">{category}</TableCell>
+                      <TableCell>
+                        <div className="flex justify-end">
+                          <Button variant="outline" size="sm" onClick={onUseTemplate}>
+                            <Copy className="h-3 w-3 me-1" />
+                            {t("alertUseTemplate")}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

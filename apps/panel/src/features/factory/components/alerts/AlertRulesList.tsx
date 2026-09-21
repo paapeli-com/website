@@ -260,10 +260,7 @@ export const AlertRulesList = ({ onCreateRule }: AlertRulesListProps) => {
 
   return (
     <div className="space-y-4" dir={isRTL ? "rtl" : "ltr"}>
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">
-          {data?.totalElements ?? rules.length} {tt("alertRulesCount")}
-        </p>
+      <div className="flex justify-end items-center">
         <Button size="sm" onClick={onCreateRule} className="bg-primary hover:bg-primary/90 text-primary-foreground h-9 px-4 gap-2 rounded-md">
           <Plus className="h-4 w-4" />
           {tt("alertCreateRule")}
