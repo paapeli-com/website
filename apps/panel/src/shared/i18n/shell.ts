@@ -326,6 +326,9 @@ const fa: Record<string, string> = {
 
   // Account menu
   "Loading…": "در حال بارگذاری…",
+  "Switch workspace?": "تغییر فضای کاری؟",
+  "The page will reload to show the data of": "صفحه دوباره بارگذاری می‌شود تا داده‌های این فضای کاری نمایش داده شود:",
+  Switch: "تغییر",
   "No workspaces yet.": "هنوز فضای کاری ندارید.",
   "Create new workspace": "ایجاد فضای کاری جدید",
   "Manage workspaces": "مدیریت فضاهای کاری",
@@ -675,6 +678,9 @@ const ar: Record<string, string> = {
 
   // Account menu
   "Loading…": "جارٍ التحميل…",
+  "Switch workspace?": "تبديل مساحة العمل؟",
+  "The page will reload to show the data of": "ستُعاد تحميل الصفحة لعرض بيانات مساحة العمل:",
+  Switch: "تبديل",
   "No workspaces yet.": "لا توجد مساحات عمل بعد.",
   "Create new workspace": "إنشاء مساحة عمل جديدة",
   "Manage workspaces": "إدارة مساحات العمل",

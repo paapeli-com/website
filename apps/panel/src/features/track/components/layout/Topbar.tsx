@@ -14,6 +14,7 @@ import { Button } from "@/features/track/components/ui/button";
 import { LanguageMenu } from "./LanguageMenu";
 import { ProductSwitcher } from "./ProductSwitcher";
 import { useTrackerAlarms } from "@/features/track/lib/useTrackerAlarms";
+import { useWorkspaceSwitch } from "@/shared/components/WorkspaceSwitchDialog";
 import { trackPath } from "@/features/track/lib/trackPath";
 
 const iconBtn =
@@ -21,7 +22,8 @@ const iconBtn =
 
 export function Topbar({ onMenu }: { onMenu: () => void }) {
   const { t } = useLanguage();
-  const { workspaces, activeId: activeWs, setActive: setActiveWs } = useWorkspace();
+  const { workspaces, activeId: activeWs } = useWorkspace();
+  const workspaceSwitch = useWorkspaceSwitch();
   const { brand } = useBrand();
   const { dark, toggle } = useTheme();
   const navigate = useNavigate();
@@ -102,7 +104,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
               return (
                 <button
                   key={ws.id}
-                  onClick={() => setActiveWs(ws.id)}
+                  onClick={() => workspaceSwitch.requestSwitch(ws.id, ws.name, activeWs)}
                   className={`flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-muted ${isActive ? "font-medium text-primary" : ""}`}
                 >
                   <span className={`flex size-6 items-center justify-center rounded-md ${isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
@@ -132,6 +134,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
           </div>
         </div>
       </div>
+      {workspaceSwitch.dialog}
     </header>
   );
 }

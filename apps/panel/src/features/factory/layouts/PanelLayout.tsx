@@ -46,6 +46,7 @@ import {
   DropdownMenuTrigger,
 } from "@/features/factory/components/ui/dropdown-menu";
 import { useWorkspace } from "@/features/factory/store/workspaceStore";
+import { useWorkspaceSwitch } from "@/shared/components/WorkspaceSwitchDialog";
 import { getCurrentUser } from "@paapeli/brand/session";
 import { signOut as endSession, startIdleWatch } from "@paapeli/brand/session";
 import { endServerSession } from "@paapeli/api";
@@ -142,7 +143,8 @@ const PanelPageSkeleton = ({ isRTL, loadingText }: { isRTL: boolean; loadingText
 export const PanelLayout = ({ children }: PanelLayoutProps) => {
   const { t, isRTL, language, setLanguage } = useLanguage();
   const { signOut } = useAuth();
-  const { workspaces, activeId: activeWs, setActive: setActiveWs } = useWorkspace();
+  const { workspaces, activeId: activeWs } = useWorkspace();
+  const workspaceSwitch = useWorkspaceSwitch();
   // Identity comes from the shared session user (not Cognito, which is no
   // longer used for gating). Keeps the avatar/profile working.
   const currentUser = getCurrentUser();
@@ -581,7 +583,7 @@ export const PanelLayout = ({ children }: PanelLayoutProps) => {
                 return (
                   <DropdownMenuItem
                     key={ws.id}
-                    onClick={() => setActiveWs(ws.id)}
+                    onClick={() => workspaceSwitch.requestSwitch(ws.id, ws.name, activeWs)}
                     className={isActive ? "text-primary font-medium" : ""}
                   >
                     <span className={`me-2 flex h-6 w-6 items-center justify-center rounded-md ${isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
@@ -642,6 +644,7 @@ export const PanelLayout = ({ children }: PanelLayoutProps) => {
           </footer>
         </div>
       </div>
+      {workspaceSwitch.dialog}
     </div>
   );
 };

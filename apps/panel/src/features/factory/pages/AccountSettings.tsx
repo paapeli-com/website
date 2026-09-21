@@ -6,6 +6,7 @@ import { signOut as endSession } from "@paapeli/brand/session";
 import { endServerSession, useGetMyPhoneQuery, useSetMyPhoneMutation, E164_PHONE_PATTERN } from "@paapeli/api";
 import { useAuth } from "@/features/factory/store/authStore";
 import { useWorkspace } from "@/features/factory/store/workspaceStore";
+import { useWorkspaceSwitch } from "@/shared/components/WorkspaceSwitchDialog";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { Card, CardContent } from "@/features/factory/components/ui/card";
 import { Button } from "@/features/factory/components/ui/button";
@@ -52,7 +53,8 @@ const AccountSettings = () => {
   /* Real workspaces (GET /api/v1/aiot/workspaces); the selection is the same
      one the panel host's account menu drives, and is what scopes this
      product's API calls. */
-  const { workspaces, activeId: activeWs, setActive: setActiveWs, addWorkspace, canAdd, isAdding } = useWorkspace();
+  const { workspaces, activeId: activeWs, addWorkspace, canAdd, isAdding } = useWorkspace();
+  const workspaceSwitch = useWorkspaceSwitch();
   const navigate = useNavigate();
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -368,7 +370,7 @@ const AccountSettings = () => {
               return (
                 <button
                   key={ws.id}
-                  onClick={() => setActiveWs(ws.id)}
+                  onClick={() => workspaceSwitch.requestSwitch(ws.id, ws.name, activeWs)}
                   className={`flex w-full items-center gap-3 rounded-lg border p-3 text-start transition-colors ${isActive ? "border-primary bg-primary/5" : "hover:bg-muted"}`}
                 >
                   <span className={`flex h-9 w-9 items-center justify-center rounded-md ${isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
@@ -412,6 +414,7 @@ const AccountSettings = () => {
           </p>
         </CardContent>
       </Card>
+      {workspaceSwitch.dialog}
     </>
   );
 };
