@@ -54,11 +54,6 @@ function MembersPage() {
     <div data-uniform-type dir={isRTL ? "rtl" : "ltr"} className="flex flex-col gap-6 p-6">
       <PageHeader
         title={tr("members")}
-        description={
-          selected
-            ? tr("pageSubtitle", { workspace: selected.workspaceName })
-            : tr("pageSubtitleNoWorkspace")
-        }
         actions={
           <>
             {/* New Role belongs to the tab that shows roles, so it appears

@@ -221,7 +221,7 @@ export function Tabs({ items, value, onChange }: { items: string[]; value: strin
           type="button"
           onClick={() => onChange(t)}
           className={cn(
-            "shrink-0 whitespace-nowrap border-b-2 pb-2.5 text-[13.5px] font-medium transition-colors",
+            "shrink-0 whitespace-nowrap border-b-2 pb-2.5 text-sm font-medium transition-colors",
             t === value ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground",
           )}
         >

@@ -8,16 +8,6 @@ export type Lang = "en" | "ar" | "fa";
 export const D: Record<string, Record<Lang, string>> = {
   // Page chrome
   members: { en: "Members", ar: "الأعضاء", fa: "اعضا" },
-  pageSubtitle: {
-    en: "People, roles and invitations for {workspace}",
-    ar: "الأشخاص والأدوار والدعوات في {workspace}",
-    fa: "افراد، نقش‌ها و دعوت‌نامه‌های {workspace}",
-  },
-  pageSubtitleNoWorkspace: {
-    en: "People, roles and invitations for this workspace",
-    ar: "الأشخاص والأدوار والدعوات في مساحة العمل هذه",
-    fa: "افراد، نقش‌ها و دعوت‌نامه‌های این فضای کاری",
-  },
   inviteMember: { en: "Invite Member", ar: "دعوة عضو", fa: "دعوت عضو" },
   newRole: { en: "New Role", ar: "دور جديد", fa: "نقش جدید" },
 
