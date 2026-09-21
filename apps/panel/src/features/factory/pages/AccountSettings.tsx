@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { getCurrentUser } from "@paapeli/brand/session";
 import { signOut as endSession } from "@paapeli/brand/session";
-import { endServerSession } from "@paapeli/api";
+import { endServerSession, useGetMyPhoneQuery, useSetMyPhoneMutation, E164_PHONE_PATTERN } from "@paapeli/api";
 import { useAuth } from "@/features/factory/store/authStore";
 import { useWorkspace } from "@/features/factory/store/workspaceStore";
 import { PageHeader } from "@/features/factory/components/PageHeader";
@@ -21,7 +21,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
-import { Camera, Mail, User as UserIcon, Shield, LogOut, Building2, Plus, Check, Palette, Paintbrush } from "lucide-react";
+import { Camera, Mail, Phone, User as UserIcon, Shield, LogOut, Building2, Plus, Check, Palette, Paintbrush } from "lucide-react";
 import { Switch } from "@/features/factory/components/ui/switch";
 import { useTheme } from "@paapeli/brand/theme";
 import { useBrand, type AccentId } from "@/shell/BrandProvider";
@@ -77,6 +77,21 @@ const AccountSettings = () => {
   const [displayNameInput, setDisplayNameInput] = useState(accountName);
   const [newWs, setNewWs] = useState("");
 
+  /* Phone contact (GET/PUT /users/me/contact-methods/phone). A 404 means none
+     is set yet, so the field starts empty. The input is seeded once, when the
+     stored number arrives, and is not overwritten while the user types. */
+  const phoneQuery = useGetMyPhoneQuery();
+  const setPhone = useSetMyPhoneMutation();
+  const [phoneInput, setPhoneInput] = useState("");
+  const [phoneSeeded, setPhoneSeeded] = useState(false);
+  useEffect(() => {
+    if (phoneSeeded || phoneQuery.isPending) return;
+    setPhoneInput(phoneQuery.data?.phone ?? "");
+    setPhoneSeeded(true);
+  }, [phoneQuery.isPending, phoneQuery.data, phoneSeeded]);
+  const phoneTrimmed = phoneInput.replace(/[\s-]/g, "");
+  const phoneInvalid = phoneTrimmed !== "" && !E164_PHONE_PATTERN.test(phoneTrimmed);
+
   useEffect(() => {
     try {
       const stored = localStorage.getItem(storageKey);
@@ -110,7 +125,30 @@ const AccountSettings = () => {
     } catch {}
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    const storedPhone = phoneQuery.data?.phone ?? "";
+    if (phoneTrimmed !== storedPhone) {
+      if (!phoneTrimmed) {
+        // The API has no delete for the phone contact; an empty field can't be saved.
+        setPhoneInput(storedPhone);
+      } else if (phoneInvalid) {
+        toast({ title: t("error"), description: t("phoneInvalid"), variant: "destructive" });
+        return;
+      } else {
+        try {
+          const saved = await setPhone.mutateAsync({ phone: phoneTrimmed });
+          setPhoneInput(saved.phone);
+        } catch (err) {
+          const status = (err as { response?: { status?: number } })?.response?.status;
+          toast({
+            title: t("error"),
+            description: status === 400 ? t("phoneInvalid") : (err as Error)?.message,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    }
     toast({ title: "Saved", description: "Your profile has been updated." });
   };
 
@@ -213,6 +251,26 @@ const AccountSettings = () => {
               </Label>
               <Input id="email" type="email" value={email || ""} disabled className="bg-muted" />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="flex items-center gap-2 text-xs">
+                <Phone className="h-3.5 w-3.5" /> {t("phone")}
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                inputMode="tel"
+                dir="ltr"
+                value={phoneInput}
+                placeholder="+989121234567"
+                disabled={phoneQuery.isPending}
+                aria-invalid={phoneInvalid}
+                onChange={(e) => setPhoneInput(e.target.value)}
+                className={phoneInvalid ? "border-destructive focus-visible:ring-destructive" : undefined}
+              />
+              <p className={`text-[11px] ${phoneInvalid ? "text-destructive" : "text-muted-foreground"}`}>
+                {phoneInvalid ? t("phoneInvalid") : t("phoneFormatHint")}
+              </p>
+            </div>
           </div>
 
           <Separator />
@@ -235,7 +293,7 @@ const AccountSettings = () => {
               <LogOut className="h-4 w-4" />
               {language === "en" ? "Sign out" : language === "ar" ? "تسجيل الخروج" : "خروج"}
             </Button>
-            <Button onClick={handleSave} className="bg-primary hover:bg-primary/90">
+            <Button onClick={handleSave} disabled={setPhone.isPending} className="bg-primary hover:bg-primary/90">
               {t("saveChanges")}
             </Button>
           </div>

@@ -73,6 +73,7 @@ import {
   useGetDeviceActivitiesQuery,
   useGetDeviceByIdQuery,
   useGetDeviceCredentialsQuery,
+  useUpdateDeviceCredentialsMutation,
   useEditDeviceMutation,
   useSendDeviceCommandMutation,
   useGetProductDeviceCommandsQuery,
@@ -87,7 +88,10 @@ import {
   type EntityFieldItem,
   type PaapeliAlarmListItem,
   type DeviceActivityResponse,
+  type PaapeliCredentials,
+  type UpdateDeviceCredentialsRequest,
 } from "@paapeli/api";
+import { DeviceAlarmRules } from "@/features/factory/components/alerts/DeviceAlarmRules";
 import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
@@ -344,31 +348,6 @@ const DeviceDetails = () => {
   const statusDot = status === "online" ? "bg-emerald-500" : status === "offline" ? "bg-muted-foreground/50" : "bg-rose-500";
   const seed = (device.id?.charCodeAt(0) || 1) * 7;
 
-  // Read-only view of the credentials/security method chosen at creation.
-  // Credentials are their own endpoint, not part of the device record.
-  // MQTT_BASIC returns its clientId/userName as a JSON string in credentialsValue.
-  const basic = (() => {
-    if (credentials?.credentialType !== "MQTT_BASIC" || !credentials.credentialsValue) return null;
-    try {
-      return JSON.parse(credentials.credentialsValue) as { clientId?: string; userName?: string };
-    } catch {
-      return null;
-    }
-  })();
-  const securityView: SecurityValue = {
-    method:
-      credentials?.credentialType === "X509_CERTIFICATE"
-        ? "ssl"
-        : credentials?.credentialType === "MQTT_BASIC"
-          ? "basic"
-          : "accessToken",
-    accessToken: credentials?.credentialsId ?? "",
-    clientId: basic?.clientId ?? "",
-    username: basic?.userName ?? "",
-    password: "",
-    sslCert: credentials?.credentialType === "X509_CERTIFICATE" ? credentials.credentialsValue ?? "" : "",
-  };
-
   // Health metrics (deterministic)
   const healthScore = 60 + ((seed * 13) % 38);
   const failureRisk = healthScore > 80 ? t("low") : healthScore > 60 ? t("medium") : t("high");
@@ -536,6 +515,7 @@ const DeviceDetails = () => {
               { v: "overview", label: t("overview"), icon: Activity },
               { v: "telemetry", label: language === "fa" ? "آخرین داده" : language === "ar" ? "أحدث البيانات" : "Latest Data", icon: Waves },
               { v: "alarms", label: t("alarms"), icon: Bell, badge: alarms.filter((a) => a.status === "Active").length },
+              { v: "rules", label: t("rules"), icon: ShieldCheck },
               
               { v: "events", label: t("events"), icon: Calendar },
               { v: "settings", label: t("settings"), icon: SettingsIcon },
@@ -723,6 +703,11 @@ const DeviceDetails = () => {
           </TabsContent>
 
 
+          {/* RULES */}
+          <TabsContent value="rules" className="space-y-4 mt-4">
+            <DeviceAlarmRules deviceId={device.id} />
+          </TabsContent>
+
           {/* EVENTS */}
           <TabsContent value="events" className="space-y-4 mt-4">
             {/* Same dir treatment as the Alarms and Latest Data cards. The
@@ -799,14 +784,7 @@ const DeviceDetails = () => {
               </CardContent>
             </Card>
 
-            <Card dir={isRTL ? "rtl" : "ltr"}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-base flex items-center gap-2"><Lock className="h-4 w-4" /> {t("credentialsSecurity")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SecurityConfig value={securityView} readOnly />
-              </CardContent>
-            </Card>
+            <DeviceCredentialsCard deviceId={device.id} credentials={credentials} />
 
             <Card dir={isRTL ? "rtl" : "ltr"}>
               <CardHeader><CardTitle className="text-base">{t("shareWithUsers")}</CardTitle></CardHeader>
@@ -983,6 +961,136 @@ const HealthGauge = ({ score }: { score: number }) => {
         <span>0</span><span className={`font-medium ${tone}`}>{label}</span><span>100</span>
       </div>
     </div>
+  );
+};
+
+/* The credential block's three cards are the API's credential types:
+   accessToken → ACCESS_TOKEN, basic → MQTT_BASIC, ssl → X509_CERTIFICATE.
+   MQTT_BASIC carries its clientId/userName/password as a JSON string in
+   credentialsValue, and the server never returns the password. */
+const securityFromCredentials = (c?: PaapeliCredentials): SecurityValue => {
+  let basic: { clientId?: string; userName?: string } | null = null;
+  if (c?.credentialType === "MQTT_BASIC" && c.credentialsValue) {
+    try { basic = JSON.parse(c.credentialsValue); } catch { basic = null; }
+  }
+  return {
+    method:
+      c?.credentialType === "X509_CERTIFICATE" ? "ssl" : c?.credentialType === "MQTT_BASIC" ? "basic" : "accessToken",
+    accessToken: c?.credentialType === "ACCESS_TOKEN" ? c.credentialsId ?? "" : "",
+    clientId: basic?.clientId ?? "",
+    username: basic?.userName ?? "",
+    // Write-only on the server: never returned, so it starts blank.
+    password: "",
+    sslCert: c?.credentialType === "X509_CERTIFICATE" ? c.credentialsValue ?? "" : "",
+  };
+};
+
+const credentialsRequestFor = (s: SecurityValue): UpdateDeviceCredentialsRequest => {
+  switch (s.method) {
+    case "basic":
+      return {
+        credentialType: "MQTT_BASIC",
+        credentialsValue: JSON.stringify({ clientId: s.clientId.trim(), userName: s.username.trim(), password: s.password }),
+      };
+    case "ssl":
+      return { credentialType: "X509_CERTIFICATE", credentialsValue: s.sslCert.trim() };
+    default:
+      // The token itself is the identifier for ACCESS_TOKEN.
+      return { credentialType: "ACCESS_TOKEN", credentialsId: s.accessToken.trim() };
+  }
+};
+
+/** Whether the chosen method has everything the PUT needs. */
+const credentialsComplete = (s: SecurityValue) => {
+  if (s.method === "basic") return !!(s.clientId.trim() && s.username.trim() && s.password);
+  if (s.method === "ssl") return !!s.sslCert.trim();
+  return !!s.accessToken.trim();
+};
+
+/* Settings-tab credentials: read only until Edit, then saved with
+   PUT /credentials/{ws}/{pk}/{deviceId}. Replacing credentials cuts off
+   anything connected with the old ones, so saving asks first. */
+const DeviceCredentialsCard = ({ deviceId, credentials }: { deviceId: string; credentials?: PaapeliCredentials }) => {
+  const { t, isRTL } = useLanguage();
+  const { toast } = useToast();
+  const workspaceId = useWorkspaceId();
+  const updateCredentials = useUpdateDeviceCredentialsMutation();
+  const seeded = useMemo(() => securityFromCredentials(credentials), [credentials]);
+  const [editing, setEditing] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [security, setSecurity] = useState<SecurityValue>(seeded);
+  // Follow the server's values while not editing, so a refetch can't clobber edits.
+  useEffect(() => { if (!editing) setSecurity(seeded); }, [seeded, editing]);
+  const changed = JSON.stringify(security) !== JSON.stringify(seeded);
+
+  const cancel = () => { setSecurity(seeded); setEditing(false); };
+
+  const requestSave = () => {
+    if (!credentialsComplete(security)) {
+      toast({ title: t("error"), description: t("fillAllRequiredFields"), variant: "destructive" });
+      return;
+    }
+    setConfirmOpen(true);
+  };
+
+  const save = async () => {
+    setConfirmOpen(false);
+    if (!workspaceId) {
+      toast({ title: t("error"), description: t("noWorkspaceSelected"), variant: "destructive" });
+      return;
+    }
+    try {
+      await updateCredentials.mutateAsync({
+        workspaceId,
+        productKey: PRODUCT_KEY,
+        deviceId,
+        ...credentialsRequestFor(security),
+      });
+      toast({ title: t("credentialsUpdated") });
+      setEditing(false);
+    } catch (error) {
+      toast({
+        title: t("error"),
+        description: error instanceof Error ? error.message : undefined,
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <Card dir={isRTL ? "rtl" : "ltr"}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardTitle className="text-base flex items-center gap-2"><Lock className="h-4 w-4" /> {t("credentialsSecurity")}</CardTitle>
+        {!editing && (
+          <Button variant="outline" size="sm" onClick={() => setEditing(true)} disabled={!credentials}>
+            <Edit className="h-4 w-4 me-2" /> {t("editCredentials")}
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <SecurityConfig value={security} onChange={setSecurity} readOnly={!editing} />
+        {editing && (
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={cancel} disabled={updateCredentials.isPending}>{t("cancel")}</Button>
+            <Button size="sm" onClick={requestSave} disabled={!changed || updateCredentials.isPending}>
+              {t("saveChanges")}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent dir={isRTL ? "rtl" : "ltr"}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("editCredentials")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("credentialsReplaceWarning")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { void save(); }}>{t("saveChanges")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
   );
 };
 
@@ -1657,9 +1765,8 @@ const DeviceAlarms = ({ device }: { device: UserDevice }) => {
 // ===== Dialogs / Sheets =====
 
 
-/* Credentials are no longer edited from the device sheet, so the helpers that
-   turned the form's state into a credentials PUT are gone with it; the
-   Settings tab still shows them read only. */
+/* Credentials are not edited from the device sheet; the Settings tab's
+   credentials card (DeviceCredentialsCard) edits them. */
 
 export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
   const { isRTL, t } = useLanguage();
@@ -1726,8 +1833,8 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
             </div>
           </div>
           {/* Credentials are not editable here: replacing them cuts off
-              whatever is connected with the old ones. They are shown, read
-              only, on the Settings tab. */}
+              whatever is connected with the old ones. They are edited, behind
+              a confirmation, on the Settings tab. */}
           <div>
             <Label className="mb-2 block">{t("shareWithUsers")}</Label>
             <ShareWithUsers value={shared} onChange={setShared} />

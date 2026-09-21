@@ -2512,7 +2512,7 @@
       "post": {
         "tags": ["Authentication"],
         "summary": "Refresh a session",
-        "description": "Rotates the HttpOnly refresh-token cookie and returns a new access token.",
+        "description": "Reads and rotates the HttpOnly refresh-token cookie, then returns\na new access token. Browser clients calling from\n`https://panel.paapeli.com` must use `credentials: \"include\"`\n(Axios: `withCredentials: true`). Do not send the refresh token\nin the request body or an Authorization header.\n",
         "operationId": "refresh",
         "responses": {
           "200": {
@@ -2550,7 +2550,7 @@
       "post": {
         "tags": ["Authentication"],
         "summary": "Sign in",
-        "description": "Authenticates an active Paapeli user by email and password.\nEmail matching is case-insensitive. Use the returned token as\n`Authorization: Bearer <token>` on protected endpoints.\n",
+        "description": "Authenticates an active Paapeli user by email and password.\nEmail matching is case-insensitive.\n\nThe JSON response contains the short-lived access token. Use it\nas `Authorization: Bearer <token>` on protected endpoints. The\nrefresh token is not exposed to JavaScript or returned in the\nresponse body; it is stored in the `paapeli_refresh_token`\nHttpOnly, Secure cookie.\n\nBecause the UI (`https://panel.paapeli.com`) and API\n(`https://api.paapeli.com`) have different origins, browser\nclients must opt into cookies on login, refresh, and logout:\n\n```javascript\nconst login = await fetch(\n  \"https://api.paapeli.com/api/v1/aiot/auth/login\",\n  {\n    method: \"POST\",\n    headers: { \"Content-Type\": \"application/json\" },\n    credentials: \"include\",\n    body: JSON.stringify({ username, password })\n  }\n);\nconst { token } = await login.json();\n```\n\nWhen the access token expires, obtain a replacement by calling\n`POST https://api.paapeli.com/api/v1/aiot/auth/refresh` with no\nrequest body or Authorization header, but with\n`credentials: \"include\"` (Axios: `withCredentials: true`). The\nendpoint returns a new access token and rotates the refresh-token\ncookie. A `401` response means the user must sign in again.\n",
         "operationId": "login",
         "requestBody": {
           "content": {
@@ -2566,7 +2566,17 @@
         },
         "responses": {
           "200": {
-            "description": "Authentication succeeded",
+            "description": "Authentication succeeded; the refresh token is set as an HttpOnly cookie",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Rotating refresh token. Browser code must not read or persist this value.",
+                "style": "simple",
+                "schema": {
+                  "type": "string",
+                  "example": "paapeli_refresh_token=<opaque>; Path=/api/v1/aiot/auth; Max-Age=2592000; Secure; HttpOnly; SameSite=Strict"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "example": {
@@ -4160,6 +4170,9 @@
           "null": { "type": "boolean" },
           "object": { "type": "boolean" },
           "float": { "type": "boolean" },
+          "missingNode": { "type": "boolean" },
+          "valueNode": { "type": "boolean" },
+          "container": { "type": "boolean" },
           "nodeType": {
             "type": "string",
             "enum": [
@@ -4174,9 +4187,6 @@
               "STRING"
             ]
           },
-          "valueNode": { "type": "boolean" },
-          "container": { "type": "boolean" },
-          "missingNode": { "type": "boolean" },
           "string": { "type": "boolean" },
           "integralNumber": { "type": "boolean" },
           "pojo": { "type": "boolean" },

@@ -65,18 +65,8 @@ interface Gateway {
   createdAt: string;
 }
 
-const MOCK_GATEWAYS: Gateway[] = [
-  { id: "gw-001", name: "GW-North-01",  gatewayId: "GW-N01-A1", protocol: "MQTT",     location: "Factory A > Line 1",     status: "online",  connectedDevices: 12, lastSeen: new Date(Date.now() - 30 * 1000).toISOString(),                createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString() },
-  { id: "gw-002", name: "GW-East-02",   gatewayId: "GW-E02-B2", protocol: "LoRaWAN",  location: "Factory A > Sulfonation", status: "online",  connectedDevices: 8,  lastSeen: new Date(Date.now() - 2 * 60 * 1000).toISOString(),           createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString() },
-  { id: "gw-003", name: "GW-South-03",  gatewayId: "GW-S03-C3", protocol: "HTTP",     location: "Factory B > Boiler",     status: "offline", connectedDevices: 0,  lastSeen: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),      createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() },
-  { id: "gw-004", name: "GW-West-04",   gatewayId: "GW-W04-D4", protocol: "ZigBee",   location: "Factory B > Packaging",  status: "online",  connectedDevices: 15, lastSeen: new Date(Date.now() - 10 * 1000).toISOString(),               createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString() },
-  { id: "gw-005", name: "GW-Edge-05",   gatewayId: "GW-E05-E5", protocol: "MQTT",     location: "Factory C > WTP",        status: "error",   connectedDevices: 4,  lastSeen: new Date(Date.now() - 15 * 60 * 1000).toISOString(),          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() },
-  { id: "gw-006", name: "GW-Edge-06",   gatewayId: "GW-E06-F6", protocol: "OPC-UA",   location: "Factory A > Utilities",  status: "online",  connectedDevices: 6,  lastSeen: new Date(Date.now() - 45 * 1000).toISOString(),               createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() },
-];
-
 import { formatRelativeTime } from "@/features/factory/lib/relativeTime";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
-import { AddFirst } from "@/features/factory/components/AddFirst";
 
 const statusVariant = (s: Gateway["status"]) =>
   s === "online" ? "default" : s === "offline" ? "secondary" : "destructive";
@@ -89,7 +79,6 @@ const Gateways = () => {
   const lp = (p: string) => localizedPath(p, language);
 
   const { items: userGateways, remove: removeUserGateway } = useGateways();
-  const [mockGateways, setMockGateways] = useState<Gateway[]>(MOCK_GATEWAYS);
 
   const gateways = useMemo<Gateway[]>(() => {
     const mapped: Gateway[] = userGateways.map((g) => ({
@@ -103,8 +92,8 @@ const Gateways = () => {
       lastSeen: g.lastSeen || g.createdAt,
       createdAt: g.createdAt,
     }));
-    return [...mapped, ...mockGateways];
-  }, [userGateways, mockGateways]);
+    return mapped;
+  }, [userGateways]);
 
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -232,7 +221,6 @@ const Gateways = () => {
 
   const confirmDelete = () => {
     selected.forEach((id) => removeUserGateway(id));
-    setMockGateways((prev) => prev.filter((g) => !selected.includes(g.gatewayId)));
     toast({ title: t("success"), description: `${formatNumber(selected.length)} ${t("gatewaysUnit")} ${t("deleted")}` });
     setSelected([]);
     setDeleteOpen(false);
@@ -354,11 +342,9 @@ const Gateways = () => {
                 {gateways.length === 0 ? (
                   <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={10}>
-                      <AddFirst
-                        icon={Router}
-                        label={t("addYourFirstGateway")}
-                        onAction={() => navigate(lp("/devices/gateways/new"))}
-                      />
+                      <p className="py-12 text-center text-muted-foreground">
+                        {t("noData") || "No data"}
+                      </p>
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (

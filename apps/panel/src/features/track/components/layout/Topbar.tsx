@@ -13,7 +13,7 @@ import { useTheme } from "@paapeli/brand/theme";
 import { Button } from "@/features/track/components/ui/button";
 import { LanguageMenu } from "./LanguageMenu";
 import { ProductSwitcher } from "./ProductSwitcher";
-import { ALERTS } from "@/features/track/data/mockData";
+import { useTrackerAlarms } from "@/features/track/lib/useTrackerAlarms";
 import { trackPath } from "@/features/track/lib/trackPath";
 
 const iconBtn =
@@ -25,7 +25,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
   const { brand } = useBrand();
   const { dark, toggle } = useTheme();
   const navigate = useNavigate();
-  const unread = ALERTS.filter((a) => !a.read).length;
+  const { unread } = useTrackerAlarms();
   const currentUser = getCurrentUser();
   const displayName = currentUser?.name || t("noData");
   const initial = currentUser?.initial ?? "";

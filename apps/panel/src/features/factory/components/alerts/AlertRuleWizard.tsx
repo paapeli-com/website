@@ -86,6 +86,9 @@ interface AlertRuleWizardProps {
   }) => void;
   onCancel?: () => void;
   onCreated?: () => void;
+  /** Devices the scope step starts with, and returns to after a create —
+      the device details page opens the wizard for its own device. */
+  initialDeviceIds?: string[];
 }
 
 
@@ -174,7 +177,7 @@ const toExpression = (groups: ConditionGroupData[]): RuleExpression => {
     .reduce<RuleExpression>((acc, g) => ({ combinator: g.logic, rules: [acc, groupExpression(g)] }), groupExpression(nonEmpty[0]));
 };
 
-export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onActionsChange, onCancel, onCreated }: AlertRuleWizardProps) => {
+export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onActionsChange, onCancel, onCreated, initialDeviceIds }: AlertRuleWizardProps) => {
   const { t, isRTL, language } = useLanguage();
   const { toast } = useToast();
   const tt = t as (k: string) => string;
@@ -200,7 +203,7 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
   const [ruleName, setRuleName] = useState(() => (preset ? tt(preset.nameKey) : ""));
   const [ruleDescription, setRuleDescription] = useState("");
   const [ruleType, setRuleType] = useState<RuleType>("threshold");
-  const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
+  const [selectedDevices, setSelectedDevices] = useState<string[]>(initialDeviceIds ?? []);
 
   // Step 2: Conditions
   const [conditionGroups, setConditionGroups] = useState<ConditionGroupData[]>([
@@ -341,6 +344,7 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
     setCurrentStep(0);
     setRuleName('');
     setRuleDescription('');
+    setSelectedDevices(initialDeviceIds ?? []);
   };
 
   const handleClose = () => {

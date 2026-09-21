@@ -224,6 +224,12 @@ const en = {
   sosAlert: "SOS pressed",
   tamperAlert: "Tamper detected",
   markAllRead: "Mark all read",
+  acknowledge: "Acknowledge",
+  alarmActive: "Active",
+  alarmAcknowledged: "Acknowledged",
+  alarmCleared: "Cleared",
+  alarmActionFailed: "Couldn't update the alert",
+  unknownDevice: "Unknown device",
   unread: "unread",
 
   // commands
@@ -473,6 +479,12 @@ const fa: Record<TranslationKey, string> = {
   sosAlert: "دکمه SOS فشرده شد",
   tamperAlert: "دستکاری شناسایی شد",
   markAllRead: "علامت‌گذاری همه به‌عنوان خوانده‌شده",
+  acknowledge: "تأیید",
+  alarmActive: "فعال",
+  alarmAcknowledged: "تأییدشده",
+  alarmCleared: "رفع‌شده",
+  alarmActionFailed: "به‌روزرسانی هشدار انجام نشد",
+  unknownDevice: "دستگاه ناشناس",
   unread: "خوانده‌نشده",
 
   findDevice: "پیدا کردن دستگاه",
@@ -717,6 +729,12 @@ const ar: Record<TranslationKey, string> = {
   sosAlert: "تم الضغط على SOS",
   tamperAlert: "تم اكتشاف عبث",
   markAllRead: "تعليم الكل كمقروء",
+  acknowledge: "إقرار",
+  alarmActive: "نشط",
+  alarmAcknowledged: "تم الإقرار",
+  alarmCleared: "تم المسح",
+  alarmActionFailed: "تعذّر تحديث التنبيه",
+  unknownDevice: "جهاز غير معروف",
   unread: "غير مقروء",
 
   findDevice: "العثور على الجهاز",
