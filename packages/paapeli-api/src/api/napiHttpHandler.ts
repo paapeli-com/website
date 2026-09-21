@@ -140,6 +140,7 @@ function refreshAccessToken(staleToken: string | null): Promise<string | null> {
                 return stored;
             }
             try {
+                // Sent without Authorization — see the request interceptor.
                 const { data } = await apiClient.post<{ token?: string }>(REFRESH_URL, undefined, {
                     withCredentials: true,
                     quiet: true,
@@ -191,6 +192,15 @@ const bearerOf = (config: InternalAxiosRequestConfig | undefined) => {
 /* Don't send a request whose token has already expired — refresh first, and
    only sign out if that fails. */
 apiClient.interceptors.request.use(async (config) => {
+    /* The refresh is authenticated by its HttpOnly cookie alone; the gateway
+       answers 401 if it also carries a bearer token. The client's defaults
+       are already merged into `config` here, so dropping the one header keeps
+       everything else the client sends (base URL, other headers, cookies via
+       withCredentials). */
+    if (config.url?.includes(REFRESH_URL)) {
+        config.headers.delete('Authorization');
+        return config;
+    }
     if (isAuthRequest(config.url) || !isTokenExpired(currentToken)) return config;
     const token = await refreshAccessToken(currentToken);
     if (!token) {
