@@ -17,7 +17,7 @@ import { Checkbox } from "@/features/factory/components/ui/checkbox";
 import { Textarea } from "@/features/factory/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/features/factory/components/ui/sheet";
 import { Plus, Trash2, ChevronLeft, ChevronRight, DatabaseZap } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import type { AlertRuleWizardStep, ConditionOperator, AlertSeverity, RuleType, LogicOperator } from "@/features/factory/types/alerts";
 import type { TranslationKey } from "@/features/factory/i18n/translations";
 import { useChannelsStore, useEscalationsStore } from "@/features/factory/hooks/useAlertStore";
@@ -51,6 +51,14 @@ const severityColors: Record<string, string> = {
 };
 
 const STEPS: AlertRuleWizardStep[] = ['scope', 'conditions', 'severity', 'escalation', 'notifications', 'assignment'];
+
+/* What each rule template fills in. The ids match RULE_TEMPLATES in
+   AlertTemplates.tsx; a template that names no preset simply opens an empty
+   form, which is the old behaviour and no worse than it was. */
+const RULE_TEMPLATE_PRESETS: Record<string, { nameKey: string; tag: string; operator: ConditionOperator }> = {
+  temperature: { nameKey: "tplHighTempName", tag: "temperature", operator: ">" },
+  humidity: { nameKey: "tplHighHumidityName", tag: "humidity", operator: ">" },
+};
 
 /* Each rule type paired with the English term it is named after. Threshold,
    Heartbeat and the rest are what the docs and the API call them, so outside
@@ -171,6 +179,7 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
   const { toast } = useToast();
   const tt = t as (k: string) => string;
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const workspaceId = useWorkspaceId();
   const { items: devices, isLoading: devicesLoading } = useDevices();
   const createAlarmRule = useCreateAlarmRuleMutation();
@@ -181,15 +190,33 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
   const { items: notificationChannels } = useChannelsStore();
   const [currentStep, setCurrentStep] = useState(0);
 
+  /* A template picked on the Rules tab arrives as ?template=. It fills in the
+     tag and the comparison and nothing else: the device and the threshold are
+     the two things only the reader knows, and the templates page says so. */
+  const templateId = searchParams.get("template");
+  const preset = templateId ? RULE_TEMPLATE_PRESETS[templateId] : undefined;
+
   // Step 1: Scope
-  const [ruleName, setRuleName] = useState("");
+  const [ruleName, setRuleName] = useState(() => (preset ? tt(preset.nameKey) : ""));
   const [ruleDescription, setRuleDescription] = useState("");
   const [ruleType, setRuleType] = useState<RuleType>("threshold");
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
 
   // Step 2: Conditions
   const [conditionGroups, setConditionGroups] = useState<ConditionGroupData[]>([
-    { id: 'g1', logic: 'AND', conditions: [{ id: 'c1', tag: '', operator: '>', valueType: 'NUMBER_LITERAL' as RuleValueType, value: '', valueTo: '', timeWindow: '' }] }
+    {
+      id: 'g1',
+      logic: 'AND',
+      conditions: [{
+        id: 'c1',
+        tag: preset?.tag ?? '',
+        operator: preset?.operator ?? '>',
+        valueType: 'NUMBER_LITERAL' as RuleValueType,
+        value: '',
+        valueTo: '',
+        timeWindow: '',
+      }],
+    },
   ]);
 
   // Step 3: Severity
