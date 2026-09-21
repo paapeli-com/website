@@ -10,7 +10,7 @@ import { apiErrorMessage } from "@/shared/lib/apiError";
 
 /* Which workspace is active, and what's subscribed to it — the one page in
    this remote backed entirely by @paapeli/api's workspaces endpoints (no
-   placeholder data). Organisation (pages/Organisation.tsx) manages the
+   placeholder data). Members (pages/Members.tsx) manages the
    active workspace's members/roles once you're in one; this page is where
    you pick or create the workspace itself. */
 export default function Workspaces() {

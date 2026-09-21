@@ -15,7 +15,7 @@ const p = (path: string) => `${base}${path}`;
 
    "Organisation" consolidates what used to be four separate "Workspace"
    nav rows (Settings/Members/Invitations/Roles) into the design's single
-   tabbed page — see src/features/cloud-management/pages/Organisation.tsx.
+   tabbed page — see src/features/cloud-management/pages/Members.tsx.
    "Workspaces" is a new row, not in the design doc: switching/creating the
    workspace itself and its product subscriptions (@paapeli/api's
    workspaces endpoints) is a separate concern from administering the one
@@ -27,7 +27,7 @@ const items: NavItem[] = [
   { title: "Billing & invoices", icon: FileText, path: p("/billing") },
   { title: "Usage & quotas", icon: Gauge, path: p("/usage") },
   { title: "Payment methods", icon: Wallet, path: p("/payment-methods") },
-  { title: "Organisation", icon: Users, path: p("/organisation") },
+  { title: "Members", icon: Users, path: p("/members") },
   { title: "Access & API keys", icon: Key, path: p("/access-keys") },
   { title: "Security", icon: Shield, path: p("/security") },
 ];
@@ -38,7 +38,7 @@ const items: NavItem[] = [
    Management row stays lit for the whole area rather than only its front
    page — it says where you are. */
 const footerItems: NavItem[] = [
-  { title: "Members", icon: Users, path: p("/organisation") },
+  { title: "Members", icon: Users, path: p("/members") },
   { title: "Dev Center & Help", icon: Code2, href: "https://docs.paapeli.com/" },
   { title: "Cloud Management", icon: Cloud, path: base, activeOnPrefix: true },
 ];

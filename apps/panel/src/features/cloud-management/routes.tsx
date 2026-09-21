@@ -11,7 +11,7 @@ import Usage from "./pages/Usage";
 import PaymentMethods from "./pages/PaymentMethods";
 import AccessApiKeys from "./pages/AccessApiKeys";
 import Security from "./pages/Security";
-import Organisation from "./pages/Organisation";
+import Members from "./pages/Members";
 
 /* Cloud Management — workspace/account administration, independent of any
    AIoT product/solution, mounted at /CloudManagement/*.
@@ -24,8 +24,8 @@ import Organisation from "./pages/Organisation";
    Section shape follows the "Cloud Management.dc.html" design doc; see
    src/shell/nav/cloudManagementNav.ts for how each route surfaces in the
    sidebar. That nav mirrors the design's CLOUD_NAV constant plus one addition:
-   Organisation is a single entry with its own tabs (see pages/Organisation.tsx
-   and pages/organisation/*) rather than four top-level routes, and Workspaces
+   Members is a single entry with its own tabs (see pages/Members.tsx and
+   pages/members/*) rather than four top-level routes, and Workspaces
    (pages/Workspaces.tsx) is new — it's where you pick or create the workspace
    that Organisation and every product then act on.
 
@@ -68,7 +68,10 @@ export default function CloudManagementRoutes() {
         <Route path="/payment-methods" element={<PaymentMethods />} />
         <Route path="/access-keys" element={<AccessApiKeys />} />
         <Route path="/security" element={<Security />} />
-        <Route path="/organisation" element={<Organisation />} />
+        <Route path="/members" element={<Members />} />
+        {/* The page was Organisation until its tabs were cut to the three
+            questions people actually ask. Links that were sent still land. */}
+        <Route path="/organisation" element={<Navigate to="../members" replace />} />
         <Route path="*" element={<Navigate to="overview" replace />} />
       </Routes>
     </WorkspaceProvider>
