@@ -104,6 +104,13 @@ export function onTokenRefreshed(handler: TokenRefreshedHandler): () => void {
     };
 }
 
+/* The last token a refresh actually produced, and when. A request that fails
+   unreadably while carrying it can't be blamed on a stale token. */
+let lastRefreshed: { token: string; at: number } | null = null;
+const FRESH_TOKEN_MS = 60_000;
+const isFreshlyRefreshed = (token: string | null) =>
+    !!token && lastRefreshed?.token === token && Date.now() - lastRefreshed.at < FRESH_TOKEN_MS;
+
 function adoptToken(token: string) {
     setApiAuthToken(token);
     tokenRefreshedHandlers.forEach((handler) => {
@@ -146,6 +153,7 @@ function refreshAccessToken(staleToken: string | null): Promise<string | null> {
                     quiet: true,
                 });
                 if (!data?.token) return null;
+                lastRefreshed = { token: data.token, at: Date.now() };
                 updateToken(data.token);
                 adoptToken(data.token);
                 return data.token;
@@ -234,12 +242,18 @@ function gatewayReachable(): Promise<boolean> {
 }
 
 /* The access token was rejected: refresh and replay the request once. A
-   request that already went round once and failed again means the refreshed
-   session is refused too — sign out. */
-async function refreshAndRetry(error: any) {
+   request that already went round once and failed again with a readable 401
+   means the refreshed session is refused too — sign out.
+
+   `guessed` marks the unreadable-error path below, where a 401 is only
+   inferred. There, a repeat failure after a successful refresh is NOT a dead
+   session: the refresh just proved the session is alive, so the error is
+   something else the gateway sent without CORS headers (a 403/404/5xx on one
+   endpoint). Signing out on it logged users out at random. */
+async function refreshAndRetry(error: any, guessed = false) {
     const config: InternalAxiosRequestConfig | undefined = error?.config;
     if (!config || config.retriedAfterRefresh) {
-        expireSession();
+        if (!guessed) expireSession();
         return Promise.reject(error);
     }
     const token = await refreshAccessToken(bearerOf(config) ?? currentToken);
@@ -268,11 +282,14 @@ apiClient.interceptors.response.use(
             return refreshAndRetry(error);
         }
         if (!error?.response && error?.code === 'ERR_NETWORK' && currentToken) {
-            if (isTokenExpired(bearerOf(error?.config) ?? currentToken)) {
-                return refreshAndRetry(error);
+            const sentToken = bearerOf(error?.config) ?? currentToken;
+            if (isTokenExpired(sentToken)) {
+                return refreshAndRetry(error, true);
             }
+            // Just refreshed: this token is good, so the failure isn't auth.
+            if (isFreshlyRefreshed(sentToken)) return Promise.reject(error);
             if (typeof navigator === 'undefined' || navigator.onLine) {
-                if (await gatewayReachable()) return refreshAndRetry(error);
+                if (await gatewayReachable()) return refreshAndRetry(error, true);
             }
         }
         return Promise.reject(error);
