@@ -22,7 +22,13 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
-import { Camera, Mail, Phone, User as UserIcon, Shield, LogOut, Building2, Plus, Check, Palette, Paintbrush } from "lucide-react";
+import { Camera, Mail, Phone, User as UserIcon, Shield, LogOut, LogOut as LogOutAll, Building2, Plus, Check, Palette, Paintbrush, Loader2 } from "lucide-react";
+import { useLogoutAllMutation } from "@paapeli/api";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/features/factory/components/ui/alert-dialog";
+import { useShellT } from "@/shared/i18n/shell";
 import { Switch } from "@/features/factory/components/ui/switch";
 import { useTheme } from "@paapeli/brand/theme";
 import { useBrand, type AccentId } from "@/shell/BrandProvider";
@@ -49,6 +55,13 @@ const AccountSettings = () => {
      They used to live on GPS Tracking's own settings page, which is why
      they were unreachable from anywhere else. */
   const { dark, toggle: toggleDark } = useTheme();
+  /* Signing out everywhere is a thing you do to your own account, not to
+     the workspace: the endpoint revokes the signed-in user's refresh-token
+     families, nobody else's. So it lives here rather than on the account
+     security page, which is about the members. */
+  const st = useShellT();
+  const logoutAll = useLogoutAllMutation();
+  const [confirmSignOutAll, setConfirmSignOutAll] = useState(false);
   const { accent, setAccent, accentColor } = useBrand();
   /* Real workspaces (GET /api/v1/aiot/workspaces); the selection is the same
      one the panel host's account menu drives, and is what scopes this
@@ -290,11 +303,24 @@ const AccountSettings = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-2">
-            <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2">
-              <LogOut className="h-4 w-4" />
-              {language === "en" ? "Sign out" : language === "ar" ? "تسجيل الخروج" : "خروج"}
-            </Button>
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2">
+                <LogOut className="h-4 w-4" />
+                {language === "en" ? "Sign out" : language === "ar" ? "تسجيل الخروج" : "خروج"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmSignOutAll(true)}
+                disabled={logoutAll.isPending}
+                className="gap-2"
+                title={st("Ends every session but this one, on every browser and device.")}
+              >
+                {logoutAll.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOutAll className="h-4 w-4" />}
+                {st("Sign out from all devices")}
+              </Button>
+            </div>
             <Button onClick={handleSave} disabled={setPhone.isPending} className="bg-primary hover:bg-primary/90">
               {t("saveChanges")}
             </Button>
@@ -415,6 +441,37 @@ const AccountSettings = () => {
         </CardContent>
       </Card>
       {workspaceSwitch.dialog}
+
+      {/* The panel's usual confirm: this signs out every other browser and
+          phone the account is open on, and cannot be undone. */}
+      <AlertDialog open={confirmSignOutAll} onOpenChange={setConfirmSignOutAll}>
+        <AlertDialogContent dir={isRTL ? "rtl" : "ltr"}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{st("Sign out everywhere?")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {st("Anyone signed in as you, anywhere, will have to sign in again.")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{st("Cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmSignOutAll(false);
+                logoutAll.mutate(undefined, {
+                  onSuccess: () => {
+                    toast({ title: st("Signed out from all devices") });
+                    void handleLogout();
+                  },
+                  onError: () => toast({ title: st("Could not sign out from all devices"), variant: "destructive" }),
+                });
+              }}
+            >
+              {st("Sign out from all devices")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </>
   );
 };
