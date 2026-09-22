@@ -322,6 +322,77 @@ const fa: Record<string, string> = {
   Succeeded: "موفق",
   Failed: "ناموفق",
 
+  // Settings & security
+  "Settings & security": "تنظیمات و امنیت",
+  "Account-wide preferences, authentication policy and data controls.":
+    "ترجیحات کل حساب، سیاست احراز هویت و کنترل داده‌ها.",
+  "Download account data": "دریافت داده‌های حساب",
+  "Save changes": "ذخیرهٔ تغییرات",
+  General: "عمومی",
+  Security: "امنیت",
+  Notifications: "اعلان‌ها",
+  "Data & retention": "داده و نگهداری",
+  "Audit log": "گزارش ممیزی",
+  "This tab isn't part of the design preview yet.":
+    "این تب هنوز بخشی از طراحی نیست.",
+  Authentication: "احراز هویت",
+  "Two-factor authentication": "احراز هویت دومرحله‌ای",
+  "Require a second factor for every member of this account.":
+    "برای همهٔ اعضای این حساب عامل دوم الزامی باشد.",
+  "Single sign-on (SAML)": "ورود یکپارچه (SAML)",
+  "Federate sign-in with your identity provider.":
+    "ورود را به ارائه‌دهندهٔ هویت خودتان بسپارید.",
+  "Session timeout": "پایان نشست",
+  "Sign members out after a period of inactivity.":
+    "اعضا پس از مدتی بی‌فعالیتی از حساب خارج شوند.",
+  "Password policy": "سیاست رمز عبور",
+  "Length, complexity and rotation rules for member passwords.":
+    "قواعد طول، پیچیدگی و تعویض دوره‌ای رمز اعضا.",
+  Edit: "ویرایش",
+  "Access control": "کنترل دسترسی",
+  "IP allow-list": "فهرست IPهای مجاز",
+  "Restrict portal and API access to approved ranges.":
+    "دسترسی پنل و API فقط از محدوده‌های تأییدشده.",
+  "Approve new devices": "تأیید دستگاه‌های تازه",
+  "Email the owner when a member signs in from a new device.":
+    "وقتی عضوی از دستگاه تازه‌ای وارد شد، به مالک ایمیل زده شود.",
+  "Service account keys expire": "انقضای کلیدهای حساب سرویس",
+  "Force rotation of API keys on a fixed schedule.":
+    "تعویض اجباری کلیدهای API در بازه‌های مشخص.",
+  "Account preferences": "ترجیحات حساب",
+  "Default language": "زبان پیش‌فرض",
+  "Portal language for new members.": "زبان پنل برای اعضای تازه.",
+  "Time zone": "منطقهٔ زمانی",
+  "Used for invoices, reports and alarm timestamps.":
+    "برای فاکتورها، گزارش‌ها و زمان هشدارها استفاده می‌شود.",
+  "Data region": "منطقهٔ داده",
+  "Where your telemetry and backups are stored.":
+    "جایی که داده‌های تله‌متری و پشتیبان‌ها نگهداری می‌شوند.",
+  "Currency shown on invoices and usage reports.":
+    "ارزی که روی فاکتورها و گزارش‌های مصرف نوشته می‌شود.",
+  "Telemetry retention": "نگهداری تله‌متری",
+  "Raw time-series data kept before roll-up.":
+    "مدت نگهداری دادهٔ خام سری‌زمانی پیش از تجمیع.",
+  "Automatic backups": "پشتیبان‌گیری خودکار",
+  "Daily encrypted backup of configuration and dashboards.":
+    "پشتیبان رمزگذاری‌شدهٔ روزانه از پیکربندی و داشبوردها.",
+  "Export on cancellation": "خروجی هنگام لغو",
+  "Provide a full data export when a subscription ends.":
+    "هنگام پایان اشتراک، خروجی کامل داده‌ها داده شود.",
+  "Close account": "بستن حساب",
+  "Cancels all subscriptions and permanently deletes data after 30 days.":
+    "همهٔ اشتراک‌ها لغو می‌شوند و داده‌ها پس از ۳۰ روز برای همیشه حذف می‌شوند.",
+
+  // Sign out everywhere
+  "Sign out from all devices": "خروج از همهٔ دستگاه‌ها",
+  "Ends every session but this one, on every browser and device.":
+    "همهٔ نشست‌ها جز همین یکی، روی هر مرورگر و دستگاهی، بسته می‌شوند.",
+  "Sign out everywhere?": "از همهٔ دستگاه‌ها خارج شوید؟",
+  "Anyone signed in as you, anywhere, will have to sign in again.":
+    "هر جایی که با حساب شما وارد شده باشد، باید دوباره وارد شود.",
+  "Signed out from all devices": "از همهٔ دستگاه‌ها خارج شدید",
+  "Could not sign out from all devices": "خروج از همهٔ دستگاه‌ها ناموفق بود",
+
   // Central API keys
   "One key can reach several Paapeli products. They all live here.":
     "یک کلید می‌تواند به چند محصول پاپلی دسترسی داشته باشد. همهٔ آن‌ها همین‌جا نگهداری می‌شوند.",
@@ -738,6 +809,77 @@ const ar: Record<string, string> = {
   Expires: "تنتهي",
   Succeeded: "ناجحة",
   Failed: "متعثرة",
+
+  // Settings & security
+  "Settings & security": "الإعدادات والأمان",
+  "Account-wide preferences, authentication policy and data controls.":
+    "تفضيلات الحساب وسياسة المصادقة والتحكم في البيانات.",
+  "Download account data": "تنزيل بيانات الحساب",
+  "Save changes": "حفظ التغييرات",
+  General: "عام",
+  Security: "الأمان",
+  Notifications: "الإشعارات",
+  "Data & retention": "البيانات والاحتفاظ",
+  "Audit log": "سجل التدقيق",
+  "This tab isn't part of the design preview yet.":
+    "هذا التبويب ليس جزءاً من التصميم بعد.",
+  Authentication: "المصادقة",
+  "Two-factor authentication": "المصادقة بخطوتين",
+  "Require a second factor for every member of this account.":
+    "اشتراط عامل ثانٍ لكل عضو في هذا الحساب.",
+  "Single sign-on (SAML)": "الدخول الموحد (SAML)",
+  "Federate sign-in with your identity provider.":
+    "توحيد تسجيل الدخول مع مزود الهوية لديك.",
+  "Session timeout": "انتهاء الجلسة",
+  "Sign members out after a period of inactivity.":
+    "تسجيل خروج الأعضاء بعد فترة من عدم النشاط.",
+  "Password policy": "سياسة كلمة المرور",
+  "Length, complexity and rotation rules for member passwords.":
+    "قواعد الطول والتعقيد والتغيير الدوري لكلمات مرور الأعضاء.",
+  Edit: "تعديل",
+  "Access control": "التحكم في الوصول",
+  "IP allow-list": "قائمة عناوين IP المسموحة",
+  "Restrict portal and API access to approved ranges.":
+    "حصر الوصول إلى اللوحة وواجهات API في النطاقات المعتمدة.",
+  "Approve new devices": "اعتماد الأجهزة الجديدة",
+  "Email the owner when a member signs in from a new device.":
+    "إرسال بريد للمالك عند دخول عضو من جهاز جديد.",
+  "Service account keys expire": "انتهاء مفاتيح حسابات الخدمة",
+  "Force rotation of API keys on a fixed schedule.":
+    "فرض تغيير مفاتيح API وفق جدول ثابت.",
+  "Account preferences": "تفضيلات الحساب",
+  "Default language": "اللغة الافتراضية",
+  "Portal language for new members.": "لغة اللوحة للأعضاء الجدد.",
+  "Time zone": "المنطقة الزمنية",
+  "Used for invoices, reports and alarm timestamps.":
+    "تُستخدم للفواتير والتقارير وأوقات التنبيهات.",
+  "Data region": "منطقة البيانات",
+  "Where your telemetry and backups are stored.":
+    "مكان تخزين بيانات القياس والنسخ الاحتياطية.",
+  "Currency shown on invoices and usage reports.":
+    "العملة الظاهرة على الفواتير وتقارير الاستخدام.",
+  "Telemetry retention": "الاحتفاظ ببيانات القياس",
+  "Raw time-series data kept before roll-up.":
+    "مدة الاحتفاظ بالبيانات الزمنية الخام قبل تجميعها.",
+  "Automatic backups": "النسخ الاحتياطي التلقائي",
+  "Daily encrypted backup of configuration and dashboards.":
+    "نسخة احتياطية يومية مشفرة للإعدادات ولوحات المعلومات.",
+  "Export on cancellation": "التصدير عند الإلغاء",
+  "Provide a full data export when a subscription ends.":
+    "تقديم تصدير كامل للبيانات عند انتهاء الاشتراك.",
+  "Close account": "إغلاق الحساب",
+  "Cancels all subscriptions and permanently deletes data after 30 days.":
+    "يُلغي كل الاشتراكات ويحذف البيانات نهائياً بعد ٣٠ يوماً.",
+
+  // Sign out everywhere
+  "Sign out from all devices": "تسجيل الخروج من كل الأجهزة",
+  "Ends every session but this one, on every browser and device.":
+    "تُنهى كل الجلسات عدا هذه، على كل متصفح وجهاز.",
+  "Sign out everywhere?": "تسجيل الخروج من كل مكان؟",
+  "Anyone signed in as you, anywhere, will have to sign in again.":
+    "أي جلسة مفتوحة بحسابك في أي مكان ستحتاج إلى تسجيل دخول جديد.",
+  "Signed out from all devices": "تم تسجيل الخروج من كل الأجهزة",
+  "Could not sign out from all devices": "تعذر تسجيل الخروج من كل الأجهزة",
 
   // Central API keys
   "One key can reach several Paapeli products. They all live here.":

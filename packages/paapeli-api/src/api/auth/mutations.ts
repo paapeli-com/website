@@ -43,3 +43,17 @@ export function useResetPasswordMutation() {
         mutationFn: (req: ResetPasswordRequest) => authService.resetPassword(req),
     });
 }
+
+export function useLogoutMutation() {
+    return useMutation({
+        mutationKey: ['logout'],
+        mutationFn: () => authService.logout(),
+    });
+}
+
+export function useLogoutAllMutation() {
+    return useMutation({
+        mutationKey: ['logoutAll'],
+        mutationFn: () => authService.logoutAll(),
+    });
+}

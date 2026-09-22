@@ -45,6 +45,15 @@ export interface ResetPasswordRequest {
 }
 
 export const authService = {
+    /** Revoke every refresh-token family belonging to the signed-in user, so
+     *  every other browser and device is signed out too. 204, no body. */
+    async logoutAll(): Promise<void> {
+        await napiHttpHandler.post('/api/v1/aiot/auth/logout-all');
+    },
+    /** Revoke only this session's refresh-token family. 204, no body. */
+    async logout(): Promise<void> {
+        await napiHttpHandler.post('/api/v1/aiot/auth/logout');
+    },
     async login(req: LoginRequest): Promise<LoginResponse> {
         const { data } = await napiHttpHandler.post<LoginResponse>(
             '/api/v1/aiot/auth/login',
