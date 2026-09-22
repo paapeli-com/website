@@ -254,6 +254,20 @@ const fa: Record<string, string> = {
   Operational: "سالم",
   Degraded: "دچار اختلال",
 
+  // Billing & invoices
+  "Invoices, credit notes and the billing profile.":
+    "فاکتورها، اعتبارها و مشخصات صورتحساب.",
+  "Export CSV": "خروجی CSV",
+  "Pay open balance": "پرداخت مانده حساب",
+  "Open balance": "مانده حساب",
+  "Current period": "دورهٔ جاری",
+  "Paid this year": "پرداخت‌شده در امسال",
+  "Credit notes": "اعتبارها",
+  Issued: "تاریخ صدور",
+  Method: "روش پرداخت",
+  Paid: "پرداخت‌شده",
+  Refunded: "بازگردانده‌شده",
+
   // Central API keys
   "One key can reach several Paapeli products. They all live here.":
     "یک کلید می‌تواند به چند محصول پاپلی دسترسی داشته باشد. همهٔ آن‌ها همین‌جا نگهداری می‌شوند.",
@@ -602,6 +616,20 @@ const ar: Record<string, string> = {
   "Platform status": "حالة المنصة",
   Operational: "يعمل",
   Degraded: "متدهور",
+
+  // Billing & invoices
+  "Invoices, credit notes and the billing profile.":
+    "الفواتير وإشعارات الدائن وبيانات الفوترة.",
+  "Export CSV": "تصدير CSV",
+  "Pay open balance": "سداد الرصيد المستحق",
+  "Open balance": "الرصيد المستحق",
+  "Current period": "الفترة الحالية",
+  "Paid this year": "المدفوع هذا العام",
+  "Credit notes": "إشعارات الدائن",
+  Issued: "تاريخ الإصدار",
+  Method: "طريقة الدفع",
+  Paid: "مدفوعة",
+  Refunded: "مُستردة",
 
   // Central API keys
   "One key can reach several Paapeli products. They all live here.":
