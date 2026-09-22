@@ -9,7 +9,7 @@ import type { RequestStatus } from "../lib/types";
 import { formatTime } from "@/shared/lib/formatDate";
 import { useAppLanguage } from "@/shared/i18n/appLanguage";
 import { useT } from "../i18n";
-import { Badge, MetricCard, MetricRow, Page, PageHead, useAmount, useNum } from "../ui";
+import { Badge, MetricCard, MetricRow, Page, PageHead, useAmount, useCurrency, useNum } from "../ui";
 
 /* The request log: metadata only.
  *
@@ -34,6 +34,7 @@ const PAGE_SIZE = 6;
 
 export default function RequestsPage() {
   const t = useT();
+  const currency = useCurrency();
   const num = useNum();
   const amount = useAmount();
   const language = useAppLanguage();
@@ -110,7 +111,7 @@ export default function RequestsPage() {
       icon: Download,
       onSelect: () => {
         const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
-        const header = ["Request ID", "Time (UTC)", "Model", "HTTP status", "Input tokens", "Output tokens", "Latency (s)", "Cost (Toman)"].map(esc).join(",");
+        const header = ["Request ID", "Time (UTC)", "Model", "HTTP status", "Input tokens", "Output tokens", "Latency (s)", `Cost (${currency})`].map(esc).join(",");
         const body = filtered
           .map((r) =>
             [r.id, r.at, getModel(r.modelId)?.modelId ?? r.modelId, r.httpStatus, r.inputTokens, r.outputTokens ?? "", r.latencySeconds, r.cost]
@@ -186,7 +187,7 @@ export default function RequestsPage() {
                 <TableHead>{t("Status")}</TableHead>
                 <TableHead>{t("Input / output tokens")}</TableHead>
                 <TableHead>{t("Latency")}</TableHead>
-                <TableHead className="text-end">{t("Cost")} · {t("Toman")}</TableHead>
+                <TableHead className="text-end">{t("Cost")} · {currency}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

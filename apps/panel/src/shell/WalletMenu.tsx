@@ -4,6 +4,7 @@ import { ArrowLeftRight, CreditCard, FileText, Gauge, Gift, Plus, Settings } fro
 import { getCurrentUser } from "@paapeli/brand/session";
 import { localizeDigits, useAppLanguage } from "@/shared/i18n/appLanguage";
 import { useShellT } from "@/shared/i18n/shell";
+import { useBillingCurrency } from "@/shared/lib/billingCurrency";
 
 /* No billing integration yet.
 
@@ -11,7 +12,11 @@ import { useShellT } from "@/shared/i18n/shell";
    usage" — a specific enough figure to be read as this workspace's real
    credit, in the header of every page. Both are null until the balance is
    fetched; set WALLET_BALANCE from the API and the formatting below applies
-   to it unchanged. */
+   to it unchanged.
+
+   The currency beside it was a fixed "IRR". It comes from the account now,
+   like every other amount in the panel, so the header cannot disagree with
+   the billing page. */
 const WALLET_BALANCE: string | null = null;
 const USAGE_ESTIMATE: string | null = null;
 
@@ -26,6 +31,7 @@ export function WalletMenu() {
   const [open, setOpen] = useState(false);
   const language = useAppLanguage();
   const t = useShellT();
+  const { name: currency } = useBillingCurrency();
   const balance = WALLET_BALANCE === null ? null : localizeDigits(language, WALLET_BALANCE);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -55,7 +61,7 @@ export function WalletMenu() {
         ) : (
           <>
             <span className="text-base font-bold text-foreground">{balance}</span>
-            <span className="text-muted-foreground">{t("IRR")}</span>
+            <span className="text-muted-foreground">{currency}</span>
           </>
         )}
       </button>
@@ -69,7 +75,7 @@ export function WalletMenu() {
             ) : (
               <>
                 <span className="text-3xl font-bold text-foreground">{balance}</span>
-                <span className="text-sm text-muted-foreground">{t("IRR")}</span>
+                <span className="text-sm text-muted-foreground">{currency}</span>
               </>
             )}
           </p>

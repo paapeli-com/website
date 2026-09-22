@@ -1,6 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { Badge, Button, NoDataValue, PageHeader, Stat, Table } from "@/features/cloud-management/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/features/factory/components/ui/select";
 import { useShellT } from "@/shared/i18n/shell";
+import { useAppLanguage } from "@/shared/i18n/appLanguage";
+import { CURRENCIES, currencyName, useBillingCurrency, type CurrencyCode } from "@/shared/lib/billingCurrency";
 
 /* @paapeli/api has no billing module yet.
 
@@ -19,6 +22,8 @@ const SUMMARY = ["Open balance", "Current period", "Paid this year", "Credit not
 export default function Billing() {
   const navigate = useNavigate();
   const t = useShellT();
+  const language = useAppLanguage();
+  const { currency, setCurrency } = useBillingCurrency();
 
   return (
     /* data-uniform-type: the page is written in Tailwind steps and reads at
@@ -34,6 +39,26 @@ export default function Billing() {
           </>
         }
       />
+
+      {/* The currency lives with the billing profile, which is this page, not
+          with the per-user settings: two people in one workspace have to see
+          the same bill, so it is not something each of them picks. */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[13px] font-semibold text-foreground">{t("Billing currency")}</span>
+          <span className="text-xs text-muted-foreground">
+            {t("Every amount in the panel is shown in this currency.")}
+          </span>
+        </div>
+        <Select value={currency} onValueChange={(v) => setCurrency(v as CurrencyCode)}>
+          <SelectTrigger className="h-9 w-[180px] shrink-0"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {CURRENCIES.map((code) => (
+              <SelectItem key={code} value={code}>{currencyName(code, language)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {SUMMARY.map((label) => (

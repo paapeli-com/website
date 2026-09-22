@@ -258,6 +258,9 @@ const fa: Record<string, string> = {
   "Invoices, credit notes and the billing profile.":
     "فاکتورها، اعتبارها و مشخصات صورتحساب.",
   "Export CSV": "خروجی CSV",
+  "Billing currency": "ارز صورتحساب",
+  "Every amount in the panel is shown in this currency.":
+    "همهٔ مبلغ‌های پنل با این واحد نمایش داده می‌شوند.",
   "Pay open balance": "پرداخت مانده حساب",
   "Open balance": "مانده حساب",
   "Current period": "دورهٔ جاری",
@@ -621,6 +624,9 @@ const ar: Record<string, string> = {
   "Invoices, credit notes and the billing profile.":
     "الفواتير وإشعارات الدائن وبيانات الفوترة.",
   "Export CSV": "تصدير CSV",
+  "Billing currency": "عملة الفوترة",
+  "Every amount in the panel is shown in this currency.":
+    "تُعرض كل المبالغ في اللوحة بهذه العملة.",
   "Pay open balance": "سداد الرصيد المستحق",
   "Open balance": "الرصيد المستحق",
   "Current period": "الفترة الحالية",

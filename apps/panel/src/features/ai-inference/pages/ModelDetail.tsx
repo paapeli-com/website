@@ -6,7 +6,7 @@ import { Input } from "@/features/factory/components/ui/input";
 import { AI_INFERENCE_BASE } from "@/shell/nav/aiInferenceNav";
 import { getModel, listRateLimits, PROPOSED_BASE_URL } from "../lib/catalog";
 import { useT } from "../i18n";
-import { Badge, Card, DetailRow, IconTile, Page, SectionCard, useAmount, useNum } from "../ui";
+import { Badge, Card, DetailRow, IconTile, Page, SectionCard, useAmount, useCurrency, useNum } from "../ui";
 
 /* One model: what it does, what it costs, and what this project may ask of it.
    Header, status line and underlined tabs follow the device detail page, which
@@ -16,6 +16,7 @@ type Tab = "overview" | "integration" | "pricing";
 
 export default function ModelDetail() {
   const t = useT();
+  const currency = useCurrency();
   const num = useNum();
   const amount = useAmount();
   const navigate = useNavigate();
@@ -193,7 +194,7 @@ export default function ModelDetail() {
             <div className="mt-4 border-t border-border/60 pt-3">
               <p className="text-[13px] text-muted-foreground">{t("Input tokens")}</p>
               <p className="mt-1 text-xl font-bold text-foreground tabular-nums">
-                {amount(model.inputPrice)} <span className="text-[13px] font-normal text-muted-foreground">{t("Toman")}</span>
+                {amount(model.inputPrice)} <span className="text-[13px] font-normal text-muted-foreground">{currency}</span>
               </p>
             </div>
             <div className="mt-3 border-t border-border/60 pt-3">
@@ -201,7 +202,7 @@ export default function ModelDetail() {
               <p className="mt-1 text-xl font-bold text-foreground tabular-nums">
                 {model.outputPrice === null ? "—" : amount(model.outputPrice)}{" "}
                 {model.outputPrice !== null && (
-                  <span className="text-[13px] font-normal text-muted-foreground">{t("Toman")}</span>
+                  <span className="text-[13px] font-normal text-muted-foreground">{currency}</span>
                 )}
               </p>
             </div>
@@ -288,7 +289,7 @@ response = client.chat.completions.create(
         <Card className="mt-4 flex items-baseline justify-between">
           <span className="text-[13px] text-muted-foreground">{t("Estimated cost")}</span>
           <span className="text-lg font-bold text-foreground tabular-nums">
-            {num(estimate.toFixed(3))} <span className="text-[13px] font-normal text-muted-foreground">{t("Toman")}</span>
+            {num(estimate.toFixed(3))} <span className="text-[13px] font-normal text-muted-foreground">{currency}</span>
           </span>
         </Card>
       </SectionCard>
