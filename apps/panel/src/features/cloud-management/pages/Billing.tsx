@@ -1,9 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { Badge, Button, NoDataValue, PageHeader, Stat, Table } from "@/features/cloud-management/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/features/factory/components/ui/select";
 import { useShellT } from "@/shared/i18n/shell";
 import { useAppLanguage } from "@/shared/i18n/appLanguage";
-import { CURRENCIES, currencyName, useBillingCurrency, type CurrencyCode } from "@/shared/lib/billingCurrency";
+import { CURRENCIES, currencyName, useBillingCurrency } from "@/shared/lib/billingCurrency";
+import { cn } from "@/shared/lib/utils";
 
 /* @paapeli/api has no billing module yet.
 
@@ -50,14 +50,25 @@ export default function Billing() {
             {t("Every amount in the panel is shown in this currency.")}
           </span>
         </div>
-        <Select value={currency} onValueChange={(v) => setCurrency(v as CurrencyCode)}>
-          <SelectTrigger className="h-9 w-[180px] shrink-0"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {CURRENCIES.map((code) => (
-              <SelectItem key={code} value={code}>{currencyName(code, language)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Three currencies, so a segmented control rather than a dropdown.
+            Built from this feature's own primitives: the factory's Select
+            reads the factory's LanguageProvider, which this page is not
+            inside. */}
+        <div className="inline-flex shrink-0 rounded-xl bg-muted p-1">
+          {CURRENCIES.map((code) => (
+            <button
+              key={code}
+              type="button"
+              onClick={() => setCurrency(code)}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                code === currency ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {currencyName(code, language)}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
