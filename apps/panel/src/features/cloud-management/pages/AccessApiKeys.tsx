@@ -171,7 +171,9 @@ export default function AccessApiKeys() {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    /* data-uniform-type: the page is written in Tailwind steps and reads at
+       those steps in every language, like Dashboards and the device list. */
+    <div data-uniform-type className="flex flex-col gap-6 p-6">
       <PageHeader
         title={t("Access & API keys")}
         description={t("One key can reach several Paapeli products. They all live here.")}
@@ -346,11 +348,13 @@ export default function AccessApiKeys() {
           </div>
         )}
 
-        <div className="overflow-x-auto">
+        {/* The device list table, to the class: same border, same type
+            scale, same row height, so this list reads like every other. */}
+        <div className="overflow-x-auto overflow-y-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs">
           <table className="w-full min-w-full border-collapse text-sm">
             <thead>
               <tr className="bg-muted/40">
-                <th className="w-10 border-b border-border px-3 py-2.5">
+                <th className="w-10 border-b border-border px-3">
                   <input
                     type="checkbox"
                     className="size-4 accent-primary"
@@ -368,7 +372,7 @@ export default function AccessApiKeys() {
                 {[t("Name"), t("Products"), t("Access"), t("Status"), t("Last used"), t("Expiration"), ""].map((c, i) => (
                   <th
                     key={i}
-                    className="whitespace-nowrap border-b border-border px-3 py-2.5 text-start text-xs font-semibold text-muted-foreground"
+                    className="whitespace-nowrap border-b border-border px-3 text-start font-semibold text-muted-foreground"
                   >
                     {c}
                   </th>
@@ -512,7 +516,7 @@ export default function AccessApiKeys() {
             </span>
           )}
         </td>
-        <td className="px-3 py-3 text-[13px] text-muted-foreground">
+        <td className="px-3 py-3 text-muted-foreground">
           {isLegacyKey(apiKey)
             ? t("Legacy key · permissions not mapped")
             : apiKey.grants
@@ -524,10 +528,10 @@ export default function AccessApiKeys() {
             {t(apiKey.status)}
           </Badge>
         </td>
-        <td className="px-3 py-3 text-[13px] text-muted-foreground">
+        <td className="px-3 py-3 text-muted-foreground">
           {apiKey.lastUsedAt ? formatDateTime(apiKey.lastUsedAt, language) : t("Never used")}
         </td>
-        <td className="px-3 py-3 text-[13px] text-muted-foreground">
+        <td className="px-3 py-3 text-muted-foreground">
           {apiKey.expiresAt ? (
             <span className={soon ? "font-medium text-primary" : undefined}>{formatDate(apiKey.expiresAt, language)}</span>
           ) : (

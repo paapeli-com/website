@@ -258,6 +258,9 @@ const fa: Record<string, string> = {
   "Invoices, credit notes and the billing profile.":
     "فاکتورها، اعتبارها و مشخصات صورتحساب.",
   "Export CSV": "خروجی CSV",
+  Actions: "اقدامات",
+  "Create API key": "ساخت کلید API",
+  Project: "پروژه",
   "Billing currency": "ارز صورتحساب",
   "Every amount in the panel is shown in this currency.":
     "همهٔ مبلغ‌های پنل با این واحد نمایش داده می‌شوند.",
@@ -672,6 +675,9 @@ const ar: Record<string, string> = {
   "Invoices, credit notes and the billing profile.":
     "الفواتير وإشعارات الدائن وبيانات الفوترة.",
   "Export CSV": "تصدير CSV",
+  Actions: "إجراءات",
+  "Create API key": "إنشاء مفتاح API",
+  Project: "المشروع",
   "Billing currency": "عملة الفوترة",
   "Every amount in the panel is shown in this currency.":
     "تُعرض كل المبالغ في اللوحة بهذه العملة.",
