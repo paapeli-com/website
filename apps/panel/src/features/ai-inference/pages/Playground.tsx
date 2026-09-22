@@ -10,7 +10,7 @@ import { AI_INFERENCE_BASE } from "@/shell/nav/aiInferenceNav";
 import { listAvailableModels, PROPOSED_BASE_URL } from "../lib/catalog";
 import type { InferenceModel } from "../lib/types";
 import { useT } from "../i18n";
-import { Badge, Page, PageHead, SectionCard, useAmount, useNum } from "../ui";
+import { Badge, Page, PageHead, SectionCard, useAmount, useCurrency, useNum } from "../ui";
 
 /* The playground.
  *
@@ -40,6 +40,7 @@ const PREVIEW_VECTOR = [
 
 export default function Playground() {
   const t = useT();
+  const currency = useCurrency();
   const num = useNum();
   const amount = useAmount();
   const navigate = useNavigate();
@@ -175,14 +176,14 @@ export default function Playground() {
           <div className="mt-4 border-t border-border pt-3 text-[13px]">
             <p className="text-muted-foreground">{t("Input")} / 1M {t("tokens")}</p>
             <p className="font-semibold text-foreground tabular-nums">
-              {amount(model.inputPrice)} {t("Toman")}
+              {amount(model.inputPrice)} {currency}
             </p>
             {/* No output price for an embedding model: it does not bill one. */}
             {model.outputPrice !== null && (
               <>
                 <p className="mt-2 text-muted-foreground">{t("Output")} / 1M {t("tokens")}</p>
                 <p className="font-semibold text-foreground tabular-nums">
-                  {amount(model.outputPrice)} {t("Toman")}
+                  {amount(model.outputPrice)} {currency}
                 </p>
               </>
             )}
@@ -241,7 +242,7 @@ export default function Playground() {
                     {t("Latency")} <span className="font-medium text-foreground">{num("0.18")} s</span>
                   </span>
                   <span className="text-muted-foreground">
-                    {t("Cost")} <span className="font-medium text-foreground">{num("0.039")} {t("Toman")}</span>
+                    {t("Cost")} <span className="font-medium text-foreground">{num("0.039")} {currency}</span>
                   </span>
                 </div>
               </>
@@ -328,7 +329,7 @@ export default function Playground() {
                   {t("Latency")} <span className="font-medium text-foreground">{num("0.92")} s</span>
                 </span>
                 <span className="text-muted-foreground">
-                  {t("Cost")} <span className="font-medium text-foreground">{num("0.745")} {t("Toman")}</span>
+                  {t("Cost")} <span className="font-medium text-foreground">{num("0.745")} {currency}</span>
                 </span>
               </div>
             )}

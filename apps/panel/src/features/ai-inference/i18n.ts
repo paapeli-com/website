@@ -72,12 +72,11 @@ const fa: Record<string, string> = {
   Actions: "اقدامات",
   tokens: "توکن",
   "Input / output": "ورودی / خروجی",
-  Toman: "تومان",
   Try: "امتحان",
   dimensions: "بعد",
   Tools: "ابزار",
   "JSON output": "خروجی JSON",
-  "Prices in Toman · input and output billed separately":
+  "Prices in {currency} · input and output billed separately":
     "قیمت‌ها به تومان · ورودی و خروجی جداگانه محاسبه می‌شوند",
   "of": "از",
   "Compare selected": "مقایسهٔ موارد انتخاب‌شده",
@@ -208,8 +207,8 @@ const fa: Record<string, string> = {
   "Monthly budget": "بودجهٔ ماهانه",
   "Applies to all API keys in this project.":
     "بر همهٔ کلیدهای API این پروژه اعمال می‌شود.",
-  "Budget in Toman": "بودجه به تومان",
-  "Toman used this month": "تومان مصرف این ماه",
+  "Budget in {currency}": "بودجه به {currency}",
+  "{currency} used this month": "{currency} مصرف این ماه",
   "Send a budget alert at": "ارسال هشدار بودجه در",
   "of monthly budget": "از بودجهٔ ماهانه",
   "Pause new requests when the budget is reached":
@@ -326,12 +325,11 @@ const ar: Record<string, string> = {
   Actions: "الإجراءات",
   tokens: "رمز",
   "Input / output": "إدخال / إخراج",
-  Toman: "تومان",
   Try: "جرّب",
   dimensions: "بُعد",
   Tools: "أدوات",
   "JSON output": "مخرجات JSON",
-  "Prices in Toman · input and output billed separately":
+  "Prices in {currency} · input and output billed separately":
     "الأسعار بالتومان · الإدخال والإخراج يُحتسبان منفصلين",
   "of": "من",
   "Compare selected": "مقارنة المحدد",
@@ -454,8 +452,8 @@ const ar: Record<string, string> = {
   "Save changes": "حفظ التغييرات",
   "Monthly budget": "الميزانية الشهرية",
   "Applies to all API keys in this project.": "تنطبق على كل مفاتيح API في هذا المشروع.",
-  "Budget in Toman": "الميزانية بالتومان",
-  "Toman used this month": "تومان مستخدمة هذا الشهر",
+  "Budget in {currency}": "الميزانية بـ{currency}",
+  "{currency} used this month": "{currency} مستخدمة هذا الشهر",
   "Send a budget alert at": "إرسال تنبيه الميزانية عند",
   "of monthly budget": "من الميزانية الشهرية",
   "Pause new requests when the budget is reached":

@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ListToolbar, type SortOption } from "@/features/factory/components/panel/ListToolbar";
 import { getBudget, getModel, listRateLimits } from "../lib/catalog";
 import { useT } from "../i18n";
-import { Page, PageHead, SectionCard, useAmount, useNum } from "../ui";
+import { Page, PageHead, SectionCard, useAmount, useCurrency, useNum } from "../ui";
 import { useProject } from "../routes";
 
 /* Budget and capacity.
@@ -20,6 +20,7 @@ import { useProject } from "../routes";
  */
 export default function Limits() {
   const t = useT();
+  const currency = useCurrency();
   const num = useNum();
   const amount = useAmount();
   const navigate = useNavigate();
@@ -76,13 +77,13 @@ export default function Limits() {
           <p className="text-[13px] text-muted-foreground">{t("Applies to all API keys in this project.")}</p>
 
           <label className="mt-4 flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-foreground">{t("Budget in Toman")}</span>
+            <span className="text-[13px] font-medium text-foreground">{t("Budget in {currency}").replace("{currency}", currency)}</span>
             <Input value={monthly} onChange={(e) => setMonthly(e.target.value)} inputMode="numeric" dir="ltr" />
           </label>
 
           <div className="mt-3 flex items-center justify-between text-[13px]">
             <span className="text-muted-foreground">
-              {amount(budget.spent)} {t("Toman used this month")}
+              {amount(budget.spent)} {t("{currency} used this month").replace("{currency}", currency)}
             </span>
             <span className="tabular-nums text-muted-foreground">{num(spentPercent.toFixed(2))}%</span>
           </div>
@@ -117,7 +118,7 @@ export default function Limits() {
 
         <SectionCard title={t("Organization credit")}>
           <p className="text-2xl font-bold text-foreground tabular-nums">
-            {amount(4_932_680)} <span className="text-[13px] font-normal text-muted-foreground">{t("Toman")}</span>
+            {amount(4_932_680)} <span className="text-[13px] font-normal text-muted-foreground">{currency}</span>
           </p>
           {/* One wallet for the whole account; this product does not keep a
               second one. The link goes to the billing page that already owns it. */}
@@ -130,7 +131,7 @@ export default function Limits() {
             </div>
             <div className="flex items-center justify-between border-b border-border/60 py-2.5">
               <span className="text-muted-foreground">{t("Billing unit")}</span>
-              <span className="font-medium text-foreground">{t("Toman")}</span>
+              <span className="font-medium text-foreground">{currency}</span>
             </div>
             <div className="flex items-center justify-between py-2.5">
               <span className="text-muted-foreground">{t("Alert recipients")}</span>

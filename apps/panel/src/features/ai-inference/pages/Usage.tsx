@@ -10,7 +10,7 @@ import { AI_INFERENCE_PRODUCT_ID } from "@/shared/lib/productRegistry";
 import { formatDate } from "@/shared/lib/formatDate";
 import { useAppLanguage } from "@/shared/i18n/appLanguage";
 import { useT } from "../i18n";
-import { MetricCard, MetricRow, Page, PageHead, SectionCard, useAmount, useNum } from "../ui";
+import { MetricCard, MetricRow, Page, PageHead, SectionCard, useAmount, useCurrency, useNum } from "../ui";
 import { useProject } from "../routes";
 
 /* Consumption and spend.
@@ -21,6 +21,7 @@ import { useProject } from "../routes";
  */
 export default function Usage() {
   const t = useT();
+  const currency = useCurrency();
   const num = useNum();
   const amount = useAmount();
   const language = useAppLanguage();
@@ -55,7 +56,7 @@ export default function Usage() {
   /* Whatever is on screen is what gets exported. */
   const exportCsv = () => {
     const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
-    const header = ["Model", "Model ID", "Requests", "Input tokens", "Output tokens", "Cost (Toman)"].map(esc).join(",");
+    const header = ["Model", "Model ID", "Requests", "Input tokens", "Output tokens", `Cost (${currency})`].map(esc).join(",");
     const body = rows
       .map((r) => {
         const m = getModel(r.modelId);
@@ -132,7 +133,7 @@ export default function Usage() {
       />
 
       <MetricRow>
-        <MetricCard active label={t("Model cost")} value={amount(usage.cost)} unit={t("Toman")} icon={Wallet} />
+        <MetricCard active label={t("Model cost")} value={amount(usage.cost)} unit={currency} icon={Wallet} />
         <MetricCard label={t("Total requests")} value={amount(usage.requests)} unit={t("calls")} icon={Layers} tone="blue" />
         <MetricCard
           label={t("Input tokens")}
@@ -213,7 +214,7 @@ export default function Usage() {
                 <TableHead>{t("Requests")}</TableHead>
                 <TableHead>{t("Input tokens")}</TableHead>
                 <TableHead>{t("Output tokens")}</TableHead>
-                <TableHead className="text-end">{t("Cost")} · {t("Toman")}</TableHead>
+                <TableHead className="text-end">{t("Cost")} · {currency}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

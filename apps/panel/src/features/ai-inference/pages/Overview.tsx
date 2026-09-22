@@ -6,13 +6,14 @@ import { getBudget, getUsage, listAvailableModels } from "../lib/catalog";
 import { listKeysForProduct } from "@/shared/lib/apiKeys";
 import { AI_INFERENCE_PRODUCT_ID } from "@/shared/lib/productRegistry";
 import { useT } from "../i18n";
-import { Badge, MetricCard, MetricRow, Page, PageHead, SectionCard, useAmount, useNum } from "../ui";
+import { Badge, MetricCard, MetricRow, Page, PageHead, SectionCard, useAmount, useCurrency, useNum } from "../ui";
 import { useProject } from "../routes";
 
 /* The product's front door: what it cost, what it is allowed to reach, and
    the three steps between a new project and a first request. */
 export default function Overview() {
   const t = useT();
+  const currency = useCurrency();
   const num = useNum();
   const amount = useAmount();
   const navigate = useNavigate();
@@ -71,7 +72,7 @@ export default function Overview() {
       />
 
       <MetricRow>
-        <MetricCard active label={t("This month")} value={amount(usage.cost)} unit={t("Toman")} icon={Wallet} />
+        <MetricCard active label={t("This month")} value={amount(usage.cost)} unit={currency} icon={Wallet} />
         <MetricCard label={t("Requests")} value={amount(usage.requests)} unit={t("calls")} icon={Activity} tone="blue" />
         <MetricCard
           label={t("Total tokens")}
@@ -128,10 +129,10 @@ export default function Overview() {
         <SectionCard title={t("Budget this month")}>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold leading-none text-foreground tabular-nums">{amount(budget.spent)}</span>
-            <span className="text-[13px] text-muted-foreground">{t("Toman")}</span>
+            <span className="text-[13px] text-muted-foreground">{currency}</span>
           </div>
           <p className="mt-1 text-[13px] text-muted-foreground">
-            {t("of")} {amount(budget.monthly)} {t("Toman")} · {t("Monthly budget")}
+            {t("of")} {amount(budget.monthly)} {currency} · {t("Monthly budget")}
           </p>
           <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
             <div className="h-full rounded-full bg-primary" style={{ width: `${spentPercent}%` }} />

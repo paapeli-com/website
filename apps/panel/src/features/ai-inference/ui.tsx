@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { useT } from "./i18n";
+import { useBillingCurrency } from "@/shared/lib/billingCurrency";
 import { localizeDigits, useAppLanguage } from "@/shared/i18n/appLanguage";
 
 /* AI Inference's own small pieces.
@@ -23,6 +24,13 @@ export function useNum() {
 export function useAmount() {
   const num = useNum();
   return (value: number) => num(value.toLocaleString("en-US"));
+}
+
+/* The currency this account is billed in. Prices here used to say Toman in
+   every language, including Arabic, which quoted a Qatari customer in the
+   wrong money. The name comes from the account now. */
+export function useCurrency() {
+  return useBillingCurrency().name;
 }
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {

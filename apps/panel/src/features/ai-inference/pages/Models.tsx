@@ -22,7 +22,7 @@ import { AI_INFERENCE_BASE, centralApiKeysPath } from "@/shell/nav/aiInferenceNa
 import { listModels } from "../lib/catalog";
 import type { InferenceModel, ModelTask } from "../lib/types";
 import { useT } from "../i18n";
-import { Badge, MetricCard, MetricRow, Page, PageHead, useAmount, useNum } from "../ui";
+import { Badge, MetricCard, MetricRow, Page, PageHead, useAmount, useCurrency, useNum } from "../ui";
 import { useProject } from "../routes";
 
 /* The model catalogue.
@@ -44,6 +44,7 @@ const PAGE_SIZE = 8;
 
 export default function Models() {
   const t = useT();
+  const currency = useCurrency();
   const num = useNum();
   const amount = useAmount();
   const navigate = useNavigate();
@@ -311,12 +312,12 @@ export default function Models() {
           {totalPages > 1 ? (
             <SmartPagination currentPage={currentPage} totalPages={totalPages} onChange={setPage} />
           ) : (
-            <span>{t("Prices in Toman · input and output billed separately")}</span>
+            <span>{t("Prices in {currency} · input and output billed separately").replace("{currency}", currency)}</span>
           )}
         </div>
         {totalPages > 1 && (
           <p className="mt-2 text-end text-xs text-muted-foreground">
-            {t("Prices in Toman · input and output billed separately")}
+            {t("Prices in {currency} · input and output billed separately").replace("{currency}", currency)}
           </p>
         )}
       </div>
@@ -383,7 +384,7 @@ export default function Models() {
             {amount(model.inputPrice)} / {model.outputPrice === null ? "—" : amount(model.outputPrice)}
           </span>
           <div className="text-xs text-muted-foreground">
-            {t("Input / output")} · {t("Toman")}
+            {t("Input / output")} · {currency}
           </div>
         </TableCell>
         <TableCell onClick={(e) => e.stopPropagation()}>
