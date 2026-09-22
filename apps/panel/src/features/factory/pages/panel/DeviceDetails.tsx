@@ -292,6 +292,8 @@ const DeviceDetails = () => {
       deviceId: fetched.id,
       name: fetched.name,
       label: fetched.label,
+      tags: fetched.label || undefined,
+      description: fetched.description || undefined,
       type: fetched.type,
       protocol: fetched.protocol,
       active: fetched.active,
@@ -338,9 +340,8 @@ const DeviceDetails = () => {
     );
   }
 
-  // The gateway exposes no tag surface for devices, so these render empty
-  // rather than showing invented labels. Populate from the API when one exists.
-  const deviceTags: string[] = [];
+  // Tags are stored in the API's `label`, comma-separated.
+  const deviceTags: string[] = (device.tags ?? "").split(",").map((tg) => tg.trim()).filter(Boolean);
   const profile: DeviceProfileKey = guessProfile(device.name, "");
   const channels: Channel[] = PROFILE_CHANNELS[profile];
   const status = deviceStatus(device);
@@ -1842,13 +1843,21 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
         </div>
         <SheetFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("cancel")}</Button>
-          {/* PUT /devices/{ws}/{pk} takes name, label and description. Tags
-              and sharing still have no endpoint, so they are not saved. */}
+          {/* PUT /devices/{ws}/{pk} takes name, label and description; the
+              tags go in `label`. Sharing still has no endpoint, so it is not
+              saved. */}
           <Button
             disabled={editDevice.isPending || !name.trim()}
             onClick={async () => {
               if (!workspaceId) {
                 toast({ title: t("error"), description: t("noWorkspaceSelected"), variant: "destructive" });
+                return;
+              }
+              // Tags travel as the API's `label`, comma-separated (max 255).
+              const pending = tagInput.trim();
+              const label = (pending && !tags.includes(pending) ? [...tags, pending] : tags).join(", ");
+              if (label.length > 255) {
+                toast({ title: t("error"), description: t("tagsTooLong"), variant: "destructive" });
                 return;
               }
               try {
@@ -1857,8 +1866,9 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
                   productKey: PRODUCT_KEY,
                   id: device.id,
                   name: name.trim(),
-                  label: name.trim(),
-                  description: desc || undefined,
+                  // Sent even when empty, so removing every tag clears them.
+                  label,
+                  description: desc.trim() || undefined,
                 });
                 toast({ title: t("editDeviceTitle") });
                 onOpenChange(false);

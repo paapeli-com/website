@@ -479,7 +479,7 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
                             setSelectedDevices(prev => checked ? [...prev, id] : prev.filter(d => d !== id));
                           }}
                         />
-                        <span className="text-sm">{dev.label || dev.name}</span>
+                        <span className="text-sm">{dev.name}</span>
                       </label>
                     );
                   })}

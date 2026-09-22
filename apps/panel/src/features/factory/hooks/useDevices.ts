@@ -26,7 +26,12 @@ export interface UserDevice {
   /** The server has one identifier; kept as `deviceId` for existing call sites. */
   deviceId: string;
   name: string;
+  /** The API's `label` as sent — the device's tags, comma-separated. */
   label?: string;
+  /** Tags, comma-separated: stored in the API's `label` (see DeviceForm). */
+  tags?: string;
+  /** Saved on create/edit; read back only once the list endpoint returns it. */
+  description?: string;
   type?: string;
   protocol: string;
   /** Server-reported connectivity — the source for the status pill. */
@@ -40,7 +45,7 @@ export interface UserDevice {
   lastActivity?: string;
 
   /* ---------------------------------------------------------------------
-     No endpoint backs any of the fields below — the gateway has no tags,
+     No endpoint backs any of the fields below — the gateway has no
      gateway-assignment, sharing or OTA surface, and credentials are their own
      per-device call rather than part of the device record. They stay on the
      type so the pages reading them keep compiling, and they are always
@@ -49,8 +54,6 @@ export interface UserDevice {
      --------------------------------------------------------------------- */
   /** Use useGetDeviceCredentialsQuery — not part of the device record. */
   apiKey?: undefined;
-  tags?: undefined;
-  description?: undefined;
   externalId?: undefined;
   gateway?: undefined;
   sharedUsers?: undefined;
@@ -74,6 +77,8 @@ const toUserDevice = (
   deviceId: d.id,
   name: d.name,
   label: d.label,
+  tags: d.label || undefined,
+  description: d.description || undefined,
   type: d.type,
   protocol: d.protocol,
   active: d.active,

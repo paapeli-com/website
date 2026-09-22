@@ -4170,9 +4170,7 @@
           "null": { "type": "boolean" },
           "object": { "type": "boolean" },
           "float": { "type": "boolean" },
-          "missingNode": { "type": "boolean" },
-          "valueNode": { "type": "boolean" },
-          "container": { "type": "boolean" },
+          "string": { "type": "boolean" },
           "nodeType": {
             "type": "string",
             "enum": [
@@ -4187,8 +4185,11 @@
               "STRING"
             ]
           },
-          "string": { "type": "boolean" },
           "integralNumber": { "type": "boolean" },
+          "floatingPointNumber": { "type": "boolean" },
+          "missingNode": { "type": "boolean" },
+          "valueNode": { "type": "boolean" },
+          "container": { "type": "boolean" },
           "pojo": { "type": "boolean" },
           "short": { "type": "boolean" },
           "int": { "type": "boolean" },
@@ -4199,7 +4200,6 @@
           "textual": { "type": "boolean", "deprecated": true },
           "boolean": { "type": "boolean" },
           "binary": { "type": "boolean" },
-          "floatingPointNumber": { "type": "boolean" },
           "number": { "type": "boolean" },
           "embeddedValue": { "type": "boolean" }
         }

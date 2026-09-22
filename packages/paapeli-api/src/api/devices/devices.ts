@@ -85,7 +85,10 @@ export interface DeviceResponse {
     /** Tracker IMEI. Not returned yet — the backend doesn't store it. */
     imei?: string;
     type: string;
+    /** The panel stores the device's tags here, comma-separated. */
     label: string;
+    /** Not returned by the list/get endpoints yet; only the edit response has it. */
+    description?: string;
     protocol: string;
     active: boolean;
     assetId: string;

@@ -284,14 +284,20 @@ const DeviceForm = () => {
       const trimmedName = deviceName.trim();
       const pendingTag = tagInput.trim().replace(/,$/, "").trim();
       const finalTags = pendingTag && !tags.includes(pendingTag) ? [...tags, pendingTag] : tags;
+      // Tags travel as the API's `label`, comma-separated (max 255 chars).
+      const label = finalTags.join(", ");
+      if (label.length > 255) {
+        toast({ title: t("error"), description: t("tagsTooLong"), variant: "destructive" });
+        return;
+      }
+      const trimmedDescription = description.trim();
       const created = await createDevice.mutateAsync({
         workspaceId,
         productKey: PRODUCT_KEY,
         name: trimmedName,
-        // The API requires a label; the form has no separate field for it.
-        label: trimmedName,
+        ...(label ? { label } : {}),
         type: apiDeviceType,
-        description: description || undefined,
+        ...(trimmedDescription ? { description: trimmedDescription } : {}),
         isGateway,
         assetId,
         ...credentialsFor(security),
@@ -465,28 +471,7 @@ const DeviceForm = () => {
               )}
             </div>
           </div>
-        </SectionCard>
-
-        {/* 3. Credentials / Security */}
-        <SectionCard step={3} title={t("credentialsSecurity")}>
-          <SecurityConfig value={security} onChange={setSecurity} />
-        </SectionCard>
-
-        {/* 4. Advanced (collapsible) — includes Share With Users */}
-        <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-          <Card className="p-5">
-            <CollapsibleTrigger asChild>
-              <button type="button" className="w-full flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <StepBadge n={4} />
-                  <h3 className="text-base font-semibold text-foreground">{t("advancedSettings")}</h3>
-                  <span className="text-sm text-muted-foreground">({t("optional")})</span>
-                </div>
-                <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
-              </button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
             <div>
               <FieldLabel hint>{t("tagsLabel")}</FieldLabel>
               <div className="min-h-11 rounded-md border border-input bg-background px-2 py-1.5 flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring focus-within:border-transparent">
@@ -535,14 +520,36 @@ const DeviceForm = () => {
               <FieldLabel hint>{t("descriptionLabel")}</FieldLabel>
               <Textarea
                 value={description}
+                maxLength={500}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder={t("enterDescriptionOptional")}
                 className={persianTextClass(description)}
                 rows={3}
               />
             </div>
-              </div>
-              <div className="mt-5 pt-5 border-t border-border">
+          </div>
+        </SectionCard>
+
+        {/* 3. Credentials / Security */}
+        <SectionCard step={3} title={t("credentialsSecurity")}>
+          <SecurityConfig value={security} onChange={setSecurity} />
+        </SectionCard>
+
+        {/* 4. Advanced (collapsible) — includes Share With Users */}
+        <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+          <Card className="p-5">
+            <CollapsibleTrigger asChild>
+              <button type="button" className="w-full flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <StepBadge n={4} />
+                  <h3 className="text-base font-semibold text-foreground">{t("advancedSettings")}</h3>
+                  <span className="text-sm text-muted-foreground">({t("optional")})</span>
+                </div>
+                <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="mt-5">
                 <FieldLabel hint>{t("shareWithUsers")}</FieldLabel>
                 <ShareWithUsers value={sharedUsers} onChange={setSharedUsers} />
               </div>

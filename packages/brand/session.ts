@@ -71,13 +71,18 @@ export function getSession(): Session | null {
  *  `name` is empty when the account has no display name — callers show their
  *  own localised "no data" for it. `email` and `initial` are always real. */
 export function getCurrentUser(): { name: string; email: string; initial: string } | null {
-  const s = getSession();
+  const s = getSession() as (Session & { username?: unknown }) | null;
   if (!s) return null;
-  const name = s.name === LEGACY_PLACEHOLDER_NAME ? "" : s.name;
+  /* Refreshes used to overwrite the session with the factory store's
+     `{ username, token }` (fixed in authStore), so a stored session can lack
+     `email` and `name`; fall back to `username`, and never assume strings. */
+  const str = (v: unknown) => (typeof v === "string" ? v : "");
+  const name = s.name === LEGACY_PLACEHOLDER_NAME ? "" : str(s.name);
+  const email = str(s.email) || str(s.username);
   return {
     name,
-    email: s.email,
-    initial: (name || s.email).trim().charAt(0).toUpperCase(),
+    email,
+    initial: (name || email).trim().charAt(0).toUpperCase(),
   };
 }
 

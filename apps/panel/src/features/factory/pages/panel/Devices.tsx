@@ -363,7 +363,7 @@ const Devices = () => {
     }
   };
 
-  const getDeviceLocation = (d: Device) => d.location || (d as any).label || '';
+  const getDeviceLocation = (d: Device) => d.location || '';
   /* The API reports connectivity as the boolean `active`; there is no third
      "error" state behind it. */
   const getDeviceStatus = (d: Device): 'online' | 'offline' =>

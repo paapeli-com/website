@@ -126,7 +126,7 @@ export const AlertRulesList = ({
   const { items: devices } = useDevices();
   const deviceName = (id: string) => {
     const d = devices.find((x) => x.id === id);
-    return d ? d.label || d.name : id;
+    return d ? d.name : id;
   };
 
   // Creating and deleting are asynchronous server-side, so poll while any
