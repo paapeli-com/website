@@ -10,7 +10,7 @@ declare module 'axios' {
     }
 }
 
-export const apiClient = axios.create();
+export const apiClient = axios.create({withCredentials:true});
 
 export function setApiBaseUrl(baseUrl: string) {
     apiClient.defaults.baseURL = baseUrl;
