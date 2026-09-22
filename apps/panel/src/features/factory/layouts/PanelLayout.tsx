@@ -48,7 +48,7 @@ import {
 import { useWorkspace } from "@/features/factory/store/workspaceStore";
 import { useWorkspaceSwitch } from "@/shared/components/WorkspaceSwitchDialog";
 import { getCurrentUser } from "@paapeli/brand/session";
-import { signOut as endSession, startIdleWatch } from "@paapeli/brand/session";
+import { signOut as endSession, startSessionWatch } from "@paapeli/brand/session";
 import { endServerSession } from "@paapeli/api";
 import {
   Tooltip,
@@ -295,7 +295,7 @@ export const PanelLayout = ({ children }: PanelLayoutProps) => {
   };
 
   // Keep the shared session alive while active; bounce to /login when idle.
-  useEffect(() => startIdleWatch(), []);
+  useEffect(() => startSessionWatch(), []);
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 

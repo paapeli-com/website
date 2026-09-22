@@ -2,23 +2,25 @@
 /* Shared, product-agnostic session.                                  */
 /* One login (at /login) creates a session in localStorage on the      */
 /* shared origin, so every product/solution is signed in at once.      */
-/* Sliding idle timeout: the session stays valid as long as the user   */
-/* is active; after IDLE_MS of no activity it expires and /login is     */
-/* required again. Mock for now; later backed by the gateway/API.      */
+/* There is no client-side expiry. The session lasts as long as the    */
+/* gateway's refresh token: @paapeli/api refreshes the access token    */
+/* when it expires and signs out only when that refresh is refused.    */
+/* (A 1-hour idle timer used to live here, from before real auth; it   */
+/* signed people out with no 401 and no refresh attempt.)              */
 /* ------------------------------------------------------------------ */
 
 const KEY = "paapeli_session";
-export const IDLE_MS = 60 * 60 * 1000; // 1 hour of inactivity
 export const LOGIN_URL = "/login";
 
 /** `token` is the bearer JWT returned by the login API — carried in the same
- *  session object so every product app can attach it to its own API client. */
-export type Session = { email: string; name: string; initial: string; expiresAt: number; token?: string };
+ *  session object so every product app can attach it to its own API client.
+ *  `expiresAt` is only on sessions written by older builds, and is ignored. */
+export type Session = { email: string; name: string; initial: string; expiresAt?: number; token?: string };
 
 /* Sessions written before the placeholder user was removed carry this name.
    The account's real display name is never this string, so treat it as absent
    rather than showing one tenant's name to whoever is signed in. Safe to drop
-   once every stored session has rotated (they expire after IDLE_MS). */
+   once no stored session predates the change. */
 const LEGACY_PLACEHOLDER_NAME = "هلدینگ هوشمند سینا";
 
 /** `name` is the account's own display name, which only signup returns today.
@@ -34,7 +36,6 @@ export function signIn(email = "", token?: string, name?: string): Session {
     name: resolvedName,
     // The avatar letter is real even without a name — it comes off the email.
     initial: (resolvedName || resolvedEmail).trim().charAt(0).toUpperCase(),
-    expiresAt: Date.now() + IDLE_MS,
     token,
   };
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
@@ -50,12 +51,8 @@ export function getSession(): Session | null {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
-    const s = JSON.parse(raw) as Session;
-    if (!s || typeof s.expiresAt !== "number" || Date.now() > s.expiresAt) {
-      localStorage.removeItem(KEY);
-      return null;
-    }
-    return s;
+    const s = JSON.parse(raw) as Session | null;
+    return s && typeof s === "object" ? s : null;
   } catch {
     return null;
   }
@@ -126,14 +123,6 @@ export function signOut(): void {
   try { localStorage.removeItem(KEY); } catch {}
 }
 
-/** Extend the session (called on user activity) — the sliding part. */
-export function touch(): void {
-  const s = getSession();
-  if (!s) return;
-  s.expiresAt = Date.now() + IDLE_MS;
-  try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
-}
-
 /** Send the browser to the product-agnostic login, preserving where we were. */
 export function goToLogin(redirect?: string): void {
   if (typeof window === "undefined") return;
@@ -142,21 +131,17 @@ export function goToLogin(redirect?: string): void {
 }
 
 /**
- * Keep the session alive while the user is active and bounce to /login when
- * it expires from inactivity. Returns a cleanup function.
+ * Bounce to /login once the session is gone — signed out in another tab, or
+ * cleared by a refused refresh in another bundle. Returns a cleanup function.
  */
-export function startIdleWatch(onExpire: () => void = () => goToLogin()): () => void {
+export function startSessionWatch(onSignedOut: () => void = () => goToLogin()): () => void {
   if (typeof window === "undefined") return () => {};
-  let lastTouch = 0;
-  const onActivity = () => {
-    const now = Date.now();
-    if (now - lastTouch > 60_000) { lastTouch = now; touch(); } // throttle writes to 1/min
-  };
-  const events = ["mousemove", "keydown", "pointerdown", "scroll", "touchstart"] as const;
-  events.forEach((e) => window.addEventListener(e, onActivity, { passive: true }));
-  const iv = window.setInterval(() => { if (!isAuthenticated()) onExpire(); }, 30_000);
+  const check = () => { if (!isAuthenticated()) onSignedOut(); };
+  const onStorage = (e: StorageEvent) => { if (e.key === KEY || e.key === null) check(); };
+  window.addEventListener("storage", onStorage);
+  const iv = window.setInterval(check, 30_000);
   return () => {
     window.clearInterval(iv);
-    events.forEach((e) => window.removeEventListener(e, onActivity));
+    window.removeEventListener("storage", onStorage);
   };
 }

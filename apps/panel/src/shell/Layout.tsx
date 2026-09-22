@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { X } from "lucide-react";
-import { startIdleWatch } from "@paapeli/brand/session";
+import { startSessionWatch } from "@paapeli/brand/session";
 import { solutionPath } from "@paapeli/brand/config";
 import { cn } from "@/shared/lib/utils";
 import { recordVisit } from "@/shared/lib/userHistory";
@@ -24,7 +24,7 @@ export function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => window.localStorage.getItem(COLLAPSED_KEY) === "1");
 
-  useEffect(() => startIdleWatch(), []);
+  useEffect(() => startSessionWatch(), []);
 
   /* Home's "Recently visited" list, recorded here because this is the one
      component every in-app navigation passes through. Only pages the sidebar
