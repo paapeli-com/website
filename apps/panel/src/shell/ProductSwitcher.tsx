@@ -4,6 +4,7 @@ import { Check, ChevronDown, Factory, House, LayoutGrid, MapPin, Server, Sparkle
 import { PRODUCTS, solutionPath } from "@paapeli/brand/config";
 import { AI_INFERENCE_BASE } from "@/shell/nav/aiInferenceNav";
 import { cn } from "@/shared/lib/utils";
+import { menuRowIdle, menuRowSelected } from "@/shell/menuRow";
 import { useShellT } from "@/shared/i18n/shell";
 
 /* The product switcher.
@@ -213,13 +214,12 @@ function MenuRow({
   return (
     <Element
       {...(interactive ? { type: "button" as const, onClick: onSelect } : {})}
+      /* The row keeps its own tighter geometry, because the list is long, but
+         takes its hover and selected treatment from the one place every
+         header menu now reads it from. */
       className={cn(
         "flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-start text-sm transition-colors",
-        active
-          ? "border-primary/40 bg-primary/10 font-semibold text-foreground"
-          : interactive
-            ? "border-transparent text-foreground hover:border-primary/30 hover:bg-primary/5"
-            : "border-transparent text-foreground",
+        active ? menuRowSelected : interactive ? menuRowIdle : "border-transparent text-foreground",
         disabled && "cursor-not-allowed text-muted-foreground/60",
       )}
     >

@@ -3,6 +3,7 @@ import { Globe } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { APP_LANGUAGES, setAppLanguage, useAppLanguage } from "@/shared/i18n/appLanguage";
 import { useShellT } from "@/shared/i18n/shell";
+import { menuRowBase, menuRowIdle, menuRowSelected } from "@/shell/menuRow";
 
 const iconBtn =
   "inline-flex size-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
@@ -53,10 +54,9 @@ export function LanguageMenu() {
               dir={lang.code === "en" ? "ltr" : "rtl"}
               lang={lang.code}
               className={cn(
-                "block w-full rounded-xl px-4 py-2.5 text-start text-[15px] transition-colors",
-                language === lang.code
-                  ? "bg-primary/10 font-bold text-primary"
-                  : "text-foreground hover:bg-muted",
+                menuRowBase,
+                "text-[15px]",
+                language === lang.code ? menuRowSelected : menuRowIdle,
               )}
             >
               {lang.label}

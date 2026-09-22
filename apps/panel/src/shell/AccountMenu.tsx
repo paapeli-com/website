@@ -5,6 +5,7 @@ import { useListActiveWorkspacesQuery } from "@paapeli/api";
 import { getCurrentUser, signOut as endSession } from "@paapeli/brand/session";
 import { setActiveWorkspaceId, useActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { cn } from "@/shared/lib/utils";
+import { menuRowBase, menuRowDanger, menuRowIdle, menuRowSelected } from "@/shell/menuRow";
 import { useShellT } from "@/shared/i18n/shell";
 
 export function AccountMenu() {
@@ -83,10 +84,7 @@ export function AccountMenu() {
                       setActiveWorkspaceId(ws.workspaceId);
                       close();
                     }}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-xl px-2 py-2 text-sm transition-colors",
-                      isActive ? "bg-primary/10" : "hover:bg-muted",
-                    )}
+                    className={cn(menuRowBase, isActive ? menuRowSelected : menuRowIdle)}
                   >
                     <span
                       className={cn(
@@ -115,7 +113,7 @@ export function AccountMenu() {
                 navigate("/CloudManagement/workspaces");
                 close();
               }}
-              className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+              className={cn(menuRowBase, menuRowIdle)}
             >
               <Plus className="size-4 text-muted-foreground" />
               {t("Create new workspace")}
@@ -125,7 +123,7 @@ export function AccountMenu() {
                 navigate("/CloudManagement/workspaces");
                 close();
               }}
-              className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+              className={cn(menuRowBase, menuRowIdle)}
             >
               <SlidersHorizontal className="size-4 text-muted-foreground" />
               {t("Manage workspaces")}
@@ -140,7 +138,7 @@ export function AccountMenu() {
                 navigate("/AIoT/SmartFactory/account-settings");
                 close();
               }}
-              className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+              className={cn(menuRowBase, menuRowIdle)}
             >
               <Settings className="size-4 text-muted-foreground" />
               {t("Account Settings")}
@@ -150,7 +148,7 @@ export function AccountMenu() {
                 endSession();
                 window.location.href = "/login";
               }}
-              className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-sm text-destructive transition-colors hover:bg-destructive/10"
+              className={cn(menuRowBase, menuRowDanger)}
             >
               <LogOut className="size-4" />
               {t("Sign out")}
