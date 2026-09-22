@@ -12,6 +12,7 @@ import { factoryNav } from "@/shell/nav/factoryNav";
 import { trackNav } from "@/shell/nav/trackNav";
 import { cloudManagementNav } from "@/shell/nav/cloudManagementNav";
 import { AI_INFERENCE_BASE, aiInferenceNav } from "@/shell/nav/aiInferenceNav";
+import { homeNav } from "@/shell/nav/homeNav";
 
 /* Persistent shell: header on top, [sidebar | content] below. The sidebar's
    item set follows whichever solution's URL prefix is currently active —
@@ -55,35 +56,25 @@ export function Layout() {
     setCollapsed(false);
   };
 
-  const navSection = location.pathname.startsWith("/CloudManagement")
-    ? cloudManagementNav
-    : location.pathname.startsWith(AI_INFERENCE_BASE)
-      ? aiInferenceNav
-      : location.pathname.startsWith(solutionPath("GPSTracking"))
-        ? trackNav
-        : factoryNav;
-
-  /* Home sits above every product, so there is no product nav to show beside
-     it — it gets the full width instead of an unrelated sidebar.
-
-     Case-insensitively, because React Router matches routes that way: /home
+  /* Case-insensitively, because React Router matches routes that way: /home
      renders Home just as /Home does, and an exact string compare here left
      the lowercase URL with a Smart Factory sidebar next to it. */
   const path = location.pathname.toLowerCase();
-  const sidebarless = path === "/home" || path.startsWith("/home/");
+  const onHome = path === "/home" || path.startsWith("/home/");
 
-  if (sidebarless) {
-    return (
-      <div className="flex h-screen flex-col overflow-hidden bg-background">
-        <Header onMenu={toggleSidebar} />
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <main>
-            <Outlet />
-          </main>
-        </div>
-      </div>
-    );
-  }
+  /* Home had no sidebar at all, on the grounds that it sits above every
+     product and has no product nav to show. It has one again, but a different
+     kind: the products themselves rather than the inside of one, so it is a
+     way across instead of a way around. It collapses like the others. */
+  const navSection = onHome
+    ? homeNav
+    : location.pathname.startsWith("/CloudManagement")
+      ? cloudManagementNav
+      : location.pathname.startsWith(AI_INFERENCE_BASE)
+        ? aiInferenceNav
+        : location.pathname.startsWith(solutionPath("GPSTracking"))
+          ? trackNav
+          : factoryNav;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">

@@ -223,7 +223,10 @@ export default function Home() {
     /* data-uniform-type: keeps the designed type scale in Persian and Arabic —
        see the matching block in src/index.css for why it is needed. */
     <div data-uniform-type className="relative mx-auto w-full max-w-[1340px] px-4 py-8 sm:px-6">
-      <TopoBackdrop />
+      {/* Anchored to this container, not the viewport: Home has a sidebar
+          again, and a fixed z-0 layer paints over a static flex item, so a
+          viewport-anchored backdrop would lie across the sidebar. */}
+      <TopoBackdrop anchor="container" />
 
       <div className="relative z-[1]">
         <header className="flex flex-col gap-1.5">
