@@ -258,6 +258,9 @@ const fa: Record<string, string> = {
   "Invoices, credit notes and the billing profile.":
     "فاکتورها، اعتبارها و مشخصات صورتحساب.",
   "Export CSV": "خروجی CSV",
+  Actions: "اقدامات",
+  "Create API key": "ساخت کلید API",
+  Project: "پروژه",
   "Billing currency": "ارز صورتحساب",
   "Every amount in the panel is shown in this currency.":
     "همهٔ مبلغ‌های پنل با این واحد نمایش داده می‌شوند.",
@@ -270,6 +273,54 @@ const fa: Record<string, string> = {
   Method: "روش پرداخت",
   Paid: "پرداخت‌شده",
   Refunded: "بازگردانده‌شده",
+
+  // Usage & quotas
+  "Consumption against plan limits for the current billing period.":
+    "مصرف در برابر محدودیت‌های طرح، برای دورهٔ صورتحساب جاری.",
+  "Period: This month": "دوره: این ماه",
+  "Request quota increase": "درخواست افزایش سهمیه",
+  Limit: "سقف",
+  "Message volume in the last 30 days": "حجم پیام در ۳۰ روز گذشته",
+  Messages: "پیام‌ها",
+  Resource: "منبع",
+  Included: "شامل طرح",
+  Used: "مصرف‌شده",
+  Overage: "مازاد",
+  "Est. cost": "هزینهٔ تخمینی",
+  "Usage by resource": "مصرف به تفکیک منبع",
+  "Billing period to date": "از ابتدای دورهٔ صورتحساب تا امروز",
+  "Quota alerts": "هشدارهای سهمیه",
+  "Notify the billing owner and admins when a resource crosses a threshold.":
+    "وقتی مصرف یک منبع از آستانه گذشت، به مالک صورتحساب و مدیران اطلاع بده.",
+  "At 80% of quota": "در ۸۰٪ سهمیه",
+  "At 100% of quota": "در ۱۰۰٪ سهمیه",
+  "On any overage charge": "با هر هزینهٔ مازاد",
+  "Weekly usage digest": "خلاصهٔ هفتگی مصرف",
+
+  // Payment methods & wallet
+  "Payment methods & wallet": "روش‌های پرداخت و کیف پول",
+  "Cards, bank accounts and prepaid balance.":
+    "کارت‌ها، حساب‌های بانکی و موجودی پیش‌پرداخت.",
+  "Payments are in Toman through the TAP gateway for now.":
+    "فعلاً پرداخت فقط به تومان و از طریق درگاه تاپ انجام می‌شود.",
+  "Top up wallet": "شارژ کیف پول",
+  "Add payment method": "افزودن روش پرداخت",
+  "Saved methods": "روش‌های ذخیره‌شده",
+  "Payment history": "تاریخچهٔ پرداخت",
+  Export: "خروجی",
+  Date: "تاریخ",
+  Description: "شرح",
+  "Top up": "شارژ",
+  "Auto top-up": "شارژ خودکار",
+  "Payment settings": "تنظیمات پرداخت",
+  "Charge primary method automatically": "برداشت خودکار از روش اصلی",
+  "Use wallet balance before card": "استفاده از موجودی کیف پول پیش از کارت",
+  "Email receipt to billing contacts": "ارسال رسید به مخاطبان صورتحساب",
+  "Retry failed payments for 3 days": "تلاش دوباره برای پرداخت‌های ناموفق تا ۳ روز",
+  Primary: "اصلی",
+  Expires: "انقضا",
+  Succeeded: "موفق",
+  Failed: "ناموفق",
 
   // Central API keys
   "One key can reach several Paapeli products. They all live here.":
@@ -627,6 +678,9 @@ const ar: Record<string, string> = {
   "Invoices, credit notes and the billing profile.":
     "الفواتير وإشعارات الدائن وبيانات الفوترة.",
   "Export CSV": "تصدير CSV",
+  Actions: "إجراءات",
+  "Create API key": "إنشاء مفتاح API",
+  Project: "المشروع",
   "Billing currency": "عملة الفوترة",
   "Every amount in the panel is shown in this currency.":
     "تُعرض كل المبالغ في اللوحة بهذه العملة.",
@@ -639,6 +693,54 @@ const ar: Record<string, string> = {
   Method: "طريقة الدفع",
   Paid: "مدفوعة",
   Refunded: "مُستردة",
+
+  // Usage & quotas
+  "Consumption against plan limits for the current billing period.":
+    "الاستهلاك مقابل حدود الخطة لفترة الفوترة الحالية.",
+  "Period: This month": "الفترة: هذا الشهر",
+  "Request quota increase": "طلب زيادة الحصة",
+  Limit: "الحد",
+  "Message volume in the last 30 days": "حجم الرسائل في آخر ٣٠ يوماً",
+  Messages: "الرسائل",
+  Resource: "المورد",
+  Included: "ضمن الخطة",
+  Used: "المستخدم",
+  Overage: "التجاوز",
+  "Est. cost": "التكلفة التقديرية",
+  "Usage by resource": "الاستخدام حسب المورد",
+  "Billing period to date": "من بداية فترة الفوترة حتى اليوم",
+  "Quota alerts": "تنبيهات الحصة",
+  "Notify the billing owner and admins when a resource crosses a threshold.":
+    "أبلغ مالك الفوترة والمشرفين عند تجاوز أي مورد للعتبة.",
+  "At 80% of quota": "عند ٨٠٪ من الحصة",
+  "At 100% of quota": "عند ١٠٠٪ من الحصة",
+  "On any overage charge": "عند أي رسوم تجاوز",
+  "Weekly usage digest": "ملخص الاستخدام الأسبوعي",
+
+  // Payment methods & wallet
+  "Payment methods & wallet": "طرق الدفع والمحفظة",
+  "Cards, bank accounts and prepaid balance.":
+    "البطاقات والحسابات البنكية والرصيد المدفوع مسبقاً.",
+  "Payments are in Toman through the TAP gateway for now.":
+    "تتم المدفوعات حالياً بالتومان عبر بوابة تاپ فقط.",
+  "Top up wallet": "شحن المحفظة",
+  "Add payment method": "إضافة طريقة دفع",
+  "Saved methods": "الطرق المحفوظة",
+  "Payment history": "سجل المدفوعات",
+  Export: "تصدير",
+  Date: "التاريخ",
+  Description: "الوصف",
+  "Top up": "شحن",
+  "Auto top-up": "شحن تلقائي",
+  "Payment settings": "إعدادات الدفع",
+  "Charge primary method automatically": "الخصم تلقائياً من الطريقة الأساسية",
+  "Use wallet balance before card": "استخدام رصيد المحفظة قبل البطاقة",
+  "Email receipt to billing contacts": "إرسال الإيصال إلى جهات الفوترة",
+  "Retry failed payments for 3 days": "إعادة محاولة المدفوعات المتعثرة لمدة ٣ أيام",
+  Primary: "الأساسية",
+  Expires: "تنتهي",
+  Succeeded: "ناجحة",
+  Failed: "متعثرة",
 
   // Central API keys
   "One key can reach several Paapeli products. They all live here.":
