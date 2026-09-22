@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Bell, LayoutGrid, MapPin, Plus, Server, Settings, Wrench, type LucideIcon } from "lucide-react";
 import { solutionPath } from "@paapeli/brand/config";
 import { cn } from "@/shared/lib/utils";
+import { menuRowBase, menuRowIdle } from "@/shell/menuRow";
 import { useShellT } from "@/shared/i18n/shell";
 
 interface CreateNewItem {
@@ -39,7 +40,7 @@ function CreateNewRow({ item, onPick }: { item: CreateNewItem; onPick: (item: Cr
     <button
       type="button"
       onClick={() => onPick(item)}
-      className="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-start transition-colors hover:border-primary/30 hover:bg-primary/5"
+      className={cn(menuRowBase, menuRowIdle)}
     >
       <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
         <Icon className="size-5" />
