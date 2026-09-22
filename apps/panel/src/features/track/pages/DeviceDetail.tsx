@@ -198,6 +198,15 @@ export default function DeviceDetail() {
               <span dir="ltr" className="min-w-0 truncate font-medium">{v || <NoDataValue />}</span>
             </div>
           ))}
+          {/* Prose, not an identifier: its own direction, and it wraps. The
+              get-device endpoint doesn't return it yet, so it shows "no data"
+              until the backend adds it. */}
+          <div className="flex items-start justify-between gap-4 px-5 py-3 text-sm">
+            <span className="shrink-0 text-muted-foreground">{t("description")}</span>
+            <span dir="auto" className="min-w-0 whitespace-pre-wrap break-words text-end font-medium">
+              {device.description || <NoDataValue />}
+            </span>
+          </div>
         </Card>
       )}
 

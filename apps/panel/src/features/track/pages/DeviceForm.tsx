@@ -99,6 +99,7 @@ export default function DeviceForm() {
 
   const [name, setName] = useState("");
   const [imei, setImei] = useState("");
+  const [description, setDescription] = useState("");
   const [icon, setIcon] = useState<TrackerIconKey | null>(null);
   const [scanning, setScanning] = useState(false);
   /* MQTT_BASIC credentials the tracker connects with. The form doesn't ask
@@ -129,6 +130,7 @@ export default function DeviceForm() {
     setCreated(null);
     setName("");
     setImei("");
+    setDescription("");
     setIcon(null);
     setClientId(randomToken());
     setUsername("dev-" + randomToken(8).toLowerCase());
@@ -161,6 +163,8 @@ export default function DeviceForm() {
         // The backend doesn't accept imei yet; sent now so it lands once it does.
         imei,
         type: deviceType || FALLBACK_DEVICE_TYPE,
+        // Optional; left out when empty rather than sent as "".
+        ...(description.trim() ? { description: description.trim() } : {}),
         assetId,
         credentialType: "MQTT_BASIC",
         credentialValue: JSON.stringify({ clientId, userName: username, password }),
@@ -252,6 +256,21 @@ export default function DeviceForm() {
             onScan={() => setScanning(true)}
             scanLabel={t("scanImei")}
           />
+          <div className="min-w-0">
+            <label htmlFor="tracker-description" className="mb-1.5 block text-sm font-medium">
+              {t("description")} <span className="font-normal text-muted-foreground">({t("optional")})</span>
+            </label>
+            <textarea
+              id="tracker-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t("descriptionPlaceholder")}
+              maxLength={500}
+              rows={3}
+              dir="auto"
+              className="w-full min-w-0 resize-y rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+            />
+          </div>
         </CardContent>
       </Card>
 

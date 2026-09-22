@@ -11,6 +11,7 @@ import { usePageLoad } from "@/shared/hooks/usePageLoad";
 import { PRODUCT_KEY } from "@/features/track/lib/product";
 import { useTrackerAlarms, type AlarmState, type TrackerAlarm } from "@/features/track/lib/useTrackerAlarms";
 import { cn } from "@/shared/lib/utils";
+import { AlertRules } from "@/features/track/components/AlertRules";
 
 /* ThingsBoard severities, most to least urgent: CRITICAL, MAJOR, MINOR,
    WARNING, INDETERMINATE. */
@@ -41,6 +42,7 @@ const STATE_TONE: Record<AlarmState, string> = {
 
 export default function Alerts() {
   const { t, relTime } = useLanguage();
+  const [tab, setTab] = useState<"alerts" | "rules">("alerts");
   const { workspaceId, alarms, unread, load, noWorkspace, refetch } = useTrackerAlarms();
   const pageLoad = usePageLoad({
     loading: load.loading || noWorkspace,
@@ -80,7 +82,7 @@ export default function Alerts() {
     if (results.some((r) => r.status === "rejected")) toast.error(t("alarmActionFailed"));
   };
 
-  if (pageLoad.status === "failed") return <LoadFailed onRetry={pageLoad.retry} />;
+  if (tab === "alerts" && pageLoad.status === "failed") return <LoadFailed onRetry={pageLoad.retry} />;
 
   return (
     <div className="mx-auto max-w-3xl p-4 lg:p-6">
@@ -89,7 +91,7 @@ export default function Alerts() {
           <h1 className="text-xl font-bold">{t("alerts")}</h1>
           <p className="text-sm text-muted-foreground">{t("alertsDesc")}</p>
         </div>
-        {unread > 0 && (
+        {tab === "alerts" && unread > 0 && (
           <Button variant="outline" size="sm" onClick={markAllRead} disabled={markingAll}>
             <CheckCheck className="size-4" />
             {t("markAllRead")}
@@ -97,6 +99,22 @@ export default function Alerts() {
         )}
       </div>
 
+      <div className="mb-4 inline-flex max-w-full overflow-x-auto rounded-xl bg-muted p-1">
+        {(["alerts", "rules"] as const).map((tb) => (
+          <button
+            key={tb}
+            onClick={() => setTab(tb)}
+            className={cn(
+              "shrink-0 rounded-lg px-4 py-1.5 text-sm font-medium transition-colors",
+              tab === tb ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {t(tb === "alerts" ? "alertsTab" : "rulesTab")}
+          </button>
+        ))}
+      </div>
+
+      {tab === "rules" ? <AlertRules /> : (
       <div className="flex flex-col gap-2">
         {pageLoad.status === "loading" &&
           Array.from({ length: 3 }).map((_, i) => (
@@ -147,6 +165,7 @@ export default function Alerts() {
             );
           })}
       </div>
+      )}
     </div>
   );
 }
