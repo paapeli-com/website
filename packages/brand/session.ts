@@ -14,8 +14,16 @@ export const LOGIN_URL = "/login";
 
 /** `token` is the bearer JWT returned by the login API — carried in the same
  *  session object so every product app can attach it to its own API client.
- *  `expiresAt` is only on sessions written by older builds, and is ignored. */
+ *  `expiresAt` is ignored by this build; see LEGACY_EXPIRES_AT. */
 export type Session = { email: string; name: string; initial: string; expiresAt?: number; token?: string };
+
+/* Builds before v0.2.50 delete any session whose `expiresAt` is missing or
+   past, on every read — including reads triggered by the storage event a
+   login in ANOTHER tab fires. A tab still running such a build (or, in dev, a
+   module Vite hot-swapped without dropping its old listeners) would erase a
+   fresh login within a second. So sessions keep a far-future `expiresAt` for
+   those readers; nothing in this build looks at it. */
+const LEGACY_EXPIRES_AT = 8_640_000_000_000_000; // the largest valid Date
 
 /* Sessions written before the placeholder user was removed carry this name.
    The account's real display name is never this string, so treat it as absent
@@ -36,6 +44,7 @@ export function signIn(email = "", token?: string, name?: string): Session {
     name: resolvedName,
     // The avatar letter is real even without a name — it comes off the email.
     initial: (resolvedName || resolvedEmail).trim().charAt(0).toUpperCase(),
+    expiresAt: LEGACY_EXPIRES_AT,
     token,
   };
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
@@ -100,6 +109,7 @@ export function updateToken(token: string): void {
   const s = getSession();
   if (!s) return;
   s.token = token;
+  s.expiresAt = LEGACY_EXPIRES_AT;
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
 }
 

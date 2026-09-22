@@ -344,7 +344,9 @@ onTokenRefreshed((token) => {
   const username = user.getUsername();
   const { mockSession } = toMockSession(username, token);
   useAuthStore.setState({ session: mockSession });
-  if (loadStoredSession()) persistSession({ username, token });
+  /* The shared session already holds the new token (updateToken in
+     napiHttpHandler). Writing {username, token} here would overwrite that
+     same key, dropping its email, name and expiresAt. */
 });
 
 /** Drop-in replacement for the old `useAuth()` context hook. */
