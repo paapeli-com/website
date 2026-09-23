@@ -4,6 +4,7 @@
    because a build with no .env is supported — src/shared/config.ts falls back. */
 interface ImportMetaEnv {
   readonly PAAPELI_API_BASE_URL?: string;
+  readonly PAAPELI_MAPIR_API_KEY?: string;
 }
 
 interface ImportMeta {

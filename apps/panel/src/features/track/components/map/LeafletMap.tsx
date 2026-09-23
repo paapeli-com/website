@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { AssetType, Geofence, TrackPoint } from "@/features/track/data/types";
 import { type TrackerIconKey } from "@/features/track/lib/trackerIcons";
 import { makeMarkerIcon, PRIMARY } from "./markerIcon";
+import { addBaseLayer, DEFAULT_CENTER, DEFAULT_ZOOM } from "./baseLayer";
 import { cn } from "@/shared/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -64,10 +65,7 @@ export function LeafletMap({
     const map = L.map(elRef.current, { zoomControl: true, attributionControl: true });
     mapRef.current = map;
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(map);
+    addBaseLayer(map);
 
     // Markers are placed by the sync effect below, which also fits the view
     // to them once they first arrive. A trail fits itself in its own effect.
@@ -77,7 +75,7 @@ export function LeafletMap({
     if (initialPts.length) {
       map.fitBounds(L.latLngBounds(initialPts), { padding: [50, 50], maxZoom: 16 });
       fittedRef.current = true;
-    } else map.setView([40.782, -73.965], 14);
+    } else map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
 
     setTimeout(() => map.invalidateSize(), 100);
 

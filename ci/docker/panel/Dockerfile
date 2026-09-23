@@ -17,6 +17,10 @@ RUN pnpm install --frozen-lockfile
 # blank as unset, so both ends have to fail before that can ship again.
 ARG PAAPELI_API_BASE_URL=https://api.paapeli.me
 ENV PAAPELI_API_BASE_URL=$PAAPELI_API_BASE_URL
+# Map.ir key for the track maps' tiles; build-time for the same reason. Empty
+# is safe here — config.ts falls back to OpenStreetMap tiles.
+ARG PAAPELI_MAPIR_API_KEY=
+ENV PAAPELI_MAPIR_API_KEY=$PAAPELI_MAPIR_API_KEY
 # ONE Vite build. This used to be five independent builds whose outputs were
 # stitched together at runtime via Module Federation; features are now
 # build-time lazy chunks of this single build (see apps/panel/vite.config.ts).
