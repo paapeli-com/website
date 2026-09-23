@@ -5,6 +5,7 @@ import type { Zone } from "@paapeli/api";
 import { rectangleCorners, shapePoints, toLatLng, type LatLng, type ViewSpan, type ZoneDraft } from "@/features/track/lib/zones";
 import type { TrackerIconKey } from "@/features/track/lib/trackerIcons";
 import { makeMarkerIcon, PRIMARY } from "./markerIcon";
+import { addBaseLayer, DEFAULT_CENTER, DEFAULT_ZOOM } from "./baseLayer";
 import { cn } from "@/shared/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -86,14 +87,11 @@ export function ZoneMap({
     if (!elRef.current || mapRef.current) return;
     const map = L.map(elRef.current, { zoomControl: true, attributionControl: true });
     mapRef.current = map;
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(map);
+    addBaseLayer(map);
     zonesRef.current = L.layerGroup().addTo(map);
     devicesRef.current = L.layerGroup().addTo(map);
     draftRef.current = L.layerGroup().addTo(map);
-    map.setView([35.6892, 51.389], 11);
+    map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
     map.on("click", (e: L.LeafletMouseEvent) => {
       if (!drawingRef.current) return;
       const b = map.getBounds();

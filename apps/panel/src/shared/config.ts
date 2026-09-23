@@ -34,3 +34,9 @@ export const PAAPELI_API_BASE_URL = configured || "https://api.paapeli.com";
    this client produces against Google before issuing a Paapeli token. */
 export const GOOGLE_CLIENT_ID =
   "1071216349974-sjdfgo4cru8ln56c9mge19la4rj86n8l.apps.googleusercontent.com";
+
+/* Map.ir API key for the track maps' base tiles (see .env.example). Like the
+   gateway origin it is inlined at build time. It rides in every tile URL, so
+   it is visible to anyone using the panel — restrict it by domain in the
+   Map.ir panel. Unset or blank falls back to OpenStreetMap tiles. */
+export const MAPIR_API_KEY = import.meta.env.PAAPELI_MAPIR_API_KEY?.trim() || "";

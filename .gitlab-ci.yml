@@ -49,6 +49,10 @@ default:
       if [ -n "$PAAPELI_API_BASE_URL" ]; then
         BUILD_ARGS="--build-arg PAAPELI_API_BASE_URL=$PAAPELI_API_BASE_URL"
       fi
+      # Map.ir tile key: set on the build-panel job below.
+      if [ -n "$PAAPELI_MAPIR_API_KEY" ]; then
+        BUILD_ARGS="$BUILD_ARGS --build-arg PAAPELI_MAPIR_API_KEY=$PAAPELI_MAPIR_API_KEY"
+      fi
       docker build --platform "$DOCKER_PLATFORM" $BUILD_ARGS -f "ci/docker/${APP}/Dockerfile" -t "${IMAGE}:${TAG}" .
       docker push "${IMAGE}:${TAG}"
   after_script:
@@ -69,6 +73,11 @@ build-panel:
   extends: .build-push
   variables:
     APP: panel
+    # Map.ir tile key for the track maps, baked in at build time like the API
+    # origin below. Same key for staging and production; keep it in step with
+    # apps/panel/.env.example. Public by nature (it rides in every tile URL), so
+    # it is locked to our domains in the Map.ir panel rather than kept secret.
+    PAAPELI_MAPIR_API_KEY: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImp0aSI6Ijg1NDc4MTYzZTc1NDI4NWJlZDQxMzhmZmNhNmUxNTY1NTNjOTc4NTc3MWQxZDJkZmY5YzcwNGY4NzAwNDhlMTA2ZmJjODZhZjkxMDAyNGNlIn0.eyJhdWQiOiI0NDE5MiIsImp0aSI6Ijg1NDc4MTYzZTc1NDI4NWJlZDQxMzhmZmNhNmUxNTY1NTNjOTc4NTc3MWQxZDJkZmY5YzcwNGY4NzAwNDhlMTA2ZmJjODZhZjkxMDAyNGNlIiwiaWF0IjoxNzkwMTU0NjgzLCJuYmYiOjE3OTAxNTQ2ODMsImV4cCI6MTc5MjY2MDI4Mywic3ViIjoiIiwic2NvcGVzIjpbImJhc2ljIl19.Wy_EheNPiDmFTQIdo37Gjs_mZ_R2RyDHbPHu53om0i305sNR4ullxX6eMXhq_EfCcdTPzg7tmVzEnC-ydVvVFJ6YjSHuYryxxUHFmrcv6r8ld_WC_XJBGpqPG10nGeRB2Ew4i7hpNgs2nWiqejaLP27_-mF6ETF_Dw4P5cFVdZKt_nZefwJKylumDgr0N2iawzgChF9hnoDocFhsqlTM7NZuaHMEIFaOjfQpaf8qLegMk0DeFTnNMF7C44yOQHUUuVw28-6k3psZNacZYBXZCB5I-4CPmibxnHAkNflPHu0HxU030qPqCb8klwm9VRiicaNRlj60X8duNe1kKo39LQ"
   # The API origin is baked into the bundle by the build above, so it cannot be
   # one value for both builds: the image tag decides which platform this panel
   # will ever talk to.
