@@ -11,7 +11,6 @@ import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import AuthCallback from "./pages/AuthCallback";
 import AuthError from "./pages/AuthError";
-import AccountSettings from "./pages/AccountSettings";
 import GoogleSignup from "./pages/GoogleSignup";
 import NotFound from "./pages/NotFound";
 import Contact from "./pages/Contact";
@@ -108,8 +107,12 @@ export default function FactoryRoutes() {
                       <Route path="/:lang/forgot-password" element={<ForgotPassword />} />
                       <Route path="/auth/callback" element={<AuthCallback />} />
                       <Route path="/auth/error" element={<AuthError />} />
-                      <Route path="/account-settings" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
-                      <Route path="/:lang/account-settings" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
+                      {/* The account's settings moved out of this product to
+                          /Home/account-settings, where the rest of what belongs
+                          to the person rather than the workspace lives. Both old
+                          paths still land on it so saved links keep working. */}
+                      <Route path="/account-settings" element={<Navigate to="/Home/account-settings" replace />} />
+                      <Route path="/:lang/account-settings" element={<Navigate to="/Home/account-settings" replace />} />
 
                       <Route path="/google-signup" element={<GoogleSignup />} />
               
