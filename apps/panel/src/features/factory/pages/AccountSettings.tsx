@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { getCurrentUser } from "@paapeli/brand/session";
 import { signOut as endSession } from "@paapeli/brand/session";
+import { endServerSession, useGetMyPhoneQuery, useSetMyPhoneMutation, E164_PHONE_PATTERN } from "@paapeli/api";
 import { useAuth } from "@/features/factory/store/authStore";
 import { useWorkspace } from "@/features/factory/store/workspaceStore";
+import { useWorkspaceSwitch } from "@/shared/components/WorkspaceSwitchDialog";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { Card, CardContent } from "@/features/factory/components/ui/card";
 import { Button } from "@/features/factory/components/ui/button";
@@ -20,7 +22,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
-import { Camera, Mail, User as UserIcon, Shield, LogOut, LogOut as LogOutAll, Building2, Plus, Check, Palette, Paintbrush, Loader2 } from "lucide-react";
+import { Camera, Mail, Phone, User as UserIcon, Shield, LogOut, LogOut as LogOutAll, Building2, Plus, Check, Palette, Paintbrush, Loader2 } from "lucide-react";
 import { useLogoutAllMutation } from "@paapeli/api";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -64,7 +66,8 @@ const AccountSettings = () => {
   /* Real workspaces (GET /api/v1/aiot/workspaces); the selection is the same
      one the panel host's account menu drives, and is what scopes this
      product's API calls. */
-  const { workspaces, activeId: activeWs, setActive: setActiveWs, addWorkspace, canAdd, isAdding } = useWorkspace();
+  const { workspaces, activeId: activeWs, addWorkspace, canAdd, isAdding } = useWorkspace();
+  const workspaceSwitch = useWorkspaceSwitch();
   const navigate = useNavigate();
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -88,6 +91,21 @@ const AccountSettings = () => {
   const [avatar, setAvatar] = useState<string | null>(null);
   const [displayNameInput, setDisplayNameInput] = useState(accountName);
   const [newWs, setNewWs] = useState("");
+
+  /* Phone contact (GET/PUT /users/me/contact-methods/phone). A 404 means none
+     is set yet, so the field starts empty. The input is seeded once, when the
+     stored number arrives, and is not overwritten while the user types. */
+  const phoneQuery = useGetMyPhoneQuery();
+  const setPhone = useSetMyPhoneMutation();
+  const [phoneInput, setPhoneInput] = useState("");
+  const [phoneSeeded, setPhoneSeeded] = useState(false);
+  useEffect(() => {
+    if (phoneSeeded || phoneQuery.isPending) return;
+    setPhoneInput(phoneQuery.data?.phone ?? "");
+    setPhoneSeeded(true);
+  }, [phoneQuery.isPending, phoneQuery.data, phoneSeeded]);
+  const phoneTrimmed = phoneInput.replace(/[\s-]/g, "");
+  const phoneInvalid = phoneTrimmed !== "" && !E164_PHONE_PATTERN.test(phoneTrimmed);
 
   useEffect(() => {
     try {
@@ -122,11 +140,35 @@ const AccountSettings = () => {
     } catch {}
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    const storedPhone = phoneQuery.data?.phone ?? "";
+    if (phoneTrimmed !== storedPhone) {
+      if (!phoneTrimmed) {
+        // The API has no delete for the phone contact; an empty field can't be saved.
+        setPhoneInput(storedPhone);
+      } else if (phoneInvalid) {
+        toast({ title: t("error"), description: t("phoneInvalid"), variant: "destructive" });
+        return;
+      } else {
+        try {
+          const saved = await setPhone.mutateAsync({ phone: phoneTrimmed });
+          setPhoneInput(saved.phone);
+        } catch (err) {
+          const status = (err as { response?: { status?: number } })?.response?.status;
+          toast({
+            title: t("error"),
+            description: status === 400 ? t("phoneInvalid") : (err as Error)?.message,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    }
     toast({ title: "Saved", description: "Your profile has been updated." });
   };
 
   const handleLogout = async () => {
+    await endServerSession();
     try { await signOut(); } catch {}
     endSession();
     window.location.href = "/login";
@@ -224,6 +266,26 @@ const AccountSettings = () => {
               </Label>
               <Input id="email" type="email" value={email || ""} disabled className="bg-muted" />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="flex items-center gap-2 text-xs">
+                <Phone className="h-3.5 w-3.5" /> {t("phone")}
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                inputMode="tel"
+                dir="ltr"
+                value={phoneInput}
+                placeholder="+989121234567"
+                disabled={phoneQuery.isPending}
+                aria-invalid={phoneInvalid}
+                onChange={(e) => setPhoneInput(e.target.value)}
+                className={phoneInvalid ? "border-destructive focus-visible:ring-destructive" : undefined}
+              />
+              <p className={`text-[11px] ${phoneInvalid ? "text-destructive" : "text-muted-foreground"}`}>
+                {phoneInvalid ? t("phoneInvalid") : t("phoneFormatHint")}
+              </p>
+            </div>
           </div>
 
           <Separator />
@@ -259,7 +321,7 @@ const AccountSettings = () => {
                 {st("Sign out from all devices")}
               </Button>
             </div>
-            <Button onClick={handleSave} className="bg-primary hover:bg-primary/90">
+            <Button onClick={handleSave} disabled={setPhone.isPending} className="bg-primary hover:bg-primary/90">
               {t("saveChanges")}
             </Button>
           </div>
@@ -334,7 +396,7 @@ const AccountSettings = () => {
               return (
                 <button
                   key={ws.id}
-                  onClick={() => setActiveWs(ws.id)}
+                  onClick={() => workspaceSwitch.requestSwitch(ws.id, ws.name, activeWs)}
                   className={`flex w-full items-center gap-3 rounded-lg border p-3 text-start transition-colors ${isActive ? "border-primary bg-primary/5" : "hover:bg-muted"}`}
                 >
                   <span className={`flex h-9 w-9 items-center justify-center rounded-md ${isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
@@ -378,6 +440,8 @@ const AccountSettings = () => {
           </p>
         </CardContent>
       </Card>
+      {workspaceSwitch.dialog}
+
       {/* The panel's usual confirm: this signs out every other browser and
           phone the account is open on, and cannot be undone. */}
       <AlertDialog open={confirmSignOutAll} onOpenChange={setConfirmSignOutAll}>

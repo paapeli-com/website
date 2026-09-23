@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Cpu, Loader2, Send } from "lucide-react";
+import { ArrowLeft, Loader2, Send } from "lucide-react";
 import { useLanguage } from "@/features/track/i18n/LanguageContext";
 import { useTracker } from "@/features/track/lib/useTracker";
 import { latestBattery, latestRows, latestSpeed, positionTrail } from "@/features/track/lib/telemetry";
+import { TrackerAvatar, trackerIconOf } from "@/features/track/lib/trackerIcons";
 import { LeafletMap } from "@/features/track/components/map/LeafletMap";
 import { CommandDrawer } from "@/features/track/components/CommandDrawer";
 import { DeviceEvents } from "@/features/track/components/DeviceEvents";
@@ -94,9 +95,7 @@ export default function DeviceDetail() {
       {/* Header */}
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <BackButton />
-        <span className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Cpu className="size-6" />
-        </span>
+        <TrackerAvatar label={device.label} size={48} />
         <div className="min-w-0 flex-1">
           <h1 dir="auto" className="truncate text-xl font-bold">{device.name}</h1>
           <div className="mt-0.5 flex items-center gap-2">
@@ -129,7 +128,7 @@ export default function DeviceDetail() {
       {tab === "overview" && (
         <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
           {trail.length > 0 ? (
-            <LeafletMap devices={[]} trail={trail} className="aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border" />
+            <LeafletMap devices={[]} trail={trail} trailIcon={trackerIconOf(device.label)?.key} className="aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border" />
           ) : (
             <div className="flex aspect-[4/3] w-full items-center justify-center rounded-2xl border border-border bg-card">
               {tracker.telemetryLoading ? (
@@ -199,13 +198,22 @@ export default function DeviceDetail() {
               <span dir="ltr" className="min-w-0 truncate font-medium">{v || <NoDataValue />}</span>
             </div>
           ))}
+          {/* Prose, not an identifier: its own direction, and it wraps. The
+              get-device endpoint doesn't return it yet, so it shows "no data"
+              until the backend adds it. */}
+          <div className="flex items-start justify-between gap-4 px-5 py-3 text-sm">
+            <span className="shrink-0 text-muted-foreground">{t("description")}</span>
+            <span dir="auto" className="min-w-0 whitespace-pre-wrap break-words text-end font-medium">
+              {device.description || <NoDataValue />}
+            </span>
+          </div>
         </Card>
       )}
 
       <CommandDrawer
         open={cmdOpen}
         onClose={() => setCmdOpen(false)}
-        device={{ id: device.id, name: device.name, type: device.type }}
+        device={{ id: device.id, name: device.name, type: device.type, label: device.label }}
       />
     </div>
   );

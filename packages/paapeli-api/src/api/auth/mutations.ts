@@ -44,6 +44,13 @@ export function useResetPasswordMutation() {
     });
 }
 
+export function useRefreshSessionMutation() {
+    return useMutation({
+        mutationKey: ['refreshSession'],
+        mutationFn: () => authService.refresh(),
+    });
+}
+
 export function useLogoutMutation() {
     return useMutation({
         mutationKey: ['logout'],

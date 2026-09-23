@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Cpu, Loader2, RefreshCw, ScanBarcode } from "lucide-react";
+import { ArrowLeft, Cpu, Loader2, ScanBarcode } from "lucide-react";
 import {
   useCreateDeviceMutation,
   useGetAssetRootQuery,
@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/features/track/compo
 import { Button } from "@/features/track/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/features/track/components/ui/select";
 import { ImeiScanner } from "@/features/track/components/ImeiScanner";
+import { TRACKER_ICONS, type TrackerIconKey } from "@/features/track/lib/trackerIcons";
 import { DeviceCredentialsModal, type CreatedDevice } from "@/features/track/components/DeviceCredentialsModal";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 import { cn } from "@/shared/lib/utils";
@@ -51,18 +52,19 @@ const randomToken = (n = 20) =>
   ).join("");
 
 function Field({
-  label, hint, value, onChange, placeholder, onGenerate, onScan, scanLabel, inputMode, dir = "ltr",
+  label, hint, value, onChange, placeholder, onScan, scanLabel, inputMode, mono = true, dir = "ltr",
 }: {
   label: string;
   hint?: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
-  onGenerate?: () => void;
   onScan?: () => void;
   scanLabel?: string;
   inputMode?: "text" | "numeric";
-  dir?: "ltr" | "rtl";
+  /** Identifiers read better monospaced; a name does not. */
+  mono?: boolean;
+  dir?: "ltr" | "rtl" | "auto";
 }) {
   return (
     <div className="min-w-0">
@@ -74,13 +76,11 @@ function Field({
           placeholder={placeholder}
           inputMode={inputMode}
           dir={dir}
-          className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-card px-3.5 font-mono text-xs text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+          className={cn(
+            "h-11 min-w-0 flex-1 rounded-xl border border-border bg-card px-3.5 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary",
+            mono ? "font-mono text-xs" : "text-sm",
+          )}
         />
-        {onGenerate && (
-          <Button type="button" variant="outline" className="h-11 w-11 shrink-0 p-0" onClick={onGenerate}>
-            <RefreshCw className="size-4" />
-          </Button>
-        )}
         {onScan && (
           <Button type="button" variant="outline" className="h-11 w-11 shrink-0 p-0" onClick={onScan} aria-label={scanLabel}>
             <ScanBarcode className="size-4" />
@@ -99,7 +99,12 @@ export default function DeviceForm() {
 
   const [name, setName] = useState("");
   const [imei, setImei] = useState("");
+  const [description, setDescription] = useState("");
+  const [icon, setIcon] = useState<TrackerIconKey | null>(null);
   const [scanning, setScanning] = useState(false);
+  /* MQTT_BASIC credentials the tracker connects with. The form doesn't ask
+     for them — they are generated here and shown once, after the device is
+     created (DeviceCredentialsModal). */
   const [clientId, setClientId] = useState(() => randomToken());
   const [username, setUsername] = useState(() => "dev-" + randomToken(8).toLowerCase());
   const [password, setPassword] = useState(() => randomToken());
@@ -125,6 +130,8 @@ export default function DeviceForm() {
     setCreated(null);
     setName("");
     setImei("");
+    setDescription("");
+    setIcon(null);
     setClientId(randomToken());
     setUsername("dev-" + randomToken(8).toLowerCase());
     setPassword(randomToken());
@@ -134,6 +141,7 @@ export default function DeviceForm() {
     if (busy) return;
     if (!name.trim()) return void toast.error(t("deviceNameRequired"));
     if (!IMEI_PATTERN.test(imei)) return void toast.error(t("imeiInvalid"));
+    if (!icon) return void toast.error(t("iconRequired"));
     if (!workspaceId) return void toast.error(t("noWorkspaceSelected"));
 
     setBusy(true);
@@ -150,11 +158,13 @@ export default function DeviceForm() {
         workspaceId,
         productKey: PRODUCT_KEY,
         name: name.trim(),
-        // The API requires a label and this form has no separate field for it.
-        label: name.trim(),
+        // The API has no icon field; the label carries it (see lib/trackerIcons).
+        label: icon,
         // The backend doesn't accept imei yet; sent now so it lands once it does.
         imei,
         type: deviceType || FALLBACK_DEVICE_TYPE,
+        // Optional; left out when empty rather than sent as "".
+        ...(description.trim() ? { description: description.trim() } : {}),
         assetId,
         credentialType: "MQTT_BASIC",
         credentialValue: JSON.stringify({ clientId, userName: username, password }),
@@ -202,12 +212,39 @@ export default function DeviceForm() {
               <p className="mt-1.5 text-xs text-muted-foreground">{t("noDeviceTypesHint")}</p>
             )}
           </div>
+          <div className="min-w-0">
+            <label id="tracker-icon-label" className="mb-1.5 block text-sm font-medium">{t("trackerIcon")}</label>
+            <div role="radiogroup" aria-labelledby="tracker-icon-label" className="grid grid-cols-5 gap-2">
+              {TRACKER_ICONS.map(({ key, labelKey, Icon }) => {
+                const active = icon === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setIcon(key)}
+                    className={cn(
+                      "flex min-w-0 flex-col items-center gap-1.5 rounded-xl border px-1 py-2.5 text-xs font-medium transition-colors",
+                      active ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    <Icon className="size-6" />
+                    <span className="w-full truncate text-center">{t(labelKey)}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-xs text-muted-foreground">{t("trackerIconHint")}</p>
+          </div>
           <Field
             label={t("deviceName")}
             hint={t("deviceNameHint")}
             value={name}
             onChange={setName}
-            placeholder="861971080061526"
+            placeholder={t("deviceNamePlaceholder")}
+            mono={false}
+            dir="auto"
           />
           <Field
             label={t("imei")}
@@ -219,21 +256,26 @@ export default function DeviceForm() {
             onScan={() => setScanning(true)}
             scanLabel={t("scanImei")}
           />
-        </CardContent>
-      </Card>
-
-      <Card className="mb-4">
-        <CardHeader><CardTitle>{t("mqttCredentials")}</CardTitle></CardHeader>
-        <CardContent className="space-y-4 pt-0">
-          <p className="text-xs text-muted-foreground">{t("mqttCredentialsHint")}</p>
-          <Field label={t("clientId")} value={clientId} onChange={setClientId} onGenerate={() => setClientId(randomToken())} />
-          <Field label={t("username")} value={username} onChange={setUsername} onGenerate={() => setUsername("dev-" + randomToken(8).toLowerCase())} />
-          <Field label={t("password")} value={password} onChange={setPassword} onGenerate={() => setPassword(randomToken())} />
+          <div className="min-w-0">
+            <label htmlFor="tracker-description" className="mb-1.5 block text-sm font-medium">
+              {t("description")} <span className="font-normal text-muted-foreground">({t("optional")})</span>
+            </label>
+            <textarea
+              id="tracker-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t("descriptionPlaceholder")}
+              maxLength={500}
+              rows={3}
+              dir="auto"
+              className="w-full min-w-0 resize-y rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+            />
+          </div>
         </CardContent>
       </Card>
 
       <div className="flex gap-2">
-        <Button onClick={handleCreate} disabled={busy || deviceTypesLoading || !name.trim() || !IMEI_PATTERN.test(imei)} className={cn(busy && "opacity-70")}>
+        <Button onClick={handleCreate} disabled={busy || deviceTypesLoading || !icon || !name.trim() || !IMEI_PATTERN.test(imei)} className={cn(busy && "opacity-70")}>
           {busy ? <Loader2 className="size-4 animate-spin" /> : null}
           {busy ? t("creating") : t("create")}
         </Button>

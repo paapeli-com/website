@@ -1,4 +1,4 @@
-import { Alert, Device, Geofence, Health, TrackPoint, Trip } from "./types";
+import { Device, Geofence, Health, TrackPoint, Trip } from "./types";
 
 /* ------------------------------------------------------------------ */
 /* Nothing in GPS Tracking has a backend yet.                          */
@@ -20,7 +20,6 @@ export const DEVICES: Device[] = [];
 
 export const GEOFENCES: Geofence[] = [];
 
-export const ALERTS: Alert[] = [];
 
 /** The device's location trail, for map trails and playback. */
 export function getTrack(_device: Device): TrackPoint[] {

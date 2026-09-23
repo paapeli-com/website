@@ -117,10 +117,12 @@ export function useGetAlarmRulesQuery(
     page: number,
     size: number,
     enabled = true,
+    refetchInterval: number | false = false,
 ) {
     return useQuery({
         queryKey: ['alarmRules', workspaceId, productKey, deviceId, page, size],
         queryFn: () => alarmService.getAlarmRules(workspaceId, productKey, deviceId, page, size),
         enabled: enabled && !!workspaceId && !!productKey && !!deviceId,
+        refetchInterval,
     });
 }

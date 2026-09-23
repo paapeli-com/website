@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-import { Car, Cpu, Dog, User } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { AssetType, Geofence, TrackPoint } from "@/features/track/data/types";
+import { type TrackerIconKey } from "@/features/track/lib/trackerIcons";
+import { makeMarkerIcon, PRIMARY } from "./markerIcon";
 import { cn } from "@/shared/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -15,46 +15,18 @@ import { cn } from "@/shared/lib/utils";
 /* self-hosted OSM server for on-prem.                                  */
 /* ------------------------------------------------------------------ */
 
-const COLOR: Record<AssetType, string> = {
-  pet: "hsl(32, 95%, 50%)",
-  person: "hsl(197, 100%, 40%)",
-  vehicle: "hsl(160, 84%, 39%)",
-};
+/** Anything with a position. `icon` is the tracker's own (from its label);
+    `type` is the mock data's pet/person/vehicle kind. Without either, a
+    generic tracker marker. */
+export type MapDevice = { id: string; lat: number; lng: number; type?: AssetType; icon?: TrackerIconKey };
 
-// Pre-render the lucide icons to SVG markup once (crisp + consistent on
-// every OS, unlike emoji).
-const ICON_SVG: Record<AssetType, string> = {
-  pet: renderToStaticMarkup(<Dog color="#fff" size={19} strokeWidth={2.2} />),
-  person: renderToStaticMarkup(<User color="#fff" size={19} strokeWidth={2.2} />),
-  vehicle: renderToStaticMarkup(<Car color="#fff" size={19} strokeWidth={2.2} />),
-};
+const makeIcon = (type: AssetType | undefined, selected: boolean, icon?: TrackerIconKey) =>
+  makeMarkerIcon({ type, icon, selected });
 
-const PRIMARY = "hsl(28, 100%, 50%)";
-const TRACKER_SVG = renderToStaticMarkup(<Cpu color="#fff" size={19} strokeWidth={2.2} />);
-
-/** Anything with a position. `type` picks the pet/person/vehicle marker;
-    without it (real trackers — the API has no such kind) a generic one. */
-export type MapDevice = { id: string; lat: number; lng: number; type?: AssetType };
-
-function makeIcon(type: AssetType | undefined, selected: boolean) {
-  const size = selected ? 42 : 34;
-  const shadow = selected
-    ? `border:3px solid #fff;box-shadow:0 0 0 3px ${PRIMARY},0 3px 10px rgba(0,0,0,.35)`
-    : "border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)";
-  return L.divIcon({
-    className: "",
-    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${type ? COLOR[type] : PRIMARY};display:flex;align-items:center;justify-content:center;${shadow}">${type ? ICON_SVG[type] : TRACKER_SVG}</div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-  });
-}
-
-const headIcon = L.divIcon({
-  className: "",
-  html: `<div style="width:16px;height:16px;border-radius:50%;background:${PRIMARY};border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,
-  iconSize: [16, 16],
-  iconAnchor: [8, 8],
-});
+/* The point on the trail being played back / the latest fix. Carries the
+   tracker's own icon when the caller knows it, so Playback and Detail show
+   the same pin as the Live Map instead of an anonymous dot. */
+const makeHeadIcon = (icon?: TrackerIconKey) => makeMarkerIcon({ icon, size: 30 });
 
 export function LeafletMap({
   devices,
@@ -63,6 +35,7 @@ export function LeafletMap({
   geofences = [],
   trail,
   playhead,
+  trailIcon,
   className,
 }: {
   devices: MapDevice[];
@@ -71,6 +44,8 @@ export function LeafletMap({
   geofences?: Geofence[];
   trail?: TrackPoint[];
   playhead?: number;
+  /** The tracker the trail belongs to — picks the playhead's icon. */
+  trailIcon?: TrackerIconKey;
   className?: string;
 }) {
   const elRef = useRef<HTMLDivElement>(null);
@@ -152,7 +127,7 @@ export function LeafletMap({
       }
     }
     devices.forEach((d) => {
-      const icon = makeIcon(d.type, d.id === selectedId);
+      const icon = makeIcon(d.type, d.id === selectedId, d.icon);
       const existing = markersRef.current[d.id];
       if (existing) {
         existing.setLatLng([d.lat, d.lng]).setIcon(icon);
@@ -194,10 +169,10 @@ export function LeafletMap({
       trail.slice(0, idx + 1).map((p) => [p.lat, p.lng] as [number, number]),
       { color: PRIMARY, weight: 3.5, opacity: 0.9 },
     ).addTo(map);
-    headRef.current = L.marker([trail[idx].lat, trail[idx].lng], { icon: headIcon, zIndexOffset: 1000 }).addTo(map);
+    headRef.current = L.marker([trail[idx].lat, trail[idx].lng], { icon: makeHeadIcon(trailIcon), zIndexOffset: 1000 }).addTo(map);
     map.fitBounds(L.latLngBounds(trail.map((p) => [p.lat, p.lng] as [number, number])), { padding: [50, 50], maxZoom: 16 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trail]);
+  }, [trail, trailIcon]);
 
   // Playhead moved: update line + head only.
   useEffect(() => {

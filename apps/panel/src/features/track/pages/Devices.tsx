@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Boxes, ChevronRight, Cpu, Plus } from "lucide-react";
+import { Boxes, ChevronRight, Plus } from "lucide-react";
 import { useLanguage } from "@/features/track/i18n/LanguageContext";
 import { useTrackers } from "@/features/track/lib/useTrackers";
 import { StatusPill } from "@/features/track/components/DeviceBits";
@@ -18,17 +18,7 @@ import { PageSkeleton } from "@/shared/components/PageSkeleton";
 import { usePageLoad } from "@/shared/hooks/usePageLoad";
 import { cn } from "@/shared/lib/utils";
 import { trackPath } from "@/features/track/lib/trackPath";
-
-function TrackerAvatar({ size = 40 }: { size?: number }) {
-  return (
-    <span
-      className="flex shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
-      style={{ width: size, height: size }}
-    >
-      <Cpu className="size-1/2" />
-    </span>
-  );
-}
+import { TrackerAvatar, trackerIconOf } from "@/features/track/lib/trackerIcons";
 
 export default function Devices() {
   const { trackers, total, load, noWorkspace, isFetching, refetch } = useTrackers();
@@ -162,7 +152,7 @@ export default function Devices() {
                           onClick={() => navigate(trackPath(`/devices/${d.id}`))}
                           className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-start transition-colors hover:bg-muted"
                         >
-                          <TrackerAvatar size={28} />
+                          <TrackerAvatar label={d.label} size={28} />
                           <div className="min-w-0 flex-1">
                             <p dir="auto" className="truncate text-sm font-medium">{d.name}</p>
                             <p className="truncate text-xs text-muted-foreground">{d.protocol} · {relTime(d.updatedAt)}</p>
@@ -197,10 +187,11 @@ export default function Devices() {
                   className="flex w-full flex-col gap-3 border-b border-border p-4 text-start transition-colors last:border-0 hover:bg-muted lg:grid lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] lg:items-center lg:gap-4 lg:px-5"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <TrackerAvatar />
+                    <TrackerAvatar label={d.label} />
                     <div className="min-w-0">
                       <p dir="auto" className="truncate text-sm font-semibold">{d.name}</p>
-                      {d.label && d.label !== d.name && (
+                      {/* The label holds the icon key — shown as the avatar, not as text. */}
+                      {d.label && d.label !== d.name && !trackerIconOf(d.label) && (
                         <p dir="auto" className="truncate text-xs text-muted-foreground">{d.label}</p>
                       )}
                     </div>

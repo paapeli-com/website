@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Cpu, Loader2, Send } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 import {
   useGetDeviceActivitiesQuery,
   useGetProductDeviceCommandsQuery,
@@ -9,6 +9,7 @@ import {
 import { useActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { useLanguage } from "@/features/track/i18n/LanguageContext";
 import { PRODUCT_KEY } from "@/features/track/lib/product";
+import { TrackerAvatar } from "@/features/track/lib/trackerIcons";
 import { Drawer } from "@/features/track/components/ui/drawer";
 import { Button } from "@/features/track/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/features/track/components/ui/select";
@@ -24,7 +25,7 @@ import { cn } from "@/shared/lib/utils";
  * Schema for its parameters, turned into a skeleton body the operator edits.
  * This used to be a set of mock switches that only showed a toast. */
 
-type CommandTarget = { id: string; name: string; type: string };
+type CommandTarget = { id: string; name: string; type: string; label?: string };
 
 const HISTORY_SIZE = 50;
 const COMMAND_ACTIVITY_TYPES = new Set(["COMMAND_SENT", "COMMAND_SUCCEEDED", "COMMAND_FAILED"]);
@@ -108,9 +109,7 @@ export function CommandDrawer({ open, onClose, device }: { open: boolean; onClos
   return (
     <Drawer open={open} onClose={onClose} title={t("commands")}>
       <div className="mb-4 flex items-center gap-3 rounded-xl bg-muted p-3">
-        <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Cpu className="size-5" />
-        </span>
+        <TrackerAvatar label={device.label} />
         <p dir="auto" className="text-sm font-semibold">{device.name}</p>
       </div>
 

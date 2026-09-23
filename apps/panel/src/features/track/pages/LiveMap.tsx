@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, Cpu, Loader2, MapPin, MapPinOff, Send } from "lucide-react";
+import { ChevronRight, Loader2, MapPin, MapPinOff, Send } from "lucide-react";
 import { useLanguage } from "@/features/track/i18n/LanguageContext";
 import { useTrackers } from "@/features/track/lib/useTrackers";
 import { useTrackerPositions } from "@/features/track/lib/useTrackerPositions";
@@ -17,6 +17,7 @@ import { usePageLoad } from "@/shared/hooks/usePageLoad";
 import { useActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { cn } from "@/shared/lib/utils";
 import { trackPath } from "@/features/track/lib/trackPath";
+import { TrackerAvatar, trackerIconOf } from "@/features/track/lib/trackerIcons";
 
 /* The fleet on a map: the device list from the API, each tracker placed at the
  * last fix in its telemetry (see lib/useTrackerPositions). A tracker with no
@@ -51,7 +52,8 @@ export default function LiveMap() {
   const mapDevices = useMemo<MapDevice[]>(
     () => list.flatMap((d) => {
       const fix = fixes.get(d.id);
-      return fix ? [{ id: d.id, lat: fix.lat, lng: fix.lng }] : [];
+      // The label carries what the tracker is on — see lib/trackerIcons.
+      return fix ? [{ id: d.id, lat: fix.lat, lng: fix.lng, icon: trackerIconOf(d.label)?.key }] : [];
     }),
     [list, fixes],
   );
@@ -113,9 +115,7 @@ export default function LiveMap() {
                     d.id === selectedId ? "bg-primary/10" : "hover:bg-muted",
                   )}
                 >
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <Cpu className="size-5" />
-                  </span>
+                  <TrackerAvatar label={d.label} />
                   <div className="min-w-0 flex-1">
                     <p dir="auto" className="truncate text-sm font-semibold">{d.name}</p>
                     <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
@@ -149,9 +149,7 @@ export default function LiveMap() {
           {selected && (
             <div className="absolute inset-x-3 bottom-3 z-[1000] max-h-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:inset-x-auto sm:start-3 sm:w-80">
               <div className="flex items-center gap-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Cpu className="size-5" />
-                </span>
+                <TrackerAvatar label={selected.label} size={44} />
                 <div className="min-w-0 flex-1">
                   <p dir="auto" className="truncate font-semibold">{selected.name}</p>
                   <div className="mt-0.5 flex items-center gap-2">
@@ -222,7 +220,7 @@ export default function LiveMap() {
         <CommandDrawer
           open={cmdOpen}
           onClose={() => setCmdOpen(false)}
-          device={{ id: selected.id, name: selected.name, type: selected.type }}
+          device={{ id: selected.id, name: selected.name, type: selected.type, label: selected.label }}
         />
       )}
     </div>

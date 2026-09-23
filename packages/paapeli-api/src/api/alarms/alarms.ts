@@ -141,7 +141,9 @@ export interface AlarmEscalationChainRequest {
 
 export interface CreateAlarmRuleRequest {
     name: string;
-    description: string;
+    /** Optional — leave it out entirely rather than sending an empty string,
+        which the gateway rejects. */
+    description?: string;
     /** Keyed by severity level, e.g. "CRITICAL" / "WARNING". At least one entry required. */
     createRules: Record<string, CreateRule>;
     clearRule?: RuleExpression;

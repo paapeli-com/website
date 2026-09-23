@@ -434,6 +434,9 @@ export const translations = {
     messageSentSuccess: "Message sent successfully!",
     enterEmail: "Enter email",
     enterPhone: "Enter phone number",
+    phone: "Phone",
+    phoneFormatHint: "International format with country code, e.g. +989121234567",
+    phoneInvalid: "Enter the number in international format, e.g. +989121234567",
     
     // Status Page
     systemStatus: "System Status",
@@ -829,6 +832,10 @@ export const translations = {
     unsupportedFileType: "Unsupported file type",
     unsupportedFileTypeDesc: "Use .bin, .hex, or .zip",
     fillAllRequiredFields: "Please fill all required fields",
+    tagsTooLong: "Tags are too long: 255 characters at most in total",
+    editCredentials: "Edit credentials",
+    credentialsUpdated: "Credentials updated",
+    credentialsReplaceWarning: "Saving replaces the device's credentials. Anything still connected with the old ones will be disconnected.",
     chooseFirmwareFile: "Choose firmware file",
     firmwareFileExts: ".bin .hex .zip",
     firmwareFileLabel: "Firmware File * (.bin, .hex, .zip)",
@@ -963,7 +970,6 @@ export const translations = {
     manageHierarchyAndAssets: "Manage your industrial hierarchy and assets",
     noAssetsInLocation: "No assets in this location yet",
     rootOrganization: "Root Organization",
-    mainDirectory: "Main Directory",
     refreshLocations: "Refresh",
 
     // Alerts Module
@@ -2646,6 +2652,8 @@ export const translations = {
     contactUsDesc: "تواصل مع فريقنا. نحن هنا للمساعدة!",
     email: "البريد الإلكتروني",
     phone: "الهاتف",
+    phoneFormatHint: "بالصيغة الدولية مع رمز الدولة، مثل +989121234567",
+    phoneInvalid: "أدخل الرقم بالصيغة الدولية، مثل +989121234567",
     sendMessage: "إرسال رسالة",
     subject: "الموضوع",
     enterSubject: "أدخل الموضوع",
@@ -3049,6 +3057,10 @@ export const translations = {
     unsupportedFileType: "نوع ملف غير مدعوم",
     unsupportedFileTypeDesc: "استخدم .bin أو .hex أو .zip",
     fillAllRequiredFields: "يرجى ملء جميع الحقول المطلوبة",
+    tagsTooLong: "الوسوم طويلة جدًا: 255 حرفًا كحد أقصى إجمالًا",
+    editCredentials: "تعديل بيانات الاعتماد",
+    credentialsUpdated: "تم تحديث بيانات الاعتماد",
+    credentialsReplaceWarning: "الحفظ يستبدل بيانات اعتماد الجهاز. أي اتصال لا يزال يستخدم البيانات القديمة سيُقطع.",
     chooseFirmwareFile: "اختر ملف البرنامج الثابت",
     firmwareFileExts: ".bin .hex .zip",
     firmwareFileLabel: "ملف البرنامج الثابت * (.bin، .hex، .zip)",
@@ -3182,7 +3194,6 @@ export const translations = {
     manageHierarchyAndAssets: "إدارة التسلسل الهرمي الصناعي والمعدات",
     noAssetsInLocation: "لا توجد معدات في هذا الموقع بعد",
     rootOrganization: "المنظمة الرئيسية",
-    mainDirectory: "الدليل الرئيسي",
     refreshLocations: "تحديث",
 
     // Alerts Module
@@ -4851,6 +4862,8 @@ export const translations = {
     contactUsDesc: "با تیم ما در تماس باشید. ما اینجا هستیم تا کمک کنیم!",
     email: "ایمیل",
     phone: "تلفن",
+    phoneFormatHint: "به فرمت بین‌المللی با کد کشور، مثلاً +989121234567",
+    phoneInvalid: "شماره را به فرمت بین‌المللی وارد کنید، مثلاً +989121234567",
     sendMessage: "ارسال پیام",
     subject: "موضوع",
     enterSubject: "موضوع را وارد کنید",
@@ -5254,6 +5267,10 @@ export const translations = {
     unsupportedFileType: "نوع فایل پشتیبانی‌نشده",
     unsupportedFileTypeDesc: "از .bin، .hex یا .zip استفاده کنید",
     fillAllRequiredFields: "لطفاً همه فیلدهای الزامی را پر کنید",
+    tagsTooLong: "برچسب‌ها بیش از حد طولانی‌اند: حداکثر ۲۵۵ نویسه در مجموع",
+    editCredentials: "ویرایش اطلاعات احراز هویت",
+    credentialsUpdated: "اطلاعات احراز هویت به‌روز شد",
+    credentialsReplaceWarning: "با ذخیره، اطلاعات احراز هویت دستگاه جایگزین می‌شود. هر اتصالی که هنوز از اطلاعات قبلی استفاده می‌کند قطع خواهد شد.",
     chooseFirmwareFile: "فایل میان‌افزار را انتخاب کنید",
     firmwareFileExts: ".bin .hex .zip",
     firmwareFileLabel: "فایل میان‌افزار * (.bin، .hex، .zip)",
@@ -5388,7 +5405,6 @@ export const translations = {
     manageHierarchyAndAssets: "مدیریت سلسله‌مراتب صنعتی و تجهیزات",
     noAssetsInLocation: "هنوز تجهیزی در این مکان وجود ندارد",
     rootOrganization: "سازمان اصلی",
-    mainDirectory: "پوشه اصلی",
     refreshLocations: "بازخوانی",
 
     // Alerts Module

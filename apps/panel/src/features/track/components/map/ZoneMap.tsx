@@ -3,6 +3,8 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Zone } from "@paapeli/api";
 import { rectangleCorners, shapePoints, toLatLng, type LatLng, type ViewSpan, type ZoneDraft } from "@/features/track/lib/zones";
+import type { TrackerIconKey } from "@/features/track/lib/trackerIcons";
+import { makeMarkerIcon, PRIMARY } from "./markerIcon";
 import { cn } from "@/shared/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -13,7 +15,6 @@ import { cn } from "@/shared/lib/utils";
 /* gets draggable corner handles for resizing.                         */
 /* ------------------------------------------------------------------ */
 
-const PRIMARY = "hsl(28, 100%, 50%)";
 const MUTED = "hsl(215, 16%, 47%)";
 
 const handleIcon = L.divIcon({
@@ -24,7 +25,7 @@ const handleIcon = L.divIcon({
 });
 
 export type MapZone = { id: string; name: string; zone: Zone };
-export type MapPoint = { id: string; lat: number; lng: number };
+export type MapPoint = { id: string; lat: number; lng: number; icon?: TrackerIconKey };
 
 function zoneLayer(zone: Zone, style: L.PathOptions): L.Layer {
   switch (zone.type) {
@@ -149,12 +150,9 @@ export function ZoneMap({
     group.clearLayers();
     devices.forEach((d) => {
       const selected = d.id === selectedId;
-      L.circleMarker([d.lat, d.lng], {
-        radius: selected ? 8 : 6,
-        color: "#fff",
-        weight: 2,
-        fillColor: selected ? PRIMARY : MUTED,
-        fillOpacity: 1,
+      // Same pin as the Live Map, a size down: this map is about the zones.
+      L.marker([d.lat, d.lng], {
+        icon: makeMarkerIcon({ icon: d.icon, selected, size: selected ? 34 : 28 }),
         interactive: !drawing,
       })
         .on("click", (e: L.LeafletMouseEvent) => {

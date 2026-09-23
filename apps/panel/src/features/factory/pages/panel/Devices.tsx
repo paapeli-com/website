@@ -363,7 +363,7 @@ const Devices = () => {
     }
   };
 
-  const getDeviceLocation = (d: Device) => d.location || (d as any).label || '';
+  const getDeviceLocation = (d: Device) => d.location || '';
   /* The API reports connectivity as the boolean `active`; there is no third
      "error" state behind it. */
   const getDeviceStatus = (d: Device): 'online' | 'offline' =>
@@ -805,7 +805,7 @@ const Devices = () => {
                                   <ExpandField label={t("gateway")} value={meta.gateway} />
                                   <ExpandField label={t("channels")} value={meta.sensorType} />
                                 </div>
-                                <div className="mt-3">
+                                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
                                   <div className="rounded-lg border bg-background px-4 py-3">
                                     <div className="text-xs text-muted-foreground mb-2">{t("tagsLabel")}</div>
                                     {meta.tags.length > 0 ? (
@@ -818,13 +818,17 @@ const Devices = () => {
                                       <div className="text-xs text-muted-foreground italic">—</div>
                                     )}
                                   </div>
-                                </div>
-                                {meta.description && (
-                                  <div className="mt-3 rounded-lg border bg-background px-4 py-3">
-                                    <div className="text-xs text-muted-foreground mb-1">{t("descriptionLabel")}</div>
-                                    <div className={`text-sm ${persianTextClass(meta.description)}`}>{meta.description}</div>
+                                  {/* Always shown: the list endpoint doesn't return the
+                                      description yet, so it reads "No data" until it does. */}
+                                  <div className="rounded-lg border bg-background px-4 py-3">
+                                    <div className="text-xs text-muted-foreground mb-2">{t("descriptionLabel")}</div>
+                                    {meta.description ? (
+                                      <div dir="auto" className={`text-sm whitespace-pre-wrap break-words ${persianTextClass(meta.description)}`}>{meta.description}</div>
+                                    ) : (
+                                      <div className="text-xs text-muted-foreground italic">{t("noData")}</div>
+                                    )}
                                   </div>
-                                )}
+                                </div>
                               </TableCell>
                             </TableRow>
                           )}

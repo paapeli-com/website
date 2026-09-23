@@ -42,16 +42,6 @@ export type Geofence = {
   deviceIds: string[];
 };
 
-export type AlertType = "geofence_exit" | "geofence_enter" | "low_battery" | "sos" | "tamper";
-
-export type Alert = {
-  id: string;
-  deviceId: string;
-  type: AlertType;
-  at: string; // ISO
-  read: boolean;
-};
-
 export type TrackPoint = { lat: number; lng: number; at: string };
 
 export type Trip = { id: string; at: string; distanceKm: number; durationMin: number; maxSpeedKmh: number };

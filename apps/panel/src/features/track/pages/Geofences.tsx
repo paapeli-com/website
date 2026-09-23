@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Circle, Cpu, Hexagon, Loader2, Pencil, Plus, Radar, RectangleHorizontal, Trash2, Undo2 } from "lucide-react";
+import { Circle, Hexagon, Loader2, Pencil, Plus, Radar, RectangleHorizontal, Trash2, Undo2 } from "lucide-react";
 import {
   useDeleteDeviceZoneMutation,
   useSaveDeviceZoneMutation,
@@ -24,6 +24,7 @@ import {
   zoneFromDraft,
   type ZoneDraft,
 } from "@/features/track/lib/zones";
+import { TrackerAvatar, trackerIconOf } from "@/features/track/lib/trackerIcons";
 import { ZoneMap, type MapZone } from "@/features/track/components/map/ZoneMap";
 import { Button } from "@/features/track/components/ui/button";
 import { Modal } from "@/features/track/components/ui/modal";
@@ -96,7 +97,8 @@ export default function Geofences() {
   const mapDevices = useMemo(
     () => trackers.flatMap((d) => {
       const f = fixes.get(d.id);
-      return f ? [{ id: d.id, lat: f.lat, lng: f.lng }] : [];
+      // The label carries the tracker's icon — see lib/trackerIcons.
+      return f ? [{ id: d.id, lat: f.lat, lng: f.lng, icon: trackerIconOf(d.label)?.key }] : [];
     }),
     [trackers, fixes],
   );
@@ -319,9 +321,7 @@ export default function Geofences() {
                     d.id === selectedId ? "bg-primary/10" : "hover:bg-muted",
                   )}
                 >
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                    <Cpu className="size-4" />
-                  </span>
+                  <TrackerAvatar label={d.label} size={36} className="rounded-lg" />
                   <div className="min-w-0 flex-1">
                     <p dir="auto" className="truncate text-sm font-medium">{d.name}</p>
                     <p className="truncate text-xs text-muted-foreground">{stateLabel(s)}</p>

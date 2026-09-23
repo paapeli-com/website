@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, ChevronDown, LayoutGrid, LogOut, Plus, Settings, SlidersHorizontal } from "lucide-react";
-import { useListActiveWorkspacesQuery } from "@paapeli/api";
+import { endServerSession, useListActiveWorkspacesQuery } from "@paapeli/api";
 import { getCurrentUser, signOut as endSession } from "@paapeli/brand/session";
 import { setActiveWorkspaceId, useActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { cn } from "@/shared/lib/utils";
 import { menuRowBase, menuRowDanger, menuRowIdle, menuRowSelected } from "@/shell/menuRow";
 import { useShellT } from "@/shared/i18n/shell";
+import { useWorkspaceSwitch } from "@/shared/components/WorkspaceSwitchDialog";
 
 export function AccountMenu() {
   const [open, setOpen] = useState(false);
@@ -28,6 +29,7 @@ export function AccountMenu() {
      first one whenever there's no stored id, or the stored one is no longer
      a workspace this user is a member of. */
   const activeWorkspaceId = useActiveWorkspaceId();
+  const workspaceSwitch = useWorkspaceSwitch();
   useEffect(() => {
     if (workspaces.length === 0) return;
     if (workspaces.some((ws) => ws.workspaceId === activeWorkspaceId)) return;
@@ -81,7 +83,7 @@ export function AccountMenu() {
                   <button
                     key={ws.workspaceId}
                     onClick={() => {
-                      setActiveWorkspaceId(ws.workspaceId);
+                      workspaceSwitch.requestSwitch(ws.workspaceId, ws.workspaceName, activeWorkspaceId);
                       close();
                     }}
                     className={cn(menuRowBase, isActive ? menuRowSelected : menuRowIdle)}
@@ -144,7 +146,8 @@ export function AccountMenu() {
               {t("Account Settings")}
             </button>
             <button
-              onClick={() => {
+              onClick={async () => {
+                await endServerSession();
                 endSession();
                 window.location.href = "/login";
               }}
@@ -156,6 +159,7 @@ export function AccountMenu() {
           </div>
         </div>
       )}
+      {workspaceSwitch.dialog}
     </div>
   );
 }

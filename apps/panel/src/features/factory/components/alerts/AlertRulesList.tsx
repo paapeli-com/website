@@ -40,33 +40,33 @@ const RULES_PAGE = 0;
 const RULES_PAGE_SIZE = 100;
 const PAGE_SIZE = 10;
 
-const triggerIcons: Record<RuleTriggerType, typeof Zap> = {
+export const triggerIcons: Record<RuleTriggerType, typeof Zap> = {
   SIMPLE: Zap,
   DURATION: Clock,
   REPEATING: Repeat,
 };
 
-const triggerLabelKeys: Record<RuleTriggerType, string> = {
+export const triggerLabelKeys: Record<RuleTriggerType, string> = {
   SIMPLE: "alertTriggerSimple",
   DURATION: "alertTriggerDuration",
   REPEATING: "alertTriggerRepeating",
 };
 
-const stateLabelKeys: Record<AlarmRuleProvisioningState, string> = {
+export const stateLabelKeys: Record<AlarmRuleProvisioningState, string> = {
   PROVISIONING: "alertRuleStateProvisioning",
   ACTIVE: "alertRuleStateActive",
   FAILED: "alertRuleStateFailed",
   DELETING: "alertRuleStateDeleting",
 };
 
-const stateColors: Record<AlarmRuleProvisioningState, string> = {
+export const stateColors: Record<AlarmRuleProvisioningState, string> = {
   ACTIVE: "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/10",
   PROVISIONING: "bg-sky-500/10 text-sky-600 hover:bg-sky-500/10",
   DELETING: "bg-muted text-muted-foreground hover:bg-muted",
   FAILED: "bg-rose-500/10 text-rose-600 hover:bg-rose-500/10",
 };
 
-const severityColors: Record<AlertSeverity, string> = {
+export const severityColors: Record<AlertSeverity, string> = {
   critical: "bg-destructive text-destructive-foreground",
   high: "bg-orange-500 text-white",
   medium: "bg-yellow-500 text-white",
@@ -74,7 +74,7 @@ const severityColors: Record<AlertSeverity, string> = {
 };
 
 /** The row the table renders, derived from an AlarmRuleItem. */
-interface RuleRow {
+export interface RuleRow {
   id: string;
   deviceId: string;
   name: string;
@@ -88,7 +88,7 @@ interface RuleRow {
   createdAt: string;
 }
 
-const toRow = (r: AlarmRuleItem): RuleRow => {
+export const toRow = (r: AlarmRuleItem): RuleRow => {
   // A rule can define conditions for several severities; show the most severe.
   const top = Object.entries(r.alarmRules ?? {})
     .map(([severity, rule]) => ({ severity: apiSeverityToUi(severity), rule }))
@@ -126,7 +126,7 @@ export const AlertRulesList = ({
   const { items: devices } = useDevices();
   const deviceName = (id: string) => {
     const d = devices.find((x) => x.id === id);
-    return d ? d.label || d.name : id;
+    return d ? d.name : id;
   };
 
   // Creating and deleting are asynchronous server-side, so poll while any

@@ -9,9 +9,9 @@ import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 
 const hasPersian = (v: string) => /[\u0600-\u06FF]/.test(v);
 
+/* The asset tree root is deliberately absent: it keeps its English name in
+   every language (see nodeDisplayName in lib/locationLabels). */
 const SEGMENT_KEY: Record<string, string> = {
-  // The asset tree root (see ROOT_LOCATION_NAME in useAssetLocations).
-  "main directory": "mainDirectory",
   qazvin: "locQazvin",
   tehran: "locTehran",
   "factory a": "locFactoryA",

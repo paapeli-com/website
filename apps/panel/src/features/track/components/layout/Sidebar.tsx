@@ -2,7 +2,7 @@ import { NavLink } from "react-router-dom";
 import { Bell, History, MapPin, Radar, Settings, Smartphone, type LucideIcon } from "lucide-react";
 import { useLanguage } from "@/features/track/i18n/LanguageContext";
 import { TranslationKey } from "@/features/track/i18n/translations";
-import { ALERTS } from "@/features/track/data/mockData";
+import { useTrackerAlarms } from "@/features/track/lib/useTrackerAlarms";
 import { cn } from "@/shared/lib/utils";
 import { trackPath } from "@/features/track/lib/trackPath";
 
@@ -66,7 +66,7 @@ function Item({
 
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useLanguage();
-  const unread = ALERTS.filter((a) => !a.read).length;
+  const { unread } = useTrackerAlarms();
   return (
     <div className="flex h-full flex-col bg-card">
       <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-4">

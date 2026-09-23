@@ -17,7 +17,8 @@
     "./device-credentials": "./src/api/deviceCredentials/index.ts",
     "./alarms": "./src/api/alarms/index.ts",
     "./products": "./src/api/products/index.ts",
-    "./workspaces": "./src/api/workspaces/index.ts"
+    "./workspaces": "./src/api/workspaces/index.ts",
+    "./users": "./src/api/users/index.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit"

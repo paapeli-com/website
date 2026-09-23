@@ -6,7 +6,7 @@ import {
   CognitoUserSession,
   CognitoUserAttribute,
 } from 'amazon-cognito-identity-js';
-import { onUnauthorized, setApiAuthToken } from '@paapeli/api';
+import { onTokenRefreshed, onUnauthorized, setApiAuthToken } from '@paapeli/api';
 import { getSession as getSharedSession } from '@paapeli/brand/session';
 import { toast } from 'sonner';
 
@@ -333,6 +333,20 @@ onUnauthorized(() => {
   toast.error('Session expired. Please sign in again.');
   // stayOnPage: the interceptor owns the redirect.
   useAuthStore.getState().signOut(true);
+});
+
+/* The API client refreshed the access token (napiHttpHandler). The client
+   already sends the new one; this keeps the store's session — read by e.g.
+   DeviceDetailsContent — and the legacy stored session on it too. */
+onTokenRefreshed((token) => {
+  const { isAuthenticated, user } = useAuthStore.getState();
+  if (!isAuthenticated || !user) return;
+  const username = user.getUsername();
+  const { mockSession } = toMockSession(username, token);
+  useAuthStore.setState({ session: mockSession });
+  /* The shared session already holds the new token (updateToken in
+     napiHttpHandler). Writing {username, token} here would overwrite that
+     same key, dropping its email, name and expiresAt. */
 });
 
 /** Drop-in replacement for the old `useAuth()` context hook. */
