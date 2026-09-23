@@ -1,4 +1,4 @@
-import { Building2, Cloud, Code2, FileText, Gauge, Home, Key, Package, Shield, Users, Wallet } from "lucide-react";
+import { Brush, Building2, Cloud, Code2, FileText, Gauge, Home, Key, Package, Shield, Users, Wallet } from "lucide-react";
 import type { NavItem, NavSection } from "./types";
 
 const base = "/CloudManagement";
@@ -29,6 +29,7 @@ const items: NavItem[] = [
   { title: "Payment methods", icon: Wallet, path: p("/payment-methods") },
   { title: "Members", icon: Users, path: p("/members") },
   { title: "Access & API keys", icon: Key, path: p("/access-keys") },
+  { title: "White Label", icon: Brush, path: p("/white-label") },
   { title: "Security", icon: Shield, path: p("/security") },
 ];
 

@@ -12,6 +12,7 @@ import PaymentMethods from "./pages/PaymentMethods";
 import AccessApiKeys from "./pages/AccessApiKeys";
 import Security from "./pages/Security";
 import Members from "./pages/Members";
+import WhiteLabel from "./pages/WhiteLabel";
 
 /* Cloud Management — workspace/account administration, independent of any
    AIoT product/solution, mounted at /CloudManagement/*.
@@ -67,6 +68,7 @@ export default function CloudManagementRoutes() {
         <Route path="/usage" element={<Usage />} />
         <Route path="/payment-methods" element={<PaymentMethods />} />
         <Route path="/access-keys" element={<AccessApiKeys />} />
+        <Route path="/white-label" element={<WhiteLabel />} />
         <Route path="/security" element={<Security />} />
         <Route path="/members" element={<Members />} />
         {/* The page was Organisation until its tabs were cut to the three
