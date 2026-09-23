@@ -137,7 +137,9 @@ export function AccountMenu() {
           <div className="px-2">
             <button
               onClick={() => {
-                navigate("/AIoT/SmartFactory/account-settings");
+                // Account settings belong to the person, not to a product, so they sit
+                // at the top level under /Home and are reached from here only.
+                navigate("/Home/account-settings");
                 close();
               }}
               className={cn(menuRowBase, menuRowIdle)}
