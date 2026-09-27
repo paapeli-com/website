@@ -131,6 +131,10 @@ export default function CareersPage() {
                     <PositionCard
                       position={position}
                       applyLabel={content.roles.apply}
+                      labels={{
+                        does: content.roles.doesLabel,
+                        expects: content.roles.expectsLabel,
+                      }}
                       onApply={() => setTarget(position)}
                     />
                   </RevealOnScroll>

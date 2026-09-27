@@ -24,6 +24,10 @@ export type Track = {
   tone: Tone;
   title: string;
   body: string;
+  /** What an intern on this track spends the three months doing. */
+  does: string;
+  /** What they are asked to bring, at the level an intern brings it. */
+  expects: string;
   /** The longer wording the track picker inside the form shows. */
   option: string;
 };
@@ -52,10 +56,17 @@ export type Position = ApplyTarget & {
   teamTone: Tone;
   location: string;
   term: string;
+  /** How the work is engaged: an internship today, "full time" the day
+      a permanent role is posted here. One tag, one word to change. */
+  employment: string;
   title: string;
   /** How many people we are taking, shown next to the title. */
   capacity?: string;
   body: string;
+  /** The same two lines a track carries, for a position that has no
+      tracks to hang them on. */
+  does?: string;
+  expects?: string;
   highlights?: Highlight[];
   chipsLabel: string;
   chips: Chip[];
@@ -79,6 +90,9 @@ export type CareersContent = {
     emptyArchive: string;
     /** The button on every position card. */
     apply: string;
+    /** Heads the two lines under a track, or under a position without one. */
+    doesLabel: string;
+    expectsLabel: string;
   };
   positions: Position[];
   general: ApplyTarget & {
@@ -161,6 +175,8 @@ const en: CareersContent = {
     emptyArchive:
       "Nothing is archived yet. Send an open application and we will come back to you when the right role opens.",
     apply: "Send your resume",
+    doesLabel: "In this role:",
+    expectsLabel: "What we expect:",
   },
   positions: [
     {
@@ -173,6 +189,7 @@ const en: CareersContent = {
       teamTone: "sky",
       location: "Tehran (on site, starts at 10)",
       term: "Three months, with a path to staying on",
+      employment: "Internship",
       title: "Backend Intern",
       capacity: "2 openings",
       body: "Paapeli is building an AI powered cloud platform. To grow two parts of that platform, we are inviting two backend development interns to join us:",
@@ -183,6 +200,8 @@ const en: CareersContent = {
           tone: "sky",
           title: "Track 1: Cloud Management",
           body: "Build the core of our cloud infrastructure management, the distributed systems behind it and the Paapeli processing pipelines.",
+          does: "You work alongside the team on small parts of our Go services, write a simple API, and move data between a service and the database with a mentor next to you.",
+          expects: "Programming fundamentals, a grasp of what an API is, a little Go, and asking whenever you get stuck.",
           option: "Track 1: the Paapeli cloud core in Go (Cloud Management)",
         },
         {
@@ -191,6 +210,8 @@ const en: CareersContent = {
           tone: "orange",
           title: "Track 2: AIoT Platform",
           body: "Build the IoT platform services, device management and real time industrial event handling.",
+          does: "You work on the Java services with the team's guidance, store and read device data, and follow an event from the device all the way to the dashboard.",
+          expects: "Java and object oriented basics, a little work with databases, and an appetite for learning Spring Boot.",
           option: "Track 2: the AIoT platform in Java and Spring Boot",
         },
       ],
@@ -213,8 +234,11 @@ const en: CareersContent = {
       teamTone: "violet",
       location: "Tehran (on site, starts at 10)",
       term: "Three months, with a path to staying on",
+      employment: "Internship",
       title: "Product Management Intern (AIoT)",
       body: "We are looking for a product management intern for the Paapeli AIoT product. In this role you help us understand what customers need, define the problems precisely, shape what the product does next, and follow the work through with the design and engineering team.",
+      does: "You sit in the team's meetings, write down and summarise what users need, and document small features with a mentor next to you.",
+      expects: "Clear and tidy writing, curiosity about what the user actually wants, and following a task through to the end.",
       highlights: [
         { title: "Deep curiosity", body: "A pull toward the root of a problem" },
         { title: "Asking the right questions", body: "A clear read on what users need" },
@@ -302,6 +326,8 @@ const fa: CareersContent = {
     emptyArchive:
       "فعلاً موقعیت آرشیوشده‌ای وجود ندارد. رزومه آزاد بفرستید تا با باز شدن موقعیت مناسب با شما تماس بگیریم.",
     apply: "ارسال رزومه",
+    doesLabel: "در این نقش:",
+    expectsLabel: "انتظار ما:",
   },
   positions: [
     {
@@ -314,6 +340,7 @@ const fa: CareersContent = {
       teamTone: "sky",
       location: "تهران (حضوری - شروع ۱۰ صبح)",
       term: "دوره ۳ ماهه با امکان ادامه همکاری",
+      employment: "کارآموزی",
       title: "کارآموز توسعه بک‌اند (Backend Intern)",
       capacity: "۲ نفر ظرفیت",
       body: "پاپلی در حال توسعه یک پلتفرم ابری هوش مصنوعی است. برای گسترش دو بخش از این پلتفرم، از ۲ کارآموز توسعه بک‌اند دعوت به همکاری می‌کنیم:",
@@ -324,6 +351,8 @@ const fa: CareersContent = {
           tone: "sky",
           title: "مسیر ۱: Cloud Management",
           body: "توسعه هسته مدیریت زیرساخت ابری، سیستم‌های توزیع‌شده و خطوط پردازشی پاپلی.",
+          does: "کنار تیم روی بخش‌های کوچکی از سرویس‌های Go کار می‌کنی، یک API ساده می‌نویسی و با راهنمایی منتور داده را بین سرویس و پایگاه داده جابه‌جا می‌کنی.",
+          expects: "آشنایی با مبانی برنامه‌نویسی و مفهوم API، کمی Go، و اینکه هر جا گیر کردی سؤال بپرسی.",
           option: "مسیر ۱: هسته ابری پاپلی با Go (Cloud Management)",
         },
         {
@@ -332,6 +361,8 @@ const fa: CareersContent = {
           tone: "orange",
           title: "مسیر ۲: AIoT Platform",
           body: "توسعه سرویس‌های پلتفرم اینترنت اشیا، مدیریت دستگاه‌ها و رویدادهای بلادرنگ صنعتی.",
+          does: "با راهنمایی تیم روی سرویس‌های Java کار می‌کنی، اطلاعات دستگاه‌ها را ذخیره و بازیابی می‌کنی و می‌بینی یک رویداد از دستگاه تا داشبورد چه مسیری را طی می‌کند.",
+          expects: "آشنایی با مبانی Java و شیءگرایی، کمی کار با پایگاه داده، و علاقه به یادگیری Spring Boot.",
           option: "مسیر ۲: پلتفرم AIoT با Java و Spring Boot",
         },
       ],
@@ -354,8 +385,11 @@ const fa: CareersContent = {
       teamTone: "violet",
       location: "تهران (حضوری - شروع ۱۰ صبح)",
       term: "دوره ۳ ماهه با امکان ادامه همکاری",
+      employment: "کارآموزی",
       title: "کارآموز مدیریت محصول (Product Management Intern - AIoT)",
       body: "در پاپلی، برای محصول AIoT دنبال یک کارآموز مدیریت محصول هستیم. در این نقش کمک می‌کنی نیاز مشتری‌ها را بشناسیم، مسئله‌ها را دقیق تعریف کنیم، قابلیت‌های بعدی محصول را شکل بدهیم و اجرای آن‌ها را با تیم طراحی و توسعه پیگیری کنیم.",
+      does: "در جلسات تیم شرکت می‌کنی، نیاز کاربر را می‌نویسی و جمع‌بندی می‌کنی و با راهنمایی منتور برای قابلیت‌های کوچک سند می‌نویسی.",
+      expects: "نوشتن روشن و مرتب، کنجکاوی برای فهمیدن اینکه کاربر واقعاً چه می‌خواهد، و پیگیری کار تا آخر.",
       highlights: [
         { title: "کنجکاوی عمیق", body: "علاقه به واکاوی ریشه‌ای مسائل" },
         { title: "سؤال‌پرسیدن درست", body: "شناخت شفاف نیازهای کاربر" },
@@ -443,6 +477,8 @@ const ar: CareersContent = {
     emptyArchive:
       "لا يوجد شيء في الأرشيف حتى الآن. أرسل سيرة ذاتية مفتوحة وسنعاود التواصل معك عند فتح الدور المناسب.",
     apply: "إرسال السيرة الذاتية",
+    doesLabel: "في هذا الدور:",
+    expectsLabel: "ما نتوقعه:",
   },
   positions: [
     {
@@ -455,6 +491,7 @@ const ar: CareersContent = {
       teamTone: "sky",
       location: "طهران (حضوري، البداية 10 صباحًا)",
       term: "ثلاثة أشهر مع إمكانية الاستمرار",
+      employment: "تدريب",
       title: "متدرب تطوير خلفي (Backend Intern)",
       capacity: "مقعدان",
       body: "تبني بابيلي منصة سحابية للذكاء الاصطناعي. لتوسيع جزأين من هذه المنصة ندعو متدربَين في تطوير الواجهة الخلفية للانضمام إلينا:",
@@ -465,6 +502,8 @@ const ar: CareersContent = {
           tone: "sky",
           title: "المسار 1: Cloud Management",
           body: "تطوير نواة إدارة البنية السحابية والأنظمة الموزعة وخطوط المعالجة في بابيلي.",
+          does: "تعمل إلى جانب الفريق على أجزاء صغيرة من خدمات Go، وتكتب واجهة برمجة بسيطة، وتنقل البيانات بين الخدمة وقاعدة البيانات بإرشاد من مرشدك.",
+          expects: "أساسيات البرمجة وفهم فكرة واجهة البرمجة، وقليل من Go، وأن تسأل كلما تعثرت.",
           option: "المسار 1: النواة السحابية لبابيلي بلغة Go (Cloud Management)",
         },
         {
@@ -473,6 +512,8 @@ const ar: CareersContent = {
           tone: "orange",
           title: "المسار 2: AIoT Platform",
           body: "تطوير خدمات منصة إنترنت الأشياء وإدارة الأجهزة والأحداث الصناعية اللحظية.",
+          does: "تعمل على خدمات Java بإرشاد الفريق، وتخزن بيانات الأجهزة وتقرأها، وتتابع الحدث من الجهاز حتى لوحة التحكم.",
+          expects: "أساسيات Java والبرمجة الكائنية، وقليل من العمل مع قواعد البيانات، ورغبة في تعلم Spring Boot.",
           option: "المسار 2: منصة AIoT بلغة Java و Spring Boot",
         },
       ],
@@ -495,8 +536,11 @@ const ar: CareersContent = {
       teamTone: "violet",
       location: "طهران (حضوري، البداية 10 صباحًا)",
       term: "ثلاثة أشهر مع إمكانية الاستمرار",
+      employment: "تدريب",
       title: "متدرب إدارة منتج (Product Management Intern - AIoT)",
       body: "نبحث في بابيلي عن متدرب لإدارة منتج AIoT. في هذا الدور تساعدنا على فهم احتياجات العملاء وتعريف المسائل بدقة ورسم ملامح القدرات القادمة ومتابعة تنفيذها مع فريقي التصميم والتطوير.",
+      does: "تحضر اجتماعات الفريق، وتدوّن احتياجات المستخدمين وتلخصها، وتوثّق القدرات الصغيرة بإرشاد من مرشدك.",
+      expects: "كتابة واضحة ومرتبة، وفضول لمعرفة ما يريده المستخدم فعلًا، ومتابعة المهمة حتى نهايتها.",
       highlights: [
         { title: "فضول عميق", body: "شغف بالوصول إلى جذور المسائل" },
         { title: "طرح الأسئلة الصحيحة", body: "فهم واضح لاحتياجات المستخدم" },

@@ -27,7 +27,9 @@ import { localePath } from "@/lib/seo";
 
    Every entry points at a page that exists. The four "#" placeholders
    that used to sit here (About, Partners, Careers, Platform Status) were
-   dead ends for readers and gave the crawler nothing. */
+   dead ends for readers and gave the crawler nothing. Careers is back
+   under Resources because /careers is now a real page, and this is the
+   only body link to it anywhere on the site. */
 const COLUMN_HREFS: string[][] = [
   [
     "/aiot-platform",
@@ -50,7 +52,7 @@ const COLUMN_HREFS: string[][] = [
     "https://github.com/paapeli-com",
     "/status",
   ],
-  [BLOG_URL, "/AI-Readiness-Assessment", "/pricing", "/request-demo", "/contact"],
+  [BLOG_URL, "/AI-Readiness-Assessment", "/pricing", "/request-demo", "/contact", "/careers"],
 ];
 
 type Copy = {
@@ -68,7 +70,7 @@ const COPY: Record<string, Copy> = {
       { title: "Platform", labels: ["AIoT Platform", "Operations Hub", "Edge Hub", "Intelligence Hub", "Infrastructure Hub", "Tracking Hub"] },
       { title: "Solutions", labels: ["Smart Manufacturing", "Smart Buildings", "Smart Agriculture", "Oil & Gas", "Energy Monitoring"] },
       { title: "Developers", labels: ["Documentation", "SDKs", "GitHub", "Platform Status"] },
-      { title: "Resources", labels: ["Blog", "AI Readiness Assessment", "Pricing", "Request a Demo", "Contact"] },
+      { title: "Resources", labels: ["Blog", "AI Readiness Assessment", "Pricing", "Request a Demo", "Contact", "Careers"] },
     ],
   },
   fa: {
@@ -79,7 +81,7 @@ const COPY: Record<string, Copy> = {
       { title: "پلتفرم", labels: ["پلتفرم AIoT", "هاب عملیات", "هاب لبه", "هاب هوشمندی", "هاب زیرساخت", "هاب ردیابی"] },
       { title: "راهکارها", labels: ["تولید هوشمند", "ساختمان‌های هوشمند", "کشاورزی هوشمند", "نفت و گاز", "پایش انرژی"] },
       { title: "توسعه‌دهندگان", labels: ["مستندات", "SDK ها", "گیت‌هاب", "وضعیت پلتفرم"] },
-      { title: "منابع", labels: ["بلاگ", "ارزیابی آمادگی هوش مصنوعی", "تعرفه‌ها", "درخواست دمو", "تماس با ما"] },
+      { title: "منابع", labels: ["بلاگ", "ارزیابی آمادگی هوش مصنوعی", "تعرفه‌ها", "درخواست دمو", "تماس با ما", "فرصت‌های شغلی"] },
     ],
   },
   ar: {
@@ -90,7 +92,7 @@ const COPY: Record<string, Copy> = {
       { title: "المنصة", labels: ["منصة AIoT", "مركز العمليات", "مركز الحافة", "مركز الذكاء", "مركز البنية التحتية", "مركز التتبع"] },
       { title: "الحلول", labels: ["التصنيع الذكي", "المباني الذكية", "الزراعة الذكية", "النفط والغاز", "مراقبة الطاقة"] },
       { title: "المطورون", labels: ["التوثيق", "حِزم SDK", "GitHub", "حالة المنصة"] },
-      { title: "المصادر", labels: ["المدونة", "تقييم الجاهزية للذكاء الاصطناعي", "الأسعار", "اطلب عرضاً توضيحياً", "اتصل بنا"] },
+      { title: "المصادر", labels: ["المدونة", "تقييم الجاهزية للذكاء الاصطناعي", "الأسعار", "اطلب عرضاً توضيحياً", "اتصل بنا", "الوظائف"] },
     ],
   },
 };

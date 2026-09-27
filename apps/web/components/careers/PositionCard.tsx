@@ -22,6 +22,7 @@ const TONES: Record<Tone, string> = {
 
 const NEUTRAL = "border-white/10 bg-white/5 text-white/60";
 const OPEN = "border-emerald-400/20 bg-emerald-400/10 text-emerald-300";
+const EMPLOYMENT = "border-amber-400/20 bg-amber-400/10 text-amber-300";
 
 function Tag({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
@@ -36,13 +37,25 @@ function Tag({ className, children }: { className?: string; children: React.Reac
   );
 }
 
+/** One of the two lines that say what the work is and what it asks for. */
+function Detail({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <p className="text-xs text-white/50">
+      <span className="font-medium text-white/75">{label} </span>
+      {children}
+    </p>
+  );
+}
+
 export function PositionCard({
   position,
   applyLabel,
+  labels,
   onApply,
 }: {
   position: Position;
   applyLabel: string;
+  labels: { does: string; expects: string };
   onApply: () => void;
 }) {
   return (
@@ -54,6 +67,7 @@ export function PositionCard({
           <Tag className={TONES[position.teamTone]}>{position.team}</Tag>
           <Tag className={NEUTRAL}>{position.location}</Tag>
           <Tag className={NEUTRAL}>{position.term}</Tag>
+          <Tag className={EMPLOYMENT}>{position.employment}</Tag>
         </div>
 
         <div className="flex flex-col items-center gap-2">
@@ -82,6 +96,14 @@ export function PositionCard({
 
       <p className="mt-3 text-sm text-white/70">{position.body}</p>
 
+      {/* A position with no tracks carries the two lines itself. */}
+      {position.does && position.expects ? (
+        <div className="mt-4 grid gap-3 rounded-xl border border-white/[0.06] bg-[#0b1322] p-5 md:grid-cols-2 md:gap-5">
+          <Detail label={labels.does}>{position.does}</Detail>
+          <Detail label={labels.expects}>{position.expects}</Detail>
+        </div>
+      ) : null}
+
       {/* Two parallel tracks, one candidate picks between them. */}
       {position.tracks?.length ? (
         <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -95,6 +117,11 @@ export function PositionCard({
                 <Tag className={cn(TONES[track.tone], "shrink-0 font-mono")}>{track.stack}</Tag>
               </div>
               <p className="mt-2 text-xs text-white/50">{track.body}</p>
+
+              <div className="mt-3 space-y-2 border-t border-white/[0.06] pt-3">
+                <Detail label={labels.does}>{track.does}</Detail>
+                <Detail label={labels.expects}>{track.expects}</Detail>
+              </div>
             </div>
           ))}
         </div>
