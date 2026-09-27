@@ -46,6 +46,13 @@ export type ApplyTarget = {
   reference: string;
   /** Names the position under the form heading. */
   shortTitle: string;
+  /**
+   * The small orange line above the form's heading, naming the kind of
+   * application this is. It follows the position's own employment tag,
+   * so an internship says so and a full time role says that instead.
+   * An open application has no kind to name and leaves it off.
+   */
+  formEyebrow?: string;
   tracks?: Track[];
 };
 
@@ -105,7 +112,6 @@ export type CareersContent = {
 };
 
 export type FormCopy = {
-  eyebrow: string;
   title: string;
   selected: string;
   name: string;
@@ -183,6 +189,7 @@ const en: CareersContent = {
       id: "backend-intern",
       reference: "Backend Intern (Go / Java)",
       shortTitle: "Backend Intern (Go / Java)",
+      formEyebrow: "Paapeli internship application",
       status: "open",
       statusLabel: "Accepting applications",
       team: "Backend & Cloud Infrastructure",
@@ -228,6 +235,7 @@ const en: CareersContent = {
       id: "product-management-intern",
       reference: "Product Management Intern (AIoT)",
       shortTitle: "Product Management Intern (AIoT)",
+      formEyebrow: "Paapeli internship application",
       status: "open",
       statusLabel: "Accepting applications",
       team: "Product Management",
@@ -263,7 +271,6 @@ const en: CareersContent = {
     action: "Send an open application",
   },
   form: {
-    eyebrow: "Paapeli internship application",
     title: "Send your application",
     selected: "Selected role:",
     name: "Full name",
@@ -334,6 +341,7 @@ const fa: CareersContent = {
       id: "backend-intern",
       reference: "Backend Intern (Go / Java)",
       shortTitle: "کارآموز توسعه بک‌اند (Go / Java)",
+      formEyebrow: "فرم درخواست کارآموزی پاپلی",
       status: "open",
       statusLabel: "پذیرش فعال",
       team: "Backend & Cloud Infrastructure",
@@ -379,6 +387,7 @@ const fa: CareersContent = {
       id: "product-management-intern",
       reference: "Product Management Intern (AIoT)",
       shortTitle: "کارآموز مدیریت محصول (AIoT)",
+      formEyebrow: "فرم درخواست کارآموزی پاپلی",
       status: "open",
       statusLabel: "پذیرش فعال",
       team: "Product Management",
@@ -414,7 +423,6 @@ const fa: CareersContent = {
     action: "ارسال رزومه آزاد",
   },
   form: {
-    eyebrow: "فرم درخواست کارآموزی پاپلی",
     title: "ارسال درخواست همکاری",
     selected: "موقعیت انتخاب‌شده:",
     name: "نام و نام خانوادگی",
@@ -485,6 +493,7 @@ const ar: CareersContent = {
       id: "backend-intern",
       reference: "Backend Intern (Go / Java)",
       shortTitle: "متدرب تطوير خلفي (Go / Java)",
+      formEyebrow: "نموذج التقديم للتدريب في بابيلي",
       status: "open",
       statusLabel: "التقديم مفتوح",
       team: "Backend & Cloud Infrastructure",
@@ -530,6 +539,7 @@ const ar: CareersContent = {
       id: "product-management-intern",
       reference: "Product Management Intern (AIoT)",
       shortTitle: "متدرب إدارة منتج (AIoT)",
+      formEyebrow: "نموذج التقديم للتدريب في بابيلي",
       status: "open",
       statusLabel: "التقديم مفتوح",
       team: "Product Management",
@@ -565,7 +575,6 @@ const ar: CareersContent = {
     action: "إرسال سيرة ذاتية مفتوحة",
   },
   form: {
-    eyebrow: "نموذج التقديم للتدريب في بابيلي",
     title: "إرسال طلب الانضمام",
     selected: "الدور المختار:",
     name: "الاسم الكامل",

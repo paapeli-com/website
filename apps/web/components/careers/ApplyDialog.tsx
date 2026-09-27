@@ -181,10 +181,14 @@ export function ApplyDialog({
           <div className="space-y-6">
             {/* ----------------------------- Heading ---------------------------- */}
             <div className="space-y-2 pe-8">
-              <span className="flex items-center gap-2 text-sm font-medium text-primary">
-                <span aria-hidden className="size-1.5 rounded-full bg-primary" />
-                {copy.eyebrow}
-              </span>
+              {/* Named per position, so an open application says nothing
+                  about an internship it is not applying for. */}
+              {target.formEyebrow ? (
+                <span className="flex items-center gap-2 text-sm font-medium text-primary">
+                  <span aria-hidden className="size-1.5 rounded-full bg-primary" />
+                  {target.formEyebrow}
+                </span>
+              ) : null}
               <DialogTitle className="text-2xl font-bold text-white">{copy.title}</DialogTitle>
               <DialogDescription className="text-sm text-white/50">
                 {copy.selected}{" "}
@@ -266,14 +270,22 @@ export function ApplyDialog({
                   <Label htmlFor="a-track" className={labelClass}>
                     {copy.track}
                   </Label>
-                  <Select value={track} onValueChange={setTrack}>
+                  {/* The portal takes the list out of this dialog, and out of
+                      its direction with it, so the direction is passed in. */}
+                  <Select value={track} onValueChange={setTrack} dir={dir}>
                     <SelectTrigger
                       id="a-track"
                       className={cn(field, "text-start [&>span]:truncate")}
                     >
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="border-white/10 bg-[#101828] text-white">
+                    {/* globals.css:304 paints every [role="listbox"] on the
+                        site with the light theme's background, in !important,
+                        which a plain bg utility and an inline style both lose
+                        to. Naming the attribute alongside the class outranks
+                        it, and leaves that rule alone for the pages that grew
+                        up with it. */}
+                    <SelectContent className="border-white/10 text-white [&[role=listbox]]:!bg-[#101828]">
                       {target.tracks.map((one) => (
                         <SelectItem
                           key={one.id}
