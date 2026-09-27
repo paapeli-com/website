@@ -100,6 +100,7 @@ export const ROUTES: readonly string[] = [
   "/AI-Readiness-Assessment",
   "/AI-Readiness-Assessment/about",
   "/AI-Readiness-Assessment/methodology",
+  "/careers",
   "/contact",
   "/ddos-protection",
   "/edge-computing",

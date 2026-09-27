@@ -38,6 +38,23 @@ export const PAGE_META: Record<string, Partial<Record<Locale, PageMeta>>> = {
         "إدارة الأجهزة والمراقبة اللحظية وتحديثات OTA وتحليلات الذكاء الاصطناعي في منصة سحابية واحدة، على سحابتنا أو داخل بنيتك التحتية.",
     },
   },
+  "/careers": {
+    en: {
+      title: "Careers and internships at Paapeli",
+      description:
+        "Join the team building Paapeli's cloud, AI and IoT platform. Open backend and product management internships in Tehran, with a path to staying on.",
+    },
+    fa: {
+      title: "فرصت‌های همکاری و کارآموزی در پاپلی",
+      description:
+        "به تیمی بپیوندید که پلتفرم ابری، هوش مصنوعی و اینترنت اشیای پاپلی را می‌سازد. کارآموزی توسعه بک‌اند و مدیریت محصول در تهران با امکان ادامه همکاری.",
+    },
+    ar: {
+      title: "الوظائف والتدريب في بابيلي",
+      description:
+        "انضم إلى الفريق الذي يبني منصة بابيلي السحابية للذكاء الاصطناعي وإنترنت الأشياء. تدريب في تطوير الواجهة الخلفية وإدارة المنتج في طهران مع إمكانية الاستمرار.",
+    },
+  },
   "/contact": {
     en: {
       title: "Contact Paapeli",
