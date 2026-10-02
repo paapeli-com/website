@@ -18,7 +18,9 @@
     "./alarms": "./src/api/alarms/index.ts",
     "./products": "./src/api/products/index.ts",
     "./workspaces": "./src/api/workspaces/index.ts",
-    "./users": "./src/api/users/index.ts"
+    "./users": "./src/api/users/index.ts",
+    "./dashboards": "./src/api/dashboards/index.ts",
+    "./telemetry": "./src/api/telemetry/index.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit"

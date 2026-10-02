@@ -1,4 +1,5 @@
 import napiHttpHandler from '../napiHttpHandler';
+import { PageResponse } from '../type';
 
 export type WorkspaceMembershipStatus =
     | 'INVITED'
@@ -57,7 +58,31 @@ export interface WorkspaceMembershipResponse {
     createdAt: number;
 }
 
+/** A row of GET /workspaces/{workspaceId}/members. */
+export interface WorkspaceMember {
+    workspaceMembershipId: string;
+    userId: string;
+    displayName?: string | null;
+    email?: string | null;
+    role: WorkspaceRole;
+    status: WorkspaceMembershipStatus;
+    createdAt: string;
+}
+
 export const workspacesService = {
+    /** Members of a workspace, searchable by display name or email. */
+    async listMembers(
+        workspaceId: string,
+        page = 1,
+        size = 25,
+        search?: string,
+    ): Promise<PageResponse<WorkspaceMember>> {
+        const { data } = await napiHttpHandler.get<PageResponse<WorkspaceMember>>(
+            `/api/v1/aiot/workspaces/${workspaceId}/members`,
+            { page, size, ...(search ? { search } : {}) },
+        );
+        return data;
+    },
     /** List workspaces the current user is an active member of. */
     async listActiveWorkspaces(): Promise<UserWorkspace[]> {
         const { data } = await napiHttpHandler.get<UserWorkspace[]>(

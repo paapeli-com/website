@@ -6,6 +6,8 @@ export * from './api/deviceZones';
 export * from './api/devices';
 export * from './api/assets';
 export * from './api/timeseries';
+export * from './api/telemetry';
+export * from './api/dashboards';
 export * from './api/productAssetTypes';
 export * from './api/productDeviceTypes';
 export * from './api/productDeviceCommands';

@@ -63,6 +63,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useDashboards, useViewMode, dashboardDescription, DashboardItem } from "@/features/factory/hooks/useDashboards";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 import { toast } from "sonner";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 
@@ -141,6 +142,8 @@ const DICT: Record<string, Record<Lang, string>> = {
   selected: { en: "selected", ar: "المحددة", fa: "انتخاب‌شده" },
   selectAll: { en: "Select all", ar: "تحديد الكل", fa: "انتخاب همه" },
   dashboardDeleted: { en: "Dashboard deleted", ar: "تم حذف لوحة التحكم", fa: "داشبورد حذف شد" },
+  builtInReadOnly: { en: "Built-in dashboards can't be edited, copied or deleted", ar: "لا يمكن تعديل اللوحات المدمجة أو نسخها أو حذفها", fa: "داشبوردهای داخلی قابل ویرایش، کپی یا حذف نیستند" },
+  actionFailed: { en: "Something went wrong — please try again", ar: "حدث خطأ ما — يرجى المحاولة مرة أخرى", fa: "مشکلی پیش آمد؛ لطفاً دوباره تلاش کنید" },
   dashboardDuplicated: { en: "Dashboard duplicated", ar: "تم تكرار لوحة التحكم", fa: "داشبورد تکرار شد" },
   dashboardArchived: { en: "Dashboard archived", ar: "تمت أرشفة لوحة التحكم", fa: "داشبورد آرشیو شد" },
   dashboardRestored: { en: "Dashboard restored", ar: "تمت استعادة لوحة التحكم", fa: "داشبورد بازیابی شد" },
@@ -335,7 +338,7 @@ const Dashboard = () => {
     if (filter === "archived") list = list.filter((d) => d.archived);
     else list = list.filter((d) => !d.archived);
     if (filter === "mine") list = list.filter((d) => d.owner === "You");
-    if (filter === "shared") list = list.filter((d) => d.access !== "only_me");
+    if (filter === "shared") list = list.filter((d) => d.access === "workspace");
     if (search) {
       const s = search.toLowerCase();
       list = list.filter((d) =>
@@ -386,11 +389,14 @@ const Dashboard = () => {
         }
         break;
       case "edit":
+        if (d.builtIn) { toast.info(tt("builtInReadOnly")); break; }
         navigate(lp(`/dashboard/${d.id}/edit`));
         break;
       case "duplicate":
-        duplicate(d.id);
-        toast.success(tt("dashboardDuplicated"));
+        if (d.builtIn) { toast.info(tt("builtInReadOnly")); break; }
+        duplicate(d.id)
+          .then(() => toast.success(tt("dashboardDuplicated")))
+          .catch((e) => toast.error(apiErrorMessage(e, tt("actionFailed"))));
         break;
       case "pin":
         update(d.id, { pinned: !d.pinned });
@@ -400,6 +406,7 @@ const Dashboard = () => {
         toast.success(d.archived ? tt("dashboardRestored") : tt("dashboardArchived"));
         break;
       case "delete":
+        if (d.builtIn) { toast.info(tt("builtInReadOnly")); break; }
         setPendingDelete(d);
         break;
     }
@@ -411,8 +418,17 @@ const Dashboard = () => {
       setPendingBulkDelete(true);
       return;
     }
+    if (kind === "duplicate") {
+      const targets = selectedItems.filter((d) => !d.builtIn);
+      Promise.allSettled(targets.map((d) => duplicate(d.id))).then((results) => {
+        const failed = results.filter((r) => r.status === "rejected").length;
+        if (failed) toast.error(`${failed} × ${tt("actionFailed")}`);
+        if (targets.length - failed) toast.success(`${targets.length - failed} ${tt("dashboardsUpdated")}`);
+      });
+      setSelectedIds(new Set());
+      return;
+    }
     selectedItems.forEach((d) => {
-      if (kind === "duplicate") duplicate(d.id);
       if (kind === "pin") update(d.id, { pinned: true });
       if (kind === "archive") update(d.id, { archived: true, status: "Archived" });
       if (kind === "restore") update(d.id, { archived: false, status: "Published" });
@@ -797,8 +813,9 @@ const Dashboard = () => {
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               onClick={() => {
                 if (pendingDelete) {
-                  remove(pendingDelete.id);
-                  toast.success(tt("dashboardDeleted"));
+                  remove(pendingDelete.id)
+                    .then(() => toast.success(tt("dashboardDeleted")))
+                    .catch((e) => toast.error(apiErrorMessage(e, tt("actionFailed"))));
                   setPendingDelete(null);
                 }
               }}
@@ -822,8 +839,12 @@ const Dashboard = () => {
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               onClick={() => {
-                selectedItems.forEach((d) => remove(d.id));
-                toast.success(`${selectedCount} ${tt("dashboardsDeleted")}`);
+                const targets = selectedItems.filter((d) => !d.builtIn);
+                Promise.allSettled(targets.map((d) => remove(d.id))).then((results) => {
+                  const failed = results.filter((r) => r.status === "rejected").length;
+                  if (failed) toast.error(`${failed} × ${tt("actionFailed")}`);
+                  if (targets.length - failed) toast.success(`${targets.length - failed} ${tt("dashboardsDeleted")}`);
+                });
                 setSelectedIds(new Set());
                 setPendingBulkDelete(false);
               }}
