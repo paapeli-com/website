@@ -313,12 +313,13 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
       ...(windowMinutes > 0 ? { duration: Math.ceil(windowMinutes), unit: 'MINUTES' as const } : {}),
     };
     const name = ruleName.trim() || "Untitled Rule";
-    // Description is optional here; an empty one is omitted, because the
-    // gateway rejects the field when it is present but blank.
-    const description = ruleDescription.trim();
+    // Description is optional in the form but required by the gateway, which
+    // rejects a blank or missing one with a bare 400; an empty box sends the
+    // rule's name.
+    const description = ruleDescription.trim() || name;
     const body = {
       name,
-      ...(description ? { description } : {}),
+      description,
       createRules: { [UI_TO_API_SEVERITY[severity]]: rule },
     };
 

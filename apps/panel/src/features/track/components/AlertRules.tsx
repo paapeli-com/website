@@ -4,6 +4,7 @@ import { Clock, Loader2, Plus, Trash2, Zap } from "lucide-react";
 import {
   useCreateAlarmRuleMutation,
   useDeleteAlarmRuleMutation,
+  useDeviceTelemetryKeysQuery,
   useGetWorkspaceAlarmRulesQuery,
   type AlarmRuleItem,
   type AlarmRuleProvisioningState,
@@ -32,8 +33,8 @@ import { cn } from "@/shared/lib/utils";
 const RULES_PAGE = 1;
 const RULES_PAGE_SIZE = 100;
 
-/* The readings trackers commonly report (see lib/telemetry.ts); the field is
-   free text, so any other key a tracker sends works too. */
+/* The readings trackers commonly report (see lib/telemetry.ts). Offered only
+   for a tracker that has not reported anything yet. */
 const COMMON_KEYS = ["speed", "battery", "temperature", "altitude", "satellites"];
 
 const OPERATORS: { value: RuleOperator; label: string }[] = [
@@ -227,6 +228,15 @@ function RuleForm({ open, onClose }: { open: boolean; onClose: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  const keysQuery = useDeviceTelemetryKeysQuery(workspaceId ?? "", PRODUCT_KEY, deviceId, open);
+  const reported = keysQuery.data ?? [];
+  const keyOptions = reported.length > 0 ? reported : COMMON_KEYS;
+  // A key the newly chosen tracker does not report cannot stay selected.
+  useEffect(() => {
+    if (!keyOptions.includes(field)) setField(keyOptions[0] ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keyOptions.join(",")]);
+
   const numeric = value.trim() !== "" && Number.isFinite(Number(value));
   const durationValid = !durationOn || (Number.isInteger(Number(minutes)) && Number(minutes) > 0);
   const valid = !!name.trim() && !!deviceId && !!field.trim() && numeric && durationValid;
@@ -244,8 +254,9 @@ function RuleForm({ open, onClose }: { open: boolean; onClose: () => void }) {
         productKey: PRODUCT_KEY,
         deviceId,
         name: name.trim(),
-        // Omitted when empty: the gateway rejects a blank description.
-        ...(description.trim() ? { description: description.trim() } : {}),
+        // The gateway requires a description and rejects a blank or missing
+        // one with a bare 400, so an empty box sends the rule's own name.
+        description: description.trim() || name.trim(),
         createRules: { [severity]: rule },
       });
       toast.success(t("ruleCreated"));
@@ -285,9 +296,16 @@ function RuleForm({ open, onClose }: { open: boolean; onClose: () => void }) {
           <div>
             <label className="mb-1.5 block text-sm font-medium">{t("ruleCondition")}</label>
             <div dir="ltr" className="grid grid-cols-[1fr_auto_1fr] gap-2">
-              <input list="rule-keys" value={field} onChange={(e) => setField(e.target.value)}
-                aria-label={t("telemetryKey")} placeholder={t("telemetryKey")} className={cn(inputClass, "font-mono text-xs")} />
-              <datalist id="rule-keys">{COMMON_KEYS.map((k) => <option key={k} value={k} />)}</datalist>
+              {/* The readings this tracker has actually sent. Until it has sent
+                  any (or while they load) the common ones are offered. */}
+              <Select value={field} onValueChange={setField}>
+                <SelectTrigger className="h-11 rounded-xl font-mono text-xs" aria-label={t("telemetryKey")}>
+                  <SelectValue placeholder={t("telemetryKey")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {keyOptions.map((k) => <SelectItem key={k} value={k} className="font-mono text-xs">{k}</SelectItem>)}
+                </SelectContent>
+              </Select>
               <Select value={operator} onValueChange={(v) => setOperator(v as RuleOperator)}>
                 <SelectTrigger className="h-11 w-16 rounded-xl" aria-label="operator"><SelectValue /></SelectTrigger>
                 <SelectContent>
