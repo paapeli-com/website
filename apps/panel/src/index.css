@@ -317,6 +317,28 @@ html[lang="fa"] body {
 [data-uniform-type] .leading-none { line-height: 1 !important; }
 
 
+/* data-panel-headings: headings inside the panel keep their written size.
+
+   The unscoped [lang="fa"] / [lang="ar"] rules above put every h1 to h5 at
+   1.74rem. That suits marketing copy; in the panel it turned a card title
+   written `text-sm` into the largest thing on the page. Only headings are
+   touched here, so body text stays exactly as it was. As with
+   data-uniform-type, the sizes are restated because the language rules are
+   more specific than a Tailwind utility. */
+[data-panel-headings] :is(h1, h2, h3, h4, h5) {
+  font-size: inherit !important;
+  letter-spacing: 0;
+  word-spacing: 0;
+}
+[data-panel-headings] :is(h1, h2, h3, h4, h5).text-3xl { font-size: 1.875rem !important; line-height: 2.25rem !important; }
+[data-panel-headings] :is(h1, h2, h3, h4, h5).text-2xl { font-size: 1.5rem !important; line-height: 2rem !important; }
+[data-panel-headings] :is(h1, h2, h3, h4, h5).text-xl { font-size: 1.25rem !important; line-height: 1.75rem !important; }
+[data-panel-headings] :is(h1, h2, h3, h4, h5).text-lg { font-size: 1.125rem !important; line-height: 1.75rem !important; }
+[data-panel-headings] :is(h1, h2, h3, h4, h5).text-base { font-size: 1rem !important; line-height: 1.5rem !important; }
+[data-panel-headings] :is(h1, h2, h3, h4, h5).text-sm { font-size: 0.875rem !important; line-height: 1.25rem !important; }
+[data-panel-headings] :is(h1, h2, h3, h4, h5).text-xs { font-size: 0.75rem !important; line-height: 1rem !important; }
+
+
 /* RTL fixes for padding and margins */
 [dir="rtl"] .rtl\:pr-4 {
   padding-right: 1rem;

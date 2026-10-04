@@ -97,6 +97,10 @@ export default function FactoryRoutes() {
       <TooltipProvider>
         <Toaster />
         <SampleDataNotice />
+        {/* data-panel-headings: headings keep the size they were written at
+            in every language (see index.css). `contents` keeps this wrapper
+            out of the layout. */}
+        <div data-panel-headings className="contents">
         <Routes>
                       {/* Solution root shows the dashboard (clean /AIoT/SmartFactory URL). */}
                       <Route path="/" element={<ProtectedRoute><PanelHome /></ProtectedRoute>} />
@@ -249,6 +253,7 @@ export default function FactoryRoutes() {
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>
+        </div>
       </TooltipProvider>
     </LanguageProvider>
   );
