@@ -137,14 +137,14 @@ export function SkeletonList({
 export function NoData({ className }: { className?: string }) {
   const t = useShellT();
   return (
-    <p className={cn("py-8 text-center text-sm text-muted-foreground", className)}>{t("No data")}</p>
+    <p className={cn("py-8 text-center text-sm text-muted-foreground", className)}>{t("Nothing here yet.")}</p>
   );
 }
 
 /** The same message inline, where a single fabricated figure used to sit. */
 export function NoDataValue({ className }: { className?: string }) {
   const t = useShellT();
-  return <span className={cn("text-sm font-normal text-muted-foreground", className)}>{t("No data")}</span>;
+  return <span className={cn("text-sm font-normal text-muted-foreground", className)}>—</span>;
 }
 
 export function EmptyState({ title, description }: { title: ReactNode; description?: string }) {

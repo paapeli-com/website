@@ -421,8 +421,8 @@ export default function Home() {
               {/* Only the device count is metered today. The quota behind it, the
                   ingest volume and the token count have no endpoint, so those
                   meters stay empty instead of being filled in from guesswork. */}
-              <UsageRow label={t("Devices")} value={deviceTotalKnown ? n(deviceTotal) : t("No data")} />
-              <UsageRow label={t("Data ingest")} value={t("No data")} />
+              <UsageRow label={t("Devices")} value={deviceTotalKnown ? n(deviceTotal) : "—"} />
+              <UsageRow label={t("Data ingest")} value="—" />
               <UsageRow label={t("Inference tokens")} value={t("Not active")} />
             </Card>
           </aside>

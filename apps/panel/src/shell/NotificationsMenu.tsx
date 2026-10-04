@@ -153,7 +153,7 @@ export function NotificationsMenu() {
           <div className="max-h-96 overflow-y-auto">
             {items.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-                {t(loading ? "Loading…" : notifications.length === 0 ? "No data" : "Nothing here yet.")}
+                {t(loading ? "Loading…" : "Nothing here yet.")}
               </p>
             ) : (
               items.map((n) => (

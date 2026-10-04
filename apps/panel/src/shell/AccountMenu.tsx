@@ -7,6 +7,7 @@ import { setActiveWorkspaceId, useActiveWorkspaceId } from "@paapeli/brand/works
 import { cn } from "@/shared/lib/utils";
 import { menuRowBase, menuRowDanger, menuRowIdle, menuRowSelected } from "@/shell/menuRow";
 import { useShellT } from "@/shared/i18n/shell";
+import { useDisplayName } from "@/shared/hooks/useDisplayName";
 import { useWorkspaceSwitch } from "@/shared/components/WorkspaceSwitchDialog";
 
 export function AccountMenu() {
@@ -18,8 +19,8 @@ export function AccountMenu() {
      a display name yet (only signup returns one), so it usually has none —
      the email and the avatar letter are real either way. */
   const user = getCurrentUser();
-  const displayName = user?.name || t("No data");
-  const initial = user?.initial ?? "";
+  const displayName = useDisplayName();
+  const initial = (displayName || user?.email || "").trim().charAt(0).toUpperCase();
 
   const { data, isLoading } = useListActiveWorkspacesQuery();
   const workspaces = useMemo(() => data ?? [], [data]);

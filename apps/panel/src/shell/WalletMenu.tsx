@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeftRight, CreditCard, FileText, Gauge, Gift, Plus, Settings } from "lucide-react";
-import { getCurrentUser } from "@paapeli/brand/session";
+import { useDisplayName } from "@/shared/hooks/useDisplayName";
 import { localizeDigits, useAppLanguage } from "@/shared/i18n/appLanguage";
 import { useShellT } from "@/shared/i18n/shell";
 import { cn } from "@/shared/lib/utils";
@@ -31,6 +31,7 @@ const MENU_ITEMS = [
 
 export function WalletMenu() {
   const [open, setOpen] = useState(false);
+  const displayName = useDisplayName();
   const language = useAppLanguage();
   const t = useShellT();
   const { name: currency } = useBillingCurrency();
@@ -59,7 +60,7 @@ export function WalletMenu() {
       >
         <CreditCard className="size-5 text-primary" />
         {balance === null ? (
-          <span className="text-muted-foreground">{t("No data")}</span>
+          <span className="sr-only">{t("Workspace balance")}</span>
         ) : (
           <>
             <span className="text-base font-bold text-foreground">{balance}</span>
@@ -73,7 +74,7 @@ export function WalletMenu() {
           <p className="text-sm text-muted-foreground">{t("Workspace balance")}</p>
           <p className="mt-1 flex items-baseline gap-1.5">
             {balance === null ? (
-              <span className="text-lg font-semibold text-muted-foreground">{t("No data")}</span>
+              <span className="text-lg font-semibold text-muted-foreground">—</span>
             ) : (
               <>
                 <span className="text-3xl font-bold text-foreground">{balance}</span>
@@ -82,7 +83,7 @@ export function WalletMenu() {
             )}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {[getCurrentUser()?.name || t("No data"), USAGE_ESTIMATE && t(USAGE_ESTIMATE)]
+            {[displayName, USAGE_ESTIMATE && t(USAGE_ESTIMATE)]
               .filter(Boolean)
               .join(" · ")}
           </p>

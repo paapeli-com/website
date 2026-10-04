@@ -72,7 +72,7 @@ const D: Record<string, Record<Lang, string>> = {
   viewAll: { en: "View all", ar: "عرض الكل", fa: "مشاهده همه" },
   viewAllActivity: { en: "View all activity", ar: "عرض كل النشاط", fa: "مشاهده همه فعالیت‌ها" },
 
-  noData: { en: "No data", ar: "لا توجد بيانات", fa: "فاقد دیتا" },
+  noData: { en: "—", ar: "—", fa: "—" },
 };
 
 /* "Needs attention" = an alarm nobody has acknowledged yet. The gateway's

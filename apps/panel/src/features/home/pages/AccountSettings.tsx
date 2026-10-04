@@ -5,6 +5,7 @@ import {
   Camera, Check, ChevronRight, Loader2, LogOut, Mail, Monitor, Paintbrush,
   Palette, Phone, Shield, User as UserIcon,
 } from "lucide-react";
+import { useDisplayName } from "@/shared/hooks/useDisplayName";
 import { getCurrentUser, signOut as endSession } from "@paapeli/brand/session";
 import {
   E164_PHONE_PATTERN, endServerSession, useGetMyPhoneQuery, useLogoutAllMutation, useSetMyPhoneMutation,
@@ -102,7 +103,7 @@ export default function AccountSettings() {
 
   const currentUser = getCurrentUser();
   const username = (currentUser?.email ?? "").split("@")[0];
-  const accountName = currentUser?.name ?? "";
+  const accountName = useDisplayName();
   const email = currentUser?.email ?? "";
 
   /* The field must stay empty when the account has no name: seeding it with
@@ -262,7 +263,7 @@ export default function AccountSettings() {
           </div>
 
           <div className="min-w-[200px] flex-1">
-            <div className="text-base font-bold text-foreground">{accountName || t("No data")}</div>
+            <div className="text-base font-bold text-foreground">{accountName}</div>
             <div className="mb-2.5 text-xs text-muted-foreground" dir="ltr">{email}</div>
             <div className="flex flex-wrap items-center gap-2.5">
               <Button variant="outline" size="sm" onClick={pickAvatar}>{t("Upload new")}</Button>
@@ -393,7 +394,7 @@ export default function AccountSettings() {
             </div>
             {/* No endpoint behind any of these yet, so the control says so
                 rather than opening a form that cannot save. */}
-            <span className="text-xs text-muted-foreground">{t("No data")}</span>
+            <span className="text-xs text-muted-foreground">—</span>
           </div>
         ))}
 
@@ -418,7 +419,7 @@ export default function AccountSettings() {
               than naming machines and cities that were never checked. */}
           <div className="flex flex-col items-center gap-2 rounded-xl border border-border py-8 text-center">
             <Monitor className="size-6 text-muted-foreground/40" />
-            <span className="text-xs text-muted-foreground">{t("No data")}</span>
+            <span className="text-xs text-muted-foreground">—</span>
           </div>
         </div>
       </Section>

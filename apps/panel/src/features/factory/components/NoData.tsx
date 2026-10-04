@@ -45,7 +45,7 @@ export const NoData = ({ size = "md", className, message }: NoDataProps) => {
  */
 export const NoDataValue = ({ className }: { className?: string }) => {
   const { t } = useLanguage();
-  return <span className={cn("text-sm font-normal text-muted-foreground", className)}>{t("noData")}</span>;
+  return <span className={cn("text-sm font-normal text-muted-foreground", className)}>—</span>;
 };
 
 export default NoData;

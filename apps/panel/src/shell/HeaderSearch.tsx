@@ -44,7 +44,7 @@ export function HeaderSearch() {
       {open && (
         <div className="absolute z-50 mt-2 w-[420px] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-border bg-popover py-2 shadow-lg ltr:left-0 rtl:right-0">
           {RESULT_GROUPS.length === 0 && (
-            <p className="px-4 py-8 text-center text-sm text-muted-foreground">{t("No data")}</p>
+            <p className="px-4 py-8 text-center text-sm text-muted-foreground">{t("Nothing here yet.")}</p>
           )}
           {RESULT_GROUPS.map((g) => (
             <div key={g.group}>
