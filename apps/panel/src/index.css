@@ -263,7 +263,8 @@ html[lang="fa"] body {
 [lang="fa"] [data-sidebar-nav] button,
 [lang="ar"] [data-sidebar-nav] a,
 [lang="ar"] [data-sidebar-nav] button {
-  font-size: 0.945rem;
+  /* text-sm, the size the device list and dashboards read at. */
+  font-size: 0.875rem;
   line-height: 1.6;
 }
 

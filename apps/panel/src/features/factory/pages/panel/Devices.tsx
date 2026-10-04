@@ -115,18 +115,29 @@ interface DeviceCredentials {
 const hasPersianText = (value: string) => /[\u0600-\u06FF]/.test(value);
 const persianTextClass = (value: string) => hasPersianText(value) ? "font-vazirmatn" : "";
 
-const getDeviceMeta = (device: Device, t: (k: any) => string) => {
+/* What the detail tiles say when a device has no value of its own: a device
+   with no type is a general one, and one with no channel uses the default. */
+const FALLBACK: Record<string, { general: string; defaultChannel: string }> = {
+  en: { general: "General", defaultChannel: "Default channel" },
+  fa: { general: "عمومی", defaultChannel: "کانال پیش‌فرض" },
+  ar: { general: "عام", defaultChannel: "القناة الافتراضية" },
+};
+
+const getDeviceMeta = (device: Device, t: (k: any) => string, language: string) => {
   const noData = t("noData");
+  const fallback = FALLBACK[language] ?? FALLBACK.en;
   return {
     // No telemetry endpoint, so no sensor type or last reading.
     sensorType: noData,
+    channels: fallback.defaultChannel,
     statusLabel: device.active ? t("online") : t("offline"),
     statusColor: device.active ? "bg-emerald-500" : "bg-muted-foreground/50",
     lastValue: noData,
     location: device.location || noData,
-    gateway: device.gateway || noData,
+    // A dash when the device does not sit behind a gateway.
+    gateway: device.gateway || "—",
     // The device-type key the device was created with (see DeviceForm step 1).
-    deviceType: (device as any).type || noData,
+    deviceType: (device as any).type || fallback.general,
     tags: device.tags ? device.tags.split(',').map((tag) => tag.trim()).filter(Boolean) : [],
     description: device.description || '',
     externalId: device.externalId || '',
@@ -717,7 +728,7 @@ const Devices = () => {
                       const rowKey = device.id || device._id || deviceId;
                       const createdAt = device.created_at || device.createdAt || device.created;
                       const lastActivity = device.last_activity || device.lastActivity || device.lastSeen;
-                      const meta = getDeviceMeta(device, t);
+                      const meta = getDeviceMeta(device, t, language);
                       const isExpanded = expandedRows.includes(rowKey);
                       const toggleExpand = () =>
                         setExpandedRows((prev) => prev.includes(rowKey) ? prev.filter(k => k !== rowKey) : [...prev, rowKey]);
@@ -803,7 +814,7 @@ const Devices = () => {
                                   <ExpandField label={t("deviceId")} value={deviceId || t('noData')} />
                                   <ExpandField label={t("deviceTypeLabel")} value={meta.deviceType} />
                                   <ExpandField label={t("gateway")} value={meta.gateway} />
-                                  <ExpandField label={t("channels")} value={meta.sensorType} />
+                                  <ExpandField label={t("channels")} value={meta.channels} />
                                 </div>
                                 <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
                                   <div className="rounded-lg border bg-background px-4 py-3">
