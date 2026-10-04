@@ -2,8 +2,19 @@ import * as React from "react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 
 import { cn } from "@/shared/lib/utils";
+import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 
-const Tabs = TabsPrimitive.Root;
+/* The direction comes from the panel's language. Left to itself Radix falls
+   back to ltr here, which made everything inside a tab panel left-to-right in
+   Persian and Arabic. */
+const Tabs = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root>
+>(({ dir, ...props }, ref) => {
+  const { isRTL } = useLanguage();
+  return <TabsPrimitive.Root ref={ref} dir={dir ?? (isRTL ? "rtl" : "ltr")} {...props} />;
+});
+Tabs.displayName = TabsPrimitive.Root.displayName;
 
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,

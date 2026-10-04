@@ -1,3 +1,4 @@
+import { UniformPage } from "@/features/factory/components/UniformPage";
 import { useMemo, useState } from "react";
 import { formatDateTime } from "@/shared/lib/formatDate";
 import { useNavigate, useParams } from "react-router-dom";
@@ -122,7 +123,7 @@ const AIoTForecastDetails = () => {
   };
 
   return (
-    <>
+    <UniformPage>
       <div className="mb-4">
         <Breadcrumb>
           <BreadcrumbList>
@@ -454,7 +455,7 @@ const AIoTForecastDetails = () => {
       </div>
 
       <WorkOrderSheet open={woOpen} onOpenChange={setWoOpen} source={woSource} />
-    </>
+    </UniformPage>
   );
 };
 

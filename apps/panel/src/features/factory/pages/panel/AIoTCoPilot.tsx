@@ -1,3 +1,4 @@
+import { UniformPage } from "@/features/factory/components/UniformPage";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatDateTime, formatTime } from "@/shared/lib/formatDate";
 import { useNavigate } from "react-router-dom";
@@ -366,7 +367,7 @@ const AIoTCoPilot = () => {
 
   // ---------- Render ----------
   return (
-    <>
+    <UniformPage>
       <PageHeader
         title={t("aiCoPilotTitle")}
         count={kpis.conversations}
@@ -765,7 +766,7 @@ const AIoTCoPilot = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </UniformPage>
   );
 };
 

@@ -1,3 +1,4 @@
+import { UniformPage } from "@/features/factory/components/UniformPage";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
@@ -188,7 +189,7 @@ const AIoTTrendDetails = () => {
       : "text-muted-foreground";
 
   return (
-    <>
+    <UniformPage>
       <div className="mb-4">
         <Breadcrumb>
           <BreadcrumbList>
@@ -525,7 +526,7 @@ const AIoTTrendDetails = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </UniformPage>
   );
 };
 

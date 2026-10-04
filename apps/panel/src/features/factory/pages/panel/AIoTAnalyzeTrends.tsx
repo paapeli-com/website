@@ -1,3 +1,4 @@
+import { UniformPage } from "@/features/factory/components/UniformPage";
 import { sampleDataEnabled } from "@/features/factory/data/sampleData";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -662,7 +663,7 @@ const AIoTAnalyzeTrends = () => {
   );
 
   return (
-    <>
+    <UniformPage>
       {/* No count while nothing is served — "0 trends" reads as a measurement. */}
       <PageHeader title={tt("analyzeTrendsLabel")} count={TRENDS.length || null} countLabel={tt("trendsWord")} />
 
@@ -717,7 +718,7 @@ const AIoTAnalyzeTrends = () => {
         <TabsContent value="explorer">{ExplorerTab}</TabsContent>
         <TabsContent value="opportunities">{OpportunitiesTab}</TabsContent>
       </Tabs>
-    </>
+    </UniformPage>
   );
 };
 

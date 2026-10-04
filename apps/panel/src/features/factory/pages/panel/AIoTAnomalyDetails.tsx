@@ -1,3 +1,4 @@
+import { UniformPage } from "@/features/factory/components/UniformPage";
 import { useMemo, useState } from "react";
 import { formatDateTime } from "@/shared/lib/formatDate";
 import { useNavigate, useParams } from "react-router-dom";
@@ -152,7 +153,7 @@ const AIoTAnomalyDetails = () => {
 
 
   return (
-    <>
+    <UniformPage>
 
       <div className="mb-4">
         <Breadcrumb>
@@ -445,7 +446,7 @@ const AIoTAnomalyDetails = () => {
 
 
       <WorkOrderSheet open={woOpen} onOpenChange={setWoOpen} anomaly={anomaly} />
-    </>
+    </UniformPage>
   );
 };
 

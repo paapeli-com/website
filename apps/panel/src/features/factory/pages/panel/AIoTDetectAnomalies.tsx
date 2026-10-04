@@ -1,3 +1,4 @@
+import { UniformPage } from "@/features/factory/components/UniformPage";
 import { useMemo, useState } from "react";
 import { formatDateTime } from "@/shared/lib/formatDate";
 import { useNavigate } from "react-router-dom";
@@ -626,7 +627,7 @@ const AIoTDetectAnomalies = () => {
   );
 
   return (
-    <>
+    <UniformPage>
       <PageHeader
         title={t("detectAnomalies")}
         count={items.length || null}
@@ -689,7 +690,7 @@ const AIoTDetectAnomalies = () => {
         onOpenChange={(o) => !o && setWoAnomaly(null)}
         anomaly={woAnomaly}
       />
-    </>
+    </UniformPage>
   );
 };
 

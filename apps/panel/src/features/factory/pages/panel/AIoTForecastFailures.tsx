@@ -1,3 +1,4 @@
+import { UniformPage } from "@/features/factory/components/UniformPage";
 import { sampleDataEnabled } from "@/features/factory/data/sampleData";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -523,7 +524,7 @@ const AIoTForecastFailures = () => {
   );
 
   return (
-    <>
+    <UniformPage>
       <PageHeader
         title={tt("forecastTitle")}
         count={ROWS.length || null}
@@ -558,7 +559,7 @@ const AIoTForecastFailures = () => {
         onOpenChange={(o) => !o && setWoSource(null)}
         source={woSource}
       />
-    </>
+    </UniformPage>
   );
 };
 
