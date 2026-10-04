@@ -1,3 +1,4 @@
+import { sampleDataEnabled } from "@/features/factory/data/sampleData";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/features/factory/components/PageHeader";
@@ -109,7 +110,13 @@ const AIoTAnalyzeTrends = () => {
 
   /* The four "AI insights" were four fixed sentences, translated but never
      computed, each deep-linking to a trend id that had to exist in TRENDS. */
-  const insights: { id: string; title: string; text: string }[] = [];
+  // Sample data: see data/sampleData.ts.
+  const insights: { id: string; title: string; text: string }[] = !sampleDataEnabled() ? [] : [
+    { id: "trend-energy-factory-a", title: tt("insightEnergyTitle"), text: tt("insightEnergyText") },
+    { id: "trend-flow-stability-line2", title: tt("insightLine2Title"), text: tt("insightLine2Text") },
+    { id: "trend-cooling-perf-hx7", title: tt("insightCoolingTitle"), text: tt("insightCoolingText") },
+    { id: "trend-compressor-util-factory-b", title: tt("insightCompressorTitle"), text: tt("insightCompressorText") },
+  ];
 
   // ---------- Overview ----------
   const Overview = (

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import { SampleDataNotice } from "@/features/factory/components/SampleDataNotice";
 import { useCreateProductMutation } from "@paapeli/api";
 import { Toaster } from "@/features/factory/components/ui/toaster";
 import { TooltipProvider } from "@/features/factory/components/ui/tooltip";
@@ -95,6 +96,7 @@ export default function FactoryRoutes() {
     <LanguageProvider>
       <TooltipProvider>
         <Toaster />
+        <SampleDataNotice />
         <Routes>
                       {/* Solution root shows the dashboard (clean /AIoT/SmartFactory URL). */}
                       <Route path="/" element={<ProtectedRoute><PanelHome /></ProtectedRoute>} />

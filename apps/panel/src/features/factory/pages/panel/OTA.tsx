@@ -1,3 +1,4 @@
+import { sampleDataEnabled } from "@/features/factory/data/sampleData";
 import { useEffect, useMemo, useState } from "react";
 import { dateLocale, formatDate, formatTime } from "@/shared/lib/formatDate";
 import { useSearchParams, useNavigate } from "react-router-dom";
@@ -125,6 +126,61 @@ const saveLS = (key: string, value: unknown) => {
 
 /* The device taxonomy the product supports — a closed set, not data. */
 const DEV_TYPES: TargetType[] = ["Temperature Sensors", "Pressure Sensors", "Vibration Sensors", "Flow Meters", "Energy Meters", "Gateways"];
+
+/* Sample data: see data/sampleData.ts. Shown only where sample data is
+   enabled, and only while the browser holds no firmware of its own. */
+const SAMPLE_UPDATES: FirmwareUpdate[] = [
+  { id: "fw-1", name: "Temp Sensor Firmware", version: "v2.1.0", targetType: "Temperature Sensors", targetKind: "Device", devices: 324, status: "Active", createdBy: "Armin Rajabi", createdAt: new Date(Date.now() - 86400000 * 5).toISOString(), fileName: "temp_v2.1.0.bin", fileSize: 1048576, isDefault: true },
+  { id: "fw-2", name: "Gateway Firmware", version: "v1.8.3", targetType: "Gateways", targetKind: "Gateway", devices: 156, status: "Completed", createdBy: "Armin Rajabi", createdAt: new Date(Date.now() - 86400000 * 10).toISOString(), fileName: "gw_v1.8.3.bin", fileSize: 2097152, isDefault: true },
+  { id: "fw-3", name: "Pressure Sensor Firmware", version: "v1.4.0", targetType: "Pressure Sensors", targetKind: "Device", devices: 98, status: "Completed", createdBy: "Armin Rajabi", createdAt: new Date(Date.now() - 86400000 * 14).toISOString(), fileName: "press_v1.4.0.hex", fileSize: 786432, isDefault: true },
+  { id: "fw-4", name: "Vibration Sensor Firmware", version: "v3.0.1", targetType: "Vibration Sensors", targetKind: "Device", devices: 64, status: "Failed", createdBy: "Armin Rajabi", createdAt: new Date(Date.now() - 86400000 * 18).toISOString(), fileName: "vib_v3.0.1.bin", fileSize: 1310720, isDefault: true },
+  { id: "fw-5", name: "Energy Meter Firmware", version: "v2.0.0", targetType: "Energy Meters", targetKind: "Device", devices: 216, status: "Completed", createdBy: "Armin Rajabi", createdAt: new Date(Date.now() - 86400000 * 22).toISOString(), fileName: "em_v2.0.0.zip", fileSize: 524288, isDefault: true },
+];
+
+const SAMPLE_DEPLOYMENTS: Deployment[] = [
+  { id: "dep-1", name: "Temp Sensor Firmware v2.1.0", updateId: "fw-1", version: "v2.1.0", targetDevices: 324, updated: 216, failed: 1, pending: 107, status: "In Progress", startedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(), logs: [
+    { ts: new Date(Date.now() - 30 * 60 * 1000).toISOString(), msg: "Deployment started" },
+    { ts: new Date(Date.now() - 15 * 60 * 1000).toISOString(), msg: "Batch 1 (50) updated" },
+    { ts: new Date(Date.now() - 5 * 60 * 1000).toISOString(), msg: "1 device failed: timeout" },
+  ] },
+  { id: "dep-2", name: "Gateway Firmware v1.8.3", updateId: "fw-2", version: "v1.8.3", targetDevices: 156, updated: 156, failed: 0, pending: 0, status: "Completed", startedAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(), completedAt: new Date(Date.now() - 3600 * 1000).toISOString(), logs: [
+    { ts: new Date(Date.now() - 2 * 3600 * 1000).toISOString(), msg: "Deployment started" },
+    { ts: new Date(Date.now() - 3600 * 1000).toISOString(), msg: "All devices updated" },
+  ] },
+  { id: "dep-3", name: "Pressure Sensor Firmware v1.4.0", updateId: "fw-3", version: "v1.4.0", targetDevices: 98, updated: 98, failed: 0, pending: 0, status: "Completed", startedAt: new Date(Date.now() - 86400000).toISOString(), completedAt: new Date(Date.now() - 80000000).toISOString(), logs: [
+    { ts: new Date(Date.now() - 86400000).toISOString(), msg: "Deployment started" },
+    { ts: new Date(Date.now() - 80000000).toISOString(), msg: "All devices updated" },
+  ] },
+];
+
+const SAMPLE_LOCATIONS = [
+  "Qazvin > Factory A > Sulfonation > Line 1",
+  "Qazvin > Factory A > Packaging > Line 3",
+  "Tehran > Factory B > Filling > Line 2",
+  "Tehran > Factory B > Utilities > Compressor Hall",
+  "Isfahan > Factory C > WTP > Inlet",
+];
+const SAMPLE_DEVICES: OtaDevice[] = Array.from({ length: 18 }).map((_, i) => {
+  const types: TargetType[] = ["Temperature Sensors", "Pressure Sensors", "Vibration Sensors", "Flow Meters", "Energy Meters", "Gateways"];
+  const type = types[i % types.length];
+  const statuses: DeviceOtaStatus[] = ["Up to date", "Update available", "Updating", "Failed", "Pending"];
+  const status = statuses[i % statuses.length];
+  return {
+    id: `dev-${1000 + i}`,
+    name: `${type.replace(" Sensors","").replace("s","")}-${100 + i}`,
+    location: SAMPLE_LOCATIONS[i % SAMPLE_LOCATIONS.length],
+    type,
+    currentFw: `v${1 + (i%3)}.${i%5}.${i%4}`,
+    targetFw: `v${2 + (i%2)}.${i%4}.0`,
+    status,
+    lastUpdated: new Date(Date.now() - i * 3600 * 1000).toISOString(),
+  };
+});
+
+const seeded = <T,>(key: string, sample: T[]): T[] => {
+  const stored = loadLS<T[]>(key, []);
+  return stored.length === 0 && sampleDataEnabled() ? sample : stored;
+};
 
 const DEFAULT_SETTINGS: OtaSettings = {
   allowAuto: true,
@@ -254,9 +310,9 @@ const OTAPage = () => {
   }, [tabParam]);
 
   // data
-  const [updates, setUpdates] = useState<FirmwareUpdate[]>(() => loadLS<FirmwareUpdate[]>(LS.updates, []));
-  const [deployments, setDeployments] = useState<Deployment[]>(() => loadLS<Deployment[]>(LS.deployments, []));
-  const [devices, setDevices] = useState<OtaDevice[]>(() => loadLS<OtaDevice[]>(LS.devices, []));
+  const [updates, setUpdates] = useState<FirmwareUpdate[]>(() => seeded(LS.updates, SAMPLE_UPDATES));
+  const [deployments, setDeployments] = useState<Deployment[]>(() => seeded(LS.deployments, SAMPLE_DEPLOYMENTS));
+  const [devices, setDevices] = useState<OtaDevice[]>(() => seeded(LS.devices, SAMPLE_DEVICES));
   const [settings, setSettings] = useState<OtaSettings>(() => loadLS(LS.settings, DEFAULT_SETTINGS));
 
   useEffect(() => saveLS(LS.updates, updates), [updates]);

@@ -1,3 +1,5 @@
+import { sampleDataEnabled } from "@/features/factory/data/sampleData";
+import { SAMPLE_ANOMALIES } from "@/features/factory/data/sample/anomalies";
 import { useCallback, useEffect, useState } from "react";
 
 export type AnomalySeverity = "Critical" | "High" | "Medium" | "Low";
@@ -122,7 +124,7 @@ const saveWorkOrders = (w: WorkOrder[]) => {
    on every load so they always looked fresh. The overrides below (status
    changes, actions, work orders the user creates) are real and keep working;
    they simply apply to an empty list until BASE has a source. */
-const BASE: Anomaly[] = [];
+const BASE: Anomaly[] = sampleDataEnabled() ? SAMPLE_ANOMALIES : [];
 
 const apply = (base: Anomaly[], overrides: Overrides): Anomaly[] =>
   base.map((a) => (overrides[a.id] ? { ...a, ...overrides[a.id] } : a));

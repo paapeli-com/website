@@ -1,3 +1,4 @@
+import { sampleDataEnabled } from "@/features/factory/data/sampleData";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LocationCell } from "@/features/factory/components/panel/LocationCell";
@@ -61,7 +62,16 @@ interface Recommendation {
 
 /* Six hand-written maintenance actions ("Reduce failure risk by 45%") against
    named assets, presented as model output. Empty until something computes them. */
-const RECOMMENDATIONS: Recommendation[] = [];
+// Sample data: see data/sampleData.ts.
+const SAMPLE_RECOMMENDATIONS: Recommendation[] = [
+  { asset: "Pump P101", devId: "DEV-101", action: "Inspect bearing — abnormal vibration signature detected", priority: "Critical", impact: "Reduce failure risk by 45%", location: "Factory A > Sulfonation > Line 1" },
+  { asset: "Boiler Pump BP-2", devId: "DEV-810", action: "Check suction pressure to prevent cavitation damage", priority: "Critical", impact: "Avoid 12h unplanned downtime", location: "Factory A > Boiler > Line 1" },
+  { asset: "Compressor C3", devId: "DEV-205", action: "Lubricate shaft and re-balance rotor", priority: "High", impact: "Reduce vibration by 25%", location: "Factory A > Sulfonation > Line 2" },
+  { asset: "Motor M12", devId: "DEV-322", action: "Schedule cooling system inspection", priority: "High", impact: "Stabilize operating temperature", location: "Factory B > Processing > Line 1" },
+  { asset: "Heat Exchanger HX-7", devId: "DEV-705", action: "Plan chemical cleaning cycle for fouled tubes", priority: "High", impact: "Restore 8% efficiency", location: "Factory B > Processing > Line 2" },
+  { asset: "Furnace Fan F2", devId: "DEV-411", action: "Inspect electrical supply for current spikes", priority: "Medium", impact: "Prevent winding damage", location: "Factory A > Furnace > Line 3" },
+];
+const RECOMMENDATIONS: Recommendation[] = sampleDataEnabled() ? SAMPLE_RECOMMENDATIONS : [];
 
 const toSource = (r: ForecastAsset): WorkOrderSource => ({
   id: r.devId,

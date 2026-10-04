@@ -1,3 +1,5 @@
+import { sampleDataEnabled } from "./sampleData";
+import { SAMPLE_OPPORTUNITIES, SAMPLE_TRENDS } from "./sample/trends";
 export type TrendDirection = "Increasing" | "Decreasing" | "Stable";
 
 export interface Trend {
@@ -26,7 +28,7 @@ export interface Trend {
    "no data" instead. Point this at the query when the service lands; the
    consumers already work off whatever length this has.
 */
-export const TRENDS: Trend[] = [];
+export const TRENDS: Trend[] = sampleDataEnabled() ? SAMPLE_TRENDS : [];
 
 export type OpportunityCategory =
   | "Energy"
@@ -59,7 +61,7 @@ export interface Opportunity {
    "no data" instead. Point this at the query when the service lands; the
    consumers already work off whatever length this has.
 */
-export const OPPORTUNITIES: Opportunity[] = [];
+export const OPPORTUNITIES: Opportunity[] = sampleDataEnabled() ? SAMPLE_OPPORTUNITIES : [];
 
 export const DIRECTION_BADGE: Record<TrendDirection, string> = {
   Increasing: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",

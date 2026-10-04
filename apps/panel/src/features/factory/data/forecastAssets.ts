@@ -1,3 +1,5 @@
+import { sampleDataEnabled } from "./sampleData";
+import { SAMPLE_FORECAST_ASSETS } from "./sample/forecastAssets";
 export type ForecastRisk = "Critical" | "High" | "Medium" | "Low";
 
 export interface ForecastAsset {
@@ -22,7 +24,7 @@ export interface ForecastAsset {
    "no data" instead. Point this at the query when the service lands; the
    consumers already work off whatever length this has.
 */
-export const FORECAST_ASSETS: ForecastAsset[] = [];
+export const FORECAST_ASSETS: ForecastAsset[] = sampleDataEnabled() ? SAMPLE_FORECAST_ASSETS : [];
 
 export const RISK_BADGE: Record<ForecastRisk, string> = {
   Critical: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
