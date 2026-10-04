@@ -19,7 +19,11 @@ export const PageHeader = ({ title, count, countLabel, actions }: PageHeaderProp
   const displayCount = showCount ? formatNumber(count as string | number) : "";
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+    /* data-uniform-type: the title is written at text-lg and reads at that size
+       in every language. Without it Persian and Arabic take the marketing
+       heading scale and each page's title renders much larger than the AI
+       pages', which are already marked. */
+    <div data-uniform-type className="flex flex-wrap items-center justify-between gap-3 mb-4">
       <div className="flex items-baseline gap-3 min-w-0 text-start" dir={isRTL ? "rtl" : "ltr"}>
         <h1 className="text-lg font-bold text-foreground truncate">{title}</h1>
         {showCount && (

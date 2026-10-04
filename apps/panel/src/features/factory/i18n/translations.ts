@@ -6335,7 +6335,7 @@ export const translations = {
     toastPredictionResolved: "پیش‌بینی حل شد",
 
     // AI Co-Pilot
-    aiCoPilotTitle: "هم‌خلبان هوش مصنوعی",
+    aiCoPilotTitle: "دستیار هوش مصنوعی",
     copilotCountLabel: "گفتگو",
     copilotNewChatBtn: "گفتگوی جدید",
     copilotInsightsKpi: "بینش‌های هوش مصنوعی",
@@ -6343,8 +6343,8 @@ export const translations = {
     copilotNoConversations: "گفتگویی با جستجوی شما مطابقت ندارد.",
     copilotRename: "تغییر نام",
     copilotRenamePrompt: "تغییر نام گفتگو",
-    copilotSeedGreeting: "سلام — من هم‌خلبان هوش مصنوعی پاپلی هستم. درباره عملکرد دستگاه‌ها، ناهنجاری‌ها، مصرف انرژی یا پیش‌بینی‌ها از من بپرسید. می‌توانم گزارش هم تهیه کنم و نمودار نشان دهم.",
-    copilotSubtitle: "هم‌خلبان پاپلی · آگاه از زمینه کل ناوگان شما",
+    copilotSeedGreeting: "سلام، من دستیار هوش مصنوعی پاپلی هستم. درباره عملکرد دستگاه‌ها، ناهنجاری‌ها، مصرف انرژی یا پیش‌بینی‌ها از من بپرسید. می‌توانم گزارش هم تهیه کنم و نمودار نشان دهم.",
+    copilotSubtitle: "دستیار پاپلی · آگاه از زمینه کل ناوگان شما",
     copilotAddToDashboard: "افزودن به داشبورد",
     copilotOpenedInDashboards: "در داشبوردها باز شد",
     copilotCopy: "کپی",
