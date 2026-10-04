@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { useListActiveWorkspacesQuery, type UserWorkspace } from "@paapeli/api";
+import { setActiveWorkspaceId, useActiveWorkspaceId } from "@paapeli/brand/workspace";
 
 interface WorkspaceContextValue {
   workspaces: UserWorkspace[];
@@ -11,20 +12,24 @@ interface WorkspaceContextValue {
 
 const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefined);
 
-/** The workspace currently being administered in Cloud Management — picked on the General page, used everywhere else. */
+/** The workspace Cloud Management works on. It is the panel's own active
+    workspace (@paapeli/brand/workspace), the one the header's account menu
+    switches, not a copy: a copy is what let the header change workspace while
+    Members went on showing the old one. */
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const { data, isLoading } = useListActiveWorkspacesQuery();
   const workspaces = useMemo(() => data ?? [], [data]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const activeId = useActiveWorkspaceId();
 
-  useEffect(() => {
-    if (!selectedId && workspaces.length > 0) setSelectedId(workspaces[0].workspaceId);
-  }, [workspaces, selectedId]);
-
-  const selected = workspaces.find((w) => w.workspaceId === selectedId) ?? null;
+  // The account menu falls back to the first workspace when the stored one is
+  // not this user's; read the same fallback so both agree before it lands.
+  const selected = workspaces.find((w) => w.workspaceId === activeId) ?? workspaces[0] ?? null;
+  const selectedId = selected?.workspaceId ?? null;
 
   return (
-    <WorkspaceContext.Provider value={{ workspaces, isLoading, selectedId, selected, setSelectedId }}>
+    <WorkspaceContext.Provider
+      value={{ workspaces, isLoading, selectedId, selected, setSelectedId: setActiveWorkspaceId }}
+    >
       {children}
     </WorkspaceContext.Provider>
   );

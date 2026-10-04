@@ -7,7 +7,8 @@ import MembersTab from "./members/MembersTab";
 import RolesTab from "./members/RolesTab";
 import InvitationsTab from "./members/InvitationsTab";
 import { InviteMemberPanel, NewRolePanel } from "./members/panels";
-import { BackendNote, useTr } from "./members/shared";
+import { BackendNote, canInvite, useTr } from "./members/shared";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/features/factory/components/ui/tooltip";
 
 /* Members: people, what they may do, and who has been asked to join.
  *
@@ -39,6 +40,7 @@ function MembersPage() {
   const [tab, setTab] = useState<"members" | "roles" | "invitations">("members");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [newRoleOpen, setNewRoleOpen] = useState(false);
+  const allowed = canInvite(selected?.role);
 
   const labels = {
     members: tr("tabMembers"),
@@ -54,6 +56,7 @@ function MembersPage() {
     <div data-uniform-type dir={isRTL ? "rtl" : "ltr"} className="flex flex-col gap-6 p-6">
       <PageHeader
         title={tr("members")}
+        description={selected ? tr("currentWorkspace", { name: selected.workspaceName }) : undefined}
         actions={
           <>
             {/* New Role belongs to the tab that shows roles, so it appears
@@ -64,10 +67,28 @@ function MembersPage() {
                 {tr("newRole")}
               </Button>
             )}
-            <Button onClick={() => setInviteOpen(true)}>
-              <UserPlus className="size-4" />
-              {tr("inviteMember")}
-            </Button>
+            {allowed ? (
+              <Button onClick={() => setInviteOpen(true)}>
+                <UserPlus className="size-4" />
+                {tr("inviteMember")}
+              </Button>
+            ) : (
+              /* The span carries the tooltip, since a disabled button fires
+                 no pointer events. */
+              <TooltipProvider delayDuration={150}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0}>
+                      <Button disabled className="pointer-events-none">
+                        <UserPlus className="size-4" />
+                        {tr("inviteMember")}
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>{tr("noInvitePermission")}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </>
         }
       />
@@ -80,7 +101,11 @@ function MembersPage() {
 
       {tab === "members" && (
         <>
-          <MembersTab onInvite={() => setInviteOpen(true)} />
+          <MembersTab
+            workspaceId={selected?.workspaceId}
+            canInvite={allowed}
+            onInvite={() => setInviteOpen(true)}
+          />
           <BackendNote text={tr("backendNote")} />
         </>
       )}
@@ -91,6 +116,7 @@ function MembersPage() {
         open={inviteOpen}
         onOpenChange={setInviteOpen}
         workspaceId={selected?.workspaceId}
+        workspaceName={selected?.workspaceName}
         isRTL={isRTL}
       />
       <NewRolePanel open={newRoleOpen} onOpenChange={setNewRoleOpen} isRTL={isRTL} />

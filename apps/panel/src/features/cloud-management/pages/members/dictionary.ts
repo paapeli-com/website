@@ -116,6 +116,7 @@ export const D: Record<string, Record<Lang, string>> = {
   cancel: { en: "Cancel", ar: "إلغاء", fa: "انصراف" },
 
   // Invite panel
+  currentWorkspace: { en: "Workspace: {name}", ar: "مساحة العمل: {name}", fa: "فضای کاری: {name}" },
   invitePanelDesc: {
     en: "They receive an email invitation to this workspace.",
     ar: "سيصلهم بريد دعوة إلى مساحة العمل هذه.",
@@ -161,9 +162,17 @@ export const D: Record<string, Record<Lang, string>> = {
   noProductAccess: { en: "No product access yet", ar: "لا يوجد وصول للمنتجات بعد", fa: "هنوز دسترسی محصولی ثبت نشده" },
   noResults: { en: "No results", ar: "لا توجد نتائج", fa: "نتیجه‌ای یافت نشد" },
   backendNote: {
-    en: "The member roster, roles and sent invitations have no endpoint yet, so they report no data. Received invitations and inviting a member are live.",
-    ar: "قائمة الأعضاء والأدوار والدعوات المرسلة لا تملك خدمة بعد، لذلك تعرض لا توجد بيانات. الدعوات الواردة ودعوة عضو تعملان فعليًا.",
-    fa: "فهرست اعضا، نقش‌ها و دعوت‌نامه‌های ارسالی هنوز اندپوینتی ندارند و «فاقد دیتا» نشان می‌دهند. دعوت‌نامه‌های دریافتی و دعوت عضو واقعاً کار می‌کنند.",
+    en: "Members, received invitations and inviting a member are live. Product access per member, roles and sent invitations have no endpoint yet, so they report no data.",
+    ar: "الأعضاء والدعوات الواردة ودعوة عضو تعمل فعليًا. الوصول للمنتجات لكل عضو والأدوار والدعوات المرسلة لا تملك خدمة بعد، لذلك تعرض لا توجد بيانات.",
+    fa: "فهرست اعضا، دعوت‌نامه‌های دریافتی و دعوت عضو واقعاً کار می‌کنند. دسترسی محصول هر عضو، نقش‌ها و دعوت‌نامه‌های ارسالی هنوز اندپوینتی ندارند و «فاقد دیتا» نشان می‌دهند.",
+  },
+  loadMembersFailed: { en: "Could not load members.", ar: "تعذر تحميل الأعضاء.", fa: "فهرست اعضا بارگذاری نشد." },
+  loadInvitationsFailed: { en: "Could not load invitations.", ar: "تعذر تحميل الدعوات.", fa: "دعوت‌نامه‌ها بارگذاری نشد." },
+  retry: { en: "Try again", ar: "حاول مرة أخرى", fa: "تلاش دوباره" },
+  noInvitePermission: {
+    en: "You don't have permission to invite members.",
+    ar: "ليست لديك صلاحية دعوة الأعضاء.",
+    fa: "شما مجوز دعوت عضو را ندارید.",
   },
   comingSoon: { en: "Coming soon", ar: "قريبًا", fa: "به‌زودی" },
 };

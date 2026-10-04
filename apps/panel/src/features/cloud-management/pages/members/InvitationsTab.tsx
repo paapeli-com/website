@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Building2 } from "lucide-react";
+import { Building2, Loader2, RefreshCw } from "lucide-react";
 import {
   useAcceptWorkspaceInvitationMutation,
   useListWorkspaceInvitationsQuery,
@@ -36,7 +36,7 @@ export default function InvitationsTab({ isRTL }: { isRTL: boolean }) {
   const [confirmAccept, setConfirmAccept] = useState<Pending | null>(null);
   const [confirmDecline, setConfirmDecline] = useState<Pending | null>(null);
 
-  const { data, isLoading, refetch, isFetching } = useListWorkspaceInvitationsQuery();
+  const { data, isLoading, isError, error, refetch, isFetching } = useListWorkspaceInvitationsQuery();
   const accept = useAcceptWorkspaceInvitationMutation();
   const reject = useRejectWorkspaceInvitationMutation();
 
@@ -102,7 +102,25 @@ export default function InvitationsTab({ isRTL }: { isRTL: boolean }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!isReceived || received.length === 0 ? (
+            {isReceived && (isLoading || (isError && !data)) ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={6} className="p-0">
+                  {isLoading ? (
+                    <div className="flex justify-center py-10">
+                      <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-3 py-10 text-center">
+                      <p className="text-sm text-destructive">{apiErrorMessage(error, tr("loadInvitationsFailed"))}</p>
+                      <Button variant="outline" size="sm" onClick={() => void refetch()}>
+                        <RefreshCw className="size-3.5" />
+                        {tr("retry")}
+                      </Button>
+                    </div>
+                  )}
+                </TableCell>
+              </TableRow>
+            ) : !isReceived || received.length === 0 ? (
               <TableRow className="hover:bg-transparent">
                 <TableCell colSpan={6} className="p-0">
                   <NoData className="py-10" />

@@ -55,6 +55,9 @@ const fa: Record<string, string> = {
   "Coming Soon": "به‌زودی",
   "Coming soon.": "به‌زودی.",
   "Couldn't load this page": "بارگذاری این صفحه ممکن نشد",
+  "You don't have permission to use this section": "شما مجوز استفاده از این بخش را ندارید",
+  "Your role in {workspace} is {role}. Ask the workspace owner or an admin for access, or switch workspace.":
+    "نقش شما در {workspace}، {role} است. برای دسترسی از مالک یا مدیر فضای کاری درخواست کنید، یا فضای کاری را عوض کنید.",
   "Something went wrong or it took too long. Please try again.": "مشکلی پیش آمد یا بارگذاری بیش از حد طول کشید. لطفاً دوباره تلاش کنید.",
   Retry: "تلاش دوباره",
 
@@ -164,6 +167,8 @@ const fa: Record<string, string> = {
   "That didn't go through. Please try again.": "ارسال نشد. دوباره تلاش کنید.",
 
   // Workspaces (Cloud Management)
+  "Invite Member": "دعوت عضو",
+  "You don't have permission to invite members.": "شما مجوز دعوت عضو را ندارید.",
   "Workspaces you belong to, and the products subscribed to the active one.":
     "فضاهای کاری و محصولاتی که در هر فضای کاری فعال شده است",
   "Create your first workspace to get started.":
@@ -576,6 +581,9 @@ const ar: Record<string, string> = {
   "Coming Soon": "قريباً",
   "Coming soon.": "قريباً.",
   "Couldn't load this page": "تعذّر تحميل هذه الصفحة",
+  "You don't have permission to use this section": "ليست لديك صلاحية استخدام هذا القسم",
+  "Your role in {workspace} is {role}. Ask the workspace owner or an admin for access, or switch workspace.":
+    "دورك في {workspace} هو {role}. اطلب الوصول من مالك مساحة العمل أو المشرف، أو بدّل مساحة العمل.",
   "Something went wrong or it took too long. Please try again.": "حدث خطأ أو استغرق التحميل وقتًا طويلًا. يُرجى المحاولة مرة أخرى.",
   Retry: "إعادة المحاولة",
 
@@ -685,6 +693,8 @@ const ar: Record<string, string> = {
   "That didn't go through. Please try again.": "لم يتم الإرسال. حاول مرة أخرى.",
 
   // Workspaces (Cloud Management)
+  "Invite Member": "دعوة عضو",
+  "You don't have permission to invite members.": "ليست لديك صلاحية دعوة الأعضاء.",
   "Workspaces you belong to, and the products subscribed to the active one.":
     "مساحات العمل التي تنتمي إليها، والمنتجات المشترك بها في المساحة النشطة.",
   "Create your first workspace to get started.":

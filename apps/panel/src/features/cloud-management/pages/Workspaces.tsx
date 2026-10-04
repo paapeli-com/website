@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Building2, Check, Loader2, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Building2, Check, Loader2, Plus, UserPlus } from "lucide-react";
 import { useCreateWorkspaceMutation, useListWorkspaceProductsQuery } from "@paapeli/api";
 import { useWorkspaceSelection } from "@/features/cloud-management/contexts/WorkspaceContext";
 import { Badge, Button, Card, EmptyState, Input, Label, PageHeader, SkeletonList } from "@/features/cloud-management/ui";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/features/factory/components/ui/tooltip";
+import { canInvite } from "@/features/cloud-management/pages/members/shared";
+import { useWorkspaceSwitch } from "@/shared/components/WorkspaceSwitchDialog";
 import { cn } from "@/shared/lib/utils";
 import { useShellT } from "@/shared/i18n/shell";
 import { apiErrorMessage } from "@/shared/lib/apiError";
@@ -15,7 +19,12 @@ import { apiErrorMessage } from "@/shared/lib/apiError";
    you pick or create the workspace itself. */
 export default function Workspaces() {
   const t = useShellT();
+  const navigate = useNavigate();
   const { workspaces, isLoading, selectedId, selected, setSelectedId } = useWorkspaceSelection();
+  /* Picking a row switches the whole panel's workspace, so it asks and
+     reloads exactly as the header's account menu does. */
+  const workspaceSwitch = useWorkspaceSwitch();
+  const pick = (id: string, name: string) => workspaceSwitch.requestSwitch(id, name, selectedId);
 
   const [newName, setNewName] = useState("");
   const createWorkspace = useCreateWorkspaceMutation();
@@ -52,6 +61,7 @@ export default function Workspaces() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
         <div className="flex flex-col gap-4">
+          <TooltipProvider delayDuration={150}>
           <Card className="flex flex-col gap-1 p-2">
             {isLoading ? (
               <SkeletonList rows={4} variant="tile" />
@@ -61,11 +71,22 @@ export default function Workspaces() {
               workspaces.map((ws) => {
                 const isActive = ws.workspaceId === selectedId;
                 return (
-                  <button
+                  /* A div, not a button: the row holds its own Invite Member
+                     button, and a button cannot sit inside another. */
+                  <div
                     key={ws.workspaceId}
-                    onClick={() => setSelectedId(ws.workspaceId)}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => pick(ws.workspaceId, ws.workspaceName)}
+                    onKeyDown={(e) => {
+                      if (e.target !== e.currentTarget) return;
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        pick(ws.workspaceId, ws.workspaceName);
+                      }
+                    }}
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start transition-colors",
+                      "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-start transition-colors",
                       isActive ? "bg-primary/10" : "hover:bg-muted",
                     )}
                   >
@@ -84,12 +105,49 @@ export default function Workspaces() {
                       <span className="block text-xs text-muted-foreground">{t(ws.role)}</span>
                     </span>
                     <Badge tone={ws.membershipStatus === "ACTIVE" ? "ok" : "gray"}>{t(ws.membershipStatus)}</Badge>
+                    {/* Members works on the selected workspace, so this row is
+                        made the selected one before going there. Only an owner
+                        or admin may invite; everyone else gets the reason on
+                        hover. The span carries the tooltip, since a disabled
+                        button fires no pointer events. */}
+                    {canInvite(ws.role) ? (
+                      <Button
+                        variant="ghost"
+                        className="h-8 px-3 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (ws.workspaceId === selectedId) {
+                            navigate("/CloudManagement/members");
+                            return;
+                          }
+                          // Another workspace: ask to switch, as the header
+                          // does, then land on its Members.
+                          workspaceSwitch.requestSwitch(ws.workspaceId, ws.workspaceName, selectedId, "/CloudManagement/members");
+                        }}
+                      >
+                        <UserPlus className="size-3.5" />
+                        {t("Invite Member")}
+                      </Button>
+                    ) : (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span tabIndex={0} onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" disabled className="pointer-events-none h-8 px-3 text-xs">
+                              <UserPlus className="size-3.5" />
+                              {t("Invite Member")}
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t("You don't have permission to invite members.")}</TooltipContent>
+                      </Tooltip>
+                    )}
                     {isActive && <Check className="size-4 text-primary" />}
-                  </button>
+                  </div>
                 );
               })
             )}
           </Card>
+          </TooltipProvider>
 
           <Card className="flex flex-col gap-3">
             <h2 className="text-sm font-bold text-foreground">
@@ -136,6 +194,7 @@ export default function Workspaces() {
           </Button>
         </Card>
       </div>
+      {workspaceSwitch.dialog}
     </div>
   );
 }

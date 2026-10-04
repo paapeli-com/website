@@ -47,6 +47,9 @@ const TONE: Record<string, "ok" | "info" | "warn" | "bad" | "gray"> = {
   statusExpired: "gray",
 };
 
+/** Only an owner or admin may invite. Workspaces and Members both ask this. */
+export const canInvite = (role?: string) => role === "OWNER" || role === "ADMIN";
+
 /** A status pill in the panel's own colours rather than the mockup's hexes. */
 export const StatusBadge = ({ statusKey }: { statusKey: string }) => {
   const tr = useTr();

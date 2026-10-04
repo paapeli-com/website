@@ -4,7 +4,8 @@ import { setActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { useShellT } from "@/shared/i18n/shell";
 import { useAppLanguage, isRTLLanguage } from "@/shared/i18n/appLanguage";
 
-type Pending = { id: string; name: string } | null;
+// `to`: where to land after switching, instead of reloading the same page.
+type Pending = { id: string; name: string; to?: string } | null;
 
 /**
  * Switching workspace asks first, then reloads the page. Every open query,
@@ -18,17 +19,18 @@ type Pending = { id: string; name: string } | null;
 export function useWorkspaceSwitch() {
   const [pending, setPending] = useState<Pending>(null);
 
-  const requestSwitch = useCallback((id: string, name: string, currentId?: string | null) => {
+  const requestSwitch = useCallback((id: string, name: string, currentId?: string | null, to?: string) => {
     if (id === currentId) return;
     // Deferred a tick: the pickers live in dropdown menus, and opening a modal
     // while one is still closing can leave the page without pointer events.
-    setTimeout(() => setPending({ id, name }), 0);
+    setTimeout(() => setPending({ id, name, to }), 0);
   }, []);
 
   const confirm = () => {
     if (!pending) return;
     setActiveWorkspaceId(pending.id);
-    window.location.reload();
+    if (pending.to) window.location.assign(pending.to);
+    else window.location.reload();
   };
 
   const dialog = (

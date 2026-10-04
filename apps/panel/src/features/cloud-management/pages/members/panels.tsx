@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { Check, Loader2 } from "lucide-react";
 import { PRODUCTS } from "@paapeli/brand/config";
 import { useInviteWorkspaceMemberMutation, type WorkspaceRole } from "@paapeli/api";
@@ -25,15 +26,18 @@ export function InviteMemberPanel({
   open,
   onOpenChange,
   workspaceId,
+  workspaceName,
   isRTL,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   workspaceId?: string;
+  workspaceName?: string;
   isRTL: boolean;
 }) {
   const tr = useTr();
   const invite = useInviteWorkspaceMemberMutation();
+  const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<WorkspaceRole>("MEMBER");
   const [products, setProducts] = useState<Record<string, boolean>>({});
@@ -48,6 +52,9 @@ export function InviteMemberPanel({
       {
         onSuccess: () => {
           toast.success(tr("inviteSent", { email: email.trim() }));
+          // The roster lists active members only, so the invitee joins it on
+          // accepting; refetch so it is current when they do.
+          void queryClient.invalidateQueries({ queryKey: ["workspaceMembers", workspaceId] });
           setEmail("");
           setProducts({});
           onOpenChange(false);
@@ -63,6 +70,12 @@ export function InviteMemberPanel({
         <SheetHeader className="border-b border-border px-5 py-4 text-start">
           <SheetTitle className="text-base">{tr("inviteMember")}</SheetTitle>
           <SheetDescription className="text-[13px]">{tr("invitePanelDesc")}</SheetDescription>
+          {/* Named here so nobody invites into the wrong workspace. */}
+          {workspaceName && (
+            <span className="w-fit rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+              {tr("currentWorkspace", { name: workspaceName })}
+            </span>
+          )}
         </SheetHeader>
 
         <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">

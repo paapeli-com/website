@@ -24,3 +24,17 @@ export function useListWorkspaceInvitationsQuery(enabled = true) {
         enabled,
     });
 }
+
+export function useListWorkspaceMembersQuery(
+    workspaceId: string,
+    search = '',
+    page = 1,
+    size = 25,
+    enabled = true,
+) {
+    return useQuery({
+        queryKey: ['workspaceMembers', workspaceId, search, page, size],
+        queryFn: () => workspacesService.listMembers(workspaceId, page, size, search || undefined),
+        enabled: enabled && !!workspaceId,
+    });
+}
