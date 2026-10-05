@@ -58,29 +58,34 @@ export function PositionCard({
   labels: { does: string; expects: string };
   onApply: () => void;
 }) {
+  const archived = position.status === "archived";
+
   return (
     <article className="rounded-2xl border border-white/[0.06] bg-[#0f1728] p-6 md:p-8">
       {/* Where, for how long, and the way in. */}
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div className="flex flex-wrap items-center gap-2">
-          <Tag className={OPEN}>{position.statusLabel}</Tag>
+          <Tag className={archived ? NEUTRAL : OPEN}>{position.statusLabel}</Tag>
           <Tag className={TONES[position.teamTone]}>{position.team}</Tag>
           <Tag className={NEUTRAL}>{position.location}</Tag>
           <Tag className={NEUTRAL}>{position.term}</Tag>
           <Tag className={EMPLOYMENT}>{position.employment}</Tag>
         </div>
 
-        <div className="flex flex-col items-center gap-2">
-          <button
-            type="button"
-            onClick={onApply}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            {applyLabel}
-            <ArrowRight className="size-4 rtl:rotate-180" />
-          </button>
-          <span className="text-xs text-white/35">{position.applyNote}</span>
-        </div>
+        {/* A closed position keeps its wording but no longer takes resumes. */}
+        {archived ? null : (
+          <div className="flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={onApply}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              {applyLabel}
+              <ArrowRight className="size-4 rtl:rotate-180" />
+            </button>
+            <span className="text-xs text-white/35">{position.applyNote}</span>
+          </div>
+        )}
       </div>
 
       <h3 className="mt-6 text-xl font-bold leading-snug text-white md:text-2xl">
@@ -95,6 +100,25 @@ export function PositionCard({
       </h3>
 
       <p className="mt-3 text-sm text-white/70">{position.body}</p>
+
+      {/* A role described in full: responsibilities, requirements and so on. */}
+      {position.sections?.length ? (
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          {position.sections.map((section) => (
+            <div
+              key={section.title}
+              className="rounded-xl border border-white/[0.06] bg-[#0b1322] p-5"
+            >
+              <h4 className="text-sm font-semibold text-white">{section.title}</h4>
+              <ul className="mt-3 list-disc space-y-2 ps-4 text-xs text-white/60 marker:text-primary">
+                {section.items.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {/* A position with no tracks carries the two lines itself. */}
       {position.does && position.expects ? (

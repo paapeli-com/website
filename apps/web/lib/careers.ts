@@ -34,6 +34,9 @@ export type Track = {
 
 export type Highlight = { title: string; body: string };
 
+/** A headed list on a position, the way a full job description reads. */
+export type Section = { title: string; items: string[] };
+
 export type Chip = {
   label: string;
   /** Draws the chip in Paapeli orange, for the one that carries weight. */
@@ -75,6 +78,9 @@ export type Position = ApplyTarget & {
   does?: string;
   expects?: string;
   highlights?: Highlight[];
+  /** Responsibilities, requirements and the like, for a role that is
+      described in full rather than in two lines. */
+  sections?: Section[];
   chipsLabel: string;
   chips: Chip[];
   /** The line under the apply button. */
@@ -165,7 +171,7 @@ const en: CareersContent = {
     {
       step: "02",
       title: "Fast growth and deep teamwork",
-      body: "A three month on site internship with a structured learning path, direct technical and product mentorship, and a clear route to staying on permanently.",
+      body: "A structured learning path, direct technical and product mentorship, and a clear route to growing with the team.",
     },
     {
       step: "03",
@@ -186,12 +192,81 @@ const en: CareersContent = {
   },
   positions: [
     {
+      id: "senior-backend-aiot",
+      reference: "Senior Backend Engineer (Java / AIoT)",
+      shortTitle: "Senior Backend Engineer (Java / AIoT)",
+      formEyebrow: "Paapeli job application",
+      status: "open",
+      statusLabel: "Accepting applications",
+      team: "Backend & AIoT Platform",
+      teamTone: "orange",
+      location: "Tehran",
+      term: "Senior level",
+      employment: "Full time",
+      title: "Senior Backend Engineer (Java / AIoT)",
+      body: "Paapeli builds a platform that connects devices, processes their data and makes industries and businesses smarter. We are looking for a senior backend engineer to take technical ownership of the AIoT product's backend and to have a direct hand in its architecture, development and reliability.",
+      sections: [
+        {
+          title: "Responsibilities",
+          items: [
+            "Take technical ownership of the AIoT platform backend: learn the existing codebase, then maintain and extend it in Java and Spring Boot",
+            "Design and build the APIs and services behind device management, telemetry, alarms and device commands",
+            "Extend the integration layer over the platform's IoT core and the MQTT path that device data arrives on",
+            "Build and harden multi-tenancy, authentication and role based access control",
+            "Improve the performance, security, reliability and observability of services in production",
+            "Design data models and optimise the database and asynchronous processing",
+            "Bring AI capabilities into the product together with the AI team",
+            "Document technical decisions, review code and set the engineering standards of the backend team",
+          ],
+        },
+        {
+          title: "Requirements",
+          items: [
+            "At least 5 years of experience building and running production services in Java and Spring Boot",
+            "Strong REST API design, OpenAPI documentation, data modelling, SQL and query optimisation",
+            "Hands on experience with authentication and access control (Spring Security, JWT, OAuth 2.0) and with multi-tenant systems",
+            "Working knowledge of service architecture, distributed systems and event driven processing",
+            "Experience with message brokers, caching and failure handling between services",
+            "Able to debug production issues from logs and performance metrics",
+            "Experience with automated testing, Git, Docker and CI/CD, and familiarity with deploying on Kubernetes",
+            "Able to take over and understand an existing codebase, drive work independently and discuss technical disagreements constructively",
+          ],
+        },
+        {
+          title: "Nice to have",
+          items: [
+            "Experience with MQTT, time series data and stream processing",
+            "A background in device data ingestion, device fleet management or OTA updates",
+            "Experience designing rule, alarm and notification engines",
+            "Practical familiarity with AI model APIs and inference services",
+          ],
+        },
+        {
+          title: "Why Paapeli",
+          items: [
+            "Direct impact on a growing product, working on real problems where IoT meets AI",
+            "A real say in technical decisions and ownership of the backend architecture",
+            "Compensation agreed in line with your experience, ability and scope of responsibility",
+          ],
+        },
+      ],
+      chipsLabel: "Stack:",
+      chips: [
+        { label: "Java" },
+        { label: "Spring Boot" },
+        { label: "REST API" },
+        { label: "MQTT" },
+        { label: "Docker / Kubernetes" },
+      ],
+      applyNote: "With a short note about your experience",
+    },
+    {
       id: "backend-intern",
       reference: "Backend Intern (Go / Java)",
       shortTitle: "Backend Intern (Go / Java)",
       formEyebrow: "Paapeli internship application",
-      status: "open",
-      statusLabel: "Accepting applications",
+      status: "archived",
+      statusLabel: "Closed",
       team: "Backend & Cloud Infrastructure",
       teamTone: "sky",
       location: "Tehran (on site, starts at 10)",
@@ -236,8 +311,8 @@ const en: CareersContent = {
       reference: "Product Management Intern (AIoT)",
       shortTitle: "Product Management Intern (AIoT)",
       formEyebrow: "Paapeli internship application",
-      status: "open",
-      statusLabel: "Accepting applications",
+      status: "archived",
+      statusLabel: "Closed",
       team: "Product Management",
       teamTone: "violet",
       location: "Tehran (on site, starts at 10)",
@@ -317,7 +392,7 @@ const fa: CareersContent = {
     {
       step: "02",
       title: "رشد شتاب‌یافته و کار عمیق تیمی",
-      body: "دوره کارآموزی ۳ ماهه حضوری با ساختار یادگیری هدفمند، منتورشیپ مستقیم فنی و محصولی و مسیر شفاف برای ادامه همکاری دائم.",
+      body: "ساختار یادگیری هدفمند، منتورشیپ مستقیم فنی و محصولی و مسیر شفاف برای رشد در کنار تیم.",
     },
     {
       step: "03",
@@ -338,12 +413,81 @@ const fa: CareersContent = {
   },
   positions: [
     {
+      id: "senior-backend-aiot",
+      reference: "Senior Backend Engineer (Java / AIoT)",
+      shortTitle: "توسعه‌دهنده ارشد بک‌اند (Java / AIoT)",
+      formEyebrow: "فرم درخواست همکاری پاپلی",
+      status: "open",
+      statusLabel: "پذیرش فعال",
+      team: "Backend & AIoT Platform",
+      teamTone: "orange",
+      location: "تهران",
+      term: "سطح ارشد",
+      employment: "تمام‌وقت",
+      title: "توسعه‌دهنده ارشد بک‌اند (Senior Backend Engineer - Java / AIoT)",
+      body: "پاپلی پلتفرمی برای اتصال دستگاه‌ها، پردازش داده و هوشمندسازی صنایع و کسب‌وکارها می‌سازد. به دنبال یک توسعه‌دهنده ارشد بک‌اند هستیم که مسئولیت فنی بک‌اند محصول AIoT را به عهده بگیرد و در تصمیم‌های معماری، توسعه و پایداری محصول نقش مستقیم داشته باشد.",
+      sections: [
+        {
+          title: "مسئولیت‌ها",
+          items: [
+            "به عهده گرفتن مالکیت فنی بک‌اند پلتفرم AIoT: شناخت کد موجود، نگهداری و توسعه آن با Java و Spring Boot",
+            "طراحی و توسعه APIها و سرویس‌های مدیریت دستگاه، تله‌متری، هشدار و ارسال فرمان به دستگاه",
+            "توسعه لایه یکپارچه‌سازی با هسته IoT پلتفرم و مسیر دریافت داده دستگاه‌ها روی MQTT",
+            "پیاده‌سازی و بهبود چندمستاجری، احراز هویت و کنترل دسترسی نقش‌محور",
+            "بهبود عملکرد، امنیت، پایداری و مشاهده‌پذیری سرویس‌ها در محیط عملیاتی",
+            "طراحی مدل داده، بهینه‌سازی پایگاه داده و پردازش‌های غیرهم‌زمان",
+            "اتصال قابلیت‌های هوش مصنوعی به محصول با همکاری تیم AI",
+            "مستندسازی تصمیم‌های فنی، بازبینی کد و پایه‌گذاری استانداردهای مهندسی تیم بک‌اند",
+          ],
+        },
+        {
+          title: "الزامات",
+          items: [
+            "حداقل ۵ سال تجربه در توسعه و نگهداری سرویس‌های عملیاتی با Java و Spring Boot",
+            "تسلط بر طراحی REST API، مستندسازی با OpenAPI، مدل‌سازی داده، SQL و بهینه‌سازی کوئری",
+            "تجربه عملی در احراز هویت و کنترل دسترسی (Spring Security، JWT و OAuth 2.0) و طراحی سامانه‌های چندمستاجری",
+            "شناخت عملی معماری سرویس‌ها، سیستم‌های توزیع‌شده و پردازش رویدادمحور",
+            "تجربه کار با Message Broker و Cache و مدیریت خطا در ارتباط بین سرویس‌ها",
+            "توانایی عیب‌یابی مشکلات محیط عملیاتی با تحلیل لاگ و شاخص‌های عملکرد",
+            "تجربه کار با تست خودکار، Git، Docker و CI/CD و آشنایی با استقرار روی Kubernetes",
+            "توانایی تحویل گرفتن و فهم یک کد موجود، پیش‌بردن مستقل کارها و گفت‌وگوی سازنده درباره اختلاف‌نظرهای فنی",
+          ],
+        },
+        {
+          title: "امتیاز محسوب می‌شود",
+          items: [
+            "تجربه MQTT، داده‌های سری زمانی و پردازش جریان داده",
+            "سابقه توسعه سامانه‌های دریافت داده از دستگاه، مدیریت ناوگان دستگاه‌ها یا به‌روزرسانی OTA",
+            "تجربه طراحی موتور قواعد، هشدار و اعلان",
+            "آشنایی کاربردی با API مدل‌های هوش مصنوعی و سرویس‌های استنتاج",
+          ],
+        },
+        {
+          title: "چرا پاپلی",
+          items: [
+            "اثرگذاری مستقیم روی یک محصول در حال رشد و کار روی مسائل واقعی در مرز اینترنت اشیا و هوش مصنوعی",
+            "مشارکت جدی در تصمیم‌های فنی و مالکیت معماری بک‌اند",
+            "حقوق متناسب با سطح تجربه، توانمندی و دامنه مسئولیت، به صورت توافقی",
+          ],
+        },
+      ],
+      chipsLabel: "فناوری‌ها:",
+      chips: [
+        { label: "Java" },
+        { label: "Spring Boot" },
+        { label: "REST API" },
+        { label: "MQTT" },
+        { label: "Docker / Kubernetes" },
+      ],
+      applyNote: "همراه با توضیح کوتاه تجربه‌ها",
+    },
+    {
       id: "backend-intern",
       reference: "Backend Intern (Go / Java)",
       shortTitle: "کارآموز توسعه بک‌اند (Go / Java)",
       formEyebrow: "فرم درخواست کارآموزی پاپلی",
-      status: "open",
-      statusLabel: "پذیرش فعال",
+      status: "archived",
+      statusLabel: "بسته شده",
       team: "Backend & Cloud Infrastructure",
       teamTone: "sky",
       location: "تهران (حضوری - شروع ۱۰ صبح)",
@@ -388,8 +532,8 @@ const fa: CareersContent = {
       reference: "Product Management Intern (AIoT)",
       shortTitle: "کارآموز مدیریت محصول (AIoT)",
       formEyebrow: "فرم درخواست کارآموزی پاپلی",
-      status: "open",
-      statusLabel: "پذیرش فعال",
+      status: "archived",
+      statusLabel: "بسته شده",
       team: "Product Management",
       teamTone: "violet",
       location: "تهران (حضوری - شروع ۱۰ صبح)",
@@ -469,7 +613,7 @@ const ar: CareersContent = {
     {
       step: "02",
       title: "نمو سريع وعمل جماعي عميق",
-      body: "تدريب حضوري لمدة ثلاثة أشهر بمسار تعلم منظم وإرشاد تقني ومنتجي مباشر وطريق واضح للانضمام الدائم.",
+      body: "مسار تعلم منظم وإرشاد تقني ومنتجي مباشر وطريق واضح للنمو مع الفريق.",
     },
     {
       step: "03",
@@ -490,12 +634,81 @@ const ar: CareersContent = {
   },
   positions: [
     {
+      id: "senior-backend-aiot",
+      reference: "Senior Backend Engineer (Java / AIoT)",
+      shortTitle: "مطور خلفي أول (Java / AIoT)",
+      formEyebrow: "نموذج التقديم للعمل في بابيلي",
+      status: "open",
+      statusLabel: "التقديم مفتوح",
+      team: "Backend & AIoT Platform",
+      teamTone: "orange",
+      location: "طهران",
+      term: "مستوى أول",
+      employment: "دوام كامل",
+      title: "مطور خلفي أول (Senior Backend Engineer - Java / AIoT)",
+      body: "تبني بابيلي منصة لربط الأجهزة ومعالجة بياناتها وجعل الصناعات والأعمال أكثر ذكاءً. نبحث عن مطور خلفي أول يتولى المسؤولية التقنية عن الواجهة الخلفية لمنتج AIoT ويكون له دور مباشر في قرارات المعمارية والتطوير واستقرار المنتج.",
+      sections: [
+        {
+          title: "المسؤوليات",
+          items: [
+            "تولي الملكية التقنية للواجهة الخلفية لمنصة AIoT: فهم الشيفرة الحالية ثم صيانتها وتطويرها بلغة Java و Spring Boot",
+            "تصميم وتطوير واجهات البرمجة والخدمات الخاصة بإدارة الأجهزة والقياسات والإنذارات وإرسال الأوامر إلى الأجهزة",
+            "تطوير طبقة التكامل مع نواة إنترنت الأشياء في المنصة ومسار استقبال بيانات الأجهزة عبر MQTT",
+            "بناء وتحسين تعدد المستأجرين والمصادقة والتحكم في الصلاحيات حسب الأدوار",
+            "تحسين أداء الخدمات وأمانها واستقرارها وقابلية مراقبتها في بيئة الإنتاج",
+            "تصميم نماذج البيانات وتحسين قاعدة البيانات والمعالجة غير المتزامنة",
+            "ربط قدرات الذكاء الاصطناعي بالمنتج بالتعاون مع فريق الذكاء الاصطناعي",
+            "توثيق القرارات التقنية ومراجعة الشيفرة ووضع المعايير الهندسية لفريق الواجهة الخلفية",
+          ],
+        },
+        {
+          title: "المتطلبات",
+          items: [
+            "خبرة لا تقل عن 5 سنوات في تطوير وتشغيل خدمات إنتاجية بلغة Java و Spring Boot",
+            "إتقان تصميم REST API والتوثيق باستخدام OpenAPI ونمذجة البيانات و SQL وتحسين الاستعلامات",
+            "خبرة عملية في المصادقة والتحكم في الصلاحيات (Spring Security و JWT و OAuth 2.0) وفي الأنظمة متعددة المستأجرين",
+            "معرفة عملية بمعمارية الخدمات والأنظمة الموزعة والمعالجة المعتمدة على الأحداث",
+            "خبرة في العمل مع Message Broker و Cache ومعالجة الأخطاء في التواصل بين الخدمات",
+            "القدرة على تشخيص مشكلات بيئة الإنتاج عبر تحليل السجلات ومؤشرات الأداء",
+            "خبرة في الاختبارات الآلية و Git و Docker و CI/CD ومعرفة بالنشر على Kubernetes",
+            "القدرة على استلام شيفرة قائمة وفهمها، وإنجاز العمل باستقلالية، والنقاش البنّاء حول الخلافات التقنية",
+          ],
+        },
+        {
+          title: "مزايا إضافية",
+          items: [
+            "خبرة في MQTT وبيانات السلاسل الزمنية ومعالجة تدفق البيانات",
+            "خلفية في أنظمة استقبال بيانات الأجهزة أو إدارة أساطيل الأجهزة أو تحديثات OTA",
+            "خبرة في تصميم محركات القواعد والإنذارات والإشعارات",
+            "معرفة عملية بواجهات نماذج الذكاء الاصطناعي وخدمات الاستدلال",
+          ],
+        },
+        {
+          title: "لماذا بابيلي",
+          items: [
+            "أثر مباشر في منتج ينمو، وعمل على مسائل حقيقية عند التقاء إنترنت الأشياء والذكاء الاصطناعي",
+            "مشاركة فعلية في القرارات التقنية وملكية معمارية الواجهة الخلفية",
+            "راتب يُتفق عليه بما يتناسب مع الخبرة والكفاءة ونطاق المسؤولية",
+          ],
+        },
+      ],
+      chipsLabel: "التقنيات:",
+      chips: [
+        { label: "Java" },
+        { label: "Spring Boot" },
+        { label: "REST API" },
+        { label: "MQTT" },
+        { label: "Docker / Kubernetes" },
+      ],
+      applyNote: "مع وصف قصير لخبراتك",
+    },
+    {
       id: "backend-intern",
       reference: "Backend Intern (Go / Java)",
       shortTitle: "متدرب تطوير خلفي (Go / Java)",
       formEyebrow: "نموذج التقديم للتدريب في بابيلي",
-      status: "open",
-      statusLabel: "التقديم مفتوح",
+      status: "archived",
+      statusLabel: "مغلق",
       team: "Backend & Cloud Infrastructure",
       teamTone: "sky",
       location: "طهران (حضوري، البداية 10 صباحًا)",
@@ -540,8 +753,8 @@ const ar: CareersContent = {
       reference: "Product Management Intern (AIoT)",
       shortTitle: "متدرب إدارة منتج (AIoT)",
       formEyebrow: "نموذج التقديم للتدريب في بابيلي",
-      status: "open",
-      statusLabel: "التقديم مفتوح",
+      status: "archived",
+      statusLabel: "مغلق",
       team: "Product Management",
       teamTone: "violet",
       location: "طهران (حضوري، البداية 10 صباحًا)",
