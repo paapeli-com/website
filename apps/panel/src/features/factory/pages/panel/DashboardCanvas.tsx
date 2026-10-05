@@ -40,6 +40,7 @@ import {
 } from "@/features/factory/lib/dashboardDefinition";
 import { fmtDayTime } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { WidgetBody } from "@/features/factory/components/dashboard/widgets";
+import { DashboardHistorySheet } from "@/features/factory/components/dashboard/DashboardHistorySheet";
 import { WidgetConfigSheet } from "@/features/factory/components/dashboard/WidgetConfigSheet";
 import { Button } from "@/features/factory/components/ui/button";
 import { Card } from "@/features/factory/components/ui/card";
@@ -81,6 +82,7 @@ import {
   ChevronUp,
   Gauge,
   GripVertical,
+  History,
   LayoutGrid,
   LineChart,
   Loader2,
@@ -92,6 +94,7 @@ import {
   Minimize2,
   Pencil,
   Plus,
+  Printer,
   RefreshCw,
   RotateCcw,
   Save,
@@ -120,6 +123,8 @@ const T: Record<string, Record<Lang, string>> = {
   refresh: { en: "Refresh", ar: "تحديث", fa: "به‌روزرسانی" },
   resetLayout: { en: "Tidy layout", ar: "ترتيب التخطيط", fa: "مرتب‌سازی چیدمان" },
   editSettings: { en: "Edit settings", ar: "تعديل الإعدادات", fa: "تنظیمات" },
+  history: { en: "Version history", ar: "سجل النسخ", fa: "تاریخچه نسخه‌ها" },
+  print: { en: "Print or save as PDF", ar: "طباعة أو حفظ PDF", fa: "چاپ یا ذخیره PDF" },
   save: { en: "Save", ar: "حفظ", fa: "ذخیره" },
   saved: { en: "Dashboard saved", ar: "تم حفظ اللوحة", fa: "داشبورد ذخیره شد" },
   saveFailed: { en: "Couldn't save the dashboard", ar: "تعذر حفظ اللوحة", fa: "ذخیره داشبورد ممکن نشد" },
@@ -211,6 +216,7 @@ const DashboardCanvas = () => {
 
   const [draft, setDraft] = useState<DashboardDefinition | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const loadedKey = useRef<string | null>(null);
   // Take the server's definition when a new record version arrives — unless
   // there are unsaved edits, which a background refetch must not wipe out.
@@ -566,7 +572,7 @@ const DashboardCanvas = () => {
 
       {/* Toolbar */}
       {!toolbarCollapsed && (
-        <div className={`sticky top-0 z-[35] mb-3 py-3 border-b border-border bg-background/95 backdrop-blur ${fullscreen ? "px-4" : "-mx-4 px-4 lg:-mx-6 lg:px-6"}`}>
+        <div data-print-hide className={`sticky top-0 z-[35] mb-3 py-3 border-b border-border bg-background/95 backdrop-blur ${fullscreen ? "px-4" : "-mx-4 px-4 lg:-mx-6 lg:px-6"}`}>
           <div className="flex items-center gap-2 flex-wrap">
             <Select
               value={rangeValue}
@@ -629,6 +635,18 @@ const DashboardCanvas = () => {
                     <Pencil className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger><TooltipContent side="bottom">{tt("editSettings")}</TooltipContent></Tooltip>
+                <Tooltip><TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setHistoryOpen(true)} aria-label={tt("history")}>
+                    <History className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger><TooltipContent side="bottom">{tt("history")}</TooltipContent></Tooltip>
+                {/* The browser's own print dialog saves a PDF; the print rules
+                    in index.css leave only the dashboard on the page. */}
+                <Tooltip><TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => window.print()} aria-label={tt("print")}>
+                    <Printer className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger><TooltipContent side="bottom">{tt("print")}</TooltipContent></Tooltip>
               </TooltipProvider>
 
               <DropdownMenu>
@@ -734,6 +752,18 @@ const DashboardCanvas = () => {
         onApply={(next) => { setDraft(next); setDirty(true); }}
       />
 
+      <DashboardHistorySheet
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        dashboard={record}
+        dirty={dirty}
+        timeZone={timeZone}
+        lang={lang}
+        rtl={rtl}
+        // The canvas takes the restored definition as it would someone else's save.
+        onRestored={() => void loadTheirs()}
+      />
+
       {/* Confirm widget removal */}
       <AlertDialog open={!!pendingRemove} onOpenChange={(o) => !o && setPendingRemove(null)}>
         <AlertDialogContent container={fullscreen ? containerRef.current : undefined}>
@@ -803,7 +833,7 @@ const DashboardCanvas = () => {
 
   if (fullscreen) {
     return (
-      <div ref={containerRef} className="min-h-screen bg-background overflow-auto">
+      <div ref={containerRef} data-print-root className="min-h-screen bg-background overflow-auto">
         {body}
       </div>
     );
@@ -812,7 +842,7 @@ const DashboardCanvas = () => {
     /* Same contour pattern Home carries, anchored to this container. */
     <div className="relative">
       <TopoBackdrop anchor="container" />
-      <div ref={containerRef} className="relative z-[1]">{body}</div>
+      <div ref={containerRef} data-print-root className="relative z-[1]">{body}</div>
     </div>
   );
 };

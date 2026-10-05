@@ -363,3 +363,70 @@ export const dashboardService = {
         return data;
     },
 };
+
+/** A saved state of a dashboard, without its definition. */
+export interface DashboardVersionSummary {
+    /** Identifies the version: the record version the dashboard held then. */
+    recordVersion: number;
+    name: string;
+    widgetCount: number;
+    /** null for a state saved before history was kept. */
+    savedByUserId?: string | null;
+    /** ISO date-time. */
+    savedAt: string;
+    /** Whether this is the state the dashboard holds now. */
+    current: boolean;
+}
+
+export interface DashboardVersion extends Omit<DashboardVersionSummary, 'widgetCount'> {
+    description?: string | null;
+    definitionSchemaVersion: number;
+    definition: DashboardDefinition;
+}
+
+export const dashboardVersionService = {
+    /** Newest first; one-based pages. The gateway keeps the newest 50. */
+    async list(
+        workspaceId: string,
+        productKey: string,
+        dashboardId: string,
+        page = 1,
+        size = 25,
+    ): Promise<PageResponse<DashboardVersionSummary>> {
+        const { data } = await napiHttpHandler.get<PageResponse<DashboardVersionSummary>>(
+            `${base(workspaceId, productKey)}/${dashboardId}/versions`,
+            { page, size },
+        );
+        return data;
+    },
+
+    async get(
+        workspaceId: string,
+        productKey: string,
+        dashboardId: string,
+        recordVersion: number,
+    ): Promise<DashboardVersion> {
+        const { data } = await napiHttpHandler.get<DashboardVersion>(
+            `${base(workspaceId, productKey)}/${dashboardId}/versions/${recordVersion}`,
+        );
+        return data;
+    },
+
+    /**
+     * Makes a saved definition the dashboard's definition again.
+     * `currentRecordVersion` is the dashboard's version as last read; a stale one is a 409.
+     */
+    async restore(
+        workspaceId: string,
+        productKey: string,
+        dashboardId: string,
+        recordVersion: number,
+        currentRecordVersion: number,
+    ): Promise<DashboardResponse> {
+        const { data } = await napiHttpHandler.post<DashboardResponse>(
+            `${base(workspaceId, productKey)}/${dashboardId}/versions/${recordVersion}/restore`,
+            { recordVersion: currentRecordVersion },
+        );
+        return data;
+    },
+};
