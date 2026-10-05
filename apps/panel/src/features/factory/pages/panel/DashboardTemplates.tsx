@@ -12,7 +12,15 @@ import {
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
 import { ArrowLeft, Plus, LayoutGrid } from "lucide-react";
-import { useDashboards } from "@/features/factory/hooks/useDashboards";
+import {
+  emptyDashboardDefinition,
+  useCreateDashboardMutation,
+  useListDashboardCategoriesQuery,
+} from "@paapeli/api";
+import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
+import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { DEFAULT_DASHBOARD_SETTINGS } from "@/features/factory/lib/dashboardSettings";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 import { toast } from "sonner";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 
@@ -25,6 +33,7 @@ const DICT: Record<string, Record<Lang, string>> = {
   title: { en: "Dashboard Templates", ar: "قوالب لوحات التحكم", fa: "قالب‌های داشبورد" },
   desc: { en: "Pick a ready-made template to quickly create a dashboard tailored to your operations.", ar: "اختر قالبًا جاهزًا لإنشاء لوحة تحكم مخصصة لعملياتك بسرعة.", fa: "یک قالب آماده انتخاب کنید تا به‌سرعت داشبوردی متناسب با عملیات خود بسازید." },
   useTemplate: { en: "Use this template", ar: "استخدم هذا القالب", fa: "استفاده از این قالب" },
+  failed: { en: "Couldn't create the dashboard", ar: "تعذر إنشاء اللوحة", fa: "ایجاد داشبورد ممکن نشد" },
   created: { en: "created from template", ar: "تم إنشاؤها من القالب", fa: "از قالب ساخته شد" },
   catOperations: { en: "Operations", ar: "العمليات", fa: "عملیات" },
   catUtilities: { en: "Utilities", ar: "المرافق", fa: "تأسیسات" },
@@ -112,23 +121,31 @@ const DashboardTemplates = () => {
   const tt = (k: string) => DICT[k]?.[lang] ?? k;
   const navigate = useNavigate();
   const lp = (p: string) => localizedPath(p, language);
-  const { create } = useDashboards();
+  const workspaceId = useWorkspaceId() ?? "";
+  const createDashboard = useCreateDashboardMutation();
+  const { data: categories } = useListDashboardCategoriesQuery(workspaceId, PRODUCT_KEY);
 
-  const useTemplate = (tpl: Template) => {
-    const created = create({
-      name: tpl.nameEn,
-      description: tpl.descEn,
-      category: tpl.category,
-      location: tpl.location,
-      access: "team",
-      refreshInterval: "Manual",
-      timeRange: "Last hour",
-      timezone: "(UTC) Coordinated Universal Time",
-      tags: [],
-    });
-    toast.success(`"${tt(tpl.nameKey)}" ${tt("created")}`);
-    /* Straight into the new dashboard, the same as building one by hand. */
-    navigate(lp(`/dashboard/${created.id}`));
+  /* A template is a named, empty dashboard shared with the workspace. Its
+     category is set when the workspace has a category of that name; its
+     location text is illustrative and has no asset to point at. */
+  const useTemplate = async (tpl: Template) => {
+    if (!workspaceId || createDashboard.isPending) return;
+    try {
+      const created = await createDashboard.mutateAsync({
+        workspaceId,
+        productKey: PRODUCT_KEY,
+        name: tpl.nameEn,
+        description: tpl.descEn,
+        categoryId: categories?.find((c) => c.name.toLowerCase() === tpl.category.toLowerCase())?.id ?? null,
+        visibility: "WORKSPACE_PRODUCT",
+        definition: emptyDashboardDefinition(DEFAULT_DASHBOARD_SETTINGS),
+      });
+      toast.success(`"${tt(tpl.nameKey)}" ${tt("created")}`);
+      /* Straight into the new dashboard, the same as building one by hand. */
+      navigate(lp(`/dashboard/${created.id}`));
+    } catch (e) {
+      toast.error(apiErrorMessage(e, tt("failed")));
+    }
   };
 
   return (

@@ -1,5 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  dashboardKeys,
+  dashboardService,
+  emptyDashboardDefinition,
+  useCreateDashboardCategoryMutation,
+  useCreateDashboardMutation,
+  useGetDashboardQuery,
+  useListDashboardCategoriesQuery,
+  useListDashboardGrantsQuery,
+  useListWorkspaceMembersQuery,
+  useUpdateDashboardMutation,
+  type CreateDashboardRequest,
+  type DashboardDefinition,
+  type DashboardGrant,
+  type DashboardPermission,
+  type DashboardSettings,
+  type DashboardVisibility,
+  type WorkspaceMember,
+} from "@paapeli/api";
+import { getCurrentUserId } from "@paapeli/brand/session";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { Button } from "@/features/factory/components/ui/button";
 import { Input } from "@/features/factory/components/ui/input";
@@ -9,6 +30,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/features/factory/components/ui/select";
@@ -23,9 +45,21 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
-import { ChevronUp, UploadCloud, X, Info } from "lucide-react";
-import { useDashboards, DashboardItem } from "@/features/factory/hooks/useDashboards";
+import { ChevronUp, UploadCloud, X, Info, Loader2, Plus } from "lucide-react";
+import { isBuiltInDashboardId } from "@/features/factory/hooks/useDashboards";
 import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
+import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
+import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import {
+  DEFAULT_DASHBOARD_SETTINGS,
+  IANA_ZONES,
+  REFRESH_OPTIONS,
+  TIME_WINDOW_OPTIONS,
+  TIME_ZONE_MODE_LABELS,
+  timeZoneToValue,
+  valueToTimeZone,
+} from "@/features/factory/lib/dashboardSettings";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 import { toast } from "sonner";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 
@@ -47,6 +81,12 @@ const DICT: Record<string, Record<Lang, string>> = {
   enterDescription: { en: "Enter a short description", ar: "أدخل وصفاً موجزاً", fa: "توضیح کوتاهی وارد کنید" },
   category: { en: "Category", ar: "الفئة", fa: "دسته‌بندی" },
   selectCategory: { en: "Select category", ar: "اختر فئة", fa: "دسته‌بندی را انتخاب کنید" },
+  noCategory: { en: "No category", ar: "بدون فئة", fa: "بدون دسته‌بندی" },
+  newCategory: { en: "New category…", ar: "فئة جديدة…", fa: "دسته‌بندی جدید…" },
+  newCategoryName: { en: "Category name", ar: "اسم الفئة", fa: "نام دسته‌بندی" },
+  add: { en: "Add", ar: "إضافة", fa: "افزودن" },
+  categoryCreated: { en: "Category created", ar: "تم إنشاء الفئة", fa: "دسته‌بندی ایجاد شد" },
+  categoryFailed: { en: "Couldn't create the category", ar: "تعذر إنشاء الفئة", fa: "ایجاد دسته‌بندی ممکن نشد" },
   location: { en: "Location", ar: "الموقع", fa: "مکان" },
   selectLocation: { en: "Select location", ar: "اختر موقعاً", fa: "مکان را انتخاب کنید" },
   coverImage: { en: "Cover Image", ar: "صورة الغلاف", fa: "تصویر کاور" },
@@ -55,12 +95,14 @@ const DICT: Record<string, Record<Lang, string>> = {
   imageHint: { en: "PNG, JPG or WEBP (max 2MB)", ar: "PNG أو JPG أو WEBP (بحد أقصى 2MB)", fa: "PNG، JPG یا WEBP (حداکثر ۲ مگابایت)" },
   imageTooLarge: { en: "Image must be under 2MB", ar: "يجب أن تكون الصورة أقل من 2MB", fa: "حجم تصویر باید کمتر از ۲ مگابایت باشد" },
   whoCanAccess: { en: "Who can access this dashboard?", ar: "من يمكنه الوصول إلى هذه اللوحة؟", fa: "چه کسی به این داشبورد دسترسی دارد؟" },
+  visPrivate: { en: "Only me (and people I share with)", ar: "أنا فقط (ومن أشاركهم)", fa: "فقط من (و افرادی که با آن‌ها به اشتراک می‌گذارم)" },
+  visWorkspace: { en: "Everyone in this workspace", ar: "كل من في مساحة العمل", fa: "همه اعضای این فضای کاری" },
   shareWith: { en: "Share with", ar: "مشاركة مع", fa: "اشتراک‌گذاری با" },
-  searchUsersTeams: { en: "Search users or teams...", ar: "ابحث عن مستخدمين أو فرق...", fa: "جستجوی کاربران یا تیم‌ها..." },
-  onlyMe: { en: "Only me", ar: "أنا فقط", fa: "فقط من" },
-  myTeam: { en: "My team", ar: "فريقي", fa: "تیم من" },
-  entireOrg: { en: "Entire organization", ar: "المؤسسة بأكملها", fa: "کل سازمان" },
-  publicAccess: { en: "Public", ar: "عام", fa: "عمومی" },
+  searchMembers: { en: "Search members by name or email…", ar: "ابحث عن الأعضاء بالاسم أو البريد…", fa: "جستجوی اعضا با نام یا ایمیل…" },
+  noMembers: { en: "No matching members", ar: "لا يوجد أعضاء مطابقون", fa: "عضوی یافت نشد" },
+  canView: { en: "Can view", ar: "يمكنه العرض", fa: "مشاهده" },
+  canEdit: { en: "Can edit", ar: "يمكنه التعديل", fa: "ویرایش" },
+  removeMember: { en: "Remove", ar: "إزالة", fa: "حذف" },
   refreshInterval: { en: "Refresh Interval", ar: "فترة التحديث", fa: "بازه به‌روزرسانی" },
   timeRange: { en: "Time Range", ar: "النطاق الزمني", fa: "بازه زمانی" },
   timezone: { en: "Timezone", ar: "المنطقة الزمنية", fa: "منطقه زمانی" },
@@ -72,91 +114,63 @@ const DICT: Record<string, Record<Lang, string>> = {
   nameRequired: { en: "Dashboard name is required", ar: "اسم اللوحة مطلوب", fa: "نام داشبورد الزامی است" },
   dashboardUpdated: { en: "Dashboard updated", ar: "تم تحديث اللوحة", fa: "داشبورد به‌روزرسانی شد" },
   dashboardCreated: { en: "Dashboard created", ar: "تم إنشاء اللوحة", fa: "داشبورد ایجاد شد" },
-  // Categories
-  catOperations: { en: "Operations", ar: "العمليات", fa: "عملیات" },
-  catUtilities: { en: "Utilities", ar: "المرافق", fa: "تأسیسات" },
-  catAIAnalytics: { en: "AI Analytics", ar: "تحليلات الذكاء الاصطناعي", fa: "تحلیل‌های هوش مصنوعی" },
-  catEnergy: { en: "Energy", ar: "الطاقة", fa: "انرژی" },
-  catQuality: { en: "Quality", ar: "الجودة", fa: "کیفیت" },
-  catSafety: { en: "Safety", ar: "السلامة", fa: "ایمنی" },
-  catMaintenance: { en: "Maintenance", ar: "الصيانة", fa: "نگهداری" },
-  catExecutive: { en: "Executive", ar: "تنفيذي", fa: "اجرایی" },
-  // Locations
+  saveFailed: { en: "Couldn't save the dashboard", ar: "تعذر حفظ اللوحة", fa: "ذخیره داشبورد ممکن نشد" },
+  conflict: { en: "Someone else changed this dashboard. The latest version is loaded — review it and save again.", ar: "قام شخص آخر بتغيير هذه اللوحة. تم تحميل أحدث نسخة — راجعها واحفظ مرة أخرى.", fa: "شخص دیگری این داشبورد را تغییر داده است. آخرین نسخه بارگذاری شد؛ آن را بررسی و دوباره ذخیره کنید." },
+  grantsFailed: { en: "Saved, but sharing couldn't be fully updated", ar: "تم الحفظ، لكن تعذر تحديث المشاركة بالكامل", fa: "ذخیره شد، اما اشتراک‌گذاری به‌طور کامل به‌روز نشد" },
+  noWorkspace: { en: "Select a workspace first", ar: "اختر مساحة عمل أولاً", fa: "ابتدا یک فضای کاری انتخاب کنید" },
+  loading: { en: "Loading…", ar: "جارٍ التحميل…", fa: "در حال بارگذاری…" },
+  notFound: { en: "This dashboard doesn't exist or you don't have access to it.", ar: "هذه اللوحة غير موجودة أو ليس لديك صلاحية الوصول إليها.", fa: "این داشبورد وجود ندارد یا به آن دسترسی ندارید." },
+  builtInReadOnly: { en: "Built-in dashboards can't be edited", ar: "لا يمكن تعديل اللوحات المدمجة", fa: "داشبوردهای داخلی قابل ویرایش نیستند" },
   locAllSites: { en: "All Sites", ar: "جميع المواقع", fa: "همه سایت‌ها" },
   locLoading: { en: "Loading locations…", ar: "جارٍ تحميل المواقع…", fa: "در حال بارگذاری مکان‌ها…" },
   locNone: { en: "No locations defined", ar: "لم يتم تعريف مواقع", fa: "مکانی تعریف نشده است" },
-  // Refresh
-  refManual: { en: "Manual", ar: "يدوي", fa: "دستی" },
-  ref30s: { en: "Every 30 seconds", ar: "كل 30 ثانية", fa: "هر ۳۰ ثانیه" },
-  ref1m: { en: "Every minute", ar: "كل دقيقة", fa: "هر دقیقه" },
-  ref5m: { en: "Every 5 minutes", ar: "كل 5 دقائق", fa: "هر ۵ دقیقه" },
-  ref15m: { en: "Every 15 minutes", ar: "كل 15 دقيقة", fa: "هر ۱۵ دقیقه" },
-  ref1h: { en: "Every hour", ar: "كل ساعة", fa: "هر ساعت" },
-  // Time ranges
-  tr15m: { en: "Last 15 minutes", ar: "آخر 15 دقيقة", fa: "۱۵ دقیقه گذشته" },
-  tr1h: { en: "Last hour", ar: "آخر ساعة", fa: "ساعت گذشته" },
-  tr24h: { en: "Last 24 Hours", ar: "آخر 24 ساعة", fa: "۲۴ ساعت گذشته" },
-  tr7d: { en: "Last 7 Days", ar: "آخر 7 أيام", fa: "۷ روز گذشته" },
-  tr30d: { en: "Last 30 Days", ar: "آخر 30 يوماً", fa: "۳۰ روز گذشته" },
 };
 
-const CATEGORY_KEYS: Array<{ v: string; k: keyof typeof DICT }> = [
-  { v: "Operations", k: "catOperations" },
-  { v: "Utilities", k: "catUtilities" },
-  { v: "AI Analytics", k: "catAIAnalytics" },
-  { v: "Energy", k: "catEnergy" },
-  { v: "Quality", k: "catQuality" },
-  { v: "Safety", k: "catSafety" },
-  { v: "Maintenance", k: "catMaintenance" },
-  { v: "Executive", k: "catExecutive" },
-];
-/** Location value meaning "not tied to one site". */
-const ALL_SITES = "All Sites";
-const REFRESH_KEYS: Array<{ v: string; k: keyof typeof DICT }> = [
-  { v: "Manual", k: "refManual" },
-  { v: "Every 30 seconds", k: "ref30s" },
-  { v: "Every minute", k: "ref1m" },
-  { v: "Every 5 minutes", k: "ref5m" },
-  { v: "Every 15 minutes", k: "ref15m" },
-  { v: "Every hour", k: "ref1h" },
-];
-const TIME_RANGE_KEYS: Array<{ v: string; k: keyof typeof DICT }> = [
-  { v: "Last 15 minutes", k: "tr15m" },
-  { v: "Last hour", k: "tr1h" },
-  { v: "Last 24 Hours", k: "tr24h" },
-  { v: "Last 7 Days", k: "tr7d" },
-  { v: "Last 30 Days", k: "tr30d" },
-];
-const TIMEZONES = ["(UTC) Coordinated Universal Time", "(UTC+03:30) Tehran", "(UTC+03:00) Riyadh", "(UTC-05:00) Eastern Time", "(UTC+01:00) Central European Time"];
+/* Radix Select items can't carry "", so "nothing chosen" gets a sentinel. */
+const NONE = "__none";
+const MANUAL = "__manual";
+const NEW_CATEGORY = "__new";
+
+interface ShareEntry {
+  workspaceMembershipId: string;
+  name: string;
+  permission: DashboardPermission;
+}
 
 interface FormState {
   name: string;
   description: string;
-  category: string;
-  location: string;
+  categoryId: string; // NONE when unset
+  assetId: string; // NONE = all sites
   coverImage: string;
-  access: DashboardItem["access"];
-  shareWith: string[];
-  refreshInterval: string;
-  timeRange: string;
-  timezone: string;
+  visibility: DashboardVisibility;
+  share: ShareEntry[];
+  settings: DashboardSettings;
   tags: string[];
 }
 
 const initial: FormState = {
   name: "",
   description: "",
-  category: "",
-  location: "",
+  categoryId: NONE,
+  assetId: NONE,
   coverImage: "",
-  access: "only_me",
-  shareWith: [],
-  refreshInterval: "Manual",
-  /* A new dashboard opens on the last hour. Anything wider buries a live
-     reading in yesterday's data before you have added a single panel. */
-  timeRange: "Last hour",
-  timezone: "(UTC) Coordinated Universal Time",
+  visibility: "PRIVATE",
+  share: [],
+  settings: DEFAULT_DASHBOARD_SETTINGS,
   tags: [],
+};
+
+const memberName = (m: Pick<WorkspaceMember, "displayName" | "email">) => m.displayName || m.email || "—";
+
+/** Waits `ms` after the last change before handing the value on. */
+const useDebounced = <T,>(value: T, ms: number) => {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), ms);
+    return () => clearTimeout(t);
+  }, [value, ms]);
+  return v;
 };
 
 const SectionHeader = ({ title, optional, optionalLabel, open }: { title: string; optional?: boolean; optionalLabel: string; open: boolean }) => (
@@ -178,53 +192,172 @@ const FieldLabel = ({ children, required, hint, optionalLabel }: { children: Rea
   </Label>
 );
 
+/** Member search + the list of people this dashboard is shared with. */
+const SharePicker = ({
+  workspaceId,
+  value,
+  onChange,
+  tt,
+}: {
+  workspaceId: string;
+  value: ShareEntry[];
+  onChange: (next: ShareEntry[]) => void;
+  tt: (k: keyof typeof DICT) => string;
+}) => {
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const debounced = useDebounced(search.trim(), 300);
+  const { data, isFetching } = useListWorkspaceMembersQuery(workspaceId, debounced, 1, 20, open);
+  const me = getCurrentUserId();
+  const chosen = new Set(value.map((v) => v.workspaceMembershipId));
+  const results = (data?.data ?? []).filter(
+    (m) => m.status === "ACTIVE" && m.userId !== me && !chosen.has(m.workspaceMembershipId),
+  );
+
+  return (
+    <div className="space-y-2">
+      <div className="relative">
+        <Input
+          value={search}
+          placeholder={tt("searchMembers")}
+          onChange={(e) => { setSearch(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+        />
+        {open && (
+          <div className="absolute z-30 mt-1 w-full rounded-md border border-border bg-popover shadow-md max-h-60 overflow-auto">
+            {isFetching && !data ? (
+              <div className="px-3 py-2 text-xs text-muted-foreground">{tt("loading")}</div>
+            ) : results.length === 0 ? (
+              <div className="px-3 py-2 text-xs text-muted-foreground">{tt("noMembers")}</div>
+            ) : (
+              results.map((m) => (
+                <button
+                  key={m.workspaceMembershipId}
+                  type="button"
+                  // mousedown, not click: the input's blur would close the list first.
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    onChange([...value, { workspaceMembershipId: m.workspaceMembershipId, name: memberName(m), permission: "VIEW" }]);
+                    setSearch("");
+                  }}
+                  className="w-full text-start px-3 py-2 hover:bg-muted text-sm"
+                >
+                  <div className="font-medium">{memberName(m)}</div>
+                  {m.email && m.displayName && <div className="text-xs text-muted-foreground">{m.email}</div>}
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+      {value.length > 0 && (
+        <ul className="divide-y divide-border rounded-md border border-border">
+          {value.map((s) => (
+            <li key={s.workspaceMembershipId} className="flex items-center gap-2 px-3 py-1.5">
+              <span className="flex-1 truncate text-sm">{s.name}</span>
+              <Select
+                value={s.permission}
+                onValueChange={(p: DashboardPermission) =>
+                  onChange(value.map((x) => (x.workspaceMembershipId === s.workspaceMembershipId ? { ...x, permission: p } : x)))
+                }
+              >
+                <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="VIEW">{tt("canView")}</SelectItem>
+                  <SelectItem value="EDIT">{tt("canEdit")}</SelectItem>
+                </SelectContent>
+              </Select>
+              <button
+                type="button"
+                aria-label={tt("removeMember")}
+                onClick={() => onChange(value.filter((x) => x.workspaceMembershipId !== s.workspaceMembershipId))}
+                className="p-1 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
 const DashboardForm = () => {
-  const { language, isRTL } = useLanguage();
+  const { language } = useLanguage();
   const lang = (language as Lang) || "en";
   const tt = (k: keyof typeof DICT) => DICT[k][lang] ?? DICT[k].en;
   const navigate = useNavigate();
+  const lp = (p: string) => localizedPath(p, language);
   const params = useParams<{ id?: string; lang?: string }>();
-  const { items, create, update } = useDashboards();
+  const queryClient = useQueryClient();
+  const workspaceId = useWorkspaceId() ?? "";
   const isEdit = !!params.id;
-  const existing = useMemo(() => items.find((i) => i.id === params.id), [items, params.id]);
+  const dashboardId = isEdit && !isBuiltInDashboardId(params.id) ? params.id! : "";
+
+  /* The built-ins are pages of this app with nothing to edit server-side. */
+  useEffect(() => {
+    if (isEdit && isBuiltInDashboardId(params.id)) {
+      toast.info(tt("builtInReadOnly"));
+      navigate(lp("/dashboard"), { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit, params.id]);
+
+  const existingQuery = useGetDashboardQuery(workspaceId, PRODUCT_KEY, dashboardId);
+  const existing = existingQuery.data;
+  const grantsQuery = useListDashboardGrantsQuery(workspaceId, PRODUCT_KEY, dashboardId);
+  // Grants carry only a membership id; names come from the member list.
+  const allMembers = useListWorkspaceMembersQuery(workspaceId, "", 1, 100, isEdit);
+  const categoriesQuery = useListDashboardCategoriesQuery(workspaceId, PRODUCT_KEY);
+  const createCategory = useCreateDashboardCategoryMutation();
+  const createDashboard = useCreateDashboardMutation();
+  const updateDashboard = useUpdateDashboardMutation();
+  const { options: assetLocations, isLoading: locationsLoading } = useAssetLocations();
 
   const [form, setForm] = useState<FormState>(initial);
   const [tagInput, setTagInput] = useState("");
+  const [newCategory, setNewCategory] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [openBasic, setOpenBasic] = useState(true);
   const [openAccess, setOpenAccess] = useState(true);
   const [openAdvanced, setOpenAdvanced] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Same asset tree the device form's location picker reads. Dashboards are
-  // stored locally with the location as its breadcrumb text, so the path is
-  // the value. A saved location that isn't in the tree (e.g. from before this
-  // was connected) stays listed so editing doesn't silently blank it.
-  const { options: assetLocations, isLoading: locationsLoading } = useAssetLocations();
-  const locationOptions = useMemo(() => {
-    const paths = assetLocations.map((l) => l.path);
-    const saved = form.location && form.location !== ALL_SITES && !paths.includes(form.location) ? [form.location] : [];
-    return [ALL_SITES, ...saved, ...paths];
-  }, [assetLocations, form.location]);
-
+  /* Fill the form once per loaded record version, so a refetch after a 409
+     brings in the other person's changes. */
+  const loadedVersion = useRef<string | null>(null);
   useEffect(() => {
-    if (isEdit && existing) {
-      setForm({
-        name: existing.name,
-        description: existing.description || "",
-        category: existing.category || "",
-        location: existing.location || "",
-        coverImage: existing.coverImage || "",
-        access: existing.access,
-        shareWith: existing.shareWith || [],
-        refreshInterval: existing.refreshInterval,
-        timeRange: existing.timeRange,
-        timezone: existing.timezone,
-        tags: existing.tags,
-      });
-    }
-  }, [isEdit, existing]);
+    if (!existing) return;
+    const key = `${existing.id}@${existing.recordVersion}`;
+    if (loadedVersion.current === key) return;
+    loadedVersion.current = key;
+    setForm((f) => ({
+      ...f,
+      name: existing.name,
+      description: existing.description ?? "",
+      categoryId: existing.categoryId ?? NONE,
+      assetId: existing.assetId ?? NONE,
+      coverImage: existing.coverImageUri ?? "",
+      visibility: existing.visibility,
+      settings: { ...DEFAULT_DASHBOARD_SETTINGS, ...existing.definition?.settings },
+    }));
+  }, [existing]);
 
-  const lp = (p: string) => localizedPath(p, language);
+  const nameOf = useMemo(
+    () => new Map((allMembers.data?.data ?? []).map((m) => [m.workspaceMembershipId, memberName(m)])),
+    [allMembers.data],
+  );
+  const grantsLoaded = useRef(false);
+  useEffect(() => {
+    if (!grantsQuery.data || grantsLoaded.current) return;
+    grantsLoaded.current = true;
+    setForm((f) => ({
+      ...f,
+      share: grantsQuery.data.map((g) => ({ workspaceMembershipId: g.workspaceMembershipId, name: "", permission: g.permission })),
+    }));
+  }, [grantsQuery.data]);
 
   const handleImage = (file: File) => {
     if (file.size > 2 * 1024 * 1024) {
@@ -244,31 +377,123 @@ const DashboardForm = () => {
     setTagInput("");
   };
 
-  const handleSubmit = () => {
+  const addCategory = async () => {
+    const name = newCategory?.trim();
+    if (!name || !workspaceId) return;
+    try {
+      const created = await createCategory.mutateAsync({ workspaceId, productKey: PRODUCT_KEY, name });
+      setForm((f) => ({ ...f, categoryId: created.id }));
+      setNewCategory(null);
+      toast.success(tt("categoryCreated"));
+    } catch (e) {
+      toast.error(apiErrorMessage(e, tt("categoryFailed")));
+    }
+  };
+
+  /** The fields the create and update requests share. */
+  const metadata = (definition: DashboardDefinition): CreateDashboardRequest => ({
+    name: form.name.trim(),
+    description: form.description.trim() || null,
+    categoryId: form.categoryId === NONE ? null : form.categoryId,
+    assetId: form.assetId === NONE ? null : form.assetId,
+    /* An uploaded image is only held in the page as a data: URL, which the
+       gateway can't take (coverImageUri is a URI of at most 2048 chars).
+       TODO(backend): upload the file and send the URI it returns. Until then
+       only a URI that was already stored is sent back. */
+    coverImageUri: /^https?:\/\//.test(form.coverImage) ? form.coverImage : null,
+    visibility: form.visibility,
+    definition,
+    // TODO(backend): tags have no field on the dashboard API yet; form.tags is not sent.
+  });
+
+  /** Brings the server's grants in line with the share list. */
+  const syncGrants = async (id: string, before: DashboardGrant[]) => {
+    const was = new Map(before.map((g) => [g.workspaceMembershipId, g.permission]));
+    const now = new Map(form.share.map((s) => [s.workspaceMembershipId, s.permission]));
+    const calls: Promise<unknown>[] = [];
+    now.forEach((permission, member) => {
+      if (was.get(member) !== permission) calls.push(dashboardService.putGrant(workspaceId, PRODUCT_KEY, id, member, permission));
+    });
+    was.forEach((_p, member) => {
+      if (!now.has(member)) calls.push(dashboardService.deleteGrant(workspaceId, PRODUCT_KEY, id, member));
+    });
+    const results = await Promise.allSettled(calls);
+    queryClient.invalidateQueries({ queryKey: dashboardKeys.grants(workspaceId, PRODUCT_KEY, id) });
+    if (results.some((r) => r.status === "rejected")) toast.warning(tt("grantsFailed"));
+  };
+
+  const handleSubmit = async () => {
     if (!form.name.trim()) {
       toast.error(tt("nameRequired"));
       return;
     }
-    /* Saving opens the dashboard, not the list you came from: you came here
-       to build one, and the next thing you want is to look at it. `create`
-       hands back the item it made, so the new one has an id to open. */
-    if (isEdit && existing) {
-      update(existing.id, { ...form });
-      toast.success(tt("dashboardUpdated"));
-      navigate(lp(`/dashboard/${existing.id}`));
-    } else {
-      const created = create({ ...form });
-      toast.success(tt("dashboardCreated"));
-      navigate(lp(`/dashboard/${created.id}`));
+    if (!workspaceId) {
+      toast.error(tt("noWorkspace"));
+      return;
+    }
+    setSaving(true);
+    try {
+      if (isEdit) {
+        if (!existing) return;
+        /* PUT replaces the whole record, definition included. Keep the
+           widgets, sources and layouts exactly as the canvas saved them and
+           change only the settings this form owns. */
+        const definition: DashboardDefinition = {
+          ...emptyDashboardDefinition(form.settings),
+          ...existing.definition,
+          settings: form.settings,
+        };
+        await updateDashboard.mutateAsync({
+          workspaceId,
+          productKey: PRODUCT_KEY,
+          dashboardId: existing.id,
+          recordVersion: existing.recordVersion,
+          ...metadata(definition),
+        });
+        await syncGrants(existing.id, grantsQuery.data ?? []);
+        toast.success(tt("dashboardUpdated"));
+        navigate(lp(`/dashboard/${existing.id}`));
+      } else {
+        /* Created with no widgets; the canvas adds them. Saving opens the
+           dashboard, not the list you came from: you came here to build one. */
+        const created = await createDashboard.mutateAsync({
+          workspaceId,
+          productKey: PRODUCT_KEY,
+          ...metadata(emptyDashboardDefinition(form.settings)),
+        });
+        await syncGrants(created.id, []);
+        toast.success(tt("dashboardCreated"));
+        navigate(lp(`/dashboard/${created.id}`));
+      }
+    } catch (e) {
+      const status = (e as { response?: { status?: number } })?.response?.status;
+      if (status === 409) {
+        toast.error(tt("conflict"));
+        existingQuery.refetch();
+      } else {
+        toast.error(apiErrorMessage(e, tt("saveFailed")));
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
   const optionalLabel = tt("optional");
-  const accessLabel = (v: string) =>
-    v === "only_me" ? tt("onlyMe") :
-    v === "team" ? tt("myTeam") :
-    v === "organization" ? tt("entireOrg") :
-    v === "public" ? tt("publicAccess") : v;
+  const categories = categoriesQuery.data ?? [];
+  const tzValue = timeZoneToValue(form.settings.timeZone);
+  const tzIsCustom = tzValue.startsWith("iana:") && !IANA_ZONES.some((z) => `iana:${z.zoneId}` === tzValue);
+
+  if (isEdit && dashboardId && (existingQuery.isLoading || !workspaceId)) {
+    return <div className="flex items-center gap-2 text-sm text-muted-foreground py-10"><Loader2 className="h-4 w-4 animate-spin" />{tt("loading")}</div>;
+  }
+  if (isEdit && dashboardId && existingQuery.isError) {
+    return (
+      <div className="py-10 space-y-3">
+        <p className="text-sm text-muted-foreground">{tt("notFound")}</p>
+        <Button variant="outline" onClick={() => navigate(lp("/dashboard"))}>{tt("dashboards")}</Button>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -301,6 +526,7 @@ const DashboardForm = () => {
                     <FieldLabel required hint optionalLabel={optionalLabel}>{tt("dashboardName")}</FieldLabel>
                     <Input
                       value={form.name}
+                      maxLength={255}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                       placeholder={tt("enterDashboardName")}
                     />
@@ -309,6 +535,7 @@ const DashboardForm = () => {
                     <FieldLabel hint optionalLabel={optionalLabel}>{tt("description")}</FieldLabel>
                     <Textarea
                       value={form.description}
+                      maxLength={1000}
                       onChange={(e) => setForm({ ...form, description: e.target.value })}
                       placeholder={tt("enterDescription")}
                       rows={3}
@@ -319,25 +546,58 @@ const DashboardForm = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-5">
                   <div>
                     <FieldLabel hint optionalLabel={optionalLabel}>{tt("category")}</FieldLabel>
-                    <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
-                      <SelectTrigger><SelectValue placeholder={tt("selectCategory")} /></SelectTrigger>
-                      <SelectContent>
-                        {CATEGORY_KEYS.map((c) => <SelectItem key={c.v} value={c.v}>{tt(c.k)}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    {newCategory === null ? (
+                      <Select
+                        value={form.categoryId}
+                        onValueChange={(v) => (v === NEW_CATEGORY ? setNewCategory("") : setForm({ ...form, categoryId: v }))}
+                      >
+                        <SelectTrigger><SelectValue placeholder={tt("selectCategory")} /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={NONE}>{tt("noCategory")}</SelectItem>
+                          {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                          <SelectSeparator />
+                          <SelectItem value={NEW_CATEGORY}>
+                            <span className="inline-flex items-center gap-1.5"><Plus className="h-3.5 w-3.5" />{tt("newCategory")}</span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          autoFocus
+                          value={newCategory}
+                          maxLength={255}
+                          placeholder={tt("newCategoryName")}
+                          onChange={(e) => setNewCategory(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") { e.preventDefault(); addCategory(); }
+                            if (e.key === "Escape") setNewCategory(null);
+                          }}
+                        />
+                        <Button type="button" size="sm" className="h-10" onClick={addCategory} disabled={!newCategory.trim() || createCategory.isPending}>
+                          {createCategory.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : tt("add")}
+                        </Button>
+                        <Button type="button" size="sm" variant="ghost" className="h-10 px-2" onClick={() => setNewCategory(null)} aria-label={tt("cancel")}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
+
                   <div>
                     <FieldLabel hint optionalLabel={optionalLabel}>{tt("location")}</FieldLabel>
-                    <Select value={form.location} onValueChange={(v) => setForm({ ...form, location: v })}>
+                    <Select value={form.assetId} onValueChange={(v) => setForm({ ...form, assetId: v })}>
                       <SelectTrigger><SelectValue placeholder={locationsLoading ? tt("locLoading") : tt("selectLocation")} /></SelectTrigger>
                       <SelectContent>
-                        {locationOptions.map((c) => <SelectItem key={c} value={c}>{c === ALL_SITES ? tt("locAllSites") : c}</SelectItem>)}
+                        <SelectItem value={NONE}>{tt("locAllSites")}</SelectItem>
+                        {assetLocations.map((l) => <SelectItem key={l.id} value={l.id}>{l.path}</SelectItem>)}
                         {!locationsLoading && assetLocations.length === 0 && (
                           <div className="px-2 py-1.5 text-xs text-muted-foreground">{tt("locNone")}</div>
                         )}
                       </SelectContent>
                     </Select>
                   </div>
+
                   <div>
                     <FieldLabel hint optionalLabel={optionalLabel}>{tt("coverImage")}</FieldLabel>
                     <input
@@ -379,7 +639,7 @@ const DashboardForm = () => {
         </Card>
 
         {/* Access & Visibility */}
-        <Card className="overflow-hidden">
+        <Card className="overflow-visible">
           <Collapsible open={openAccess} onOpenChange={setOpenAccess}>
             <SectionHeader title={tt("accessVisibility")} optionalLabel={optionalLabel} open={openAccess} />
             <CollapsibleContent>
@@ -387,18 +647,22 @@ const DashboardForm = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
                   <div>
                     <FieldLabel hint optionalLabel={optionalLabel}>{tt("whoCanAccess")}</FieldLabel>
-                    <Select value={form.access} onValueChange={(v: any) => setForm({ ...form, access: v })}>
+                    <Select value={form.visibility} onValueChange={(v: DashboardVisibility) => setForm({ ...form, visibility: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {["only_me", "team", "organization", "public"].map((v) => (
-                          <SelectItem key={v} value={v}>{accessLabel(v)}</SelectItem>
-                        ))}
+                        <SelectItem value="PRIVATE">{tt("visPrivate")}</SelectItem>
+                        <SelectItem value="WORKSPACE_PRODUCT">{tt("visWorkspace")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
                     <FieldLabel hint optionalLabel={optionalLabel}>{tt("shareWith")}</FieldLabel>
-                    <Input placeholder={tt("searchUsersTeams")} disabled />
+                    <SharePicker
+                      workspaceId={workspaceId}
+                      value={form.share.map((s) => ({ ...s, name: s.name || nameOf.get(s.workspaceMembershipId) || s.workspaceMembershipId.slice(0, 8) }))}
+                      onChange={(share) => setForm({ ...form, share })}
+                      tt={tt}
+                    />
                   </div>
                 </div>
               </div>
@@ -415,28 +679,49 @@ const DashboardForm = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-5">
                   <div>
                     <FieldLabel hint optionalLabel={optionalLabel}>{tt("refreshInterval")}</FieldLabel>
-                    <Select value={form.refreshInterval} onValueChange={(v) => setForm({ ...form, refreshInterval: v })}>
+                    <Select
+                      value={form.settings.refreshInterval ?? MANUAL}
+                      onValueChange={(v) => setForm({ ...form, settings: { ...form.settings, refreshInterval: v === MANUAL ? null : v } })}
+                    >
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {REFRESH_KEYS.map((c) => <SelectItem key={c.v} value={c.v}>{tt(c.k)}</SelectItem>)}
+                        {REFRESH_OPTIONS.map((o) => (
+                          <SelectItem key={o.value ?? MANUAL} value={o.value ?? MANUAL}>{o.label[lang]}</SelectItem>
+                        ))}
+                        {form.settings.refreshInterval && !REFRESH_OPTIONS.some((o) => o.value === form.settings.refreshInterval) && (
+                          <SelectItem value={form.settings.refreshInterval}>{form.settings.refreshInterval}</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
                     <FieldLabel hint optionalLabel={optionalLabel}>{tt("timeRange")}</FieldLabel>
-                    <Select value={form.timeRange} onValueChange={(v) => setForm({ ...form, timeRange: v })}>
+                    <Select
+                      value={form.settings.timeWindow.last}
+                      onValueChange={(v) => setForm({ ...form, settings: { ...form.settings, timeWindow: { type: "relative", last: v } } })}
+                    >
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {TIME_RANGE_KEYS.map((c) => <SelectItem key={c.v} value={c.v}>{tt(c.k)}</SelectItem>)}
+                        {TIME_WINDOW_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label[lang]}</SelectItem>)}
+                        {!TIME_WINDOW_OPTIONS.some((o) => o.value === form.settings.timeWindow.last) && (
+                          <SelectItem value={form.settings.timeWindow.last}>{form.settings.timeWindow.last}</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
                     <FieldLabel hint optionalLabel={optionalLabel}>{tt("timezone")}</FieldLabel>
-                    <Select value={form.timezone} onValueChange={(v) => setForm({ ...form, timezone: v })}>
+                    <Select
+                      value={tzValue}
+                      onValueChange={(v) => setForm({ ...form, settings: { ...form.settings, timeZone: valueToTimeZone(v) } })}
+                    >
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {TIMEZONES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        <SelectItem value="workspace">{TIME_ZONE_MODE_LABELS.workspace[lang]}</SelectItem>
+                        <SelectItem value="browser">{TIME_ZONE_MODE_LABELS.browser[lang]}</SelectItem>
+                        <SelectSeparator />
+                        {IANA_ZONES.map((z) => <SelectItem key={z.zoneId} value={`iana:${z.zoneId}`}>{z.label[lang]}</SelectItem>)}
+                        {tzIsCustom && <SelectItem value={tzValue}>{tzValue.slice(5)}</SelectItem>}
                       </SelectContent>
                     </Select>
                   </div>
@@ -472,13 +757,15 @@ const DashboardForm = () => {
             </CollapsibleContent>
           </Collapsible>
         </Card>
-
       </div>
 
       <div className="sticky bottom-0 -mx-4 lg:-mx-6 mt-6 bg-background/95 backdrop-blur border-t border-border z-20 px-4 lg:px-6 py-3">
         <div className="flex items-center justify-end gap-3">
-          <Button variant="outline" onClick={() => navigate(lp("/dashboard"))}>{tt("cancel")}</Button>
-          <Button onClick={handleSubmit} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+          <Button variant="outline" onClick={() => navigate(lp(isEdit && dashboardId ? `/dashboard/${dashboardId}` : "/dashboard"))} disabled={saving}>
+            {tt("cancel")}
+          </Button>
+          <Button onClick={handleSubmit} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            {saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
             {isEdit ? tt("saveChanges") : tt("createDashboard")}
           </Button>
         </div>

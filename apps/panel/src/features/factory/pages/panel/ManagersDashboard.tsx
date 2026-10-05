@@ -720,14 +720,8 @@ const ManagersDashboard = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" onClick={() => navigate(lp(`/dashboard/${AI_MANAGERS_DASHBOARD_ID}/edit`))} aria-label={t("editSettings")}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{t("editSettings")}</TooltipContent>
-              </Tooltip>
+              {/* No "edit settings" button: the built-in dashboards are pages of
+                  this app, not stored dashboards, so there is nothing to edit. */}
 
             </div>
           </TooltipProvider></>
