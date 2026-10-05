@@ -3,6 +3,10 @@ import type { WidgetRenderProps, WidgetRenderer } from "./types";
 import { TimeseriesChartWidget } from "./TimeseriesChartWidget";
 import { BarChartWidget } from "./BarChartWidget";
 import { KpiWidget } from "./KpiWidget";
+import { GaugeWidget } from "./GaugeWidget";
+import { DeviceTableWidget } from "./DeviceTableWidget";
+import { DeviceMapWidget } from "./DeviceMapWidget";
+import { DonutChartWidget } from "./DonutChartWidget";
 
 export type { WidgetRenderProps, WidgetRenderer } from "./types";
 
@@ -15,6 +19,10 @@ export const WIDGET_RENDERERS: Record<string, WidgetRenderer> = {
   "timeseries-chart": TimeseriesChartWidget,
   "bar-chart": BarChartWidget,
   kpi: KpiWidget,
+  gauge: GaugeWidget,
+  "device-table": DeviceTableWidget,
+  "device-map": DeviceMapWidget,
+  "donut-chart": DonutChartWidget,
 };
 
 const T = {

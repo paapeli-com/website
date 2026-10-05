@@ -56,6 +56,8 @@ export interface WidgetDataItem {
     key: string;
     label?: string;
     unit?: string;
+    /** Slice colour, for widgets whose data schema has one. */
+    color?: string;
 }
 
 /** An instance of a widget definition placed on a dashboard. */

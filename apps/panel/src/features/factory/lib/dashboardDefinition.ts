@@ -198,6 +198,23 @@ export const ensureDeviceSource = (
 };
 
 /** Drops data sources no widget reads any more. */
+/** Which devices a count covers: every one, the active ones, or the inactive ones. */
+export type DeviceCountState = "all" | "active" | "inactive";
+
+/** The key of the workspace-wide device-count source for `state`, adding one if there is none. */
+export const ensureCountSource = (def: DashboardDefinition, state: DeviceCountState): [DashboardDefinition, string] => {
+  const active = state === "all" ? undefined : state === "active";
+  const existing = Object.entries(def.dataSources).find(
+    ([, s]) => s.type === "deviceCount" && s.active === active && !s.deviceTypeId && !s.assetId,
+  );
+  if (existing) return [def, existing[0]];
+  const base = `devices-${state}`;
+  let key = base;
+  for (let i = 2; def.dataSources[key]; i++) key = `${base}-${i}`;
+  const source = active === undefined ? { type: "deviceCount" as const } : { type: "deviceCount" as const, active };
+  return [{ ...def, dataSources: { ...def.dataSources, [key]: source } }, key];
+};
+
 export const pruneDataSources = (def: DashboardDefinition): DashboardDefinition => {
   const used = new Set(def.widgets.flatMap((w) => w.data.map((d) => d.source)));
   const dataSources = Object.fromEntries(Object.entries(def.dataSources).filter(([k]) => used.has(k)));

@@ -18,7 +18,14 @@ import { useDevices } from "@/features/factory/hooks/useDevices";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { TIME_WINDOW_OPTIONS } from "@/features/factory/lib/dashboardSettings";
-import { compact, ensureDeviceSource, replaceWidget, validateWidget } from "@/features/factory/lib/dashboardDefinition";
+import {
+  compact,
+  ensureCountSource,
+  ensureDeviceSource,
+  replaceWidget,
+  validateWidget,
+  type DeviceCountState,
+} from "@/features/factory/lib/dashboardDefinition";
 import type { WidgetLang } from "./widgets/types";
 
 const T = {
@@ -35,6 +42,14 @@ const T = {
   unit: { en: "Unit", ar: "الوحدة", fa: "واحد" },
   addSeries: { en: "Add series", ar: "إضافة سلسلة", fa: "افزودن سری" },
   removeSeries: { en: "Remove series", ar: "إزالة السلسلة", fa: "حذف سری" },
+  sourceKind: { en: "Source", ar: "المصدر", fa: "منبع" },
+  kindTelemetry: { en: "Device telemetry", ar: "قياسات جهاز", fa: "تله‌متری دستگاه" },
+  kindCount: { en: "Number of devices", ar: "عدد الأجهزة", fa: "تعداد دستگاه‌ها" },
+  countOf: { en: "Devices counted", ar: "الأجهزة المحسوبة", fa: "دستگاه‌های شمرده‌شده" },
+  countAll: { en: "All devices", ar: "كل الأجهزة", fa: "همه دستگاه‌ها" },
+  countActive: { en: "Online devices", ar: "الأجهزة المتصلة", fa: "دستگاه‌های آنلاین" },
+  countInactive: { en: "Offline devices", ar: "الأجهزة غير المتصلة", fa: "دستگاه‌های آفلاین" },
+  color: { en: "Color", ar: "اللون", fa: "رنگ" },
   querySource: { en: "Device query source", ar: "مصدر استعلام الأجهزة", fa: "منبع جستجوی دستگاه" },
   timeWindow: { en: "Time range", ar: "النطاق الزمني", fa: "بازه زمانی" },
   useDashboard: { en: "Same as the dashboard", ar: "مثل اللوحة", fa: "مانند داشبورد" },
@@ -59,10 +74,25 @@ interface SeriesRow {
   key: string;
   label: string;
   unit: string;
+  /** Set when the row is a device count rather than a device's telemetry. */
+  count?: DeviceCountState;
+  color: string;
 }
 
 let rowSeq = 0;
-const newRow = (partial: Partial<SeriesRow> = {}): SeriesRow => ({ rowId: `r${++rowSeq}`, key: "", label: "", unit: "", ...partial });
+const newRow = (partial: Partial<SeriesRow> = {}): SeriesRow => ({ rowId: `r${++rowSeq}`, key: "", label: "", unit: "", color: "", ...partial });
+
+/** What a widget type's rows may hold, read from its definition. */
+interface RowShape {
+  /** The data schema has a telemetry key. */
+  keyed: boolean;
+  hasUnit: boolean;
+  hasColor: boolean;
+  allowDevice: boolean;
+  allowCount: boolean;
+}
+
+const COUNT_LABEL = { all: "countAll", active: "countActive", inactive: "countInactive" } as const;
 
 /* ---------------- schema-driven options form ---------------- */
 
@@ -205,8 +235,10 @@ function SeriesEditor({
   onRemove,
   canRemove,
   lang,
+  shape,
 }: {
   row: SeriesRow;
+  shape: RowShape;
   devices: { id: string; name: string }[];
   onChange: (r: SeriesRow) => void;
   onRemove: () => void;
@@ -214,6 +246,7 @@ function SeriesEditor({
   lang: WidgetLang;
 }) {
   const workspaceId = useWorkspaceId() ?? "";
+  const isCount = row.count !== undefined;
   const keysQuery = useDeviceTelemetryKeysQuery(workspaceId, PRODUCT_KEY, row.deviceId ?? "");
   const keys = useMemo(() => {
     const list = [...(keysQuery.data ?? [])].sort();
@@ -222,7 +255,42 @@ function SeriesEditor({
 
   return (
     <div className="rounded-md border border-border p-3 space-y-3">
-      {row.otherSource ? (
+      {shape.allowDevice && shape.allowCount && !row.otherSource && (
+        <div className="space-y-1.5">
+          <Label className="text-xs">{tr("sourceKind", lang)}</Label>
+          <Select
+            value={isCount ? "count" : "device"}
+            onValueChange={(v) => onChange(v === "count" ? { ...row, count: "all", deviceId: undefined, key: "" } : { ...row, count: undefined })}
+          >
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="device">{tr("kindTelemetry", lang)}</SelectItem>
+              <SelectItem value="count">{tr("kindCount", lang)}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      {isCount ? (
+        <div className="space-y-1.5">
+          <Label className="text-xs">{tr("countOf", lang)}</Label>
+          <Select
+            value={row.count}
+            onValueChange={(v) => {
+              const count = v as DeviceCountState;
+              const auto = Object.values(COUNT_LABEL).map((k) => tr(k, lang));
+              // Follow the choice with the label unless the user wrote their own.
+              onChange({ ...row, count, label: !row.label || auto.includes(row.label) ? tr(COUNT_LABEL[count], lang) : row.label });
+            }}
+          >
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{tr("countAll", lang)}</SelectItem>
+              <SelectItem value="active">{tr("countActive", lang)}</SelectItem>
+              <SelectItem value="inactive">{tr("countInactive", lang)}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      ) : row.otherSource ? (
         <div className="text-xs text-muted-foreground">
           {tr("querySource", lang)}: <span className="font-mono">{row.otherSource}</span>
         </div>
@@ -237,6 +305,7 @@ function SeriesEditor({
           </Select>
         </div>
       )}
+      {shape.keyed && !isCount && (
       <div className="space-y-1.5">
         <Label className="text-xs">{tr("key", lang)}</Label>
         {row.otherSource ? (
@@ -259,15 +328,24 @@ function SeriesEditor({
           </Select>
         )}
       </div>
-      <div className="grid grid-cols-[1fr_6rem] gap-2">
+      )}
+      <div className={shape.hasUnit || shape.hasColor ? "grid grid-cols-[1fr_6rem] gap-2" : ""}>
         <div className="space-y-1.5">
           <Label className="text-xs">{tr("label", lang)}</Label>
           <Input className="h-9" value={row.label} onChange={(e) => onChange({ ...row, label: e.target.value })} />
         </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">{tr("unit", lang)}</Label>
-          <Input className="h-9" value={row.unit} onChange={(e) => onChange({ ...row, unit: e.target.value })} />
-        </div>
+        {shape.hasUnit && (
+          <div className="space-y-1.5">
+            <Label className="text-xs">{tr("unit", lang)}</Label>
+            <Input className="h-9" value={row.unit} onChange={(e) => onChange({ ...row, unit: e.target.value })} />
+          </div>
+        )}
+        {shape.hasColor && !shape.hasUnit && (
+          <div className="space-y-1.5">
+            <Label className="text-xs">{tr("color", lang)}</Label>
+            <Input type="color" className="h-9 p-1" value={row.color || "#0077B6"} onChange={(e) => onChange({ ...row, color: e.target.value.toUpperCase() })} />
+          </div>
+        )}
       </div>
       {canRemove && (
         <div className="flex justify-end">
@@ -304,21 +382,40 @@ export function WidgetConfigSheet({ open, onOpenChange, widget, definition, dash
   const [options, setOptions] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<string[]>([]);
 
+  const itemProps = (definition?.dataSchema as JsonSchema | undefined)?.items?.properties ?? {};
+  const sourceTypes = (definition?.capabilities?.supportedDataSourceTypes as string[] | undefined) ?? ["device"];
+  const shape: RowShape = {
+    keyed: "key" in itemProps,
+    hasUnit: "unit" in itemProps,
+    hasColor: "color" in itemProps,
+    allowDevice: sourceTypes.includes("device") || sourceTypes.includes("deviceQuery"),
+    allowCount: sourceTypes.includes("deviceCount"),
+  };
+  const countRow = (count: DeviceCountState) => newRow({ count, label: tr(COUNT_LABEL[count], lang) });
+  /* A widget that only counts devices opens on the usual comparison, online
+     against offline, instead of on an empty form. */
+  const startingRows = () => (shape.allowDevice ? [newRow()] : [countRow("active"), countRow("inactive")]);
+
   // Load the widget into the draft each time the sheet opens on it.
   useEffect(() => {
     if (!open || !widget) return;
     setTitle(widget.title);
     const loaded = widget.data.map((d) => {
       const src = dashboard.dataSources[d.source];
+      // A workspace-wide count is edited as a choice; a count narrowed by type
+      // or asset has no picker here yet and is kept as it is.
+      const plainCount = src?.type === "deviceCount" && !src.deviceTypeId && !src.assetId;
       return newRow({
         deviceId: src?.type === "device" ? src.deviceId : undefined,
-        otherSource: src && src.type !== "device" ? d.source : undefined,
-        key: d.key,
+        count: plainCount ? (src.active === true ? "active" : src.active === false ? "inactive" : "all") : undefined,
+        otherSource: src && src.type !== "device" && !plainCount ? d.source : undefined,
+        color: d.color ?? "",
+        key: d.key ?? "",
         label: d.label ?? "",
         unit: d.unit ?? "",
       });
     });
-    setRows(loaded.length ? loaded : [newRow()]);
+    setRows(loaded.length ? loaded : startingRows());
     setWindowValue(widget.timeWindow?.type === "relative" ? widget.timeWindow.last : DASHBOARD_WINDOW);
     setOptions({ ...(definition?.defaultConfiguration ?? {}), ...(widget.options ?? {}) });
     setErrors([]);
@@ -334,15 +431,30 @@ export function WidgetConfigSheet({ open, onOpenChange, widget, definition, dash
 
   const apply = () => {
     // Rows with nothing chosen yet are dropped rather than sent half-filled.
-    const filled = rows.filter((r) => (r.deviceId || r.otherSource) && r.key.trim());
+    const filled = rows.filter((r) => r.count !== undefined || ((r.deviceId || r.otherSource) && (!shape.keyed || r.key.trim())));
     let next = dashboard;
     const data = filled.map((r) => {
       let source = r.otherSource ?? "";
+      if (r.count !== undefined) {
+        [next, source] = ensureCountSource(next, r.count);
+        return compact({
+          source,
+          label: r.label.trim(),
+          unit: shape.hasUnit ? r.unit.trim() : "",
+          color: shape.hasColor ? r.color : "",
+        }) as DashboardWidget["data"][number];
+      }
       if (r.deviceId) {
         const name = devices.find((d) => d.id === r.deviceId)?.name ?? r.deviceId;
         [next, source] = ensureDeviceSource(next, r.deviceId, name);
       }
-      return compact({ source, key: r.key.trim(), label: r.label.trim(), unit: r.unit.trim() }) as DashboardWidget["data"][number];
+      return compact({
+        source,
+        key: shape.keyed ? r.key.trim() : "",
+        label: r.label.trim(),
+        unit: shape.hasUnit ? r.unit.trim() : "",
+        color: shape.hasColor ? r.color : "",
+      }) as DashboardWidget["data"][number];
     });
     const updated: DashboardWidget = {
       ...widget,
@@ -381,6 +493,7 @@ export function WidgetConfigSheet({ open, onOpenChange, widget, definition, dash
                 key={r.rowId}
                 row={r}
                 devices={devices}
+                shape={shape}
                 lang={lang}
                 canRemove={rows.length > 1}
                 onChange={(nr) => setRows((prev) => prev.map((x) => (x.rowId === r.rowId ? nr : x)))}
@@ -388,7 +501,7 @@ export function WidgetConfigSheet({ open, onOpenChange, widget, definition, dash
               />
             ))}
             {multiple && (
-              <Button type="button" variant="outline" size="sm" onClick={() => setRows((prev) => [...prev, newRow({ deviceId: prev[prev.length - 1]?.deviceId })])}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setRows((prev) => [...prev, shape.allowDevice ? newRow({ deviceId: prev[prev.length - 1]?.deviceId }) : countRow("all")])}>
                 <Plus className="h-3.5 w-3.5 me-1" />{tr("addSeries", lang)}
               </Button>
             )}
