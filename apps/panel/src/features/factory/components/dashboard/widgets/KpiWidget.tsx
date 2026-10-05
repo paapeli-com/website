@@ -31,7 +31,7 @@ const numberFormat = new Intl.NumberFormat("en", { maximumFractionDigits: 2 });
  * threshold. Equal, missing and non-numeric values keep the base colours, and
  * a missing value reads as a dash.
  */
-export function KpiWidget({ widget, dataSources, lang }: WidgetRenderProps) {
+export function KpiWidget({ widget, dataSources, window: [, refreshedAt], lang }: WidgetRenderProps) {
   const workspaceId = useWorkspaceId() ?? "";
   const options = (widget.options ?? {}) as Options;
   const item = widget.data[0];
@@ -41,7 +41,8 @@ export function KpiWidget({ widget, dataSources, lang }: WidgetRenderProps) {
   const isCount = source?.type === "deviceCount";
 
   const query = useQuery({
-    queryKey: ["kpi", workspaceId, PRODUCT_KEY, source, item?.key],
+    // The window's end moves on every dashboard refresh; keying on it re-reads then.
+    queryKey: ["kpi", workspaceId, PRODUCT_KEY, source, item?.key, refreshedAt],
     queryFn: async (): Promise<unknown> => {
       if (source?.type === "device") {
         const latest = await telemetryService.getLatest(workspaceId, PRODUCT_KEY, source.deviceId, [item.key]);

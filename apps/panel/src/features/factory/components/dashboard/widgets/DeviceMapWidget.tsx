@@ -26,7 +26,7 @@ type Options = { latitudeKey?: string; longitudeKey?: string; showLabels?: boole
  * keys named in the widget's options. A device that has reported neither key
  * is left off the map.
  */
-export function DeviceMapWidget({ widget, dataSources, lang }: WidgetRenderProps) {
+export function DeviceMapWidget({ widget, dataSources, window: [, refreshedAt], lang }: WidgetRenderProps) {
   const workspaceId = useWorkspaceId() ?? "";
   const options = (widget.options ?? {}) as Options;
   const latitudeKey = options.latitudeKey?.trim() || "latitude";
@@ -45,7 +45,8 @@ export function DeviceMapWidget({ widget, dataSources, lang }: WidgetRenderProps
 
   const results = useQueries({
     queries: bound.map(({ deviceId }) => ({
-      queryKey: ["telemetryLatest", workspaceId, PRODUCT_KEY, deviceId, `${latitudeKey},${longitudeKey}`],
+      // The window's end moves on every dashboard refresh; keying on it re-reads then.
+      queryKey: ["telemetryLatest", workspaceId, PRODUCT_KEY, deviceId, `${latitudeKey},${longitudeKey}`, refreshedAt],
       queryFn: () => telemetryService.getLatest(workspaceId, PRODUCT_KEY, deviceId, [latitudeKey, longitudeKey]),
       enabled: !!workspaceId,
       placeholderData: (prev: unknown) => prev,

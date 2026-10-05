@@ -22,7 +22,7 @@ type Options = { showLegend?: boolean; showTotal?: boolean };
  * a share of the total, with GET /devices/{ws}/{pk}/count resolving each one.
  * A slice whose count is zero stays in the legend and draws no arc.
  */
-export function DonutChartWidget({ widget, dataSources, lang }: WidgetRenderProps) {
+export function DonutChartWidget({ widget, dataSources, window: [, refreshedAt], lang }: WidgetRenderProps) {
   const workspaceId = useWorkspaceId() ?? "";
   const options = (widget.options ?? {}) as Options;
 
@@ -35,7 +35,8 @@ export function DonutChartWidget({ widget, dataSources, lang }: WidgetRenderProp
 
   const results = useQueries({
     queries: slices.map((s) => ({
-      queryKey: ["deviceCount", workspaceId, PRODUCT_KEY, s.filters],
+      // The window's end moves on every dashboard refresh; keying on it re-reads then.
+      queryKey: ["deviceCount", workspaceId, PRODUCT_KEY, s.filters, refreshedAt],
       queryFn: () => countDevices(workspaceId, PRODUCT_KEY, s.filters),
       enabled: !!workspaceId,
       placeholderData: (prev: unknown) => prev,

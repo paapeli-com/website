@@ -35,7 +35,7 @@ const cut = (r: number, from: number, to: number) => ({
  * order. A value outside the scale is drawn at the nearest end but written as
  * it is. `max <= min` is an empty scale, as the gateway's definition says.
  */
-export function GaugeWidget({ widget, dataSources, lang }: WidgetRenderProps) {
+export function GaugeWidget({ widget, dataSources, window: [, refreshedAt], lang }: WidgetRenderProps) {
   const workspaceId = useWorkspaceId() ?? "";
   const options = (widget.options ?? {}) as Options;
   const item = widget.data[0];
@@ -43,7 +43,8 @@ export function GaugeWidget({ widget, dataSources, lang }: WidgetRenderProps) {
   const deviceId = source?.type === "device" ? source.deviceId : "";
 
   const query = useQuery({
-    queryKey: ["gauge", workspaceId, PRODUCT_KEY, deviceId, item?.key],
+    // The window's end moves on every dashboard refresh; keying on it re-reads then.
+    queryKey: ["gauge", workspaceId, PRODUCT_KEY, deviceId, item?.key, refreshedAt],
     queryFn: async () => (await telemetryService.getLatest(workspaceId, PRODUCT_KEY, deviceId, [item.key]))[item.key]?.[0]?.value,
     enabled: !!workspaceId && !!deviceId && !!item?.key,
     // Keep the last value on screen while it refreshes.
