@@ -160,6 +160,7 @@ const WorkOrderDetails = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {wo.source === "ALARM" && <Badge variant="outline">{t("woSourceAlarm")}</Badge>}
           <Badge className={PRIORITY_BADGE[wo.priority]}>{priorityLabel(wo.priority)}</Badge>
           <Badge className={STATUS_BADGE[wo.status]}>{statusLabel(wo.status)}</Badge>
         </div>
@@ -175,7 +176,7 @@ const WorkOrderDetails = () => {
             <Row label={t("priorityLabel")} value={<Badge className={PRIORITY_BADGE[wo.priority]}>{priorityLabel(wo.priority)}</Badge>} />
             <Row label={t("status")} value={<Badge className={STATUS_BADGE[wo.status]}>{statusLabel(wo.status)}</Badge>} />
             <Row label={t("assignedTeam")} value={teamLabel(wo.assignedTeam)} />
-            <Row label={t("createdByLabel")} value={wo.createdBy === "You" ? t("you") : wo.createdBy} />
+            <Row label={t("createdByLabel")} value={wo.source === "ALARM" && !wo.createdBy ? t("woSourceAlarm") : wo.createdBy === "You" ? t("you") : wo.createdBy} />
             <Row label={t("createdAt")} value={formatDateTime(wo.createdAt, language)} />
             {wo.anomalyId && (
               <Row

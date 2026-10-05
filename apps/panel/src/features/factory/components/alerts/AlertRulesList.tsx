@@ -14,7 +14,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/features/factory/components/ui/alert-dialog";
-import { Trash2, Copy, Zap, Clock, Repeat, Download } from "lucide-react";
+import { Trash2, Copy, Zap, Clock, Repeat, Download, ClipboardList } from "lucide-react";
+import { RuleWorkOrderDialog } from "@/features/factory/components/alerts/RuleWorkOrderDialog";
 import { AlertTemplates } from "@/features/factory/components/alerts/AlertTemplates";
 import { SectionHead } from "@/features/factory/components/alerts/AlertSection";
 import { NoData } from "@/features/factory/components/NoData";
@@ -157,6 +158,7 @@ export const AlertRulesList = ({
 
   const deleteRule = useDeleteAlarmRuleMutation();
   const [confirmDelete, setConfirmDelete] = useState<RuleRow | null>(null);
+  const [workOrderRule, setWorkOrderRule] = useState<RuleRow | null>(null);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -320,7 +322,7 @@ export const AlertRulesList = ({
               <TableHead>{tt("alertSeverity")}</TableHead>
               <TableHead className="hidden lg:table-cell">{tt("alertRuleDevice")}</TableHead>
               <TableHead>{tt("status")}</TableHead>
-              <TableHead className="w-[80px] text-end">{tt("actions")}</TableHead>
+              <TableHead className="w-[112px] text-end">{tt("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -378,6 +380,17 @@ export const AlertRulesList = ({
                       <Button
                         variant="ghost"
                         size="icon"
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={() => setWorkOrderRule(rule)}
+                        disabled={rule.state !== "ACTIVE"}
+                        aria-label={tt("ruleWorkOrderTitle")}
+                        title={tt("ruleWorkOrderTitle")}
+                      >
+                        <ClipboardList className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="text-muted-foreground hover:text-destructive"
                         onClick={() => setConfirmDelete(rule)}
                         disabled={rule.state === "DELETING"}
@@ -402,6 +415,8 @@ export const AlertRulesList = ({
 
         </CardContent>
       </Card>
+
+      <RuleWorkOrderDialog rule={workOrderRule} onClose={() => setWorkOrderRule(null)} />
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => { if (!o) setConfirmDelete(null); }}>
         <AlertDialogContent dir={isRTL ? "rtl" : "ltr"}>
