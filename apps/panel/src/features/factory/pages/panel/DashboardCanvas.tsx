@@ -74,13 +74,20 @@ import {
 } from "@/features/factory/components/ui/alert-dialog";
 import {
   ArrowLeft,
+  BarChart3,
   Calendar,
   ChevronDown,
   ChevronUp,
+  Gauge,
   GripVertical,
   LayoutGrid,
+  LineChart,
   Loader2,
+  type LucideIcon,
+  Map as MapIcon,
   Maximize2,
+  PieChart,
+  Table as TableIcon,
   Minimize2,
   Pencil,
   Plus,
@@ -145,6 +152,24 @@ const ROW_H = 84;
 const GAP = 12;
 const ADD_TILE = { w: 4, h: 2 };
 const CUSTOM = "__custom";
+
+/* The Add Widget menu: an icon per widget type, in the order people reach for
+   them. A type the panel has no icon or rank for still appears, at the end,
+   with the generic grid icon. */
+const WIDGET_ICONS: Record<string, LucideIcon> = {
+  kpi: Gauge,
+  "timeseries-chart": LineChart,
+  "bar-chart": BarChart3,
+  "donut-chart": PieChart,
+  gauge: Gauge,
+  "device-table": TableIcon,
+  "device-map": MapIcon,
+};
+const WIDGET_ORDER = Object.keys(WIDGET_ICONS);
+const widgetRank = (type: string) => {
+  const i = WIDGET_ORDER.indexOf(type);
+  return i < 0 ? WIDGET_ORDER.length : i;
+};
 
 const colLeft = (x: number) => `calc((100% - ${GAP * (DESKTOP_COLS - 1)}px) / ${DESKTOP_COLS} * ${x} + ${GAP * x}px)`;
 const colWidth = (w: number) => `calc((100% - ${GAP * (DESKTOP_COLS - 1)}px) / ${DESKTOP_COLS} * ${w} + ${GAP * (w - 1)}px)`;
@@ -390,22 +415,18 @@ const DashboardCanvas = () => {
     if (defsQuery.isLoading) return <div className="px-2 py-1.5 text-xs text-muted-foreground">{tt("loadingWidgets")}</div>;
     if (defsQuery.isError) return <div className="px-2 py-1.5 text-xs text-destructive">{tt("widgetTypesFailed")}</div>;
     if (creatable.length === 0) return <div className="px-2 py-1.5 text-xs text-muted-foreground">{tt("noWidgetTypes")}</div>;
-    const byCategory = new Map<string, WidgetDefinition[]>();
-    creatable.forEach((d) => byCategory.set(d.category || "", [...(byCategory.get(d.category || "") ?? []), d]));
-    return [...byCategory.entries()].map(([cat, list], i) => (
-      <div key={cat || i}>
-        {cat && <DropdownMenuLabel className="text-xs text-muted-foreground">{cat}</DropdownMenuLabel>}
-        {list.map((d) => (
-          <DropdownMenuItem key={d.id} onClick={() => add(d, at)} className="flex-col items-start gap-0.5">
-            <span className="flex items-center gap-2 text-sm">
-              {d.iconUri ? <img src={d.iconUri} alt="" className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
-              {d.name}
-            </span>
-            {d.description && <span className="text-xs text-muted-foreground ps-6">{d.description}</span>}
-          </DropdownMenuItem>
-        ))}
-      </div>
-    ));
+    // One flat list, an icon and a name per type: no category headings and no
+    // descriptions, which made a three-item menu read like a page.
+    const ordered = [...creatable].sort((a, b) => widgetRank(a.type) - widgetRank(b.type));
+    return ordered.map((d) => {
+      const Icon = WIDGET_ICONS[d.type] ?? LayoutGrid;
+      return (
+        <DropdownMenuItem key={d.id} onClick={() => add(d, at)} className="gap-2.5 text-sm">
+          {d.iconUri ? <img src={d.iconUri} alt="" className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+          {d.name}
+        </DropdownMenuItem>
+      );
+    });
   };
 
   /* ---------------- render ---------------- */
