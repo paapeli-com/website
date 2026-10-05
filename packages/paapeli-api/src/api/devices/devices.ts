@@ -190,3 +190,24 @@ export const deviceService = {
         return data;
     },
 };
+
+
+export interface DeviceCountFilters {
+    deviceTypeId?: string;
+    assetId?: string;
+    includeDescendants?: boolean;
+    active?: boolean;
+}
+
+/** How many devices the workspace product has, optionally narrowed by type, asset and state. */
+export async function countDevices(
+    workspaceId: string,
+    productKey: string,
+    filters: DeviceCountFilters = {},
+): Promise<number> {
+    const { data } = await napiHttpHandler.get<{ count: number }>(
+        `/api/v1/aiot/devices/${workspaceId}/${productKey}/count`,
+        { ...filters },
+    );
+    return data.count;
+}

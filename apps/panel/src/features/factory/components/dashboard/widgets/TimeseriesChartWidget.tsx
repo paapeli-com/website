@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { telemetryService, type TelemetryPoint } from "@paapeli/api";
 import {
@@ -16,6 +16,7 @@ import { apiErrorMessage } from "@/shared/lib/apiError";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { fmtDateTime, fmtTimeTick, noDataSpans, toNumber } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
+import { AXIS_TEXT, Hint, SERIES_COLORS, compactNumber, useBoxSize } from "./chartKit";
 import type { WidgetRenderProps } from "./types";
 
 const T = {
@@ -27,44 +28,12 @@ const T = {
   queryUnsupported: { en: "Device-query sources aren't available yet", ar: "مصادر استعلام الأجهزة غير متاحة بعد", fa: "منبع «جستجوی دستگاه» هنوز در دسترس نیست" },
 };
 
-const SERIES_COLORS = ["hsl(var(--primary))", "#0077B6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#64748b"];
-const AXIS_TEXT = { fontSize: 10, fill: "hsl(var(--muted-foreground))" };
-const compactNumber = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
 // ReferenceArea renders these SVG props, but Recharts 3's typings drop them.
 const NO_DATA_FILL = { fill: "hsl(var(--muted-foreground))", fillOpacity: 0.08, stroke: "none" } as Record<string, unknown>;
 const SELECTION_FILL = { fill: "hsl(var(--primary))", fillOpacity: 0.15, stroke: "hsl(var(--primary))", strokeOpacity: 0.4 } as Record<string, unknown>;
 /** Points asked for per key; enough for a smooth line over any window offered. */
 const POINT_LIMIT = 5000;
 
-/**
- * The element's content size, once it has one. Charts are drawn at this exact
- * size instead of through ResponsiveContainer, whose first render uses a -1×-1
- * placeholder and logs a size warning for every chart it mounts.
- */
-function useBoxSize<T extends HTMLElement>() {
-  // A callback ref (element in state), so observing starts whenever the element
-  // mounts — including after an early-return hint is replaced by the chart.
-  const [el, ref] = useState<T | null>(null);
-  const [size, setSize] = useState<{ width: number; height: number } | null>(null);
-  useEffect(() => {
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const update = (width: number, height: number) => {
-      const w = Math.floor(width);
-      const h = Math.floor(height);
-      setSize((prev) => (w > 0 && h > 0 ? (prev?.width === w && prev?.height === h ? prev : { width: w, height: h }) : null));
-    };
-    const rect = el.getBoundingClientRect();
-    update(rect.width, rect.height);
-    const observer = new ResizeObserver(([entry]) => entry && update(entry.contentRect.width, entry.contentRect.height));
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [el]);
-  return [ref, size] as const;
-}
-
-const Hint = ({ children }: { children: React.ReactNode }) => (
-  <div className="h-full w-full flex items-center justify-center text-center text-xs text-muted-foreground px-3">{children}</div>
-);
 
 type Options = { showLegend?: boolean; yAxis?: { min?: number; max?: number } };
 

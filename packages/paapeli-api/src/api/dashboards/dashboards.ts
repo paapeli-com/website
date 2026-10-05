@@ -37,7 +37,17 @@ export interface DeviceQueryDataSource {
     assetId?: string;
     includeDescendants?: boolean;
 }
-export type DashboardDataSource = DeviceDataSource | DeviceQueryDataSource;
+/** A current count of devices; every filter is optional. Feeds the KPI widget. */
+export interface DeviceCountDataSource {
+    type: 'deviceCount';
+    deviceTypeId?: string;
+    assetId?: string;
+    /** Only meaningful with an assetId. */
+    includeDescendants?: boolean;
+    /** true: active only, false: inactive only, omitted: all. */
+    active?: boolean;
+}
+export type DashboardDataSource = DeviceDataSource | DeviceQueryDataSource | DeviceCountDataSource;
 export type DashboardDataSourceType = DashboardDataSource['type'];
 
 /** One series a widget reads: `key` of the data source named by `source`. */

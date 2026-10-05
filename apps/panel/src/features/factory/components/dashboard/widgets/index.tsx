@@ -1,6 +1,8 @@
 import { TriangleAlert } from "lucide-react";
 import type { WidgetRenderProps, WidgetRenderer } from "./types";
 import { TimeseriesChartWidget } from "./TimeseriesChartWidget";
+import { BarChartWidget } from "./BarChartWidget";
+import { KpiWidget } from "./KpiWidget";
 
 export type { WidgetRenderProps, WidgetRenderer } from "./types";
 
@@ -11,6 +13,8 @@ export type { WidgetRenderProps, WidgetRenderer } from "./types";
  */
 export const WIDGET_RENDERERS: Record<string, WidgetRenderer> = {
   "timeseries-chart": TimeseriesChartWidget,
+  "bar-chart": BarChartWidget,
+  kpi: KpiWidget,
 };
 
 const T = {
