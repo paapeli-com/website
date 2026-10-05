@@ -95,7 +95,7 @@ export function DeviceTableWidget({ widget, dataSources, lang }: WidgetRenderPro
               <th className="px-2 py-1.5 text-start font-medium">{T.device[lang]}</th>
               {showStatus && <th className="px-2 py-1.5 text-start font-medium">{T.status[lang]}</th>}
               {columns.map((c) => (
-                <th key={c.key} className="px-2 py-1.5 text-end font-medium">
+                <th key={c.key} className="px-2 py-1.5 text-start font-medium">
                   {c.label}{c.unit && <span className="ms-1 font-normal opacity-70">({c.unit})</span>}
                 </th>
               ))}
@@ -114,7 +114,12 @@ export function DeviceTableWidget({ widget, dataSources, lang }: WidgetRenderPro
                   </td>
                 )}
                 {columns.map((c) => (
-                  <td key={c.key} dir="ltr" className="px-2 py-1.5 text-end tabular-nums text-foreground">{cell(row, c.key)}</td>
+                  /* Aligned with its heading. The direction goes on the number
+                     alone: a dir on the cell would pull the whole cell to the
+                     left edge and out from under the column title. */
+                  <td key={c.key} className="px-2 py-1.5 text-start text-foreground">
+                    <span dir="ltr" className="tabular-nums">{cell(row, c.key)}</span>
+                  </td>
                 ))}
               </tr>
             ))}
