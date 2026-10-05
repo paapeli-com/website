@@ -42,17 +42,17 @@ export const PAGE_META: Record<string, Partial<Record<Locale, PageMeta>>> = {
     en: {
       title: "Careers and internships at Paapeli",
       description:
-        "Join the team building Paapeli's cloud, AI and IoT platform. Now hiring a senior backend engineer (Java / AIoT) in Tehran.",
+        "Join the team building Paapeli's cloud, AI and IoT platform. Now hiring a senior backend engineer (Java / AIoT) and a senior Go developer (Cloud Management) in Tehran.",
     },
     fa: {
       title: "فرصت‌های همکاری و کارآموزی در پاپلی",
       description:
-        "به تیمی بپیوندید که پلتفرم ابری، هوش مصنوعی و اینترنت اشیای پاپلی را می‌سازد. استخدام توسعه‌دهنده ارشد بک‌اند (Java / AIoT) در تهران.",
+        "به تیمی بپیوندید که پلتفرم ابری، هوش مصنوعی و اینترنت اشیای پاپلی را می‌سازد. استخدام توسعه‌دهنده ارشد بک‌اند (Java / AIoT) و توسعه‌دهنده ارشد Go (Cloud Management) در تهران.",
     },
     ar: {
       title: "الوظائف والتدريب في بابيلي",
       description:
-        "انضم إلى الفريق الذي يبني منصة بابيلي السحابية للذكاء الاصطناعي وإنترنت الأشياء. نوظف الآن مطورًا خلفيًا أول (Java / AIoT) في طهران.",
+        "انضم إلى الفريق الذي يبني منصة بابيلي السحابية للذكاء الاصطناعي وإنترنت الأشياء. نوظف الآن مطورًا خلفيًا أول (Java / AIoT) ومطور Go أول (Cloud Management) في طهران.",
     },
   },
   "/contact": {
