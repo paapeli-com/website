@@ -63,6 +63,23 @@ const REFRESH_URL = '/api/v1/aiot/auth/refresh';
 const isAuthRequest = (url: string | undefined) =>
     !!url && AUTH_ENDPOINTS.some((p) => url.includes(p));
 
+/* Endpoints that start or recover a session and so must be sent with no
+   bearer token. The gateway checks any Authorization header it is given before
+   it looks at the route, so a stale token left in the browser from an expired
+   session turned a correct password into a 401: sign-in failed for exactly the
+   people who had signed in before. The refresh has the same rule (its cookie
+   is the credential). Logout is not here: it acts on the session it names. */
+const TOKENLESS_ENDPOINTS = [
+    '/api/v1/aiot/auth/login',
+    '/api/v1/aiot/auth/google',
+    '/api/v1/aiot/auth/refresh',
+    '/api/v1/aiot/user/signup',
+    '/api/v1/aiot/user/request-reset-password',
+    '/api/v1/aiot/user/reset-password',
+];
+const isTokenlessRequest = (url: string | undefined) =>
+    !!url && TOKENLESS_ENDPOINTS.some((p) => url.includes(p));
+
 /* Treat a token as expired this long before its `exp`, so a request doesn't
    leave with a token that dies in flight. */
 const EXPIRY_SKEW_MS = 10_000;
@@ -200,12 +217,13 @@ const bearerOf = (config: InternalAxiosRequestConfig | undefined) => {
 /* Don't send a request whose token has already expired — refresh first, and
    only sign out if that fails. */
 apiClient.interceptors.request.use(async (config) => {
-    /* The refresh is authenticated by its HttpOnly cookie alone; the gateway
-       answers 401 if it also carries a bearer token. The client's defaults
-       are already merged into `config` here, so dropping the one header keeps
-       everything else the client sends (base URL, other headers, cookies via
-       withCredentials). */
-    if (config.url?.includes(REFRESH_URL)) {
+    /* Sign-in, sign-up, password reset and the refresh carry no bearer token:
+       the gateway answers 401 to any of them that arrives with a stale one
+       (the refresh is authenticated by its HttpOnly cookie alone). The
+       client's defaults are already merged into `config` here, so dropping
+       the one header keeps everything else the client sends (base URL, other
+       headers, cookies via withCredentials). */
+    if (isTokenlessRequest(config.url)) {
         config.headers.delete('Authorization');
         return config;
     }
