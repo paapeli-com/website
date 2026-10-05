@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "@/shared/lib/apiError";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
@@ -37,7 +38,7 @@ const WorkOrderForm = () => {
   const { language, t } = useLanguage();
   const { toast } = useToast();
   const lp = (p: string) => localizedPath(p, language);
-  const { getById, create, update } = useWorkOrders();
+  const { getById, create, update, isLoading } = useWorkOrders();
 
   const existing = isEdit ? getById(id) : undefined;
 
@@ -60,7 +61,8 @@ const WorkOrderForm = () => {
       setTeam(existing.assignedTeam);
       setNotes(existing.notes);
     }
-  }, [existing?.id]);
+    // The orders load from the server: an edit opened directly fills in once they arrive.
+  }, [existing?.id, isLoading]);
 
   const validate = () => {
     if (!asset.trim()) return t("assetRequired");
@@ -69,7 +71,7 @@ const WorkOrderForm = () => {
     return null;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const err = validate();
     if (err) {
       toast({ title: t("actionRequiredToast"), description: err, variant: "destructive" });
@@ -78,7 +80,7 @@ const WorkOrderForm = () => {
     setSubmitting(true);
     try {
       if (isEdit && existing) {
-        update(existing.id, {
+        await update(existing.id, {
           asset: asset.trim(),
           location: location.trim(),
           action: action.trim(),
@@ -90,7 +92,7 @@ const WorkOrderForm = () => {
         toast({ title: t("workOrderUpdated"), description: existing.id });
         navigate(lp(`/work-orders/${existing.id}`));
       } else {
-        const wo = create({
+        const wo = await create({
           asset: asset.trim(),
           location: location.trim(),
           action: action.trim(),
@@ -98,9 +100,12 @@ const WorkOrderForm = () => {
           assignedTeam: team,
           notes: notes.trim(),
         });
-        toast({ title: t("workOrderCreated"), description: `${wo.id} · ${wo.action}` });
+        toast({ title: t("workOrderCreated"), description: wo.action });
         navigate(lp("/work-orders"));
       }
+    } catch (error) {
+      // The server said why (a field too long, no permission): show that.
+      toast({ title: t("actionRequiredToast"), description: apiErrorMessage(error, t("actionRequiredToast")), variant: "destructive" });
     } finally {
       setSubmitting(false);
     }

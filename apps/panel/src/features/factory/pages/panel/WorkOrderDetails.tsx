@@ -66,7 +66,7 @@ const WorkOrderDetails = () => {
   const { language, t } = useLanguage();
   const { toast } = useToast();
   const lp = (p: string) => localizedPath(p, language);
-  const { getById, update, remove } = useWorkOrders();
+  const { getById, update, remove, isLoading } = useWorkOrders();
 
   const wo = getById(id);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -94,6 +94,10 @@ const WorkOrderDetails = () => {
       instrumentation: t("teamInstrumentation"),
       operations: t("teamOperations"),
     }[team] || team);
+
+  if (!wo && isLoading) {
+    return <div className="py-20 text-center text-sm text-muted-foreground">{t("loading") || "Loading…"}</div>;
+  }
 
   if (!wo) {
     return (

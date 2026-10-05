@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useWorkOrders } from "@/features/factory/hooks/useWorkOrders";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 import {
   Sheet,
   SheetContent,
@@ -76,7 +78,9 @@ export const WorkOrderSheet = ({
   const { toast } = useToast();
   const { language, t } = useLanguage();
   const navigate = useNavigate();
-  const { createWorkOrder, updateStatus } = useAnomalyStore();
+  const { updateStatus } = useAnomalyStore();
+  const { create: createWorkOrder } = useWorkOrders();
+  const [saving, setSaving] = useState(false);
   const isRtl = language === "fa" || language === "ar";
   const langPrefix = language === "en" ? "" : `/${language}`;
 
@@ -105,7 +109,7 @@ export const WorkOrderSheet = ({
 
   if (!src) return null;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!action.trim()) {
       toast({
         title: t("actionRequiredToast"),
@@ -114,18 +118,29 @@ export const WorkOrderSheet = ({
       });
       return;
     }
-    const wo = createWorkOrder({
-      anomalyId: src.id,
-      asset: src.asset,
-      location: src.location,
-      action: action.trim(),
-      priority,
-      assignedTeam: team,
-      notes: notes.trim(),
-    });
+    if (saving) return;
+    setSaving(true);
+    let wo;
+    try {
+      wo = await createWorkOrder({
+        anomalyId: src.id,
+        source: src.kind === "forecast" ? "FORECAST" : "ANOMALY",
+        asset: src.asset,
+        location: src.location,
+        action: action.trim(),
+        priority,
+        assignedTeam: team,
+        notes: notes.trim(),
+      });
+    } catch (error) {
+      toast({ title: t("actionRequiredToast"), description: apiErrorMessage(error, t("actionRequiredToast")), variant: "destructive" });
+      return;
+    } finally {
+      setSaving(false);
+    }
     toast({
       title: t("workOrderCreated"),
-      description: `${wo.id} · ${wo.action}`,
+      description: wo.action,
       action: (
         <ToastAction
           altText={t("view")}
