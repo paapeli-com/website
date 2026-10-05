@@ -40,6 +40,8 @@ import {
 } from "@/features/factory/lib/dashboardDefinition";
 import { fmtDayTime } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { WidgetBody } from "@/features/factory/components/dashboard/widgets";
+import { exportDashboardImage, exportDashboardPdf } from "@/features/factory/lib/dashboardExport";
+import { widgetName } from "@/features/factory/components/dashboard/widgets/widgetText";
 import { DashboardHistorySheet } from "@/features/factory/components/dashboard/DashboardHistorySheet";
 import { WidgetConfigSheet } from "@/features/factory/components/dashboard/WidgetConfigSheet";
 import { Button } from "@/features/factory/components/ui/button";
@@ -81,6 +83,9 @@ import {
   ChevronDown,
   ChevronUp,
   Gauge,
+  Download,
+  FileImage,
+  FileText,
   GripVertical,
   History,
   LayoutGrid,
@@ -124,7 +129,12 @@ const T: Record<string, Record<Lang, string>> = {
   resetLayout: { en: "Tidy layout", ar: "ترتيب التخطيط", fa: "مرتب‌سازی چیدمان" },
   editSettings: { en: "Edit settings", ar: "تعديل الإعدادات", fa: "تنظیمات" },
   history: { en: "Version history", ar: "سجل النسخ", fa: "تاریخچه نسخه‌ها" },
-  print: { en: "Print or save as PDF", ar: "طباعة أو حفظ PDF", fa: "چاپ یا ذخیره PDF" },
+  exportMenu: { en: "Export", ar: "تصدير", fa: "خروجی" },
+  exportPdf: { en: "Download PDF", ar: "تنزيل PDF", fa: "دانلود PDF" },
+  exportImage: { en: "Download image (PNG)", ar: "تنزيل صورة (PNG)", fa: "دانلود تصویر (PNG)" },
+  print: { en: "Print", ar: "طباعة", fa: "چاپ" },
+  exporting: { en: "Preparing the file…", ar: "جارٍ تجهيز الملف…", fa: "در حال آماده‌سازی فایل…" },
+  exportFailed: { en: "Couldn't export this dashboard", ar: "تعذر تصدير هذه اللوحة", fa: "خروجی گرفتن از این داشبورد ممکن نشد" },
   save: { en: "Save", ar: "حفظ", fa: "ذخیره" },
   saved: { en: "Dashboard saved", ar: "تم حفظ اللوحة", fa: "داشبورد ذخیره شد" },
   saveFailed: { en: "Couldn't save the dashboard", ar: "تعذر حفظ اللوحة", fa: "ذخیره داشبورد ممکن نشد" },
@@ -340,6 +350,21 @@ const DashboardCanvas = () => {
   const [fullscreen, setFullscreen] = useState(false);
   const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
+  const exportAs = async (kind: "pdf" | "image") => {
+    const el = containerRef.current;
+    if (!el || !record || exporting) return;
+    setExporting(true);
+    const waiting = toast.loading(tt("exporting"));
+    try {
+      await (kind === "pdf" ? exportDashboardPdf(el, record.name) : exportDashboardImage(el, record.name));
+    } catch (e) {
+      toast.error(tt("exportFailed"), { description: e instanceof Error ? e.message : undefined });
+    } finally {
+      toast.dismiss(waiting);
+      setExporting(false);
+    }
+  };
   const toggleFullscreen = () => {
     const el = containerRef.current;
     if (!el) return;
@@ -431,7 +456,7 @@ const DashboardCanvas = () => {
       return (
         <DropdownMenuItem key={d.id} onClick={() => add(d, at)} className="gap-2.5 text-sm">
           {d.iconUri ? <img src={d.iconUri} alt="" className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
-          {d.name}
+          {widgetName(d, lang)}
         </DropdownMenuItem>
       );
     });
@@ -642,11 +667,18 @@ const DashboardCanvas = () => {
                 </TooltipTrigger><TooltipContent side="bottom">{tt("history")}</TooltipContent></Tooltip>
                 {/* The browser's own print dialog saves a PDF; the print rules
                     in index.css leave only the dashboard on the page. */}
-                <Tooltip><TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => window.print()} aria-label={tt("print")}>
-                    <Printer className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger><TooltipContent side="bottom">{tt("print")}</TooltipContent></Tooltip>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-9 w-9" disabled={exporting} aria-label={tt("exportMenu")} title={tt("exportMenu")}>
+                      {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-popover">
+                    <DropdownMenuItem className="gap-2.5 text-sm" onClick={() => void exportAs("pdf")}><FileText className="h-4 w-4" />{tt("exportPdf")}</DropdownMenuItem>
+                    <DropdownMenuItem className="gap-2.5 text-sm" onClick={() => void exportAs("image")}><FileImage className="h-4 w-4" />{tt("exportImage")}</DropdownMenuItem>
+                    <DropdownMenuItem className="gap-2.5 text-sm" onClick={() => window.print()}><Printer className="h-4 w-4" />{tt("print")}</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </TooltipProvider>
 
               <DropdownMenu>
@@ -831,18 +863,19 @@ const DashboardCanvas = () => {
     </>
   );
 
-  if (fullscreen) {
-    return (
-      <div ref={containerRef} data-print-root className="min-h-screen bg-background overflow-auto">
+  /* One root element in both modes. The page used to return a different
+     element once fullscreen was on; React then removed the element the browser
+     had just made fullscreen, and the browser left fullscreen at once. */
+  return (
+    <div className="relative">
+      {!fullscreen && <TopoBackdrop anchor="container" />}
+      <div
+        ref={containerRef}
+        data-print-root
+        className={fullscreen ? "min-h-screen overflow-auto bg-background" : "relative z-[1]"}
+      >
         {body}
       </div>
-    );
-  }
-  return (
-    /* Same contour pattern Home carries, anchored to this container. */
-    <div className="relative">
-      <TopoBackdrop anchor="container" />
-      <div ref={containerRef} data-print-root className="relative z-[1]">{body}</div>
     </div>
   );
 };

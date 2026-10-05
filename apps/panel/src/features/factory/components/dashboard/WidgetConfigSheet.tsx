@@ -18,6 +18,7 @@ import { TIME_WINDOW_OPTIONS } from "@/features/factory/lib/dashboardSettings";
 import { compact, replaceWidget, validateWidget } from "@/features/factory/lib/dashboardDefinition";
 import { RowEditor, bindingFromRow, freshRow, isFilled, rowFromBinding, shapeOf, startingRows, type Row } from "./sourceRows";
 import type { WidgetLang } from "./widgets/types";
+import { optionLabel, optionValueLabel, widgetDescription, widgetName } from "./widgets/widgetText";
 
 const T = {
   config: { en: "Configure widget", ar: "ضبط العنصر", fa: "پیکربندی ویجت" },
@@ -112,7 +113,7 @@ function SchemaField({
   lang: WidgetLang;
   depth?: number;
 }) {
-  const label = (schema.title as string) || humanize(name);
+  const label = optionLabel(name, lang) ?? ((schema.title as string) || humanize(name));
   const type = primaryType(schema);
   const [jsonText, setJsonText] = useState(() => (value === undefined ? "" : JSON.stringify(value, null, 2)));
   const [jsonError, setJsonError] = useState(false);
@@ -156,7 +157,7 @@ function SchemaField({
           <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value={EMPTY}>{tr("none", lang)}</SelectItem>
-            {schema.enum.map((e) => <SelectItem key={JSON.stringify(e)} value={JSON.stringify(e)}>{String(e)}</SelectItem>)}
+            {schema.enum.map((e) => <SelectItem key={JSON.stringify(e)} value={JSON.stringify(e)}>{optionValueLabel(e, lang)}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -350,7 +351,7 @@ export function WidgetConfigSheet({ open, onOpenChange, widget, definition, dash
       });
     const updated: DashboardWidget = {
       ...widget,
-      title: title.trim() || definition?.name || widget.type,
+      title: title.trim() || (definition ? widgetName(definition, lang) : widget.type),
       data,
       timeWindow: windowValue === DASHBOARD_WINDOW ? null : { type: "relative", last: windowValue },
       options: compact(options) as Record<string, unknown>,
@@ -366,10 +367,17 @@ export function WidgetConfigSheet({ open, onOpenChange, widget, definition, dash
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side={rtl ? "left" : "right"} className="w-full sm:max-w-md overflow-y-auto" dir={rtl ? "rtl" : "ltr"}>
+      {/* data-uniform-type: the sheet is portalled out of the page, so it needs
+          its own mark to keep Persian and Arabic at the size it was written in. */}
+      <SheetContent data-uniform-type side={rtl ? "left" : "right"} className="w-full sm:max-w-md overflow-y-auto" dir={rtl ? "rtl" : "ltr"}>
         <SheetHeader>
           <SheetTitle>{tr("config", lang)}</SheetTitle>
-          {definition && <SheetDescription>{definition.name}{definition.description ? ` — ${definition.description}` : ""}</SheetDescription>}
+          {definition && (
+            <SheetDescription>
+              <span className="font-medium text-foreground">{widgetName(definition, lang)}</span>
+              {widgetDescription(definition, lang) && <span className="mt-1 block">{widgetDescription(definition, lang)}</span>}
+            </SheetDescription>
+          )}
         </SheetHeader>
 
         <div className="space-y-5 py-4">
