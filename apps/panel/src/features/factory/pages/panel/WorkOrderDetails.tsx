@@ -178,6 +178,16 @@ const WorkOrderDetails = () => {
             <Row label={t("assignedTeam")} value={teamLabel(wo.assignedTeam)} />
             <Row label={t("createdByLabel")} value={wo.source === "ALARM" && !wo.createdBy ? t("woSourceAlarm") : wo.createdBy === "You" ? t("you") : wo.createdBy} />
             <Row label={t("createdAt")} value={formatDateTime(wo.createdAt, language)} />
+            {wo.alarmId && (
+              <Row
+                label={t("woSourceAlarm")}
+                value={
+                  <button onClick={() => navigate(lp("/alarms"))} className="text-primary hover:underline">
+                    {t("alarms")}
+                  </button>
+                }
+              />
+            )}
             {wo.anomalyId && (
               <Row
                 label={t("sourceAnomaly")}

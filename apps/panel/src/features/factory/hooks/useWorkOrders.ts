@@ -40,6 +40,8 @@ export interface WorkOrder {
   status: WorkOrderStatus;
   /** The alarm that raised it, when one did. */
   alarmId?: string;
+  /** The device it is about, when it points at one. */
+  deviceId?: string;
   source: WorkOrderApiSource;
   assigneeUserId?: string;
   /** The assignee's name, from the workspace roster. */
@@ -136,6 +138,7 @@ export const useWorkOrders = () => {
       createdBy: nameOf(w.createdByUserId),
       status: STATUS_FROM_API[w.status],
       alarmId: w.alarmId ?? undefined,
+      deviceId: w.deviceId ?? undefined,
       source: w.source,
       assigneeUserId: w.assigneeUserId ?? undefined,
       assignee: nameOf(w.assigneeUserId),
@@ -155,6 +158,7 @@ export const useWorkOrders = () => {
         status: wo.status ? STATUS_TO_API[wo.status] : undefined,
         priority: PRIORITY_TO_API[wo.priority],
         source: wo.source ?? (wo.anomalyId ? "ANOMALY" : "MANUAL"),
+        deviceId: wo.deviceId ?? null,
         subjectLabel: wo.asset || null,
         locationLabel: wo.location || null,
         alarmId: wo.alarmId ?? null,
@@ -176,6 +180,7 @@ export const useWorkOrders = () => {
         createdBy: "",
         status: STATUS_FROM_API[created.status],
         alarmId: created.alarmId ?? undefined,
+        deviceId: created.deviceId ?? undefined,
         source: created.source,
         assigneeUserId: created.assigneeUserId ?? undefined,
         assignee: "",
@@ -196,6 +201,10 @@ export const useWorkOrders = () => {
       try {
         const saved = await workOrderService.update(workspaceId, PRODUCT_KEY, id, request);
         queryClient.setQueryData<WorkOrderResponse[]>(queryKey, (prev) => (prev ?? []).map((w) => (w.id === id ? saved : w)));
+        // Finishing an order acknowledges its alarm on the server: show that.
+        if (saved.status === "DONE" && saved.alarmId) {
+          queryClient.invalidateQueries({ queryKey: ["workspaceAlarms", workspaceId] });
+        }
       } catch (error) {
         fail(error, previous);
       }

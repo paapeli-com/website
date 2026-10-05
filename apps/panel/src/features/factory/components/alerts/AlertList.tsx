@@ -15,12 +15,14 @@ import {
   Search, Bell, BellOff, AlertOctagon, Users, Zap, User, Clock,
   Bookmark, Archive, CheckCircle2, MoreHorizontal, ChevronLeft, ChevronRight, Eye,
   CircleDot, ListFilter, Download, Pencil, UserPlus, Trash2, ArrowRight,
+  ClipboardList,
 } from "lucide-react";
 import { ListToolbar, type ActionItem, type FilterField, type SortOption } from "@/features/factory/components/panel/ListToolbar";
 import { Card, CardContent } from "@/features/factory/components/ui/card";
 import { AddFirst } from "@/features/factory/components/AddFirst";
 import { useNavigate } from "react-router-dom";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
+import { useWorkOrders, type WorkOrderPriority } from "@/features/factory/hooks/useWorkOrders";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import type { Alert, AlertSeverity, AlertStatus } from "@/features/factory/types/alerts";
 import { cn } from "@/shared/lib/utils";
@@ -127,6 +129,13 @@ const toAlert = (a: WorkspaceAlarmItem, locationPath: string | undefined): Alert
   };
 };
 
+const PRIORITY_OF_SEVERITY: Record<Alert["severity"], WorkOrderPriority> = {
+  critical: "Critical",
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+};
+
 type StatusChip = "active" | "unacknowledged" | "acknowledged" | "escalated" | "archived";
 
 interface AlertListProps {
@@ -145,6 +154,40 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
   const { toast } = useToast();
   const workspaceId = useWorkspaceId();
   const { options: assetLocations } = useAssetLocations();
+
+  /* An alarm and its work order: the newest order raised for the alarm, by a
+     rule or by hand. Without one, the alarm offers to raise it. */
+  const { items: workOrders, create: createWorkOrder } = useWorkOrders();
+  const workOrderOf = (alarmId: string) => workOrders.find((w) => w.alarmId === alarmId);
+  const [raising, setRaising] = useState(false);
+  const openWorkOrder = async (a: Alert) => {
+    const existing = workOrderOf(a.id);
+    if (existing) {
+      navigate(lp(`/work-orders/${existing.id}`));
+      return;
+    }
+    if (raising) return;
+    setRaising(true);
+    try {
+      const wo = await createWorkOrder({
+        asset: a.deviceName,
+        location: a.locationName,
+        action: a.ruleName,
+        priority: PRIORITY_OF_SEVERITY[a.severity] ?? "Medium",
+        assignedTeam: "",
+        notes: "",
+        alarmId: a.id,
+        deviceId: a.deviceId,
+        source: "ALARM",
+      });
+      toast({ title: tt("workOrderCreated"), description: wo.action });
+      navigate(lp(`/work-orders/${wo.id}`));
+    } catch (error) {
+      toast({ title: tt("error"), description: apiErrorMessage(error, tt("error")), variant: "destructive" });
+    } finally {
+      setRaising(false);
+    }
+  };
 
   /* One workspace-product list covers every device's alarms. Every filter,
      KPI and export below works off this one array. Without a workspace the
@@ -571,6 +614,10 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
                               <CheckCircle2 className="h-4 w-4 me-2" />{tt("clearAlarm")}
                             </DropdownMenuItem>
                           )}
+                          <DropdownMenuItem onClick={() => openWorkOrder(a)} disabled={raising}>
+                            <ClipboardList className="h-4 w-4 me-2" />
+                            {tt(workOrderOf(a.id) ? "alertViewWorkOrder" : "alertCreateWorkOrder")}
+                          </DropdownMenuItem>
                           <DropdownMenuItem>
                             <UserPlus className="h-4 w-4 me-2" />{tt("alertAssign")}
                           </DropdownMenuItem>
@@ -620,6 +667,9 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
               busy={ackAlarm.isPending || clearAlarm.isPending}
               onAck={() => runAlarmAction("ack", opened)}
               onClear={() => runAlarmAction("clear", opened)}
+              hasWorkOrder={!!workOrderOf(opened.id)}
+              raising={raising}
+              onWorkOrder={() => openWorkOrder(opened)}
             />
           )}
         </SheetContent>
@@ -628,12 +678,16 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
   );
 };
 
-const AlertDetailPanel = ({ alert, tt, busy, onAck, onClear }: {
+const AlertDetailPanel = ({ alert, tt, busy, onAck, onClear, hasWorkOrder, raising, onWorkOrder }: {
   alert: Alert;
   tt: (k: string) => string;
   busy: boolean;
   onAck: () => void;
   onClear: () => void;
+  /** Whether a work order was already raised for this alarm. */
+  hasWorkOrder: boolean;
+  raising: boolean;
+  onWorkOrder: () => void;
 }) => {
   return (
     <div className="flex flex-col h-full">
@@ -701,7 +755,9 @@ const AlertDetailPanel = ({ alert, tt, busy, onAck, onClear }: {
           <Button variant="outline" size="sm">{tt("alertArchive")}</Button>
         </div>
         <div className="grid grid-cols-[1fr_auto] gap-2">
-          <Button variant="outline" size="sm">{tt("alertCreateWorkOrder")}</Button>
+          <Button variant="outline" size="sm" onClick={onWorkOrder} disabled={raising}>
+            {tt(hasWorkOrder ? "alertViewWorkOrder" : "alertCreateWorkOrder")}
+          </Button>
           <Button variant="outline" size="icon" className="h-9 w-9"><MoreHorizontal className="h-4 w-4" /></Button>
         </div>
       </div>
