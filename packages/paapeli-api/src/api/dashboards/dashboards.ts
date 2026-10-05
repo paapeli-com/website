@@ -47,7 +47,29 @@ export interface DeviceCountDataSource {
     /** true: active only, false: inactive only, omitted: all. */
     active?: boolean;
 }
-export type DashboardDataSource = DeviceDataSource | DeviceQueryDataSource | DeviceCountDataSource;
+export type AlarmSeverity = 'CRITICAL' | 'MAJOR' | 'MINOR' | 'WARNING' | 'INDETERMINATE';
+export type AlarmStatus = 'ACTIVE_UNACK' | 'ACTIVE_ACK' | 'CLEARED_UNACK' | 'CLEARED_ACK';
+/** Alarms of the workspace product; an omitted filter matches everything. */
+export interface AlarmQueryDataSource {
+    type: 'alarmQuery';
+    severities?: AlarmSeverity[];
+    statuses?: AlarmStatus[];
+    deviceId?: string;
+}
+export type FormulaOperation = 'SUM' | 'AVG' | 'MIN' | 'MAX';
+/** One number from the latest value of several device keys. */
+export interface FormulaDataSource {
+    type: 'formula';
+    operation: FormulaOperation;
+    /** 2 to 10 device keys, none repeated. */
+    inputs: Array<{ deviceId: string; key: string }>;
+}
+export type DashboardDataSource =
+    | DeviceDataSource
+    | DeviceQueryDataSource
+    | DeviceCountDataSource
+    | AlarmQueryDataSource
+    | FormulaDataSource;
 export type DashboardDataSourceType = DashboardDataSource['type'];
 
 /** One series a widget reads: `key` of the data source named by `source`. */

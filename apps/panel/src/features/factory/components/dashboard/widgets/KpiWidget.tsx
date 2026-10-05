@@ -6,6 +6,7 @@ import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { toNumber } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { Hint } from "./chartKit";
+import { evaluateFormula, matchAlarms } from "./sources";
 import type { WidgetRenderProps } from "./types";
 
 const T = {
@@ -38,7 +39,8 @@ export function KpiWidget({ widget, dataSources, window: [, refreshedAt], lang }
   const source = item ? dataSources[item.source] : undefined;
 
   const isDevice = source?.type === "device" && !!item?.key;
-  const isCount = source?.type === "deviceCount";
+  // A device count, an alarm count and a formula each resolve to one number without a key.
+  const isCount = source?.type === "deviceCount" || source?.type === "alarmQuery" || source?.type === "formula";
 
   const query = useQuery({
     // The window's end moves on every dashboard refresh; keying on it re-reads then.
@@ -52,6 +54,8 @@ export function KpiWidget({ widget, dataSources, window: [, refreshedAt], lang }
         const { type: _type, ...filters } = source;
         return countDevices(workspaceId, PRODUCT_KEY, filters);
       }
+      if (source?.type === "alarmQuery") return (await matchAlarms(workspaceId, source)).length;
+      if (source?.type === "formula") return (await evaluateFormula(workspaceId, source)) ?? undefined;
       return undefined;
     },
     enabled: !!workspaceId && (isDevice || isCount),

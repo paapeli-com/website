@@ -75,6 +75,7 @@ import {
 import {
   ArrowLeft,
   BarChart3,
+  Bell,
   Calendar,
   ChevronDown,
   ChevronUp,
@@ -164,6 +165,7 @@ const WIDGET_ICONS: Record<string, LucideIcon> = {
   gauge: Gauge,
   "device-table": TableIcon,
   "device-map": MapIcon,
+  "alarm-list": Bell,
 };
 const WIDGET_ORDER = Object.keys(WIDGET_ICONS);
 const widgetRank = (type: string) => {

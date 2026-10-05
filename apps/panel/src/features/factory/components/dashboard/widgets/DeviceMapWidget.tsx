@@ -1,20 +1,20 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { telemetryService, type TelemetryPoint } from "@paapeli/api";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { useDevices } from "@/features/factory/hooks/useDevices";
 import { toNumber } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { addBaseLayer, DEFAULT_CENTER, DEFAULT_ZOOM } from "@/features/track/components/map/baseLayer";
 import { makeMarkerIcon } from "@/features/track/components/map/markerIcon";
 import { Hint } from "./chartKit";
+import { useBoundDevices } from "./sources";
 import type { WidgetRenderProps } from "./types";
 
 const T = {
   noDevices: { en: "Pick a device in the widget settings", ar: "اختر جهازًا في إعدادات العنصر", fa: "در تنظیمات ویجت یک دستگاه انتخاب کنید" },
-  queryUnsupported: { en: "Device-query sources aren't available yet", ar: "مصادر استعلام الأجهزة غير متاحة بعد", fa: "منبع «جستجوی دستگاه» هنوز در دسترس نیست" },
+  noMatch: { en: "No device matches this selection", ar: "لا يوجد جهاز مطابق لهذا الاختيار", fa: "دستگاهی با این انتخاب پیدا نشد" },
   noPositions: { en: "None of these devices has reported a position", ar: "لم يرسل أي من هذه الأجهزة موقعًا", fa: "هیچ‌کدام از این دستگاه‌ها موقعیتی ارسال نکرده‌اند" },
 };
 
@@ -32,16 +32,16 @@ export function DeviceMapWidget({ widget, dataSources, window: [, refreshedAt], 
   const latitudeKey = options.latitudeKey?.trim() || "latitude";
   const longitudeKey = options.longitudeKey?.trim() || "longitude";
   const showLabels = options.showLabels ?? true;
-  const { items } = useDevices();
 
-  const bound = useMemo(() => {
-    const seen = new Map<string, string>();
-    widget.data.forEach((d) => {
+  const { devices: boundDevices, loading: resolving, bound: hasBindings } = useBoundDevices(widget, dataSources, refreshedAt);
+  // A label typed on a single-device binding names that device on the map.
+  const labels = new Map(
+    widget.data.flatMap((d) => {
       const s = dataSources[d.source];
-      if (s?.type === "device" && !seen.has(s.deviceId)) seen.set(s.deviceId, d.label?.trim() || "");
-    });
-    return [...seen.entries()].map(([deviceId, label]) => ({ deviceId, label }));
-  }, [widget.data, dataSources]);
+      return s?.type === "device" && d.label?.trim() ? [[s.deviceId, d.label.trim()] as const] : [];
+    }),
+  );
+  const bound = boundDevices.map((d) => ({ deviceId: d.id, label: labels.get(d.id) || d.name }));
 
   const results = useQueries({
     queries: bound.map(({ deviceId }) => ({
@@ -53,13 +53,12 @@ export function DeviceMapWidget({ widget, dataSources, window: [, refreshedAt], 
     })),
   }) as Array<{ data?: Record<string, TelemetryPoint[]>; isLoading: boolean }>;
 
-  const names = new Map(items.map((d) => [d.id, d.label || d.name]));
   const points = bound.flatMap(({ deviceId, label }, i) => {
     const latest = results[i]?.data;
     const lat = toNumber(latest?.[latitudeKey]?.[0]?.value);
     const lng = toNumber(latest?.[longitudeKey]?.[0]?.value);
     if (lat === null || lng === null || Math.abs(lat) > 90 || Math.abs(lng) > 180) return [];
-    return [{ id: deviceId, lat, lng, name: label || names.get(deviceId) || deviceId }];
+    return [{ id: deviceId, lat, lng, name: label }];
   });
   const signature = points.map((p) => `${p.id}:${p.lat}:${p.lng}:${p.name}`).join("|") + `|${showLabels}`;
 
@@ -107,7 +106,8 @@ export function DeviceMapWidget({ widget, dataSources, window: [, refreshedAt], 
   }, [signature, hasMap]);
 
   if (widget.data.length === 0) return <Hint>{T.noDevices[lang]}</Hint>;
-  if (bound.length === 0) return <Hint>{T.queryUnsupported[lang]}</Hint>;
+  if (!hasBindings) return <Hint>{T.noDevices[lang]}</Hint>;
+  if (bound.length === 0) return <Hint>{resolving ? "" : T.noMatch[lang]}</Hint>;
   if (!hasMap) return results.some((r) => r.isLoading) ? <Hint>{""}</Hint> : <Hint>{T.noPositions[lang]}</Hint>;
 
   return <div ref={elRef} dir="ltr" className="h-full w-full min-h-0 overflow-hidden rounded-lg" />;

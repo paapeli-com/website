@@ -198,20 +198,25 @@ export const ensureDeviceSource = (
 };
 
 /** Drops data sources no widget reads any more. */
-/** Which devices a count covers: every one, the active ones, or the inactive ones. */
-export type DeviceCountState = "all" | "active" | "inactive";
-
-/** The key of the workspace-wide device-count source for `state`, adding one if there is none. */
-export const ensureCountSource = (def: DashboardDefinition, state: DeviceCountState): [DashboardDefinition, string] => {
-  const active = state === "all" ? undefined : state === "active";
-  const existing = Object.entries(def.dataSources).find(
-    ([, s]) => s.type === "deviceCount" && s.active === active && !s.deviceTypeId && !s.assetId,
+/* Key order must not make two equal sources look different. */
+const canonical = (v: unknown): string =>
+  JSON.stringify(v, (_k, x) =>
+    x && typeof x === "object" && !Array.isArray(x)
+      ? Object.fromEntries(Object.entries(x as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)))
+      : x,
   );
+
+/** The key of a data source equal to `source`, adding one (named after `base`) if there is none. */
+export const ensureSource = (
+  def: DashboardDefinition,
+  source: DashboardDefinition["dataSources"][string],
+  base: string,
+): [DashboardDefinition, string] => {
+  const wanted = canonical(source);
+  const existing = Object.entries(def.dataSources).find(([, s]) => canonical(s) === wanted);
   if (existing) return [def, existing[0]];
-  const base = `devices-${state}`;
   let key = base;
   for (let i = 2; def.dataSources[key]; i++) key = `${base}-${i}`;
-  const source = active === undefined ? { type: "deviceCount" as const } : { type: "deviceCount" as const, active };
   return [{ ...def, dataSources: { ...def.dataSources, [key]: source } }, key];
 };
 

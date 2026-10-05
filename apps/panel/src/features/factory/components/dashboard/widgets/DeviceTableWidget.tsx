@@ -4,14 +4,14 @@ import { telemetryService, type TelemetryPoint } from "@paapeli/api";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { useDevices } from "@/features/factory/hooks/useDevices";
 import { fmtDateTime, toNumber } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { Hint } from "./chartKit";
+import { useBoundDevices } from "./sources";
 import type { WidgetRenderProps } from "./types";
 
 const T = {
   noColumns: { en: "Pick a device and a telemetry key in the widget settings", ar: "اختر جهازًا ومفتاح قياس في إعدادات العنصر", fa: "در تنظیمات ویجت یک دستگاه و یک کلید تله‌متری انتخاب کنید" },
-  queryUnsupported: { en: "Device-query sources aren't available yet", ar: "مصادر استعلام الأجهزة غير متاحة بعد", fa: "منبع «جستجوی دستگاه» هنوز در دسترس نیست" },
+  noDevices: { en: "No device matches this selection", ar: "لا يوجد جهاز مطابق لهذا الاختيار", fa: "دستگاهی با این انتخاب پیدا نشد" },
   device: { en: "Device", ar: "الجهاز", fa: "دستگاه" },
   status: { en: "Status", ar: "الحالة", fa: "وضعیت" },
   time: { en: "Time", ar: "الوقت", fa: "زمان" },
@@ -48,7 +48,6 @@ export function DeviceTableWidget({ widget, dataSources, window: [, refreshedAt]
   const options = (widget.options ?? {}) as Options;
   const readings = Math.min(100, Math.max(1, Math.floor(Number(options.readings) || 1)));
   const history = readings > 1;
-  const { items } = useDevices();
   const [page, setPage] = useState(0);
 
   const columns = useMemo(() => {
@@ -59,14 +58,8 @@ export function DeviceTableWidget({ widget, dataSources, window: [, refreshedAt]
     return [...seen.values()];
   }, [widget.data]);
 
-  const deviceIds = useMemo(() => {
-    const ids = new Set<string>();
-    widget.data.forEach((d) => {
-      const s = dataSources[d.source];
-      if (s?.type === "device") ids.add(s.deviceId);
-    });
-    return [...ids];
-  }, [widget.data, dataSources]);
+  const { devices: boundDevices, loading: resolving, bound } = useBoundDevices(widget, dataSources, refreshedAt);
+  const deviceIds = boundDevices.map((d) => d.id);
 
   const keys = columns.map((c) => c.key);
   const results = useQueries({
@@ -90,14 +83,11 @@ export function DeviceTableWidget({ widget, dataSources, window: [, refreshedAt]
   }) as Array<{ data?: Record<string, TelemetryPoint[]>; isLoading: boolean }>;
 
   if (columns.length === 0) return <Hint>{T.noColumns[lang]}</Hint>;
-  if (deviceIds.length === 0) return <Hint>{T.queryUnsupported[lang]}</Hint>;
+  if (!bound) return <Hint>{T.noColumns[lang]}</Hint>;
+  if (deviceIds.length === 0) return <Hint>{resolving ? "" : T.noDevices[lang]}</Hint>;
 
-  const known = new Map(items.map((d) => [d.id, d]));
-  const devices = deviceIds
-    .map((id, i) => {
-      const device = known.get(id);
-      return { id, name: device?.label || device?.name || id, active: device?.active === true, data: results[i]?.data };
-    })
+  const devices = boundDevices
+    .map((d, i) => ({ ...d, data: results[i]?.data }))
     .sort((a, b) => (options.sortBy === "status" ? Number(b.active) - Number(a.active) : 0) || a.name.localeCompare(b.name));
 
   const rows: Row[] = devices.flatMap((d) => {

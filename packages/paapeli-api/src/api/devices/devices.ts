@@ -211,3 +211,35 @@ export async function countDevices(
     );
     return data.count;
 }
+
+/** A device as GET /devices/{ws}/{pk}/query lists it. */
+export interface QueriedDevice {
+    deviceId: string;
+    name: string;
+    label?: string | null;
+    deviceTypeId: string;
+    assetId?: string | null;
+    active?: boolean | null;
+}
+
+export interface DeviceQueryFilters {
+    deviceTypeId: string;
+    assetId?: string;
+    /** Only meaningful with an assetId. */
+    includeDescendants?: boolean;
+}
+
+/** The devices of one type, optionally under an asset; one-based pages, size 1-100. */
+export async function queryDevices(
+    workspaceId: string,
+    productKey: string,
+    filters: DeviceQueryFilters,
+    page = 1,
+    size = 100,
+): Promise<PageResponse<QueriedDevice>> {
+    const { data } = await napiHttpHandler.get<PageResponse<QueriedDevice>>(
+        `/api/v1/aiot/devices/${workspaceId}/${productKey}/query`,
+        { ...filters, page, size },
+    );
+    return data;
+}

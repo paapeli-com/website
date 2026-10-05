@@ -7,6 +7,7 @@ import { GaugeWidget } from "./GaugeWidget";
 import { DeviceTableWidget } from "./DeviceTableWidget";
 import { DeviceMapWidget } from "./DeviceMapWidget";
 import { DonutChartWidget } from "./DonutChartWidget";
+import { AlarmListWidget } from "./AlarmListWidget";
 
 export type { WidgetRenderProps, WidgetRenderer } from "./types";
 
@@ -23,6 +24,7 @@ export const WIDGET_RENDERERS: Record<string, WidgetRenderer> = {
   "device-table": DeviceTableWidget,
   "device-map": DeviceMapWidget,
   "donut-chart": DonutChartWidget,
+  "alarm-list": AlarmListWidget,
 };
 
 const T = {

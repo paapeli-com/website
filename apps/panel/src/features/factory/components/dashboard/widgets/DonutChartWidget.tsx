@@ -6,6 +6,7 @@ import { apiErrorMessage } from "@/shared/lib/apiError";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { Hint, SERIES_COLORS, TOOLTIP_STYLE, useBoxSize } from "./chartKit";
+import { matchAlarms } from "./sources";
 import type { WidgetRenderProps } from "./types";
 
 const T = {
@@ -28,16 +29,19 @@ export function DonutChartWidget({ widget, dataSources, window: [, refreshedAt],
 
   const slices = widget.data.flatMap((item, i) => {
     const source = dataSources[item.source];
-    if (source?.type !== "deviceCount") return [];
-    const { type: _type, ...filters } = source;
-    return [{ id: `s${i}`, filters, label: item.label?.trim() || `${T.slice[lang]} ${i + 1}`, color: item.color || SERIES_COLORS[i % SERIES_COLORS.length] }];
+    if (source?.type !== "deviceCount" && source?.type !== "alarmQuery") return [];
+    return [{ id: `s${i}`, source, label: item.label?.trim() || `${T.slice[lang]} ${i + 1}`, color: item.color || SERIES_COLORS[i % SERIES_COLORS.length] }];
   });
 
   const results = useQueries({
     queries: slices.map((s) => ({
       // The window's end moves on every dashboard refresh; keying on it re-reads then.
-      queryKey: ["deviceCount", workspaceId, PRODUCT_KEY, s.filters, refreshedAt],
-      queryFn: () => countDevices(workspaceId, PRODUCT_KEY, s.filters),
+      queryKey: ["sliceCount", workspaceId, PRODUCT_KEY, s.source, refreshedAt],
+      queryFn: async () => {
+        if (s.source.type === "alarmQuery") return (await matchAlarms(workspaceId, s.source)).length;
+        const { type: _type, ...filters } = s.source;
+        return countDevices(workspaceId, PRODUCT_KEY, filters);
+      },
       enabled: !!workspaceId,
       placeholderData: (prev: unknown) => prev,
     })),

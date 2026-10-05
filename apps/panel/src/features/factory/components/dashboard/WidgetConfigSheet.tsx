@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  useDeviceTelemetryKeysQuery,
   type DashboardDefinition,
   type DashboardWidget,
   type JsonSchema,
@@ -15,17 +14,9 @@ import { Textarea } from "@/features/factory/components/ui/textarea";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/features/factory/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/features/factory/components/ui/select";
 import { useDevices } from "@/features/factory/hooks/useDevices";
-import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { TIME_WINDOW_OPTIONS } from "@/features/factory/lib/dashboardSettings";
-import {
-  compact,
-  ensureCountSource,
-  ensureDeviceSource,
-  replaceWidget,
-  validateWidget,
-  type DeviceCountState,
-} from "@/features/factory/lib/dashboardDefinition";
+import { compact, replaceWidget, validateWidget } from "@/features/factory/lib/dashboardDefinition";
+import { RowEditor, bindingFromRow, freshRow, isFilled, rowFromBinding, shapeOf, startingRows, type Row } from "./sourceRows";
 import type { WidgetLang } from "./widgets/types";
 
 const T = {
@@ -58,41 +49,16 @@ const T = {
   apply: { en: "Apply", ar: "تطبيق", fa: "اعمال" },
   fix: { en: "Fix these before applying:", ar: "أصلح ما يلي قبل التطبيق:", fa: "پیش از اعمال این موارد را اصلاح کنید:" },
   none: { en: "—", ar: "—", fa: "—" },
+  addItem: { en: "Add", ar: "إضافة", fa: "افزودن" },
+  removeItem: { en: "Remove", ar: "إزالة", fa: "حذف" },
+  wholeWindow: { en: "Whole time range (one bar)", ar: "كامل النطاق الزمني (عمود واحد)", fa: "کل بازه زمانی (یک میله)" },
+  every: { en: "Every", ar: "كل", fa: "هر" },
   invalidJson: { en: "Not valid JSON", ar: "JSON غير صالح", fa: "JSON نامعتبر است" },
 };
 const tr = (k: keyof typeof T, lang: WidgetLang) => T[k][lang] ?? T[k].en;
 
 const DASHBOARD_WINDOW = "__dashboard";
 const EMPTY = "__empty";
-
-/** One series being edited. Device sources are picked by device; others are kept as-is. */
-interface SeriesRow {
-  rowId: string;
-  deviceId?: string;
-  /** Existing non-device source key (deviceQuery), shown read-only. */
-  otherSource?: string;
-  key: string;
-  label: string;
-  unit: string;
-  /** Set when the row is a device count rather than a device's telemetry. */
-  count?: DeviceCountState;
-  color: string;
-}
-
-let rowSeq = 0;
-const newRow = (partial: Partial<SeriesRow> = {}): SeriesRow => ({ rowId: `r${++rowSeq}`, key: "", label: "", unit: "", color: "", ...partial });
-
-/** What a widget type's rows may hold, read from its definition. */
-interface RowShape {
-  /** The data schema has a telemetry key. */
-  keyed: boolean;
-  hasUnit: boolean;
-  hasColor: boolean;
-  allowDevice: boolean;
-  allowCount: boolean;
-}
-
-const COUNT_LABEL = { all: "countAll", active: "countActive", inactive: "countInactive" } as const;
 
 /* ---------------- schema-driven options form ---------------- */
 
@@ -101,8 +67,30 @@ const humanize = (name: string) =>
 
 const primaryType = (s: JsonSchema) => (Array.isArray(s.type) ? s.type.find((t) => t !== "null") : s.type);
 
+/** A string the gateway accepts only as #RRGGBB or #RRGGBBAA. */
+const isColor = (s: JsonSchema) => typeof s.pattern === "string" && s.pattern.includes("[0-9A-Fa-f]{6}");
+
+/** "window", or a bucket width in ms: the bar chart's interval. */
+const isWindowOrBucket = (s: JsonSchema) => {
+  const options = s.oneOf as JsonSchema[] | undefined;
+  return Array.isArray(options) && options.some((o) => o.const === "window") && options.some((o) => o.type === "integer");
+};
+const BUCKETS: Array<{ ms: number; label: Record<WidgetLang, string> }> = [
+  { ms: 60_000, label: { en: "minute", ar: "دقيقة", fa: "دقیقه" } },
+  { ms: 5 * 60_000, label: { en: "5 minutes", ar: "5 دقائق", fa: "۵ دقیقه" } },
+  { ms: 15 * 60_000, label: { en: "15 minutes", ar: "15 دقيقة", fa: "۱۵ دقیقه" } },
+  { ms: 3_600_000, label: { en: "hour", ar: "ساعة", fa: "ساعت" } },
+  { ms: 6 * 3_600_000, label: { en: "6 hours", ar: "6 ساعات", fa: "۶ ساعت" } },
+  { ms: 24 * 3_600_000, label: { en: "day", ar: "يوم", fa: "روز" } },
+];
+
+/** Whether an edited object has nothing left in it. */
+const isBlank = (v: unknown): boolean =>
+  v === undefined || v === null || v === "" || (typeof v === "object" && !Array.isArray(v) && Object.values(v as object).every(isBlank));
+
 const orderedKeys = (schema: JsonSchema, order?: string[]) => {
-  const props = Object.keys(schema.properties ?? {});
+  // A scale reads from its low end: min before max where no order is given.
+  const props = Object.keys(schema.properties ?? {}).sort((a, b) => (a === "min" && b === "max" ? -1 : a === "max" && b === "min" ? 1 : 0));
   const first = (order ?? []).filter((k) => props.includes(k));
   return [...first, ...props.filter((k) => !first.includes(k))];
 };
@@ -129,6 +117,37 @@ function SchemaField({
   const [jsonText, setJsonText] = useState(() => (value === undefined ? "" : JSON.stringify(value, null, 2)));
   const [jsonError, setJsonError] = useState(false);
 
+  if (isWindowOrBucket(schema)) {
+    const current = value === undefined || value === "window" ? "window" : String(value);
+    const known = BUCKETS.some((b) => String(b.ms) === current);
+    return (
+      <div className="space-y-1.5">
+        <Label className="text-xs">{label}</Label>
+        <Select value={current} onValueChange={(v) => onChange(v === "window" ? "window" : Number(v))}>
+          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="window">{tr("wholeWindow", lang)}</SelectItem>
+            {BUCKETS.map((b) => <SelectItem key={b.ms} value={String(b.ms)}>{tr("every", lang)} {b.label[lang]}</SelectItem>)}
+            {/* A width set elsewhere (the API) that is not one of the presets. */}
+            {current !== "window" && !known && <SelectItem value={current}>{current} ms</SelectItem>}
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  }
+  if (primaryType(schema) === "string" && isColor(schema)) {
+    const text = typeof value === "string" ? value : "";
+    return (
+      <div className="space-y-1.5">
+        <Label className="text-xs">{label}</Label>
+        <div className="flex items-center gap-2" dir="ltr">
+          {/* The picker has no alpha channel; an 8-digit colour keeps its alpha when typed. */}
+          <Input type="color" className="h-9 w-12 shrink-0 p-1" value={/^#[0-9A-Fa-f]{6}/.test(text) ? text.slice(0, 7) : "#000000"} onChange={(e) => onChange(e.target.value.toUpperCase())} />
+          <Input className="h-9 font-mono text-xs" value={text} placeholder="#RRGGBB" onChange={(e) => onChange(e.target.value)} />
+        </div>
+      </div>
+    );
+  }
   if (schema.enum) {
     return (
       <div className="space-y-1.5">
@@ -196,10 +215,57 @@ function SchemaField({
               uiSchema={uiSchema?.[name] as Record<string, unknown> | undefined}
               lang={lang}
               depth={depth + 1}
-              onChange={(v) => onChange({ ...obj, [k]: v })}
+              onChange={(v) => {
+                const next = { ...obj, [k]: v };
+                // An optional group (one that may be null) that has been emptied
+                // is "not set". Left as {} it fails its own required fields and
+                // blocks Apply on a group the user meant to leave out.
+                const nullable = Array.isArray(schema.type) && schema.type.includes("null");
+                onChange(nullable && isBlank(next) ? null : next);
+              }}
             />
           ))}
         </div>
+      </fieldset>
+    );
+  }
+  if (type === "array" && primaryType(schema.items ?? {}) === "object" && schema.items?.properties) {
+    const list = Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
+    const itemSchema = schema.items;
+    const full = typeof schema.maxItems === "number" && list.length >= schema.maxItems;
+    return (
+      <fieldset className="space-y-2 rounded-md border border-border p-3">
+        <legend className="px-1 text-xs font-medium text-muted-foreground">{label}</legend>
+        {list.map((item, i) => (
+          <div key={i} className="flex items-end gap-2">
+            <div className="grid flex-1 gap-2" style={{ gridTemplateColumns: `repeat(${Object.keys(itemSchema.properties!).length}, minmax(0, 1fr))` }}>
+              {orderedKeys(itemSchema).map((k) => (
+                <SchemaField
+                  key={k}
+                  name={k}
+                  schema={itemSchema.properties![k]}
+                  value={item?.[k]}
+                  lang={lang}
+                  depth={depth + 1}
+                  onChange={(v) => onChange(list.map((x, j) => (j === i ? { ...x, [k]: v } : x)))}
+                />
+              ))}
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0 text-destructive hover:text-destructive"
+              aria-label={tr("removeItem", lang)}
+              onClick={() => onChange(list.filter((_, j) => j !== i))}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        ))}
+        <Button type="button" variant="outline" size="sm" disabled={full} onClick={() => onChange([...list, {}])}>
+          <Plus className="h-3.5 w-3.5 me-1" />{tr("addItem", lang)}
+        </Button>
       </fieldset>
     );
   }
@@ -226,138 +292,6 @@ function SchemaField({
   );
 }
 
-/* ---------------- series rows ---------------- */
-
-function SeriesEditor({
-  row,
-  devices,
-  onChange,
-  onRemove,
-  canRemove,
-  lang,
-  shape,
-}: {
-  row: SeriesRow;
-  shape: RowShape;
-  devices: { id: string; name: string }[];
-  onChange: (r: SeriesRow) => void;
-  onRemove: () => void;
-  canRemove: boolean;
-  lang: WidgetLang;
-}) {
-  const workspaceId = useWorkspaceId() ?? "";
-  const isCount = row.count !== undefined;
-  const keysQuery = useDeviceTelemetryKeysQuery(workspaceId, PRODUCT_KEY, row.deviceId ?? "");
-  const keys = useMemo(() => {
-    const list = [...(keysQuery.data ?? [])].sort();
-    return row.key && !list.includes(row.key) ? [row.key, ...list] : list;
-  }, [keysQuery.data, row.key]);
-
-  return (
-    <div className="rounded-md border border-border p-3 space-y-3">
-      {shape.allowDevice && shape.allowCount && !row.otherSource && (
-        <div className="space-y-1.5">
-          <Label className="text-xs">{tr("sourceKind", lang)}</Label>
-          <Select
-            value={isCount ? "count" : "device"}
-            onValueChange={(v) => onChange(v === "count" ? { ...row, count: "all", deviceId: undefined, key: "" } : { ...row, count: undefined })}
-          >
-            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="device">{tr("kindTelemetry", lang)}</SelectItem>
-              <SelectItem value="count">{tr("kindCount", lang)}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-      {isCount ? (
-        <div className="space-y-1.5">
-          <Label className="text-xs">{tr("countOf", lang)}</Label>
-          <Select
-            value={row.count}
-            onValueChange={(v) => {
-              const count = v as DeviceCountState;
-              const auto = Object.values(COUNT_LABEL).map((k) => tr(k, lang));
-              // Follow the choice with the label unless the user wrote their own.
-              onChange({ ...row, count, label: !row.label || auto.includes(row.label) ? tr(COUNT_LABEL[count], lang) : row.label });
-            }}
-          >
-            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{tr("countAll", lang)}</SelectItem>
-              <SelectItem value="active">{tr("countActive", lang)}</SelectItem>
-              <SelectItem value="inactive">{tr("countInactive", lang)}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      ) : row.otherSource ? (
-        <div className="text-xs text-muted-foreground">
-          {tr("querySource", lang)}: <span className="font-mono">{row.otherSource}</span>
-        </div>
-      ) : (
-        <div className="space-y-1.5">
-          <Label className="text-xs">{tr("device", lang)}</Label>
-          <Select value={row.deviceId ?? ""} onValueChange={(deviceId) => onChange({ ...row, deviceId, key: "" })}>
-            <SelectTrigger className="h-9"><SelectValue placeholder={tr("selectDevice", lang)} /></SelectTrigger>
-            <SelectContent>
-              {devices.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-      {shape.keyed && !isCount && (
-      <div className="space-y-1.5">
-        <Label className="text-xs">{tr("key", lang)}</Label>
-        {row.otherSource ? (
-          <Input className="h-9" value={row.key} onChange={(e) => onChange({ ...row, key: e.target.value })} />
-        ) : (
-          <Select
-            value={row.key}
-            disabled={!row.deviceId}
-            onValueChange={(key) => onChange({ ...row, key, label: row.label || key })}
-          >
-            <SelectTrigger className="h-9">
-              <SelectValue placeholder={row.deviceId && keysQuery.isLoading ? tr("loadingKeys", lang) : tr("selectKey", lang)} />
-            </SelectTrigger>
-            <SelectContent>
-              {keys.map((k) => <SelectItem key={k} value={k}>{k}</SelectItem>)}
-              {row.deviceId && !keysQuery.isLoading && keys.length === 0 && (
-                <div className="px-2 py-1.5 text-xs text-muted-foreground">{tr("noKeys", lang)}</div>
-              )}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
-      )}
-      <div className={shape.hasUnit || shape.hasColor ? "grid grid-cols-[1fr_6rem] gap-2" : ""}>
-        <div className="space-y-1.5">
-          <Label className="text-xs">{tr("label", lang)}</Label>
-          <Input className="h-9" value={row.label} onChange={(e) => onChange({ ...row, label: e.target.value })} />
-        </div>
-        {shape.hasUnit && (
-          <div className="space-y-1.5">
-            <Label className="text-xs">{tr("unit", lang)}</Label>
-            <Input className="h-9" value={row.unit} onChange={(e) => onChange({ ...row, unit: e.target.value })} />
-          </div>
-        )}
-        {shape.hasColor && !shape.hasUnit && (
-          <div className="space-y-1.5">
-            <Label className="text-xs">{tr("color", lang)}</Label>
-            <Input type="color" className="h-9 p-1" value={row.color || "#0077B6"} onChange={(e) => onChange({ ...row, color: e.target.value.toUpperCase() })} />
-          </div>
-        )}
-      </div>
-      {canRemove && (
-        <div className="flex justify-end">
-          <Button type="button" variant="ghost" size="sm" className="h-7 text-destructive hover:text-destructive" onClick={onRemove}>
-            <Trash2 className="h-3.5 w-3.5 me-1" />{tr("removeSeries", lang)}
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ---------------- the sheet ---------------- */
 
 interface Props {
@@ -377,45 +311,19 @@ export function WidgetConfigSheet({ open, onOpenChange, widget, definition, dash
   const devices = useMemo(() => deviceItems.map((d) => ({ id: d.id, name: d.label || d.name })), [deviceItems]);
 
   const [title, setTitle] = useState("");
-  const [rows, setRows] = useState<SeriesRow[]>([]);
+  const [rows, setRows] = useState<Row[]>([]);
   const [windowValue, setWindowValue] = useState(DASHBOARD_WINDOW);
   const [options, setOptions] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<string[]>([]);
 
-  const itemProps = (definition?.dataSchema as JsonSchema | undefined)?.items?.properties ?? {};
-  const sourceTypes = (definition?.capabilities?.supportedDataSourceTypes as string[] | undefined) ?? ["device"];
-  const shape: RowShape = {
-    keyed: "key" in itemProps,
-    hasUnit: "unit" in itemProps,
-    hasColor: "color" in itemProps,
-    allowDevice: sourceTypes.includes("device") || sourceTypes.includes("deviceQuery"),
-    allowCount: sourceTypes.includes("deviceCount"),
-  };
-  const countRow = (count: DeviceCountState) => newRow({ count, label: tr(COUNT_LABEL[count], lang) });
-  /* A widget that only counts devices opens on the usual comparison, online
-     against offline, instead of on an empty form. */
-  const startingRows = () => (shape.allowDevice ? [newRow()] : [countRow("active"), countRow("inactive")]);
+  const shape = shapeOf(definition);
 
   // Load the widget into the draft each time the sheet opens on it.
   useEffect(() => {
     if (!open || !widget) return;
     setTitle(widget.title);
-    const loaded = widget.data.map((d) => {
-      const src = dashboard.dataSources[d.source];
-      // A workspace-wide count is edited as a choice; a count narrowed by type
-      // or asset has no picker here yet and is kept as it is.
-      const plainCount = src?.type === "deviceCount" && !src.deviceTypeId && !src.assetId;
-      return newRow({
-        deviceId: src?.type === "device" ? src.deviceId : undefined,
-        count: plainCount ? (src.active === true ? "active" : src.active === false ? "inactive" : "all") : undefined,
-        otherSource: src && src.type !== "device" && !plainCount ? d.source : undefined,
-        color: d.color ?? "",
-        key: d.key ?? "",
-        label: d.label ?? "",
-        unit: d.unit ?? "",
-      });
-    });
-    setRows(loaded.length ? loaded : startingRows());
+    const loaded = widget.data.map((d) => rowFromBinding(d, dashboard.dataSources));
+    setRows(loaded.length ? loaded : startingRows(shape, lang));
     setWindowValue(widget.timeWindow?.type === "relative" ? widget.timeWindow.last : DASHBOARD_WINDOW);
     setOptions({ ...(definition?.defaultConfiguration ?? {}), ...(widget.options ?? {}) });
     setErrors([]);
@@ -431,31 +339,15 @@ export function WidgetConfigSheet({ open, onOpenChange, widget, definition, dash
 
   const apply = () => {
     // Rows with nothing chosen yet are dropped rather than sent half-filled.
-    const filled = rows.filter((r) => r.count !== undefined || ((r.deviceId || r.otherSource) && (!shape.keyed || r.key.trim())));
+    const deviceName = (id: string) => devices.find((d) => d.id === id)?.name ?? id;
     let next = dashboard;
-    const data = filled.map((r) => {
-      let source = r.otherSource ?? "";
-      if (r.count !== undefined) {
-        [next, source] = ensureCountSource(next, r.count);
-        return compact({
-          source,
-          label: r.label.trim(),
-          unit: shape.hasUnit ? r.unit.trim() : "",
-          color: shape.hasColor ? r.color : "",
-        }) as DashboardWidget["data"][number];
-      }
-      if (r.deviceId) {
-        const name = devices.find((d) => d.id === r.deviceId)?.name ?? r.deviceId;
-        [next, source] = ensureDeviceSource(next, r.deviceId, name);
-      }
-      return compact({
-        source,
-        key: shape.keyed ? r.key.trim() : "",
-        label: r.label.trim(),
-        unit: shape.hasUnit ? r.unit.trim() : "",
-        color: shape.hasColor ? r.color : "",
-      }) as DashboardWidget["data"][number];
-    });
+    const data = rows
+      .filter((r) => isFilled(r, shape))
+      .map((r) => {
+        const [withSource, item] = bindingFromRow(next, r, shape, deviceName);
+        next = withSource;
+        return item;
+      });
     const updated: DashboardWidget = {
       ...widget,
       title: title.trim() || definition?.name || widget.type,
@@ -489,7 +381,7 @@ export function WidgetConfigSheet({ open, onOpenChange, widget, definition, dash
           <div className="space-y-2">
             <Label>{tr("series", lang)}</Label>
             {rows.map((r) => (
-              <SeriesEditor
+              <RowEditor
                 key={r.rowId}
                 row={r}
                 devices={devices}
@@ -501,7 +393,11 @@ export function WidgetConfigSheet({ open, onOpenChange, widget, definition, dash
               />
             ))}
             {multiple && (
-              <Button type="button" variant="outline" size="sm" onClick={() => setRows((prev) => [...prev, shape.allowDevice ? newRow({ deviceId: prev[prev.length - 1]?.deviceId }) : countRow("all")])}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setRows((prev) => {
+                const last = prev[prev.length - 1];
+                const kind = last && last.kind !== "other" ? last.kind : shape.kinds[0];
+                return [...prev, freshRow(kind, lang, kind === "device" ? { deviceId: last?.deviceId ?? "" } : {})];
+              })}>
                 <Plus className="h-3.5 w-3.5 me-1" />{tr("addSeries", lang)}
               </Button>
             )}
