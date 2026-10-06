@@ -102,7 +102,8 @@ export interface AlarmRuleItem {
     createdAt: string;
 }
 
-export type EscalationActionType = 'CALL';
+/** CALL: a phone call, placed by the escalation workflow. IN_APP: a notification in the panel. */
+export type EscalationActionType = 'CALL' | 'IN_APP';
 
 export interface EscalationAction {
     id?: string;

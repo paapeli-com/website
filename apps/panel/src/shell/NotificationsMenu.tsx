@@ -81,6 +81,7 @@ const WORK_ORDER_HEADLINE: Record<NotificationResponse["type"], string> = {
   WORK_ORDER_ASSIGNED: "A work order was assigned to you",
   WORK_ORDER_STATUS_CHANGED: "Work order status changed",
   WORK_ORDER_RAISED: "A work order was raised from an alarm",
+  ALARM_ESCALATED: "An alarm was escalated to you",
 };
 
 const STATUS_PHRASE: Record<string, string> = {
@@ -100,6 +101,10 @@ const workOrderPath = (productKey: string, workOrderId?: string | null) =>
     ? `${solutionPath("SmartFactory")}/work-orders/${workOrderId}`
     : undefined;
 
+/* Alarms, too, have their page only in Smart Factory. */
+const alarmsPath = (productKey: string) =>
+  productKey === productKeyFor("SmartFactory") ? `${solutionPath("SmartFactory")}/alarms` : undefined;
+
 const fromServer = (
   n: NotificationResponse & { productKey: string },
   lang: AppLanguage,
@@ -109,9 +114,10 @@ const fromServer = (
   const detail = n.type === "WORK_ORDER_STATUS_CHANGED"
     ? (n.detail && STATUS_PHRASE[n.detail] ? t(STATUS_PHRASE[n.detail]) : "")
     : n.detail ?? "";
+  const escalated = n.type === "ALARM_ESCALATED";
   return {
     id: n.id,
-    category: "workOrder",
+    category: escalated ? "alarm" : "workOrder",
     tone: priorityTone(n.priority),
     title: t(WORK_ORDER_HEADLINE[n.type] ?? "Work Orders"),
     source: detail ? `${n.title} · ${detail}` : n.title,
@@ -119,7 +125,7 @@ const fromServer = (
     at: new Date(n.createdAt).getTime() || 0,
     unread: !n.read,
     productKey: n.productKey,
-    path: workOrderPath(n.productKey, n.workOrderId),
+    path: escalated ? alarmsPath(n.productKey) : workOrderPath(n.productKey, n.workOrderId),
   };
 };
 
@@ -257,10 +263,10 @@ export function NotificationsMenu() {
               items.map((n) => (
                 <div
                   key={n.id}
-                  onClick={n.category === "workOrder" ? () => handleOpen(n) : undefined}
+                  onClick={n.productKey ? () => handleOpen(n) : undefined}
                   className={cn(
                     "flex items-start gap-3 border-b border-border px-4 py-3 last:border-b-0",
-                    n.category === "workOrder" && "cursor-pointer hover:bg-muted/40",
+                    n.productKey && "cursor-pointer hover:bg-muted/40",
                     n.unread && "bg-primary/5",
                   )}
                 >

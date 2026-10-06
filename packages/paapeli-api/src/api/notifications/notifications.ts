@@ -5,7 +5,8 @@ import type { WorkOrderApiPriority } from '../workOrders';
 export type NotificationType =
     | 'WORK_ORDER_ASSIGNED'
     | 'WORK_ORDER_STATUS_CHANGED'
-    | 'WORK_ORDER_RAISED';
+    | 'WORK_ORDER_RAISED'
+    | 'ALARM_ESCALATED';
 
 /** Something the signed-in user should know about, in one workspace product. */
 export interface NotificationResponse {
@@ -16,10 +17,13 @@ export interface NotificationResponse {
     /**
      * WORK_ORDER_ASSIGNED and WORK_ORDER_RAISED: the equipment's name, if any.
      * WORK_ORDER_STATUS_CHANGED: the new status.
+     * ALARM_ESCALATED: the device's name.
      */
     detail?: string | null;
     priority?: WorkOrderApiPriority | null;
     workOrderId?: string | null;
+    /** The alarm it is about: the escalated one, or the one that raised the work order. */
+    alarmId?: string | null;
     /** null when the gateway acted itself. */
     actorUserId?: string | null;
     read: boolean;

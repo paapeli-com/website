@@ -624,10 +624,9 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
               <Label>{t("alertSelectEscalation")}</Label>
               <div className="space-y-3">
                 {escalationPolicies.length === 0 && (
-                  <EmptyState
-                    message={tt("alertNoEscalationsYet")}
-                    action={{ label: t("alertCreateEscalation"), onClick: () => navigate(localizedPath("/alarms/escalation/new", language)) }}
-                  />
+                  // No button: a policy needs a saved, active rule, so there is
+                  // nowhere to send someone who is still creating this one.
+                  <EmptyState message={tt("alertNoEscalationsYet")} />
                 )}
                 {escalationPolicies.map(policy => (
                   <button

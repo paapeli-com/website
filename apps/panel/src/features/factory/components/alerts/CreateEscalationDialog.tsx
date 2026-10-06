@@ -3,6 +3,7 @@ import {
   useGetEscalationChainsQueries,
   useGetWorkspaceAlarmRulesQuery,
   usePutEscalationChainMutation,
+  type EscalationActionType,
 } from "@paapeli/api";
 import { getCurrentUser, getCurrentUserId } from "@paapeli/brand/session";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
@@ -18,13 +19,22 @@ import { Badge } from "@/features/factory/components/ui/badge";
 import { Plus, X } from "lucide-react";
 import { useToast } from "@/features/factory/hooks/use-toast";
 
-/* One step of the chain: whom to call, and how long to wait before calling. */
+/* One step of the chain: whom to tell, how, and how long to wait before telling them. */
 interface EscalationLevel {
   level: number;
   userId: string;
+  /** How the person is told: in the panel, or by a phone call. */
+  channel: EscalationActionType;
   /** "" while the field is cleared mid-edit; saved as 0. */
   delayMinutes: number | "";
 }
+
+/* In-app is the channel that works without anything else being set up. */
+const DEFAULT_CHANNEL: EscalationActionType = "IN_APP";
+const CHANNEL_LABEL: Record<EscalationActionType, string> = {
+  IN_APP: "escalationChannelInApp",
+  CALL: "escalationChannelCall",
+};
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -88,7 +98,7 @@ export const CreateEscalationDialog = ({ open, onOpenChange, inline, hideActions
   const [description, setDescription] = useState("");
   const [slaMinutes, setSlaMinutes] = useState("60");
   const [levels, setLevels] = useState<EscalationLevel[]>([
-    { level: 1, userId: currentUserId, delayMinutes: 0 },
+    { level: 1, userId: currentUserId, channel: DEFAULT_CHANNEL, delayMinutes: 0 },
   ]);
 
   useEffect(() => {
@@ -103,6 +113,7 @@ export const CreateEscalationDialog = ({ open, onOpenChange, inline, hideActions
       setLevels(steps.map((s, i) => ({
         level: i + 1,
         userId: s.actions?.[0]?.userId ?? currentUserId,
+        channel: s.actions?.[0]?.actionType ?? DEFAULT_CHANNEL,
         delayMinutes: Math.round((s.delaySeconds ?? 0) / 60),
       })));
       setSlaMinutes(String(Math.round(steps.reduce((sum, s) => sum + (s.delaySeconds ?? 0), 0) / 60)));
@@ -111,7 +122,7 @@ export const CreateEscalationDialog = ({ open, onOpenChange, inline, hideActions
   }, [isEdit, editChain, activeRules]);
 
   const handleAddLevel = () => {
-    setLevels([...levels, { level: levels.length + 1, userId: currentUserId, delayMinutes: 15 }]);
+    setLevels([...levels, { level: levels.length + 1, userId: currentUserId, channel: DEFAULT_CHANNEL, delayMinutes: 15 }]);
   };
 
   const handleRemoveLevel = (level: number) => {
@@ -140,7 +151,7 @@ export const CreateEscalationDialog = ({ open, onOpenChange, inline, hideActions
         enabled: true,
         steps: levels.map((l) => ({
           delaySeconds: Math.max(0, Number(l.delayMinutes) || 0) * 60,
-          actions: [{ actionType: "CALL", userId: l.userId.trim() }],
+          actions: [{ actionType: l.channel, userId: l.userId.trim() }],
         })),
       });
     } catch (error) {
@@ -158,7 +169,7 @@ export const CreateEscalationDialog = ({ open, onOpenChange, inline, hideActions
     setName("");
     setDescription("");
     setSlaMinutes("60");
-    setLevels([{ level: 1, userId: currentUserId, delayMinutes: 0 }]);
+    setLevels([{ level: 1, userId: currentUserId, channel: DEFAULT_CHANNEL, delayMinutes: 0 }]);
   };
 
   const handleCancel = () => {
@@ -245,7 +256,7 @@ export const CreateEscalationDialog = ({ open, onOpenChange, inline, hideActions
             </div>
 
             {levels.map((level, idx) => (
-              <div key={level.level} className="grid grid-cols-3 gap-2 p-3 border rounded-lg">
+              <div key={level.level} className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 border rounded-lg">
                 <div className="space-y-1">
                   <Label className="text-xs">{t("alertLevel")}</Label>
                   <div className="text-sm font-medium">{level.level}</div>
@@ -266,6 +277,21 @@ export const CreateEscalationDialog = ({ open, onOpenChange, inline, hideActions
                       {level.userId && level.userId !== currentUserId && (
                         <SelectItem value={level.userId}>{level.userId.slice(0, 8)}…</SelectItem>
                       )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">{tt("escalationChannel")}</Label>
+                  <Select
+                    value={level.channel}
+                    onValueChange={(v) => handleUpdateLevel(level.level, "channel", v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="IN_APP">{tt(CHANNEL_LABEL.IN_APP)}</SelectItem>
+                      <SelectItem value="CALL">{tt(CHANNEL_LABEL.CALL)}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -303,7 +329,7 @@ export const CreateEscalationDialog = ({ open, onOpenChange, inline, hideActions
             <div className="flex flex-wrap gap-2">
               {levels.map(l => (
                 <Badge key={l.level} variant="outline">
-                  L{l.level}: {!l.userId ? "—" : l.userId === currentUserId ? currentUserLabel : `${l.userId.slice(0, 8)}…`} ({l.delayMinutes || 0}m)
+                  L{l.level}: {!l.userId ? "—" : l.userId === currentUserId ? currentUserLabel : `${l.userId.slice(0, 8)}…`} · {tt(CHANNEL_LABEL[l.channel])} ({l.delayMinutes || 0}m)
                 </Badge>
               ))}
             </div>
