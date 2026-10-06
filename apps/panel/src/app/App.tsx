@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
@@ -9,7 +10,14 @@ import { Layout } from "@/shell/Layout";
 import { RequireAuth } from "@/shell/RequireAuth";
 import { PAAPELI_API_BASE_URL } from "@/shared/config";
 import { Feature } from "./Feature";
-import { aiInferenceRoutes, cloudManagementRoutes, factoryRoutes, homeRoutes, trackRoutes } from "./features";
+import {
+  aiInferenceRoutes,
+  cloudManagementRoutes,
+  factoryRoutes,
+  homeRoutes,
+  sharedDashboardPage as SharedDashboardPage,
+  trackRoutes,
+} from "./features";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +42,16 @@ export default function App() {
               systems no longer pop up at opposite ends of the screen. */}
           <Toaster richColors position="bottom-right" />
           <Routes>
+            {/* A dashboard opened through a share link. Outside RequireAuth
+                and the shell on purpose: its visitor has no account. */}
+            <Route
+              path="/share/d/:token"
+              element={
+                <Suspense fallback={null}>
+                  <SharedDashboardPage />
+                </Suspense>
+              }
+            />
             <Route
               path="/"
               element={

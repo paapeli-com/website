@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   emptyDashboardDefinition,
   useGetDashboardQuery,
+  useListActiveWorkspacesQuery,
   useListWidgetDefinitionsQuery,
   useUpdateDashboardMutation,
   type DashboardDefinition,
@@ -43,6 +44,7 @@ import { WidgetBody } from "@/features/factory/components/dashboard/widgets";
 import { exportDashboardImage, exportDashboardPdf } from "@/features/factory/lib/dashboardExport";
 import { widgetName } from "@/features/factory/components/dashboard/widgets/widgetText";
 import { DashboardHistorySheet } from "@/features/factory/components/dashboard/DashboardHistorySheet";
+import { DashboardShareSheet } from "@/features/factory/components/dashboard/DashboardShareSheet";
 import { WidgetConfigSheet } from "@/features/factory/components/dashboard/WidgetConfigSheet";
 import { Button } from "@/features/factory/components/ui/button";
 import { Card } from "@/features/factory/components/ui/card";
@@ -88,6 +90,7 @@ import {
   FileText,
   GripVertical,
   History,
+  Link2,
   LayoutGrid,
   LineChart,
   Loader2,
@@ -116,6 +119,7 @@ type Lang = "en" | "ar" | "fa";
 
 const T: Record<string, Record<Lang, string>> = {
   notFound: { en: "This dashboard doesn't exist or you don't have access to it.", ar: "هذه اللوحة غير موجودة أو ليس لديك صلاحية الوصول إليها.", fa: "این داشبورد وجود ندارد یا به آن دسترسی ندارید." },
+  share: { en: "Share by link", ar: "مشاركة برابط", fa: "اشتراک‌گذاری با لینک" },
   back: { en: "Back to dashboards", ar: "العودة إلى لوحات التحكم", fa: "بازگشت به داشبوردها" },
   loading: { en: "Loading dashboard…", ar: "جارٍ تحميل اللوحة…", fa: "در حال بارگذاری داشبورد…" },
   addWidget: { en: "Add Widget", ar: "إضافة عنصر", fa: "افزودن ویجت" },
@@ -227,6 +231,11 @@ const DashboardCanvas = () => {
   const [draft, setDraft] = useState<DashboardDefinition | null>(null);
   const [dirty, setDirty] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  // Sharing by link is for workspace owners and admins; the gateway enforces it too.
+  const workspaces = useListActiveWorkspacesQuery();
+  const myRole = workspaces.data?.find((w) => w.workspaceId === workspaceId)?.role;
+  const canShare = myRole === "OWNER" || myRole === "ADMIN";
   const loadedKey = useRef<string | null>(null);
   // Take the server's definition when a new record version arrives — unless
   // there are unsaved edits, which a background refetch must not wipe out.
@@ -665,6 +674,13 @@ const DashboardCanvas = () => {
                     <History className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger><TooltipContent side="bottom">{tt("history")}</TooltipContent></Tooltip>
+                {canShare && (
+                  <Tooltip><TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setShareOpen(true)} aria-label={tt("share")}>
+                      <Link2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger><TooltipContent side="bottom">{tt("share")}</TooltipContent></Tooltip>
+                )}
                 {/* The browser's own print dialog saves a PDF; the print rules
                     in index.css leave only the dashboard on the page. */}
                 <DropdownMenu>
@@ -782,6 +798,15 @@ const DashboardCanvas = () => {
         lang={lang}
         rtl={rtl}
         onApply={(next) => { setDraft(next); setDirty(true); }}
+      />
+
+      <DashboardShareSheet
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        dashboard={record}
+        timeZone={timeZone}
+        lang={lang}
+        rtl={rtl}
       />
 
       <DashboardHistorySheet

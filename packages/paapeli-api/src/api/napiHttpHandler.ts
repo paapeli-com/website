@@ -80,6 +80,47 @@ const TOKENLESS_ENDPOINTS = [
 const isTokenlessRequest = (url: string | undefined) =>
     !!url && TOKENLESS_ENDPOINTS.some((p) => url.includes(p));
 
+/* ------------------------------------------------------------------ */
+/* Share mode. A dashboard opened through a share link is drawn by the */
+/* same widgets as any other, which call the signed-in endpoints. The  */
+/* gateway mirrors each of those under the link's token, so here the   */
+/* request is redirected to its mirror and sent with no bearer token:  */
+/* the token in the path is the credential. A request with no mirror   */
+/* is not something a link may read, and is cancelled before it leaves.*/
+/* ------------------------------------------------------------------ */
+
+const PUBLIC_PREFIX = '/api/v1/public/';
+let shareToken: string | null = null;
+
+/** Enter share mode for this document: every request goes through the link. */
+export function setShareToken(token: string | null) {
+    shareToken = token;
+}
+
+const SCOPE = '[^/]+/[^/]+';
+const SHARE_MIRRORS: [RegExp, string][] = [
+    [new RegExp(`^/api/v1/aiot/telemetry/${SCOPE}/devices/`), 'telemetry/devices/'],
+    [new RegExp(`^/api/v1/aiot/alarms/${SCOPE}$`), 'alarms'],
+    [new RegExp(`^/api/v1/aiot/devices/${SCOPE}/tenant$`), 'devices'],
+    [new RegExp(`^/api/v1/aiot/devices/${SCOPE}/query$`), 'devices/query'],
+    [new RegExp(`^/api/v1/aiot/devices/${SCOPE}/count$`), 'devices/count'],
+    [new RegExp(`^/api/v1/aiot/dashboards/${SCOPE}/widget-definitions$`), 'widget-definitions'],
+];
+
+/** The link's mirror of a signed-in URL, or null when it has none. */
+function sharedUrl(url: string | undefined, token: string): string | null {
+    if (!url) return null;
+    if (url.startsWith(PUBLIC_PREFIX)) return url;
+    for (const [pattern, mirror] of SHARE_MIRRORS) {
+        if (pattern.test(url)) {
+            return `${PUBLIC_PREFIX}shared-dashboards/${encodeURIComponent(token)}/${url.replace(pattern, mirror)}`;
+        }
+    }
+    return null;
+}
+
+const isPublicRequest = (url: string | undefined) => !!url && url.startsWith(PUBLIC_PREFIX);
+
 /* Treat a token as expired this long before its `exp`, so a request doesn't
    leave with a token that dies in flight. */
 const EXPIRY_SKEW_MS = 10_000;
@@ -217,6 +258,14 @@ const bearerOf = (config: InternalAxiosRequestConfig | undefined) => {
 /* Don't send a request whose token has already expired — refresh first, and
    only sign out if that fails. */
 apiClient.interceptors.request.use(async (config) => {
+    if (shareToken) {
+        const url = sharedUrl(config.url, shareToken);
+        if (!url) return Promise.reject(new axios.CanceledError('Not available on a shared dashboard'));
+        config.url = url;
+        config.withCredentials = false;
+        config.headers.delete('Authorization');
+        return config;
+    }
     /* Sign-in, sign-up, password reset and the refresh carry no bearer token:
        the gateway answers 401 to any of them that arrives with a stale one
        (the refresh is authenticated by its HttpOnly cookie alone). The
@@ -293,6 +342,10 @@ async function refreshAndRetry(error: any, guessed = false) {
 apiClient.interceptors.response.use(
     (response) => response,
     async (error) => {
+        // A share link has no session to refresh or sign out of.
+        if (shareToken || isPublicRequest(error?.config?.url)) {
+            return Promise.reject(error);
+        }
         if (isAuthRequest(error?.config?.url) || axios.isCancel(error)) {
             return Promise.reject(error);
         }

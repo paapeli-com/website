@@ -28,7 +28,19 @@ const EVENT = "paapeli:workspace";
 let mirror: string | null = null;
 let mirrorOnly = false;
 
+/* A page that is not a signed-in session at all (a dashboard opened through a
+   share link) names its own workspace for this document only. It is never
+   written to storage, so it cannot disturb the selection of a session that
+   happens to be open in the same browser. */
+let override: string | null = null;
+
+/** Use `id` as the active workspace in this document only, without storing it. */
+export function overrideActiveWorkspaceId(id: string | null): void {
+  override = id;
+}
+
 function read(): string | null {
+  if (override) return override;
   if (typeof window === "undefined") return null;
   if (mirrorOnly) return mirror;
   try {
