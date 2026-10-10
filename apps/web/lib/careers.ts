@@ -134,6 +134,8 @@ export type FormCopy = {
   resume: string;
   resumeDrop: string;
   resumeHint: string;
+  /** Shown under the upload: the file only travels with a VPN on. */
+  resumeVpnNote: string;
   resumeRemove: string;
   resumeMissing: string;
   resumeWrongType: string;
@@ -436,6 +438,8 @@ const en: CareersContent = {
     resume: "Upload your resume (PDF, up to 5 MB)",
     resumeDrop: "Drag your resume here or choose a file",
     resumeHint: "Allowed format: PDF",
+    resumeVpnNote:
+      "Connecting from Iran? Turn on your VPN before sending, so your resume file can be attached.",
     resumeRemove: "Remove file",
     resumeMissing: "Please attach your resume as a PDF.",
     resumeWrongType: "Only a PDF file is accepted.",
@@ -731,6 +735,8 @@ const fa: CareersContent = {
     resume: "آپلود رزومه (PDF حداکثر ۵ مگابایت)",
     resumeDrop: "فایل رزومه را اینجا بکشید یا انتخاب کنید",
     resumeHint: "فرمت مجاز: PDF",
+    resumeVpnNote:
+      "برای پیوست شدن فایل رزومه، لطفاً پیش از ارسال فیلترشکن خود را روشن کنید.",
     resumeRemove: "حذف فایل",
     resumeMissing: "لطفاً رزومه خود را با فرمت PDF پیوست کنید.",
     resumeWrongType: "فقط فایل PDF پذیرفته می‌شود.",
@@ -1026,6 +1032,8 @@ const ar: CareersContent = {
     resume: "رفع السيرة الذاتية (PDF بحد أقصى 5 ميغابايت)",
     resumeDrop: "اسحب ملف السيرة الذاتية إلى هنا أو اختره",
     resumeHint: "الصيغة المسموحة: PDF",
+    resumeVpnNote:
+      "إذا كنت تتصل من إيران، شغّل الـ VPN قبل الإرسال حتى يُرفق ملف سيرتك الذاتية.",
     resumeRemove: "حذف الملف",
     resumeMissing: "الرجاء إرفاق سيرتك الذاتية بصيغة PDF.",
     resumeWrongType: "يُقبل ملف PDF فقط.",

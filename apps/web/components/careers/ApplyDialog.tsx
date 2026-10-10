@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FileText, Upload, X } from "lucide-react";
+import { FileText, Info, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { localeDigits, type ApplyTarget, type FormCopy } from "@/lib/careers";
 import type { Locale } from "@/lib/seo";
+import { submitForm } from "@/lib/submitForm";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -41,24 +42,12 @@ import { cn } from "@/lib/utils";
 /* worse failure.                                                      */
 /* ------------------------------------------------------------------ */
 
-const FORM_ENDPOINT = "https://api.web3forms.com/submit";
 const ACCESS_KEY = "131ad66a-900d-4406-ae8b-9d13562a36cc";
 
 /** Web3Forms stops at 5 MB itself, and a resume has no business being bigger. */
 const MAX_BYTES = 5 * 1024 * 1024;
 
 const EMPTY = { name: "", phone: "", email: "", link: "", about: "" };
-
-/** Sends one body, and says only whether it landed. */
-async function post(body: BodyInit, headers?: HeadersInit): Promise<boolean> {
-  try {
-    const response = await fetch(FORM_ENDPOINT, { method: "POST", headers, body });
-    const result = await response.json().catch(() => ({ success: response.ok }));
-    return response.ok && result.success !== false;
-  } catch {
-    return false;
-  }
-}
 
 export function ApplyDialog({
   target,
@@ -141,10 +130,10 @@ export function ApplyDialog({
     multipart.append("Resume", resume, resume.name);
 
     let outcome: "sent" | "without-file" | "failed" = "failed";
-    if (await post(multipart)) {
+    if (await submitForm(multipart)) {
       outcome = "sent";
     } else if (
-      await post(
+      await submitForm(
         JSON.stringify({
           ...fields,
           Resume: `${resume.name} could not be attached. Please ask the applicant for the file.`,
@@ -381,6 +370,12 @@ export function ApplyDialog({
                     </button>
                   )}
                 </div>
+                {/* The attachment is the part that fails on a filtered line,
+                    so the applicant hears it before sending, not after. */}
+                <p className="flex items-start gap-2 rounded-lg border border-amber-400/20 bg-amber-400/5 px-3 py-2 text-xs leading-relaxed text-amber-200/90">
+                  <Info aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+                  <span>{copy.resumeVpnNote}</span>
+                </p>
               </div>
 
               {/* Hidden from people, offered to bots. */}

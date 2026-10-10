@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { submitForm } from "@/lib/submitForm";
 import {
   FEATURE_INDEX,
   INDUSTRY_INDEX,
@@ -35,7 +36,6 @@ const PHONE = "+98 21 5566 1372";
 
 /* Web3Forms delivers the form to our inbox. The access key belongs in the
    page: it only lets a submission through, it reads nothing back. */
-const FORM_ENDPOINT = "https://api.web3forms.com/submit";
 const ACCESS_KEY = "131ad66a-900d-4406-ae8b-9d13562a36cc";
 
 /** Source pages that are neither a feature nor an industry. */
@@ -242,21 +242,17 @@ export default function ContactPage() {
       botcheck: new FormData(event.currentTarget).get("botcheck") ? "true" : "",
     };
 
-    try {
-      const response = await fetch(FORM_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const result = await response.json().catch(() => ({ success: response.ok }));
-      if (!response.ok || !result.success) throw new Error(result.message ?? "submit failed");
-      toast.success(copy.success);
-      setForm(EMPTY);
-    } catch {
+    const sent = await submitForm(JSON.stringify(payload), {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    });
+    setSending(false);
+    if (!sent) {
       toast.error(copy.failure);
-    } finally {
-      setSending(false);
+      return;
     }
+    toast.success(copy.success);
+    setForm(EMPTY);
   };
 
   return (
