@@ -20,6 +20,8 @@ export interface AlarmWorkOrderRule {
     cooldownMinutes: number;
     /** The most orders the rule raises in any 24 hours; null for no limit. */
     dailyLimit?: number | null;
+    /** The template whose tasks each raised order gets. */
+    templateId?: string | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -36,6 +38,7 @@ export interface AlarmWorkOrderRuleRequest {
     /** Defaults to 0. */
     cooldownMinutes?: number;
     dailyLimit?: number | null;
+    templateId?: string | null;
 }
 
 const url = (workspaceId: string, productKey: string, alarmRuleId: string) =>

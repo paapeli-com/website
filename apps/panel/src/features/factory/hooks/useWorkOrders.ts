@@ -11,6 +11,7 @@ import {
   type WorkOrderApiStatus,
   type WorkOrderApiWorkType,
   type WorkOrderListFilter,
+  type WorkOrderTaskInput,
   type WorkOrderResponse,
 } from "@paapeli/api";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
@@ -156,7 +157,7 @@ const merged = (raw: WorkOrderResponse, patch: Partial<WorkOrder>): UpdateWorkOr
   holdReason: "holdReason" in patch ? patch.holdReason || null : raw.holdReason ?? null,
 });
 
-const createRequest = (wo: NewWorkOrder) => ({
+const createRequest = (wo: NewWorkOrder, tasks?: WorkOrderTaskInput[]) => ({
   title: wo.action,
   description: wo.notes || null,
   status: wo.status ? STATUS_TO_API[wo.status] : undefined,
@@ -173,6 +174,7 @@ const createRequest = (wo: NewWorkOrder) => ({
   dueAt: wo.dueAt ?? null,
   workType: wo.workType ?? null,
   holdReason: wo.holdReason || null,
+  ...(tasks ? { tasks } : {}),
 });
 
 /** Every cached view of the workspace's orders starts with this. */
@@ -226,6 +228,38 @@ export const useWorkOrderSummary = () => {
   });
 };
 
+/**
+ * The work order an alarm has, if it has one: the newest of them. Asked of the
+ * server when an alarm's row is opened, for an alarm whose order is not among
+ * the ones already on screen.
+ */
+export const findWorkOrderOfAlarm = async (workspaceId: string, alarmId: string) => {
+  const page = await workOrderService.list(workspaceId, PRODUCT_KEY, { alarmId }, 1, 1);
+  return page.data[0];
+};
+
+/**
+ * The orders alarms raised, newest first, one request's worth. Enough for the
+ * alarms list to say which of its rows already have one; an older alarm is
+ * looked up when its row is opened (see findWorkOrderOfAlarm).
+ */
+export const useAlarmWorkOrders = () => {
+  const workspaceId = useWorkspaceId() ?? "";
+  const query = useQuery({
+    queryKey: [...rootKey(workspaceId), "ofAlarms"],
+    queryFn: () => workOrderService.list(workspaceId, PRODUCT_KEY, { source: "ALARM" }, 1, PAGE_SIZE),
+    enabled: !!workspaceId,
+  });
+  return useMemo(() => {
+    const byAlarm = new Map<string, string>();
+    // Newest first, so the first order seen for an alarm is its latest.
+    for (const order of query.data?.data ?? []) {
+      if (order.alarmId && !byAlarm.has(order.alarmId)) byAlarm.set(order.alarmId, order.id);
+    }
+    return byAlarm;
+  }, [query.data]);
+};
+
 /** One work order by its ID, with its history. */
 export const useWorkOrder = (id?: string) => {
   const workspaceId = useWorkspaceId() ?? "";
@@ -269,9 +303,10 @@ export const useWorkOrderActions = () => {
     [queryClient, workspaceId],
   );
 
+  /** `tasks` is what the order starts with, in order. */
   const create = useCallback(
-    async (wo: NewWorkOrder) => {
-      const created = await workOrderService.create(workspaceId, PRODUCT_KEY, createRequest(wo));
+    async (wo: NewWorkOrder, tasks?: WorkOrderTaskInput[]) => {
+      const created = await workOrderService.create(workspaceId, PRODUCT_KEY, createRequest(wo, tasks));
       refresh();
       return created;
     },

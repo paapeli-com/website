@@ -18,6 +18,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/features/factory/components/ui/dialog";
 import { useToast } from "@/features/factory/hooks/use-toast";
+import { useWorkOrderTemplates } from "@/features/factory/hooks/useWorkOrderTasks";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { apiErrorMessage } from "@/shared/lib/apiError";
@@ -27,6 +28,7 @@ const AUTO = "auto";
 const NOBODY = "nobody";
 const NO_TEAM = "none";
 const ANY_SEVERITY = "any";
+const NO_TEMPLATE = "none";
 
 /* The least severe alarm that still raises an order, most severe first. */
 const SEVERITY_FLOORS: { value: AlarmSeverityFloor; label: string }[] = [
@@ -75,11 +77,13 @@ export const RuleWorkOrderDialog = ({ rule, onClose }: RuleWorkOrderDialogProps)
   });
   const members = useListWorkspaceMembersQuery(workspaceId, "", 1, 100, open);
   const activeMembers = (members.data?.data ?? []).filter((m) => m.status === "ACTIVE");
+  const { templates } = useWorkOrderTemplates(open);
 
   const [enabled, setEnabled] = useState(true);
   const [priority, setPriority] = useState<string>(AUTO);
   const [assignee, setAssignee] = useState<string>(NOBODY);
   const [team, setTeam] = useState<string>(NO_TEAM);
+  const [template, setTemplate] = useState<string>(NO_TEMPLATE);
   const [minSeverity, setMinSeverity] = useState<string>(ANY_SEVERITY);
   const [mergeRepeats, setMergeRepeats] = useState(true);
   const [cooldown, setCooldown] = useState("0");
@@ -94,6 +98,7 @@ export const RuleWorkOrderDialog = ({ rule, onClose }: RuleWorkOrderDialogProps)
     setPriority(s?.priority ?? AUTO);
     setAssignee(s?.assigneeUserId ?? NOBODY);
     setTeam(s?.assignedTeam ?? NO_TEAM);
+    setTemplate(s?.templateId ?? NO_TEMPLATE);
     setMinSeverity(s?.minSeverity ?? ANY_SEVERITY);
     setMergeRepeats(s ? s.mergeRepeats : true);
     setCooldown(String(s?.cooldownMinutes ?? 0));
@@ -116,6 +121,7 @@ export const RuleWorkOrderDialog = ({ rule, onClose }: RuleWorkOrderDialogProps)
           mergeRepeats,
           cooldownMinutes: wholeNumber(cooldown, 0, 43200) ?? 0,
           dailyLimit: wholeNumber(dailyLimit, 1, 1000),
+          templateId: template === NO_TEMPLATE ? null : template,
         });
       }
       await queryClient.invalidateQueries({ queryKey: ruleWorkOrderQueryKey(workspaceId, rule.id) });
@@ -205,6 +211,20 @@ export const RuleWorkOrderDialog = ({ rule, onClose }: RuleWorkOrderDialogProps)
                     {!knownTeam && <SelectItem value={team}>{team}</SelectItem>}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs">{tt("ruleWoTemplate")}</Label>
+                <Select value={template} onValueChange={setTemplate} disabled={busy || !enabled}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_TEMPLATE}>{tt("woNoTemplate")}</SelectItem>
+                    {templates.map((x) => (
+                      <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">{tt("ruleWoTemplateHint")}</p>
               </div>
 
               <div className="space-y-4 rounded-lg border border-border p-3">

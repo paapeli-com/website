@@ -79,6 +79,7 @@ import {
   UserX,
   User,
   Repeat,
+  ListChecks,
 } from "lucide-react";
 import {
   PRIORITY_TO_API,
@@ -106,6 +107,7 @@ import {
   useWorkOrderLabels,
   type ExplainedStatus,
 } from "@/features/factory/components/workOrders/shared";
+import { TemplatesDialog } from "@/features/factory/components/workOrders/tasks";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { formatDateTime } from "@/shared/lib/formatDate";
 import { apiErrorMessage } from "@/shared/lib/apiError";
@@ -153,6 +155,7 @@ const WorkOrders = () => {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [bulkMode, setBulkMode] = useState<"status" | "assign" | "priority" | null>(null);
   const [noteFor, setNoteFor] = useState<{ wo: WorkOrder; target: ExplainedStatus } | null>(null);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
 
   // The list is searched on the server, so wait for a pause in the typing.
   useEffect(() => {
@@ -331,12 +334,17 @@ const WorkOrders = () => {
         count={everything}
         countLabel={t("workOrdersCountLabel")}
         actions={
-          <Button
-            onClick={() => navigate(lp("/work-orders/new"))}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-5 gap-2 rounded-md"
-          >
-            <Plus className="h-4 w-4" /> {t("newWorkOrder")}
-          </Button>
+          <>
+            <Button variant="outline" className="h-10 gap-2 rounded-md" onClick={() => setTemplatesOpen(true)}>
+              <ListChecks className="h-4 w-4" /> {t("woTemplates")}
+            </Button>
+            <Button
+              onClick={() => navigate(lp("/work-orders/new"))}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-5 gap-2 rounded-md"
+            >
+              <Plus className="h-4 w-4" /> {t("newWorkOrder")}
+            </Button>
+          </>
         }
       />
 
@@ -649,6 +657,8 @@ const WorkOrders = () => {
         onClose={() => setBulkMode(null)}
         onApply={(request) => { setBulkMode(null); void runBulk(request); }}
       />
+
+      <TemplatesDialog open={templatesOpen} onClose={() => setTemplatesOpen(false)} />
 
       <StatusNoteDialog
         target={noteFor?.target ?? null}

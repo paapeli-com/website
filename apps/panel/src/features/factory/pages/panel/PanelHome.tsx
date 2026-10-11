@@ -20,7 +20,7 @@ import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useDevices } from "@/features/factory/hooks/useDevices";
 import { useDashboards } from "@/features/factory/hooks/useDashboards";
-import { useWorkOrders } from "@/features/factory/hooks/useWorkOrders";
+import { useWorkOrderSummary } from "@/features/factory/hooks/useWorkOrders";
 import { NoData, NoDataValue } from "@/features/factory/components/NoData";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { Skeleton } from "@/features/factory/components/ui/skeleton";
@@ -163,7 +163,7 @@ export default function PanelHome() {
 
   const { items: devices, load: devicesLoad, noWorkspace, refetch: refetchDevices } = useDevices();
   const { items: dashboards } = useDashboards();
-  const { items: workOrders } = useWorkOrders();
+  const workOrderCounts = useWorkOrderSummary().data;
 
   /* Alarms for this workspace product — the Attention card lists the
      unacknowledged ones, and the alarm count below is how many there are. */
@@ -197,9 +197,9 @@ export default function PanelHome() {
      "no data" instead of a number that looks measured. */
   const assetCount = devices.length;
   const locationCount = useMemo(countLocations, [devices.length]); // recompute occasionally
-  const openWorkOrders = workOrders.filter(
-    (w) => w.status === "Open" || w.status === "In Progress",
-  ).length;
+  const openWorkOrders = workOrderCounts
+    ? workOrderCounts.open + workOrderCounts.inProgress + workOrderCounts.onHold
+    : 0;
   const dashboardCount = dashboards.length;
 
   // Null only while the list is still loading, so the tile says "no data"

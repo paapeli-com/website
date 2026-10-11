@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { workOrderService } from "@paapeli/api";
 import {
   Box,
   ChevronRight,
@@ -47,9 +49,8 @@ import { TopoBackdrop } from "@/shared/components/TopoBackdrop";
  *     own endpoints. A product the workspace isn't subscribed to holds
  *     nothing, and its endpoints 404, so its counts read zero without a
  *     request being made.
- *   - Pending work orders come from the same browser-local store the Smart
- *     Factory pages write to (paapeli.anomalies.workorders.v1). There is no
- *     work-order endpoint on the gateway yet.
+ *   - Pending work orders are the gateway's own count of the Smart Factory
+ *     orders still in hand (work-orders/.../summary).
  *   - Geofences have no backend and no local store anywhere in the panel yet
  *     (see features/track/data/mockData.ts), so that count is always zero.
  *   - "Recently visited" is recorded by the shell as you navigate, per user
@@ -80,23 +81,6 @@ const isUnacknowledged = (a: WorkspaceAlarmItem) => {
 
 const isCritical = (a: WorkspaceAlarmItem) => a.severity?.toUpperCase() === "CRITICAL";
 
-/* Work orders live in localStorage, not on the gateway: the Smart Factory
-   pages write this key (see features/factory/hooks/useWorkOrders.ts). Read
-   by key rather than through that hook, which belongs to another lazy chunk
-   and would pull the whole factory feature in behind it. */
-const WORK_ORDERS_KEY = "paapeli.anomalies.workorders.v1";
-
-function countPendingWorkOrders(): number {
-  try {
-    const raw = window.localStorage.getItem(WORK_ORDERS_KEY);
-    if (!raw) return 0;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return 0;
-    return parsed.filter((w) => w?.status === "Open" || w?.status === "In Progress").length;
-  } catch {
-    return 0;
-  }
-}
 
 type Waiting = { title: string; tag: string; description: string; icon: LucideIcon; pills: string[] };
 
@@ -184,7 +168,17 @@ export default function Home() {
   const factoryAssets = hasFactory ? (factoryDevices.data?.totalElements ?? 0) : 0;
   const factoryLocationCount = hasFactory ? (factoryLocations.data?.totalElements ?? 0) : 0;
   const trackerCount = hasTracking ? (trackingDevices.data?.totalElements ?? 0) : 0;
-  const [pendingWorkOrders] = useState(countPendingWorkOrders);
+  /* Asked of the gateway directly rather than through the factory's hook,
+     which belongs to another lazy chunk and would pull the whole feature in
+     behind it. Same query key, so the two share one fetch. */
+  const workOrderCounts = useQuery({
+    queryKey: ["workOrders", workspaceId, factoryKey, "summary"],
+    queryFn: () => workOrderService.summary(workspaceId, factoryKey),
+    enabled: hasFactory && !!workspaceId,
+  });
+  const pendingWorkOrders = workOrderCounts.data
+    ? workOrderCounts.data.open + workOrderCounts.data.inProgress + workOrderCounts.data.onHold
+    : 0;
   /* Nothing in the panel stores a geofence yet. Kept as a tag so the card
      reads the same once the gateway serves them. */
   const geofenceCount = 0;

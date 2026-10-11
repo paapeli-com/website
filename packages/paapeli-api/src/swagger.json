@@ -4762,10 +4762,532 @@
           }
         }
       }
+    },
+    "/api/v1/aiot/work-orders/{workspaceId}/{productKey}/{workOrderId}/tasks": {
+      "get": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "List a work order's tasks",
+        "description": "Returns the order's tasks in the order they are to be done.",
+        "operationId": "listWorkOrderTasks",
+        "parameters": [
+          {
+            "name": "workOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tasks returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkOrderTaskResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "READ product access required"
+          },
+          "404": {
+            "description": "Work order not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "Replace a work order's tasks",
+        "description": "Makes the order's tasks the given list (at most 50), in that order. A task sent\nwith the id of one the order already has is kept, with what was done on it; a\ntask without an id is added; the ones left out are removed.\n",
+        "operationId": "replaceWorkOrderTasks",
+        "parameters": [
+          {
+            "name": "workOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkOrderTasksRequest"
+              },
+              "example": {
+                "tasks": [
+                  {
+                    "id": "9a0f2f0c-1f0e-4a3e-9a51-0b6c0a1d2e3f",
+                    "title": "Check the coolant circulation",
+                    "required": true
+                  },
+                  {
+                    "title": "Check the control valves",
+                    "required": true
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The order's tasks as they now are",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkOrderTaskResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "OPERATE product access required"
+          },
+          "404": {
+            "description": "Work order not found"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/work-orders/{workspaceId}/{productKey}/{workOrderId}/tasks/{taskId}/done": {
+      "put": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "Tick or untick a task",
+        "description": "Marks one task of the order done, by the caller and now, or not done. An order\ncannot be moved to DONE while a required task is not done.\n",
+        "operationId": "setWorkOrderTaskDone",
+        "parameters": [
+          {
+            "name": "workOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetWorkOrderTaskDoneRequest"
+              },
+              "example": {
+                "done": true
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Task returned as it now is",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderTaskResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "OPERATE product access required"
+          },
+          "404": {
+            "description": "Work order or task not found"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/work-order-templates/{workspaceId}/{productKey}": {
+      "get": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "List work order templates",
+        "description": "Returns the templates of the workspace product by name, each with its tasks in order.",
+        "operationId": "listWorkOrderTemplates",
+        "responses": {
+          "200": {
+            "description": "Templates returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkOrderTemplateResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "READ product access required"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "Create a work order template",
+        "description": "A template is a named list of tasks (at most 50). A work order raised with it\ngets a copy of those tasks, so changing or deleting the template later leaves\norders already raised as they are.\n",
+        "operationId": "createWorkOrderTemplate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkOrderTemplateRequest"
+              },
+              "example": {
+                "name": "High temperature",
+                "description": "For a cooling loop running hot",
+                "tasks": [
+                  {
+                    "title": "Check the coolant circulation",
+                    "required": true
+                  },
+                  {
+                    "title": "Check the control valves",
+                    "required": true
+                  },
+                  {
+                    "title": "Photograph the gauge",
+                    "required": false
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Template created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderTemplateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid field"
+          },
+          "403": {
+            "description": "OPERATE product access required"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/work-order-templates/{workspaceId}/{productKey}/{templateId}": {
+      "get": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "Get a work order template",
+        "operationId": "getWorkOrderTemplate",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderTemplateResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "READ product access required"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "Replace a work order template",
+        "description": "Replaces the template's name, description and whole task list. Orders already raised with it are not changed.",
+        "operationId": "updateWorkOrderTemplate",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkOrderTemplateRequest"
+              },
+              "example": {
+                "name": "High temperature",
+                "description": "For a cooling loop running hot",
+                "tasks": [
+                  {
+                    "title": "Check the coolant circulation",
+                    "required": true
+                  },
+                  {
+                    "title": "Check the control valves",
+                    "required": true
+                  },
+                  {
+                    "title": "Photograph the gauge",
+                    "required": false
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Template updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderTemplateResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "OPERATE product access required"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "Delete a work order template",
+        "description": "Orders already raised with it keep their tasks. An alarm rule that used it goes on raising orders, without tasks.",
+        "operationId": "deleteWorkOrderTemplate",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliMessage"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "OPERATE product access required"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "WorkOrderTaskInput": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of an existing task of the order to keep; left out for a new one"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Must be done before the order can be finished. Defaults to true"
+          }
+        }
+      },
+      "WorkOrderTaskResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "done": {
+            "type": "boolean"
+          },
+          "doneByUserId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Who ticked it; null while it is not done"
+          },
+          "doneAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WorkOrderTasksRequest": {
+        "type": "object",
+        "required": [
+          "tasks"
+        ],
+        "properties": {
+          "tasks": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/WorkOrderTaskInput"
+            }
+          }
+        }
+      },
+      "SetWorkOrderTaskDoneRequest": {
+        "type": "object",
+        "required": [
+          "done"
+        ],
+        "properties": {
+          "done": {
+            "type": "boolean"
+          }
+        }
+      },
+      "WorkOrderTemplateRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "tasks": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/WorkOrderTaskInput"
+            }
+          }
+        }
+      },
+      "WorkOrderTemplateResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "required": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "WorkOrderResponse": {
         "type": "object",
         "properties": {
@@ -4994,6 +5516,19 @@
           "externalRef": {
             "type": "string",
             "maxLength": 255
+          },
+          "templateId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A template whose tasks the order starts with. Ignored when tasks is given"
+          },
+          "tasks": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/WorkOrderTaskInput"
+            },
+            "description": "The tasks the order starts with, in order"
           }
         }
       },
@@ -5339,6 +5874,11 @@
             "minimum": 1,
             "maximum": 1000,
             "description": "The most orders the rule raises in any 24 hours; null for no limit"
+          },
+          "templateId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A work order template of this workspace product; each order gets a copy of its tasks"
           }
         }
       },
@@ -5400,6 +5940,11 @@
             "minimum": 1,
             "maximum": 1000,
             "description": "The most orders the rule raises in any 24 hours; null for no limit"
+          },
+          "templateId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A work order template of this workspace product; each order gets a copy of its tasks"
           },
           "createdAt": {
             "type": "string",

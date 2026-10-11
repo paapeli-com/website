@@ -1,5 +1,6 @@
 import napiHttpHandler from '../napiHttpHandler';
 import { PageResponse, PaapeliMessage } from '../type';
+import type { WorkOrderTaskInput } from './workOrderTasks';
 
 export type WorkOrderApiStatus = 'OPEN' | 'IN_PROGRESS' | 'ON_HOLD' | 'DONE' | 'CANCELLED';
 export type WorkOrderApiPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
@@ -62,6 +63,10 @@ export interface CreateWorkOrderRequest {
     dueAt?: string | null;
     workType?: WorkOrderApiWorkType | null;
     holdReason?: string | null;
+    /** A template whose tasks the order starts with; ignored when tasks is given. */
+    templateId?: string | null;
+    /** The tasks the order starts with, in order. */
+    tasks?: WorkOrderTaskInput[] | null;
 }
 
 /** Every editable field; the order is replaced with these, so a null clears. */

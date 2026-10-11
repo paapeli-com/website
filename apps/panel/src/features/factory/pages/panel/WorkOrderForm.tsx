@@ -42,20 +42,21 @@ import {
   WORK_TYPES,
   useWorkOrderLabels,
 } from "@/features/factory/components/workOrders/shared";
+import { DueDatePicker } from "@/features/factory/components/workOrders/DueDatePicker";
+import { TaskListEditor } from "@/features/factory/components/workOrders/tasks";
+import {
+  newDraftTask,
+  toTaskInputs,
+  useWorkOrderTasks,
+  useWorkOrderTemplates,
+  type DraftTask,
+} from "@/features/factory/hooks/useWorkOrderTasks";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 /* Select needs a non-empty value for "none of them". */
 const NO_TEAM = "none";
 const NO_TYPE = "none";
-
-/** An ISO time as a datetime-local input wants it, in the browser's own zone. */
-const toLocalInput = (iso?: string) => {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
+const NO_TEMPLATE = "none";
 
 const WorkOrderForm = () => {
   const { id } = useParams<{ id: string }>();
@@ -73,6 +74,8 @@ const WorkOrderForm = () => {
   const { items: devices } = useDevices();
   const { options: locations } = useAssetLocations();
   const members = useListWorkspaceMembersQuery(workspaceId, "", 1, 100);
+  const { templates } = useWorkOrderTemplates();
+  const existingTasks = useWorkOrderTasks(id);
 
   /* Another page can hand over what it already knows: the alarms list sends
      the alarm, its device and a title, so the order starts filled in. */
@@ -95,7 +98,24 @@ const WorkOrderForm = () => {
   const [dueAt, setDueAt] = useState("");
   const [holdReason, setHoldReason] = useState("");
   const [notes, setNotes] = useState("");
+  const [templateId, setTemplateId] = useState(NO_TEMPLATE);
+  const [tasks, setTasks] = useState<DraftTask[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  // An order being edited shows the tasks it has; their ids keep what was done.
+  useEffect(() => {
+    if (!isEdit || existingTasks.isLoading) return;
+    setTasks(existingTasks.tasks.map((task) => newDraftTask(task.title, task.required, task.id)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit, existingTasks.isLoading]);
+
+  /* A template only fills the list in: the tasks can still be changed, and
+     the order keeps its own copy of them. */
+  const chooseTemplate = (next: string) => {
+    setTemplateId(next);
+    const template = templates.find((x) => x.id === next);
+    if (template) setTasks(template.tasks.map((task) => newDraftTask(task.title, task.required)));
+  };
 
   // The order loads from the server: an edit opened directly fills in once it arrives.
   useEffect(() => {
@@ -110,7 +130,7 @@ const WorkOrderForm = () => {
     setAssignee(existing.assigneeUserId ?? "");
     setTeam(existing.assignedTeam || NO_TEAM);
     setWorkType(existing.workType ?? NO_TYPE);
-    setDueAt(toLocalInput(existing.dueAt));
+    setDueAt(existing.dueAt ?? "");
     setHoldReason(existing.holdReason ?? "");
     setNotes(existing.notes);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -182,20 +202,25 @@ const WorkOrderForm = () => {
       assigneeUserId: assignee || undefined,
       assignedTeam: team === NO_TEAM ? "" : team,
       workType: workType === NO_TYPE ? undefined : (workType as WorkOrderApiWorkType),
-      dueAt: dueAt ? new Date(dueAt).toISOString() : undefined,
+      dueAt: dueAt || undefined,
       notes: notes.trim(),
     };
     setSubmitting(true);
     try {
       if (isEdit && existing) {
+        // Tasks first: finishing the order is refused while a required one is not done.
+        await existingTasks.replace(existing.id, toTaskInputs(tasks));
         await update(existing.id, { ...fields, status, holdReason: status === "On Hold" ? holdReason.trim() : "" });
         toast({ title: t("workOrderUpdated"), description: fields.action });
         navigate(lp(`/work-orders/${existing.id}`));
       } else {
-        const created = await create({
-          ...fields,
-          ...(fromAlarmId ? { alarmId: fromAlarmId, source: "ALARM" as const } : {}),
-        });
+        const created = await create(
+          {
+            ...fields,
+            ...(fromAlarmId ? { alarmId: fromAlarmId, source: "ALARM" as const } : {}),
+          },
+          toTaskInputs(tasks),
+        );
         toast({ title: t("workOrderCreated"), description: created.title });
         navigate(lp(fromAlarmId ? `/work-orders/${created.id}` : "/work-orders"));
       }
@@ -305,7 +330,7 @@ const WorkOrderForm = () => {
             </div>
             <div>
               <Label className="text-xs">{t("woDue")}</Label>
-              <Input type="datetime-local" dir="ltr" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
+              <DueDatePicker value={dueAt} onChange={setDueAt} />
             </div>
           </div>
 
@@ -352,6 +377,25 @@ const WorkOrderForm = () => {
               <Input value={holdReason} onChange={(e) => setHoldReason(e.target.value)} maxLength={500} />
             </div>
           )}
+
+          <div className="rounded-lg border border-border p-3 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Label className="text-sm font-medium">{t("woTasks")}</Label>
+              <div className="w-full sm:w-64">
+                <Select value={templateId} onValueChange={chooseTemplate} disabled={templates.length === 0}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_TEMPLATE}>{t("woFromTemplate")}</SelectItem>
+                    {templates.map((template) => (
+                      <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <TaskListEditor tasks={tasks} onChange={setTasks} disabled={submitting} />
+            <p className="text-[11px] text-muted-foreground">{t("woTasksHint")}</p>
+          </div>
 
           <div>
             <Label className="text-xs">{t("descriptionLabel")}</Label>

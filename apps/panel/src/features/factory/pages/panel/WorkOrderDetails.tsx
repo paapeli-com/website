@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { formatDateTime } from "@/shared/lib/formatDate";
 import { useNavigate, useParams } from "react-router-dom";
-import type { WorkOrderApiStatus, WorkOrderEvent } from "@paapeli/api";
+import type { WorkOrderApiStatus, WorkOrderEvent, WorkOrderTask } from "@paapeli/api";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useToast } from "@/features/factory/hooks/use-toast";
 import { Button } from "@/features/factory/components/ui/button";
@@ -62,6 +62,8 @@ import {
   useWorkOrderLabels,
   type ExplainedStatus,
 } from "@/features/factory/components/workOrders/shared";
+import { TaskChecklist } from "@/features/factory/components/workOrders/tasks";
+import { useWorkOrderTasks } from "@/features/factory/hooks/useWorkOrderTasks";
 import { LocationCell } from "@/features/factory/components/panel/LocationCell";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { apiErrorMessage } from "@/shared/lib/apiError";
@@ -91,6 +93,7 @@ const WorkOrderDetails = () => {
   const lp = (p: string) => localizedPath(p, language);
   const { workOrder: wo, events, nameOf, isLoading } = useWorkOrder(id);
   const { update, remove, addNote } = useWorkOrderActions();
+  const { tasks, requiredLeft, setDone: setTaskDone } = useWorkOrderTasks(id);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [noteTarget, setNoteTarget] = useState<ExplainedStatus | null>(null);
@@ -172,6 +175,11 @@ const WorkOrderDetails = () => {
         return event.note ?? "";
     }
   };
+
+  const toggleTask = (task: WorkOrderTask, done: boolean) => {
+    setTaskDone(task.id, done).catch(fail);
+  };
+  const tasksDone = tasks.filter((task) => task.done).length;
 
   const late = isOverdue(wo);
   const inHand = isInHand(wo.status);
@@ -288,6 +296,28 @@ const WorkOrderDetails = () => {
             </CardContent>
           </Card>
 
+          {tasks.length > 0 && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <div className="font-semibold text-sm">{t("woTasks")}</div>
+                  <span className="text-xs text-muted-foreground">
+                    {t("woTasksProgress")
+                      .replace("{done}", formatNumber(tasksDone))
+                      .replace("{total}", formatNumber(tasks.length))}
+                  </span>
+                </div>
+                <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${Math.round((tasksDone / tasks.length) * 100)}%` }}
+                  />
+                </div>
+                <TaskChecklist tasks={tasks} onToggle={toggleTask} nameOf={nameOf} disabled={!inHand} />
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardContent className="p-4">
               <div className="font-semibold text-sm mb-3">{t("woHistory")}</div>
@@ -337,6 +367,9 @@ const WorkOrderDetails = () => {
       </div>
 
       <div className="sticky bottom-0 mt-6 -mx-4 px-4 py-3 bg-background border-t flex flex-wrap items-center justify-end gap-2">
+        {inHand && requiredLeft > 0 && (
+          <span className="me-auto text-xs text-muted-foreground">{t("woTasksLeft")}</span>
+        )}
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon" aria-label={t("woMoreActions")} title={t("woMoreActions")}>
@@ -369,7 +402,12 @@ const WorkOrderDetails = () => {
                 <Play className="h-4 w-4" /> {wo.status === "On Hold" ? t("woResumeAction") : t("startAction")}
               </Button>
             )}
-            <Button className="gap-1.5" onClick={() => setNoteTarget("Done")}>
+            <Button
+              className="gap-1.5"
+              disabled={requiredLeft > 0}
+              title={requiredLeft > 0 ? t("woTasksLeft") : undefined}
+              onClick={() => setNoteTarget("Done")}
+            >
               <CheckCircle2 className="h-4 w-4" /> {t("markDone")}
             </Button>
           </>

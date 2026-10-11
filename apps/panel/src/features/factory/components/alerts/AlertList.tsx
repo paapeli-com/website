@@ -22,7 +22,11 @@ import { Card, CardContent } from "@/features/factory/components/ui/card";
 import { AddFirst } from "@/features/factory/components/AddFirst";
 import { useNavigate } from "react-router-dom";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
-import { useWorkOrders, type WorkOrderPriority } from "@/features/factory/hooks/useWorkOrders";
+import {
+  findWorkOrderOfAlarm,
+  useAlarmWorkOrders,
+  type WorkOrderPriority,
+} from "@/features/factory/hooks/useWorkOrders";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import type { Alert, AlertSeverity, AlertStatus } from "@/features/factory/types/alerts";
 import { cn } from "@/shared/lib/utils";
@@ -157,15 +161,26 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
 
   /* An alarm and its work order: the newest order raised for the alarm, by a
      rule or by hand. Without one, the alarm offers to raise it. */
-  const { items: workOrders } = useWorkOrders();
-  const workOrderOf = (alarmId: string) => workOrders.find((w) => w.alarmId === alarmId);
-  const raising = false;
+  const alarmWorkOrders = useAlarmWorkOrders();
+  const workOrderOf = (alarmId: string) => alarmWorkOrders.get(alarmId);
+  const [raising, setRaising] = useState(false);
   /* An alarm with an order opens it; one without opens the new-order form
      with what the alarm already says filled in, to be checked and saved. */
-  const openWorkOrder = (a: Alert) => {
-    const existing = workOrderOf(a.id);
+  const openWorkOrder = async (a: Alert) => {
+    let existing = workOrderOf(a.id);
+    if (!existing && workspaceId && !raising) {
+      // An older alarm's order may not be among the ones already read.
+      setRaising(true);
+      try {
+        existing = (await findWorkOrderOfAlarm(workspaceId, a.id))?.id;
+      } catch {
+        // The form says so itself if the alarm turns out to have an order.
+      } finally {
+        setRaising(false);
+      }
+    }
     if (existing) {
-      navigate(lp(`/work-orders/${existing.id}`));
+      navigate(lp(`/work-orders/${existing}`));
       return;
     }
     const prefill = new URLSearchParams({
