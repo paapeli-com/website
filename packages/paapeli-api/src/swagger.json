@@ -9,6 +9,10 @@
   "security": [{ "bearerAuth": [] }],
   "tags": [
     {
+      "name": "Work orders",
+      "description": "Work to be done on equipment: raising, assigning, progress and history"
+    },
+    {
       "name": "Devices",
       "description": "Workspace-product devices, asset assignment, and activity history"
     },
@@ -4082,10 +4086,1331 @@
           }
         }
       }
+    },
+    "/api/v1/aiot/work-orders/{workspaceId}/{productKey}": {
+      "get": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "List work orders",
+        "description": "Returns one page of the work orders of the workspace product. Every filter is\noptional and they combine. status may be given more than once, or as a\ncomma-separated list, to match any of them. Pagination is one-based; size is\nclamped to 1-100.\n",
+        "operationId": "listWorkOrders",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "OPEN",
+                  "IN_PROGRESS",
+                  "ON_HOLD",
+                  "DONE",
+                  "CANCELLED"
+                ]
+              }
+            },
+            "description": "Only orders in one of these statuses"
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "CRITICAL",
+                "HIGH",
+                "MEDIUM",
+                "LOW"
+              ]
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "MANUAL",
+                "ALARM",
+                "ANOMALY",
+                "FORECAST"
+              ]
+            },
+            "description": "Only orders raised this way"
+          },
+          {
+            "name": "workType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "REACTIVE",
+                "PREVENTIVE",
+                "OTHER"
+              ]
+            }
+          },
+          {
+            "name": "assigneeUserId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Only orders assigned to this user"
+          },
+          {
+            "name": "unassigned",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Only orders nobody is assigned to"
+          },
+          {
+            "name": "assignedTeam",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Only orders of this team, whatever the letter case"
+          },
+          {
+            "name": "deviceId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Only orders on this device"
+          },
+          {
+            "name": "alarmId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Only orders raised for this alarm, open or closed"
+          },
+          {
+            "name": "overdue",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Only orders past their due time that are still OPEN, IN_PROGRESS or ON_HOLD"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Text to find in the title or the equipment name, case-insensitive"
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NEWEST",
+                "OLDEST",
+                "PRIORITY",
+                "DUE"
+              ],
+              "default": "NEWEST"
+            },
+            "description": "PRIORITY is most urgent first; DUE is soonest due first, orders with no due time last"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Work orders returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseWorkOrderResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "READ product access required"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "Create a work order",
+        "description": "Raises a work order in the workspace product. deviceId and assetId, when given,\nmust belong to that workspace product, and assigneeUserId must be an active\nmember of the workspace. status defaults to OPEN and source to MANUAL. An alarm\n(alarmId) has at most one order that is OPEN, IN_PROGRESS or ON_HOLD.\n",
+        "operationId": "createWorkOrder",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkOrderRequest"
+              },
+              "example": {
+                "title": "Inspect the bearing of feed pump P-101",
+                "description": "Vibration has been above 6 mm/s for an hour.",
+                "priority": "HIGH",
+                "deviceId": "e259378b-b22e-4e61-bd0e-d0d1c4bad45c",
+                "subjectLabel": "Feed Pump P-101",
+                "locationLabel": "Factory A > Hall 2",
+                "assigneeUserId": "524a324f-f79b-459b-85dc-ad43930f50a5",
+                "assignedTeam": "Maintenance",
+                "dueAt": "2026-10-08T12:00:00Z",
+                "workType": "REACTIVE"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Work order created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid field, or a device, asset or assignee outside this workspace"
+          },
+          "403": {
+            "description": "OPERATE product access required"
+          },
+          "409": {
+            "description": "The alarm already has a work order in hand"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/work-orders/{workspaceId}/{productKey}/summary": {
+      "get": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "Count the work orders",
+        "description": "Returns the work orders of the workspace product counted: by status; overdue;\nunassigned and mine; and, over the last 30 days, how many were raised, how many\nfinished, how many of those met or missed their due time, and the average hours\nfrom raised to finished.\n",
+        "operationId": "summarizeWorkOrders",
+        "responses": {
+          "200": {
+            "description": "Counts returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderSummaryResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "READ product access required"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/work-orders/{workspaceId}/{productKey}/bulk": {
+      "post": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "Change or delete several work orders",
+        "description": "Applies one change to each of the orders in ids (1 to 200). Of status, priority,\nassigneeUserId, unassign and assignedTeam, the ones given are set and the rest\nare left as they are on each order. delete true deletes the orders instead.\nEach order is changed as a single update would change it. An order that cannot\nbe changed does not stop the rest: its ID comes back in failed.\n",
+        "operationId": "bulkWorkOrders",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkWorkOrderRequest"
+              },
+              "example": {
+                "ids": [
+                  "0d6a1b6e-5c0f-4c57-9c36-0a5f6f1f8a11",
+                  "5b0e0f5e-7a0a-4d0b-8d42-5f1a2c3d4e5f"
+                ],
+                "status": "IN_PROGRESS",
+                "assigneeUserId": "524a324f-f79b-459b-85dc-ad43930f50a5"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Applied; succeeded and failed list the order IDs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkWorkOrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No ids, more than 200, or nothing to change"
+          },
+          "403": {
+            "description": "OPERATE product access required"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/work-orders/{workspaceId}/{productKey}/{workOrderId}": {
+      "get": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "Get a work order",
+        "operationId": "getWorkOrder",
+        "parameters": [
+          {
+            "name": "workOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Work order returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "READ product access required"
+          },
+          "404": {
+            "description": "Work order not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "Replace a work order",
+        "description": "Replaces every editable field of the order; a field left null is cleared. Moving\nthe order to DONE or CANCELLED stamps closedAt, and moving it back clears it.\nholdReason is kept only while status is ON_HOLD. What raised the order (source,\nalarmId, externalRef) cannot be changed. Moving an order that has an alarmId and\na deviceId to DONE also acknowledges that alarm.\n",
+        "operationId": "updateWorkOrder",
+        "parameters": [
+          {
+            "name": "workOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkOrderRequest"
+              },
+              "example": {
+                "title": "Inspect the bearing of feed pump P-101",
+                "description": "Vibration has been above 6 mm/s for an hour.",
+                "priority": "HIGH",
+                "deviceId": "e259378b-b22e-4e61-bd0e-d0d1c4bad45c",
+                "subjectLabel": "Feed Pump P-101",
+                "locationLabel": "Factory A > Hall 2",
+                "assigneeUserId": "524a324f-f79b-459b-85dc-ad43930f50a5",
+                "assignedTeam": "Maintenance",
+                "dueAt": "2026-10-08T12:00:00Z",
+                "workType": "REACTIVE",
+                "status": "IN_PROGRESS"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Work order updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid field, or a device, asset or assignee outside this workspace"
+          },
+          "403": {
+            "description": "OPERATE product access required"
+          },
+          "404": {
+            "description": "Work order not found"
+          },
+          "409": {
+            "description": "Reopening would give the alarm a second work order in hand"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "Delete a work order",
+        "description": "Deletes the order and its history.",
+        "operationId": "deleteWorkOrder",
+        "parameters": [
+          {
+            "name": "workOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Work order deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliMessage"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "OPERATE product access required"
+          },
+          "404": {
+            "description": "Work order not found"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/work-orders/{workspaceId}/{productKey}/{workOrderId}/events": {
+      "get": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "List a work order's history",
+        "description": "Returns what happened to the order, oldest first: CREATED, STATUS_CHANGED,\nASSIGNED, UPDATED, NOTE and REPEATED (the alarm rule that raised the order fired\nagain on the device; toValue is the count so far).\n",
+        "operationId": "listWorkOrderEvents",
+        "parameters": [
+          {
+            "name": "workOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "History returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkOrderEventResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "READ product access required"
+          },
+          "404": {
+            "description": "Work order not found"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/work-orders/{workspaceId}/{productKey}/{workOrderId}/notes": {
+      "post": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "Add a note to a work order",
+        "operationId": "addWorkOrderNote",
+        "parameters": [
+          {
+            "name": "workOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddWorkOrderNoteRequest"
+              },
+              "example": {
+                "note": "Bearing replaced; vibration back to 2.1 mm/s."
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Note added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderEventResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "OPERATE product access required"
+          },
+          "404": {
+            "description": "Work order not found"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/alarms/{workspaceId}/{productKey}/rule/{alarmRuleId}/work-order-rule": {
+      "get": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "Get an alarm rule's work-order setting",
+        "operationId": "getAlarmWorkOrderRule",
+        "parameters": [
+          {
+            "name": "alarmRuleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Setting returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmWorkOrderRuleResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ADMINISTER product access required"
+          },
+          "404": {
+            "description": "Alarm rule not found, or it does not raise work orders"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "Make an alarm rule raise work orders",
+        "description": "Creates or replaces the setting that raises a work order when the alarm rule\nfires. Four limits keep a busy rule from flooding the list, checked in this\norder: minSeverity, mergeRepeats, cooldownMinutes and dailyLimit.\n",
+        "operationId": "putAlarmWorkOrderRule",
+        "parameters": [
+          {
+            "name": "alarmRuleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlarmWorkOrderRuleRequest"
+              },
+              "example": {
+                "enabled": true,
+                "priority": null,
+                "assigneeUserId": "524a324f-f79b-459b-85dc-ad43930f50a5",
+                "assignedTeam": "Maintenance",
+                "minSeverity": "MAJOR",
+                "mergeRepeats": true,
+                "cooldownMinutes": 60,
+                "dailyLimit": 10
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Setting stored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmWorkOrderRuleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid field, or an assignee outside this workspace"
+          },
+          "403": {
+            "description": "ADMINISTER product access required"
+          },
+          "404": {
+            "description": "Alarm rule not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Work orders"
+        ],
+        "summary": "Stop an alarm rule raising work orders",
+        "description": "Removes the setting. Orders already raised stay.",
+        "operationId": "deleteAlarmWorkOrderRule",
+        "parameters": [
+          {
+            "name": "alarmRuleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Setting removed"
+          },
+          "403": {
+            "description": "ADMINISTER product access required"
+          },
+          "404": {
+            "description": "Alarm rule not found"
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "WorkOrderResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "What is to be done"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "IN_PROGRESS",
+              "ON_HOLD",
+              "DONE",
+              "CANCELLED"
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "CRITICAL",
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ]
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Paapeli device ID the work is on, in this workspace product"
+          },
+          "assetId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Paapeli asset ID the work is at, in this workspace product"
+          },
+          "subjectLabel": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Name of the equipment, kept on the order so it still reads after the device is gone"
+          },
+          "locationLabel": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "assigneeUserId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "User ID of an active member of the workspace"
+          },
+          "assignedTeam": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "workType": {
+            "type": "string",
+            "enum": [
+              "REACTIVE",
+              "PREVENTIVE",
+              "OTHER"
+            ]
+          },
+          "holdReason": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Why the order is on hold; kept only while status is ON_HOLD"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "MANUAL",
+              "ALARM",
+              "ANOMALY",
+              "FORECAST"
+            ]
+          },
+          "alarmId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The alarm that raised it, when one did"
+          },
+          "externalRef": {
+            "type": "string",
+            "description": "An identifier from whatever else raised it, such as an anomaly"
+          },
+          "createdByUserId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "null when the gateway raised the order itself"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "alarmRuleId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The alarm rule that raised it, when one did"
+          },
+          "repeatCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How often that rule fired again on the device while the order was in hand"
+          },
+          "lastRepeatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateWorkOrderRequest": {
+        "type": "object",
+        "required": [
+          "title",
+          "priority"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "What is to be done"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "IN_PROGRESS",
+              "ON_HOLD",
+              "DONE",
+              "CANCELLED"
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "CRITICAL",
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ]
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Paapeli device ID the work is on, in this workspace product"
+          },
+          "assetId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Paapeli asset ID the work is at, in this workspace product"
+          },
+          "subjectLabel": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Name of the equipment, kept on the order so it still reads after the device is gone"
+          },
+          "locationLabel": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "assigneeUserId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "User ID of an active member of the workspace"
+          },
+          "assignedTeam": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "workType": {
+            "type": "string",
+            "enum": [
+              "REACTIVE",
+              "PREVENTIVE",
+              "OTHER"
+            ]
+          },
+          "holdReason": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Why the order is on hold; kept only while status is ON_HOLD"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "MANUAL",
+              "ALARM",
+              "ANOMALY",
+              "FORECAST"
+            ]
+          },
+          "alarmId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the alarm this order answers"
+          },
+          "externalRef": {
+            "type": "string",
+            "maxLength": 255
+          }
+        }
+      },
+      "UpdateWorkOrderRequest": {
+        "type": "object",
+        "required": [
+          "title",
+          "status",
+          "priority"
+        ],
+        "description": "Every editable field of a work order; a field left null is cleared.",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "What is to be done"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "IN_PROGRESS",
+              "ON_HOLD",
+              "DONE",
+              "CANCELLED"
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "CRITICAL",
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ]
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Paapeli device ID the work is on, in this workspace product"
+          },
+          "assetId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Paapeli asset ID the work is at, in this workspace product"
+          },
+          "subjectLabel": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Name of the equipment, kept on the order so it still reads after the device is gone"
+          },
+          "locationLabel": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "assigneeUserId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "User ID of an active member of the workspace"
+          },
+          "assignedTeam": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "workType": {
+            "type": "string",
+            "enum": [
+              "REACTIVE",
+              "PREVENTIVE",
+              "OTHER"
+            ]
+          },
+          "holdReason": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Why the order is on hold; kept only while status is ON_HOLD"
+          }
+        }
+      },
+      "PageResponseWorkOrderResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkOrderResponse"
+            }
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "hasNext": {
+            "type": "boolean"
+          }
+        }
+      },
+      "WorkOrderEventResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "STATUS_CHANGED",
+              "ASSIGNED",
+              "UPDATED",
+              "NOTE",
+              "REPEATED"
+            ]
+          },
+          "actorUserId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "null when the gateway acted itself"
+          },
+          "fromValue": {
+            "type": "string"
+          },
+          "toValue": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AddWorkOrderNoteRequest": {
+        "type": "object",
+        "required": [
+          "note"
+        ],
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 4000
+          }
+        }
+      },
+      "WorkOrderSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "inProgress": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "onHold": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "done": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cancelled": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "overdue": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Past the due time and still OPEN, IN_PROGRESS or ON_HOLD"
+          },
+          "unassigned": {
+            "type": "integer",
+            "format": "int64",
+            "description": "In hand and assigned to nobody"
+          },
+          "mine": {
+            "type": "integer",
+            "format": "int64",
+            "description": "In hand and assigned to the caller"
+          },
+          "createdLast30": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "doneLast30": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "doneOnTimeLast30": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "doneLateLast30": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "averageHoursToDone": {
+            "type": "number",
+            "format": "double",
+            "description": "From raised to finished, over the orders finished in the last 30 days; null when none were"
+          }
+        }
+      },
+      "BulkWorkOrderRequest": {
+        "type": "object",
+        "required": [
+          "ids"
+        ],
+        "properties": {
+          "ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 200,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "IN_PROGRESS",
+              "ON_HOLD",
+              "DONE",
+              "CANCELLED"
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "CRITICAL",
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ]
+          },
+          "assigneeUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "unassign": {
+            "type": "boolean",
+            "description": "true clears the assignee"
+          },
+          "assignedTeam": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "delete": {
+            "type": "boolean",
+            "description": "true deletes the orders and ignores every other field"
+          }
+        }
+      },
+      "BulkWorkOrderResponse": {
+        "type": "object",
+        "properties": {
+          "succeeded": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "AlarmWorkOrderRuleRequest": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Defaults to true"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "CRITICAL",
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ],
+            "description": "null takes it from each alarm's severity"
+          },
+          "assigneeUserId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Who each raised order goes to; null leaves it unassigned"
+          },
+          "assignedTeam": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "minSeverity": {
+            "type": "string",
+            "enum": [
+              "CRITICAL",
+              "MAJOR",
+              "MINOR",
+              "WARNING",
+              "INDETERMINATE"
+            ],
+            "description": "The least severe alarm that still raises an order; null raises for all"
+          },
+          "mergeRepeats": {
+            "type": "boolean",
+            "description": "While an order of the rule is in hand for a device, count another alarm of the rule on it instead of raising a second order. Defaults to true"
+          },
+          "cooldownMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "maximum": 43200,
+            "description": "After an order of the rule is closed for a device, raise nothing for that device for this long. Defaults to 0"
+          },
+          "dailyLimit": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 1000,
+            "description": "The most orders the rule raises in any 24 hours; null for no limit"
+          }
+        }
+      },
+      "AlarmWorkOrderRuleResponse": {
+        "type": "object",
+        "properties": {
+          "alarmRuleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Defaults to true"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "CRITICAL",
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ],
+            "description": "null takes it from each alarm's severity"
+          },
+          "assigneeUserId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Who each raised order goes to; null leaves it unassigned"
+          },
+          "assignedTeam": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "minSeverity": {
+            "type": "string",
+            "enum": [
+              "CRITICAL",
+              "MAJOR",
+              "MINOR",
+              "WARNING",
+              "INDETERMINATE"
+            ],
+            "description": "The least severe alarm that still raises an order; null raises for all"
+          },
+          "mergeRepeats": {
+            "type": "boolean",
+            "description": "While an order of the rule is in hand for a device, count another alarm of the rule on it instead of raising a second order. Defaults to true"
+          },
+          "cooldownMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "maximum": 43200,
+            "description": "After an order of the rule is closed for a device, raise nothing for that device for this long. Defaults to 0"
+          },
+          "dailyLimit": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 1000,
+            "description": "The most orders the rule raises in any 24 hours; null for no limit"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "UserPhoneRequest": {
         "type": "object",
         "properties": {

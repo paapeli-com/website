@@ -157,36 +157,26 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
 
   /* An alarm and its work order: the newest order raised for the alarm, by a
      rule or by hand. Without one, the alarm offers to raise it. */
-  const { items: workOrders, create: createWorkOrder } = useWorkOrders();
+  const { items: workOrders } = useWorkOrders();
   const workOrderOf = (alarmId: string) => workOrders.find((w) => w.alarmId === alarmId);
-  const [raising, setRaising] = useState(false);
-  const openWorkOrder = async (a: Alert) => {
+  const raising = false;
+  /* An alarm with an order opens it; one without opens the new-order form
+     with what the alarm already says filled in, to be checked and saved. */
+  const openWorkOrder = (a: Alert) => {
     const existing = workOrderOf(a.id);
     if (existing) {
       navigate(lp(`/work-orders/${existing.id}`));
       return;
     }
-    if (raising) return;
-    setRaising(true);
-    try {
-      const wo = await createWorkOrder({
-        asset: a.deviceName,
-        location: a.locationName,
-        action: a.ruleName,
-        priority: PRIORITY_OF_SEVERITY[a.severity] ?? "Medium",
-        assignedTeam: "",
-        notes: "",
-        alarmId: a.id,
-        deviceId: a.deviceId,
-        source: "ALARM",
-      });
-      toast({ title: tt("workOrderCreated"), description: wo.action });
-      navigate(lp(`/work-orders/${wo.id}`));
-    } catch (error) {
-      toast({ title: tt("error"), description: apiErrorMessage(error, tt("error")), variant: "destructive" });
-    } finally {
-      setRaising(false);
-    }
+    const prefill = new URLSearchParams({
+      alarmId: a.id,
+      title: a.ruleName,
+      priority: PRIORITY_OF_SEVERITY[a.severity] ?? "Medium",
+    });
+    if (a.deviceId) prefill.set("deviceId", a.deviceId);
+    if (a.deviceName) prefill.set("asset", a.deviceName);
+    if (a.locationName) prefill.set("location", a.locationName);
+    navigate(lp(`/work-orders/new?${prefill.toString()}`));
   };
 
   /* One workspace-product list covers every device's alarms. Every filter,

@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { formatDateTime } from "@/shared/lib/formatDate";
 import { useNavigate, useParams } from "react-router-dom";
+import type { WorkOrderApiStatus, WorkOrderEvent } from "@paapeli/api";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useToast } from "@/features/factory/hooks/use-toast";
 import { Button } from "@/features/factory/components/ui/button";
 import { Card, CardContent } from "@/features/factory/components/ui/card";
 import { Badge } from "@/features/factory/components/ui/badge";
+import { Textarea } from "@/features/factory/components/ui/textarea";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -23,106 +25,156 @@ import {
   DialogTitle,
 } from "@/features/factory/components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/features/factory/components/ui/dropdown-menu";
+import {
   ChevronLeft,
   Play,
+  Pause,
   CheckCircle2,
   X,
   Trash2,
   Pencil,
   AlertTriangle,
   ClipboardList,
+  MoreHorizontal,
+  Repeat,
+  MessageSquare,
+  UserPlus,
+  RefreshCw,
+  PlusCircle,
 } from "lucide-react";
 import {
-  useWorkOrders,
-  type WorkOrderPriority,
+  STATUS_FROM_API,
+  isInHand,
+  isOverdue,
+  useWorkOrder,
+  useWorkOrderActions,
   type WorkOrderStatus,
 } from "@/features/factory/hooks/useWorkOrders";
+import {
+  PRIORITY_BADGE,
+  StatusNoteDialog,
+  StatusPill,
+  useWorkOrderLabels,
+  type ExplainedStatus,
+} from "@/features/factory/components/workOrders/shared";
+import { LocationCell } from "@/features/factory/components/panel/LocationCell";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
-
-const PRIORITY_BADGE: Record<WorkOrderPriority, string> = {
-  Critical: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-  High: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
-  Medium: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
-  Low: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-};
-
-const STATUS_BADGE: Record<WorkOrderStatus, string> = {
-  Open: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-  "In Progress": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  Done: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  Cancelled: "bg-muted text-muted-foreground",
-};
+import { apiErrorMessage } from "@/shared/lib/apiError";
 
 const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
   <div className="flex items-start justify-between gap-3 py-1.5">
-    <span className="text-xs text-muted-foreground">{label}</span>
-    <span className="text-sm text-end">{value}</span>
+    <span className="text-xs text-muted-foreground shrink-0">{label}</span>
+    <span className="text-sm text-end min-w-0 break-words">{value}</span>
   </div>
 );
+
+const EVENT_ICON: Record<WorkOrderEvent["type"], typeof Play> = {
+  CREATED: PlusCircle,
+  STATUS_CHANGED: RefreshCw,
+  ASSIGNED: UserPlus,
+  UPDATED: Pencil,
+  NOTE: MessageSquare,
+  REPEATED: Repeat,
+};
 
 const WorkOrderDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { language, t } = useLanguage();
+  const { language, t, formatNumber } = useLanguage();
   const { toast } = useToast();
+  const labels = useWorkOrderLabels();
   const lp = (p: string) => localizedPath(p, language);
-  const { getById, update, remove, isLoading } = useWorkOrders();
+  const { workOrder: wo, events, nameOf, isLoading } = useWorkOrder(id);
+  const { update, remove, addNote } = useWorkOrderActions();
 
-  const wo = getById(id);
   const [deleteOpen, setDeleteOpen] = useState(false);
-
-  const priorityLabel = (p: WorkOrderPriority) =>
-    ({
-      Critical: t("woPriorityCritical"),
-      High: t("woPriorityHigh"),
-      Medium: t("woPriorityMedium"),
-      Low: t("woPriorityLow"),
-    }[p]);
-
-  const statusLabel = (s: WorkOrderStatus) =>
-    ({
-      Open: t("woStatusOpen"),
-      "In Progress": t("woStatusInProgress"),
-      Done: t("woStatusDone"),
-      Cancelled: t("woStatusCancelled"),
-    }[s]);
-
-  const teamLabel = (team: string) =>
-    ({
-      mechanical: t("teamMechanical"),
-      electrical: t("teamElectrical"),
-      instrumentation: t("teamInstrumentation"),
-      operations: t("teamOperations"),
-    }[team] || team);
+  const [noteTarget, setNoteTarget] = useState<ExplainedStatus | null>(null);
+  const [note, setNote] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
 
   if (!wo && isLoading) {
-    return <div className="py-20 text-center text-sm text-muted-foreground">{t("loading") || "Loading…"}</div>;
+    return <div className="py-20 text-center text-sm text-muted-foreground">{t("loading")}</div>;
   }
 
   if (!wo) {
     return (
-      <>
-        <div className="text-center py-20">
-          <AlertTriangle className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-          <p className="font-medium">{t("workOrderNotFound")}</p>
-          <Button variant="link" onClick={() => navigate(lp("/work-orders"))} className="mt-2">
-            {t("backToWorkOrders")}
-          </Button>
-        </div>
-      </>
+      <div className="text-center py-20">
+        <AlertTriangle className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+        <p className="font-medium">{t("workOrderNotFound")}</p>
+        <Button variant="link" onClick={() => navigate(lp("/work-orders"))} className="mt-2">
+          {t("backToWorkOrders")}
+        </Button>
+      </div>
     );
   }
 
-  const setStatus = (s: WorkOrderStatus, title: string) => {
-    update(wo.id, { status: s });
-    toast({ title, description: wo.id });
+  const fail = (error: unknown) =>
+    toast({ title: t("error"), description: apiErrorMessage(error, t("error")), variant: "destructive" });
+
+  const setStatus = async (status: WorkOrderStatus, title: string, why = "") => {
+    try {
+      await update(wo.id, { status, holdReason: status === "On Hold" ? why : "" });
+      // Why it was cancelled, or what was done, belongs in the order's history.
+      if (why && status !== "On Hold") await addNote(wo.id, why);
+      toast({ title, description: wo.action });
+    } catch (error) {
+      fail(error);
+    }
   };
 
-  const confirmDelete = () => {
-    remove(wo.id);
-    toast({ title: t("deleted"), description: wo.id });
-    navigate(lp("/work-orders"));
+  const saveNote = async () => {
+    if (!note.trim() || savingNote) return;
+    setSavingNote(true);
+    try {
+      await addNote(wo.id, note.trim());
+      setNote("");
+    } catch (error) {
+      fail(error);
+    } finally {
+      setSavingNote(false);
+    }
   };
+
+  const confirmDelete = async () => {
+    try {
+      await remove(wo.id);
+      toast({ title: t("deleted"), description: wo.action });
+      navigate(lp("/work-orders"));
+    } catch (error) {
+      fail(error);
+    }
+  };
+
+  const statusName = (value?: string | null) =>
+    value && value in STATUS_FROM_API ? labels.status(STATUS_FROM_API[value as WorkOrderApiStatus]) : value ?? "";
+
+  const describe = (event: WorkOrderEvent) => {
+    switch (event.type) {
+      case "CREATED":
+        return t("woEvCreated");
+      case "STATUS_CHANGED":
+        return t("woEvStatus").replace("{from}", statusName(event.fromValue)).replace("{to}", statusName(event.toValue));
+      case "ASSIGNED":
+        return event.toValue
+          ? t("woEvAssigned").replace("{to}", nameOf(event.toValue) || event.toValue)
+          : t("woEvUnassigned");
+      case "UPDATED":
+        return t("woEvUpdated");
+      case "REPEATED":
+        return t("woEvRepeated").replace("{n}", formatNumber(event.toValue ?? ""));
+      case "NOTE":
+      default:
+        return event.note ?? "";
+    }
+  };
+
+  const late = isOverdue(wo);
+  const inHand = isInHand(wo.status);
 
   return (
     <>
@@ -136,7 +188,7 @@ const WorkOrderDetails = () => {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>{wo.id}</BreadcrumbPage>
+              <BreadcrumbPage className="truncate max-w-[320px]">{wo.action}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
@@ -144,25 +196,24 @@ const WorkOrderDetails = () => {
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-3 min-w-0">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 gap-1"
-            onClick={() => navigate(lp("/work-orders"))}
-          >
-            <ChevronLeft className="h-4 w-4" /> {t("back")}
+          <Button variant="ghost" size="sm" className="h-8 gap-1" onClick={() => navigate(lp("/work-orders"))}>
+            <ChevronLeft className="h-4 w-4 rtl:rotate-180" /> {t("back")}
           </Button>
-          <div className="min-w-0">
-            <h1 className="text-lg font-bold truncate flex items-center gap-2 underline underline-offset-4">
-              <ClipboardList className="h-4 w-4 text-muted-foreground" />
-              {wo.action}
-            </h1>
-          </div>
+          <h1 className="text-lg font-bold truncate flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="truncate">{wo.action}</span>
+          </h1>
         </div>
         <div className="flex items-center gap-2">
-          {wo.source === "ALARM" && <Badge variant="outline">{t("woSourceAlarm")}</Badge>}
-          <Badge className={PRIORITY_BADGE[wo.priority]}>{priorityLabel(wo.priority)}</Badge>
-          <Badge className={STATUS_BADGE[wo.status]}>{statusLabel(wo.status)}</Badge>
+          {!!wo.repeatCount && (
+            <Badge variant="outline" className="gap-1">
+              <Repeat className="h-3 w-3" />
+              {t("woRepeats").replace("{n}", formatNumber(wo.repeatCount))}
+            </Badge>
+          )}
+          {late && <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">{t("woOverdue")}</Badge>}
+          <Badge className={PRIORITY_BADGE[wo.priority]}>{labels.priority(wo.priority)}</Badge>
+          <StatusPill status={wo.status} />
         </div>
       </div>
 
@@ -170,25 +221,41 @@ const WorkOrderDetails = () => {
         <Card>
           <CardContent className="p-4">
             <div className="font-semibold text-sm mb-2">{t("summaryLabel")}</div>
-            <Row label={t("workOrderIdLabel")} value={<span className="font-mono">{wo.id}</span>} />
-            <Row label={t("assetLabel")} value={wo.asset} />
-            <Row label={t("location")} value={wo.location} />
-            <Row label={t("priorityLabel")} value={<Badge className={PRIORITY_BADGE[wo.priority]}>{priorityLabel(wo.priority)}</Badge>} />
-            <Row label={t("status")} value={<Badge className={STATUS_BADGE[wo.status]}>{statusLabel(wo.status)}</Badge>} />
-            <Row label={t("assignedTeam")} value={teamLabel(wo.assignedTeam)} />
-            <Row label={t("createdByLabel")} value={wo.source === "ALARM" && !wo.createdBy ? t("woSourceAlarm") : wo.createdBy === "You" ? t("you") : wo.createdBy} />
+            <Row
+              label={t("woEquipment")}
+              value={
+                wo.deviceId ? (
+                  <button onClick={() => navigate(lp(`/devices/${wo.deviceId}`))} className="text-primary hover:underline">
+                    {wo.asset || t("woOpenDevice")}
+                  </button>
+                ) : (
+                  wo.asset || "—"
+                )
+              }
+            />
+            <Row label={t("location")} value={wo.location ? <LocationCell path={wo.location} /> : "—"} />
+            <Row label={t("woAssignee")} value={wo.assignee || <span className="text-muted-foreground">{t("woUnassigned")}</span>} />
+            <Row label={t("assignedTeam")} value={wo.assignedTeam ? labels.team(wo.assignedTeam) : "—"} />
+            <Row
+              label={t("woDue")}
+              value={wo.dueAt ? <span className={late ? "text-red-600 font-medium" : ""}>{formatDateTime(wo.dueAt, language)}</span> : "—"}
+            />
+            <Row label={t("woWorkType")} value={wo.workType ? labels.workType(wo.workType) : "—"} />
+            <Row label={t("woSource")} value={labels.source(wo.source)} />
+            <Row label={t("createdByLabel")} value={wo.createdBy || (wo.source === "ALARM" ? t("woSystem") : "—")} />
             <Row label={t("createdAt")} value={formatDateTime(wo.createdAt, language)} />
+            {wo.closedAt && <Row label={t("woClosedAt")} value={formatDateTime(wo.closedAt, language)} />}
             {wo.alarmId && (
               <Row
                 label={t("woSourceAlarm")}
                 value={
                   <button onClick={() => navigate(lp("/alarms"))} className="text-primary hover:underline">
-                    {t("alarms")}
+                    {t("woOpenAlarms")}
                   </button>
                 }
               />
             )}
-            {wo.anomalyId && (
+            {wo.anomalyId && wo.source !== "ALARM" && (
               <Row
                 label={t("sourceAnomaly")}
                 value={
@@ -201,73 +268,135 @@ const WorkOrderDetails = () => {
                 }
               />
             )}
+            <Row label={t("workOrderIdLabel")} value={<span className="font-mono text-xs break-all" dir="ltr">{wo.id}</span>} />
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
-          <CardContent className="p-4">
-            <div className="font-semibold text-sm mb-2">{t("actionLabel")}</div>
-            <p className="text-sm">{wo.action}</p>
-            <div className="font-semibold text-sm mt-4 mb-2">{t("notesLabel")}</div>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-              {wo.notes || "—"}
-            </p>
-          </CardContent>
-        </Card>
+        <div className="lg:col-span-2 space-y-4">
+          <Card>
+            <CardContent className="p-4">
+              {wo.status === "On Hold" && (
+                <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900 dark:bg-amber-950/20">
+                  <div className="text-xs font-medium text-amber-800 dark:text-amber-200 mb-1">{t("woHoldReason")}</div>
+                  <div dir="auto" className="whitespace-pre-wrap break-words">{wo.holdReason || "—"}</div>
+                </div>
+              )}
+              <div className="font-semibold text-sm mb-2">{t("descriptionLabel")}</div>
+              <p dir="auto" className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed break-words">
+                {wo.notes || "—"}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="font-semibold text-sm mb-3">{t("woHistory")}</div>
+              <ol className="space-y-3">
+                {events.map((event) => {
+                  const Icon = EVENT_ICON[event.type] ?? RefreshCw;
+                  const isNote = event.type === "NOTE";
+                  return (
+                    <li key={event.id} className="flex gap-3">
+                      <span className="mt-0.5 h-7 w-7 shrink-0 rounded-full bg-muted inline-flex items-center justify-center">
+                        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div
+                          dir="auto"
+                          className={isNote ? "rounded-lg border bg-muted/30 px-3 py-2 text-sm whitespace-pre-wrap break-words" : "text-sm"}
+                        >
+                          {describe(event)}
+                        </div>
+                        <div className="mt-0.5 text-[11px] text-muted-foreground">
+                          {event.actorUserId ? nameOf(event.actorUserId) || "—" : t("woSystem")}
+                          {" · "}
+                          {formatDateTime(event.createdAt, language)}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+              <div className="mt-4 border-t pt-4">
+                <Textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder={t("woNotePlaceholder")}
+                  rows={2}
+                  maxLength={4000}
+                />
+                <div className="mt-2 flex justify-end">
+                  <Button size="sm" variant="outline" onClick={saveNote} disabled={!note.trim() || savingNote} className="gap-1.5">
+                    <MessageSquare className="h-4 w-4" /> {t("woAddNote")}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <div className="sticky bottom-0 mt-6 -mx-4 px-4 py-3 bg-background border-t flex flex-wrap items-center justify-end gap-2">
-        <Button
-          variant="outline"
-          className="gap-1.5"
-          onClick={() => navigate(lp(`/work-orders/${wo.id}/edit`))}
-        >
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon" aria-label={t("woMoreActions")} title={t("woMoreActions")}>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            {inHand && (
+              <DropdownMenuItem onClick={() => setNoteTarget("Cancelled")}>
+                <X className="h-4 w-4 me-2" /> {t("cancel")}
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteOpen(true)}>
+              <Trash2 className="h-4 w-4 me-2" /> {t("delete")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <Button variant="outline" className="gap-1.5" onClick={() => navigate(lp(`/work-orders/${wo.id}/edit`))}>
           <Pencil className="h-4 w-4" /> {t("edit")}
         </Button>
-        <Button
-          variant="outline"
-          className="gap-1.5"
-          disabled={wo.status !== "Open"}
-          onClick={() => setStatus("In Progress", t("startedToast"))}
-        >
-          <Play className="h-4 w-4" /> {t("startAction")}
-        </Button>
-        {wo.status === "Cancelled" || wo.status === "Done" ? (
-          <Button
-            variant="outline"
-            className="gap-1.5"
-            onClick={() => setStatus("Open", t("reopenedToast"))}
-          >
+        {inHand ? (
+          <>
+            {(wo.status === "Open" || wo.status === "In Progress") && (
+              <Button variant="outline" className="gap-1.5" onClick={() => setNoteTarget("On Hold")}>
+                <Pause className="h-4 w-4" /> {t("woHoldAction")}
+              </Button>
+            )}
+            {wo.status !== "In Progress" && (
+              <Button variant="outline" className="gap-1.5" onClick={() => setStatus("In Progress", t("startedToast"))}>
+                <Play className="h-4 w-4" /> {wo.status === "On Hold" ? t("woResumeAction") : t("startAction")}
+              </Button>
+            )}
+            <Button className="gap-1.5" onClick={() => setNoteTarget("Done")}>
+              <CheckCircle2 className="h-4 w-4" /> {t("markDone")}
+            </Button>
+          </>
+        ) : (
+          <Button variant="outline" className="gap-1.5" onClick={() => setStatus("Open", t("reopenedToast"))}>
             <Play className="h-4 w-4" /> {t("reopenAction")}
           </Button>
-        ) : (
-          <Button
-            variant="outline"
-            className="gap-1.5"
-            onClick={() => setStatus("Cancelled", t("cancelledToast"))}
-          >
-            <X className="h-4 w-4" /> {t("cancel")}
-          </Button>
         )}
-        <Button
-          className="gap-1.5"
-          disabled={wo.status === "Done" || wo.status === "Cancelled"}
-          onClick={() => setStatus("Done", t("completedToast"))}
-        >
-          <CheckCircle2 className="h-4 w-4" /> {t("markDone")}
-        </Button>
-        <Button variant="destructive" className="gap-1.5" onClick={() => setDeleteOpen(true)}>
-          <Trash2 className="h-4 w-4" /> {t("delete")}
-        </Button>
       </div>
+
+      <StatusNoteDialog
+        target={noteTarget}
+        onClose={() => setNoteTarget(null)}
+        onConfirm={(status, why) =>
+          setStatus(
+            status,
+            status === "Done" ? t("completedToast") : status === "Cancelled" ? t("cancelledToast") : t("woOnHoldToast"),
+            why,
+          )
+        }
+      />
 
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("deleteWorkOrderTitle")}</DialogTitle>
-            <DialogDescription>
-              {t("deleteWorkOrderConfirm").replace("{id}", wo.id)}
-            </DialogDescription>
+            <DialogDescription>{t("deleteWorkOrderConfirm").replace("{id}", wo.action)}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteOpen(false)}>

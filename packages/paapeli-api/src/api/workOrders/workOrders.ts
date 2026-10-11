@@ -1,9 +1,11 @@
 import napiHttpHandler from '../napiHttpHandler';
 import { PageResponse, PaapeliMessage } from '../type';
 
-export type WorkOrderApiStatus = 'OPEN' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
+export type WorkOrderApiStatus = 'OPEN' | 'IN_PROGRESS' | 'ON_HOLD' | 'DONE' | 'CANCELLED';
 export type WorkOrderApiPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 export type WorkOrderApiSource = 'MANUAL' | 'ALARM' | 'ANOMALY' | 'FORECAST';
+export type WorkOrderApiWorkType = 'REACTIVE' | 'PREVENTIVE' | 'OTHER';
+export type WorkOrderApiSort = 'NEWEST' | 'OLDEST' | 'PRIORITY' | 'DUE';
 
 /** A work order as the gateway returns it. */
 export interface WorkOrderResponse {
@@ -31,6 +33,14 @@ export interface WorkOrderResponse {
     createdAt: string;
     updatedAt: string;
     closedAt?: string | null;
+    workType?: WorkOrderApiWorkType | null;
+    /** Why it is on hold; null in any other status. */
+    holdReason?: string | null;
+    /** The alarm rule that raised it, when one did. */
+    alarmRuleId?: string | null;
+    /** How often that rule fired again on the device while the order was in hand. */
+    repeatCount?: number;
+    lastRepeatedAt?: string | null;
 }
 
 export interface CreateWorkOrderRequest {
@@ -50,6 +60,8 @@ export interface CreateWorkOrderRequest {
     assigneeUserId?: string | null;
     assignedTeam?: string | null;
     dueAt?: string | null;
+    workType?: WorkOrderApiWorkType | null;
+    holdReason?: string | null;
 }
 
 /** Every editable field; the order is replaced with these, so a null clears. */
@@ -65,17 +77,71 @@ export interface UpdateWorkOrderRequest {
     assigneeUserId?: string | null;
     assignedTeam?: string | null;
     dueAt?: string | null;
+    workType?: WorkOrderApiWorkType | null;
+    /** Kept only while status is ON_HOLD. */
+    holdReason?: string | null;
 }
 
 export interface WorkOrderListFilter {
+    /** Orders in any of these statuses. */
+    status?: WorkOrderApiStatus | WorkOrderApiStatus[];
+    priority?: WorkOrderApiPriority;
+    source?: WorkOrderApiSource;
+    workType?: WorkOrderApiWorkType;
+    assigneeUserId?: string;
+    /** Only orders nobody is assigned to. */
+    unassigned?: boolean;
+    assignedTeam?: string;
+    deviceId?: string;
+    alarmId?: string;
+    /** Only orders past their due time that are still in hand. */
+    overdue?: boolean;
+    /** Found, case-insensitively, in the title or the equipment name. */
+    search?: string;
+    /** Defaults to NEWEST. */
+    sort?: WorkOrderApiSort;
+}
+
+/** The work orders of a workspace product, counted. */
+export interface WorkOrderSummary {
+    open: number;
+    inProgress: number;
+    onHold: number;
+    done: number;
+    cancelled: number;
+    /** Past the due time and still in hand. */
+    overdue: number;
+    /** In hand and assigned to nobody. */
+    unassigned: number;
+    /** In hand and assigned to the caller. */
+    mine: number;
+    createdLast30: number;
+    doneLast30: number;
+    doneOnTimeLast30: number;
+    doneLateLast30: number;
+    /** From raised to finished, over the last 30 days; null when none finished. */
+    averageHoursToDone?: number | null;
+}
+
+/** One change for several orders; a field left out is kept as it is on each. */
+export interface BulkWorkOrderRequest {
+    ids: string[];
     status?: WorkOrderApiStatus;
     priority?: WorkOrderApiPriority;
     assigneeUserId?: string;
-    /** Found, case-insensitively, in the title or the equipment name. */
-    search?: string;
+    /** true clears the assignee. */
+    unassign?: boolean;
+    assignedTeam?: string;
+    /** true deletes the orders and ignores every other field. */
+    delete?: boolean;
 }
 
-export type WorkOrderEventType = 'CREATED' | 'STATUS_CHANGED' | 'ASSIGNED' | 'UPDATED' | 'NOTE';
+export interface BulkWorkOrderResponse {
+    succeeded: string[];
+    failed: string[];
+}
+
+export type WorkOrderEventType = 'CREATED' | 'STATUS_CHANGED' | 'ASSIGNED' | 'UPDATED' | 'NOTE' | 'REPEATED';
 
 /** One thing that happened to a work order. */
 export interface WorkOrderEvent {
@@ -83,7 +149,7 @@ export interface WorkOrderEvent {
     type: WorkOrderEventType;
     /** null when the gateway acted itself. */
     actorUserId?: string | null;
-    /** STATUS_CHANGED: the status before. ASSIGNED: the user assigned before. */
+    /** STATUS_CHANGED: the status before. ASSIGNED: the user assigned before. REPEATED: toValue is the count. */
     fromValue?: string | null;
     toValue?: string | null;
     note?: string | null;
@@ -94,7 +160,7 @@ const base = (workspaceId: string, productKey: string) =>
     `/api/v1/aiot/work-orders/${workspaceId}/${productKey}`;
 
 export const workOrderService = {
-    /** Newest first; one-based pages, size 1-100. */
+    /** One-based pages, size 1-100. */
     async list(
         workspaceId: string,
         productKey: string,
@@ -102,9 +168,34 @@ export const workOrderService = {
         page = 1,
         size = 25,
     ): Promise<PageResponse<WorkOrderResponse>> {
+        const { status, ...rest } = filter;
         const { data } = await napiHttpHandler.get<PageResponse<WorkOrderResponse>>(
             base(workspaceId, productKey),
-            { ...filter, page, size },
+            {
+                ...rest,
+                // Several statuses go as one comma-separated value.
+                ...(status ? { status: Array.isArray(status) ? status.join(',') : status } : {}),
+                page,
+                size,
+            },
+        );
+        return data;
+    },
+
+    async summary(workspaceId: string, productKey: string): Promise<WorkOrderSummary> {
+        const { data } = await napiHttpHandler.get<WorkOrderSummary>(`${base(workspaceId, productKey)}/summary`);
+        return data;
+    },
+
+    /** One failure does not stop the rest: the answer lists which went through. */
+    async bulk(
+        workspaceId: string,
+        productKey: string,
+        request: BulkWorkOrderRequest,
+    ): Promise<BulkWorkOrderResponse> {
+        const { data } = await napiHttpHandler.post<BulkWorkOrderResponse>(
+            `${base(workspaceId, productKey)}/bulk`,
+            request,
         );
         return data;
     },

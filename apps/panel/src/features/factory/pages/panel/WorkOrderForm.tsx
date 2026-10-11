@@ -1,8 +1,12 @@
 import { apiErrorMessage } from "@/shared/lib/apiError";
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useListWorkspaceMembersQuery, type WorkOrderApiWorkType } from "@paapeli/api";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useToast } from "@/features/factory/hooks/use-toast";
+import { useDevices } from "@/features/factory/hooks/useDevices";
+import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
+import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { Button } from "@/features/factory/components/ui/button";
 import { Card, CardContent } from "@/features/factory/components/ui/card";
 import { Input } from "@/features/factory/components/ui/input";
@@ -23,85 +27,177 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
-import { ChevronLeft, Wrench } from "lucide-react";
+import { BellRing, ChevronLeft, Wrench } from "lucide-react";
 import {
-  useWorkOrders,
+  useWorkOrder,
+  useWorkOrderActions,
   type WorkOrderPriority,
   type WorkOrderStatus,
 } from "@/features/factory/hooks/useWorkOrders";
+import {
+  PRIORITIES,
+  STATUSES,
+  SearchSelect,
+  TEAMS,
+  WORK_TYPES,
+  useWorkOrderLabels,
+} from "@/features/factory/components/workOrders/shared";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
+
+/* Select needs a non-empty value for "none of them". */
+const NO_TEAM = "none";
+const NO_TYPE = "none";
+
+/** An ISO time as a datetime-local input wants it, in the browser's own zone. */
+const toLocalInput = (iso?: string) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 
 const WorkOrderForm = () => {
   const { id } = useParams<{ id: string }>();
   const isEdit = !!id;
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const { language, t } = useLanguage();
   const { toast } = useToast();
+  const labels = useWorkOrderLabels();
   const lp = (p: string) => localizedPath(p, language);
-  const { getById, create, update, isLoading } = useWorkOrders();
+  const workspaceId = useWorkspaceId() ?? "";
 
-  const existing = isEdit ? getById(id) : undefined;
+  const { workOrder: existing, isLoading } = useWorkOrder(id);
+  const { create, update } = useWorkOrderActions();
+  const { items: devices } = useDevices();
+  const { options: locations } = useAssetLocations();
+  const members = useListWorkspaceMembersQuery(workspaceId, "", 1, 100);
 
-  const [asset, setAsset] = useState("");
-  const [location, setLocation] = useState("");
-  const [action, setAction] = useState("");
-  const [priority, setPriority] = useState<WorkOrderPriority>("Medium");
+  /* Another page can hand over what it already knows: the alarms list sends
+     the alarm, its device and a title, so the order starts filled in. */
+  const fromAlarmId = params.get("alarmId") ?? "";
+
+  const [action, setAction] = useState(params.get("title") ?? "");
+  const [deviceId, setDeviceId] = useState(params.get("deviceId") ?? "");
+  const [assetId, setAssetId] = useState("");
+  /* What the order was saved with, kept for an order whose device or location
+     has since been deleted: the names still read, though nothing is selected. */
+  const [assetLabel, setAssetLabel] = useState(params.get("asset") ?? "");
+  const [locationLabel, setLocationLabel] = useState(params.get("location") ?? "");
+  const [priority, setPriority] = useState<WorkOrderPriority>(
+    PRIORITIES.includes(params.get("priority") as WorkOrderPriority) ? (params.get("priority") as WorkOrderPriority) : "Medium",
+  );
   const [status, setStatus] = useState<WorkOrderStatus>("Open");
-  const [team, setTeam] = useState("mechanical");
+  const [assignee, setAssignee] = useState("");
+  const [team, setTeam] = useState(NO_TEAM);
+  const [workType, setWorkType] = useState<string>(fromAlarmId ? "REACTIVE" : NO_TYPE);
+  const [dueAt, setDueAt] = useState("");
+  const [holdReason, setHoldReason] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // The order loads from the server: an edit opened directly fills in once it arrives.
   useEffect(() => {
-    if (existing) {
-      setAsset(existing.asset);
-      setLocation(existing.location);
-      setAction(existing.action);
-      setPriority(existing.priority);
-      setStatus(existing.status);
-      setTeam(existing.assignedTeam);
-      setNotes(existing.notes);
-    }
-    // The orders load from the server: an edit opened directly fills in once they arrive.
-  }, [existing?.id, isLoading]);
+    if (!existing) return;
+    setAction(existing.action);
+    setDeviceId(existing.deviceId ?? "");
+    setAssetId(existing.assetId ?? "");
+    setAssetLabel(existing.asset);
+    setLocationLabel(existing.location);
+    setPriority(existing.priority);
+    setStatus(existing.status);
+    setAssignee(existing.assigneeUserId ?? "");
+    setTeam(existing.assignedTeam || NO_TEAM);
+    setWorkType(existing.workType ?? NO_TYPE);
+    setDueAt(toLocalInput(existing.dueAt));
+    setHoldReason(existing.holdReason ?? "");
+    setNotes(existing.notes);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existing?.id, existing?.updatedAt]);
 
-  const validate = () => {
-    if (!asset.trim()) return t("assetRequired");
-    if (!location.trim()) return t("locationRequired");
-    if (!action.trim()) return t("actionRequiredField");
-    return null;
+  const deviceOptions = useMemo(
+    () => devices.map((d) => ({ value: d.id, label: d.name, hint: d.location })),
+    [devices],
+  );
+  const locationOptions = useMemo(() => locations.map((l) => ({ value: l.id, label: l.path })), [locations]);
+  const memberOptions = useMemo(
+    () => (members.data?.data ?? [])
+      .filter((m) => m.status === "ACTIVE" || m.userId === assignee)
+      .map((m) => ({
+        value: m.userId,
+        label: m.displayName?.trim() || m.email || m.userId,
+        hint: m.displayName?.trim() ? m.email ?? undefined : undefined,
+      })),
+    [members.data, assignee],
+  );
+
+  const device = devices.find((d) => d.id === deviceId);
+
+  /* A device sits at one place in the location tree, so choosing it settles
+     the location too; the location can still be changed afterwards. */
+  const chooseDevice = (next: string) => {
+    setDeviceId(next);
+    const chosen = devices.find((d) => d.id === next);
+    if (chosen) {
+      setAssetLabel(chosen.name);
+      if (chosen.assetId) {
+        setAssetId(chosen.assetId);
+        setLocationLabel(chosen.location ?? "");
+      }
+    } else {
+      setAssetLabel("");
+    }
   };
 
+  // A device handed over in the address fills its location in once the list is here.
+  useEffect(() => {
+    if (!isEdit && deviceId && device && !assetId) chooseDevice(deviceId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [device?.id]);
+
+  const chooseLocation = (next: string) => {
+    setAssetId(next);
+    setLocationLabel(locations.find((l) => l.id === next)?.path ?? "");
+  };
+
+  const knownTeam = team === NO_TEAM || (TEAMS as readonly string[]).includes(team);
+
   const handleSave = async () => {
-    const err = validate();
-    if (err) {
-      toast({ title: t("actionRequiredToast"), description: err, variant: "destructive" });
+    if (!action.trim()) {
+      toast({ title: t("actionRequiredToast"), description: t("actionRequiredField"), variant: "destructive" });
       return;
     }
+    if (status === "On Hold" && !holdReason.trim()) {
+      toast({ title: t("actionRequiredToast"), description: t("woReasonRequired"), variant: "destructive" });
+      return;
+    }
+    const fields = {
+      action: action.trim(),
+      asset: device?.name ?? assetLabel,
+      location: locations.find((l) => l.id === assetId)?.path ?? locationLabel,
+      deviceId: deviceId || undefined,
+      assetId: assetId || undefined,
+      priority,
+      assigneeUserId: assignee || undefined,
+      assignedTeam: team === NO_TEAM ? "" : team,
+      workType: workType === NO_TYPE ? undefined : (workType as WorkOrderApiWorkType),
+      dueAt: dueAt ? new Date(dueAt).toISOString() : undefined,
+      notes: notes.trim(),
+    };
     setSubmitting(true);
     try {
       if (isEdit && existing) {
-        await update(existing.id, {
-          asset: asset.trim(),
-          location: location.trim(),
-          action: action.trim(),
-          priority,
-          status,
-          assignedTeam: team,
-          notes: notes.trim(),
-        });
-        toast({ title: t("workOrderUpdated"), description: existing.id });
+        await update(existing.id, { ...fields, status, holdReason: status === "On Hold" ? holdReason.trim() : "" });
+        toast({ title: t("workOrderUpdated"), description: fields.action });
         navigate(lp(`/work-orders/${existing.id}`));
       } else {
-        const wo = await create({
-          asset: asset.trim(),
-          location: location.trim(),
-          action: action.trim(),
-          priority,
-          assignedTeam: team,
-          notes: notes.trim(),
+        const created = await create({
+          ...fields,
+          ...(fromAlarmId ? { alarmId: fromAlarmId, source: "ALARM" as const } : {}),
         });
-        toast({ title: t("workOrderCreated"), description: wo.action });
-        navigate(lp("/work-orders"));
+        toast({ title: t("workOrderCreated"), description: created.title });
+        navigate(lp(fromAlarmId ? `/work-orders/${created.id}` : "/work-orders"));
       }
     } catch (error) {
       // The server said why (a field too long, no permission): show that.
@@ -110,6 +206,10 @@ const WorkOrderForm = () => {
       setSubmitting(false);
     }
   };
+
+  if (isEdit && isLoading) {
+    return <div className="py-20 text-center text-sm text-muted-foreground">{t("loading")}</div>;
+  }
 
   return (
     <>
@@ -123,80 +223,113 @@ const WorkOrderForm = () => {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>{isEdit ? `${t("edit")} ${existing?.id ?? ""}` : t("newWorkOrder")}</BreadcrumbPage>
+              <BreadcrumbPage>{isEdit ? existing?.action ?? t("editWorkOrder") : t("newWorkOrder")}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
       </div>
 
       <div className="flex items-center gap-3 mb-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 gap-1"
-          onClick={() => navigate(lp("/work-orders"))}
-        >
-          <ChevronLeft className="h-4 w-4" /> {t("back")}
+        <Button variant="ghost" size="sm" className="h-8 gap-1" onClick={() => navigate(-1)}>
+          <ChevronLeft className="h-4 w-4 rtl:rotate-180" /> {t("back")}
         </Button>
         <h1 className="text-lg font-bold">{isEdit ? t("editWorkOrder") : t("newWorkOrder")}</h1>
       </div>
 
       <Card>
         <CardContent className="p-6 space-y-4 max-w-3xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label className="text-xs">{t("assetLabel")} *</Label>
-              <Input
-                value={asset}
-                onChange={(e) => setAsset(e.target.value)}
-                placeholder={t("assetPlaceholder")}
-              />
+          {(fromAlarmId || existing?.alarmId) && (
+            <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+              <BellRing className="h-4 w-4 shrink-0 text-primary" />
+              <span>{t("woFromAlarmHint")}</span>
             </div>
-            <div>
-              <Label className="text-xs">{t("location")} *</Label>
-              <Input
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder={t("locationPlaceholderWO")}
-              />
-            </div>
-          </div>
+          )}
 
           <div>
-            <Label className="text-xs">{t("actionLabel")} *</Label>
+            <Label className="text-xs">{t("woTitleLabel")} *</Label>
             <Input
               value={action}
               onChange={(e) => setAction(e.target.value)}
               placeholder={t("actionPlaceholder")}
+              maxLength={255}
             />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-xs">{t("woEquipment")}</Label>
+              <SearchSelect
+                value={deviceId}
+                onChange={chooseDevice}
+                options={deviceOptions}
+                placeholder={!deviceId && assetLabel ? assetLabel : t("woSelectDevice")}
+                searchPlaceholder={t("woSearchDevice")}
+                emptyLabel={t("woNothingFound")}
+                noneLabel={t("woNone")}
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">{t("woDeviceHint")}</p>
+            </div>
+            <div>
+              <Label className="text-xs">{t("location")}</Label>
+              <SearchSelect
+                value={assetId}
+                onChange={chooseLocation}
+                options={locationOptions}
+                placeholder={!assetId && locationLabel ? locationLabel : t("woSelectLocation")}
+                searchPlaceholder={t("woSearchLocation")}
+                emptyLabel={t("woNothingFound")}
+                noneLabel={t("woNone")}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label className="text-xs">{t("priorityLabel")}</Label>
               <Select value={priority} onValueChange={(v) => setPriority(v as WorkOrderPriority)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Critical">{t("woPriorityCritical")}</SelectItem>
-                  <SelectItem value="High">{t("woPriorityHigh")}</SelectItem>
-                  <SelectItem value="Medium">{t("woPriorityMedium")}</SelectItem>
-                  <SelectItem value="Low">{t("woPriorityLow")}</SelectItem>
+                  {PRIORITIES.map((p) => <SelectItem key={p} value={p}>{labels.priority(p)}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div>
+              <Label className="text-xs">{t("woWorkType")}</Label>
+              <Select value={workType} onValueChange={setWorkType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_TYPE}>{t("woNone")}</SelectItem>
+                  {WORK_TYPES.map((w) => <SelectItem key={w} value={w}>{labels.workType(w)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">{t("woDue")}</Label>
+              <Input type="datetime-local" dir="ltr" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-xs">{t("woAssignee")}</Label>
+              <SearchSelect
+                value={assignee}
+                onChange={setAssignee}
+                options={memberOptions}
+                placeholder={t("woUnassigned")}
+                searchPlaceholder={t("woSearchMember")}
+                emptyLabel={t("woNothingFound")}
+                noneLabel={t("woUnassigned")}
+              />
+            </div>
+            <div>
               <Label className="text-xs">{t("assignedTeam")}</Label>
               <Select value={team} onValueChange={setTeam}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="mechanical">{t("teamMechanical")}</SelectItem>
-                  <SelectItem value="electrical">{t("teamElectrical")}</SelectItem>
-                  <SelectItem value="instrumentation">{t("teamInstrumentation")}</SelectItem>
-                  <SelectItem value="operations">{t("teamOperations")}</SelectItem>
+                  <SelectItem value={NO_TEAM}>{t("ruleWorkOrderNoTeam")}</SelectItem>
+                  {TEAMS.map((key) => <SelectItem key={key} value={key}>{labels.team(key)}</SelectItem>)}
+                  {!knownTeam && <SelectItem value={team}>{team}</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
@@ -204,34 +337,37 @@ const WorkOrderForm = () => {
               <div>
                 <Label className="text-xs">{t("status")}</Label>
                 <Select value={status} onValueChange={(v) => setStatus(v as WorkOrderStatus)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Open">{t("woStatusOpen")}</SelectItem>
-                    <SelectItem value="In Progress">{t("woStatusInProgress")}</SelectItem>
-                    <SelectItem value="Done">{t("woStatusDone")}</SelectItem>
-                    <SelectItem value="Cancelled">{t("woStatusCancelled")}</SelectItem>
+                    {STATUSES.map((s) => <SelectItem key={s} value={s}>{labels.status(s)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             )}
           </div>
 
+          {isEdit && status === "On Hold" && (
+            <div>
+              <Label className="text-xs">{t("woHoldReason")} *</Label>
+              <Input value={holdReason} onChange={(e) => setHoldReason(e.target.value)} maxLength={500} />
+            </div>
+          )}
+
           <div>
-            <Label className="text-xs">{t("notesLabel")}</Label>
+            <Label className="text-xs">{t("descriptionLabel")}</Label>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder={t("additionalContextPlaceholder")}
               rows={5}
+              maxLength={4000}
             />
           </div>
         </CardContent>
       </Card>
 
       <div className="sticky bottom-0 mt-6 -mx-4 px-4 py-3 bg-background border-t flex justify-end gap-2">
-        <Button variant="outline" onClick={() => navigate(lp("/work-orders"))}>
+        <Button variant="outline" onClick={() => navigate(-1)}>
           {t("cancel")}
         </Button>
         <Button onClick={handleSave} disabled={submitting} className="gap-1.5">

@@ -1,7 +1,9 @@
 import napiHttpHandler from '../napiHttpHandler';
 import type { WorkOrderApiPriority } from './workOrders';
 
-/** The setting that makes an alarm rule raise a work order each time it fires. */
+export type AlarmSeverityFloor = 'CRITICAL' | 'MAJOR' | 'MINOR' | 'WARNING' | 'INDETERMINATE';
+
+/** The setting that makes an alarm rule raise work orders, and what holds it back. */
 export interface AlarmWorkOrderRule {
     alarmRuleId: string;
     enabled: boolean;
@@ -10,6 +12,14 @@ export interface AlarmWorkOrderRule {
     /** Who each raised order goes to; null leaves it unassigned. */
     assigneeUserId?: string | null;
     assignedTeam?: string | null;
+    /** The least severe alarm that still raises an order; null raises for all. */
+    minSeverity?: AlarmSeverityFloor | null;
+    /** While an order of the rule is in hand for a device, count a repeat on it instead of raising another. */
+    mergeRepeats: boolean;
+    /** After an order of the rule is closed for a device, raise nothing for it for this long. */
+    cooldownMinutes: number;
+    /** The most orders the rule raises in any 24 hours; null for no limit. */
+    dailyLimit?: number | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -20,6 +30,12 @@ export interface AlarmWorkOrderRuleRequest {
     priority?: WorkOrderApiPriority | null;
     assigneeUserId?: string | null;
     assignedTeam?: string | null;
+    minSeverity?: AlarmSeverityFloor | null;
+    /** Defaults to true. */
+    mergeRepeats?: boolean;
+    /** Defaults to 0. */
+    cooldownMinutes?: number;
+    dailyLimit?: number | null;
 }
 
 const url = (workspaceId: string, productKey: string, alarmRuleId: string) =>

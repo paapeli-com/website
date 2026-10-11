@@ -3,10 +3,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   alarmWorkOrderRuleService,
   useListWorkspaceMembersQuery,
+  type AlarmSeverityFloor,
   type WorkOrderApiPriority,
 } from "@paapeli/api";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { Button } from "@/features/factory/components/ui/button";
+import { Input } from "@/features/factory/components/ui/input";
 import { Label } from "@/features/factory/components/ui/label";
 import { Switch } from "@/features/factory/components/ui/switch";
 import {
@@ -24,6 +26,15 @@ import { apiErrorMessage } from "@/shared/lib/apiError";
 const AUTO = "auto";
 const NOBODY = "nobody";
 const NO_TEAM = "none";
+const ANY_SEVERITY = "any";
+
+/* The least severe alarm that still raises an order, most severe first. */
+const SEVERITY_FLOORS: { value: AlarmSeverityFloor; label: string }[] = [
+  { value: "CRITICAL", label: "ruleWoSevCritical" },
+  { value: "MAJOR", label: "ruleWoSevMajor" },
+  { value: "MINOR", label: "ruleWoSevMinor" },
+  { value: "WARNING", label: "ruleWoSevWarning" },
+];
 
 const TEAMS = ["mechanical", "electrical", "instrumentation", "operations"] as const;
 const TEAM_LABEL: Record<(typeof TEAMS)[number], string> = {
@@ -31,6 +42,12 @@ const TEAM_LABEL: Record<(typeof TEAMS)[number], string> = {
   electrical: "teamElectrical",
   instrumentation: "teamInstrumentation",
   operations: "teamOperations",
+};
+
+/** The text of a number field as a whole number within its bounds; null when empty or not one. */
+const wholeNumber = (text: string, min: number, max: number): number | null => {
+  const value = Number.parseInt(text, 10);
+  return Number.isFinite(value) ? Math.min(Math.max(value, min), max) : null;
 };
 
 export const ruleWorkOrderQueryKey = (workspaceId: string, alarmRuleId: string) =>
@@ -42,7 +59,7 @@ interface RuleWorkOrderDialogProps {
   onClose: () => void;
 }
 
-/** Whether an alarm rule raises a work order each time it fires, and for whom. */
+/** Whether an alarm rule raises work orders, for whom, and what keeps their number down. */
 export const RuleWorkOrderDialog = ({ rule, onClose }: RuleWorkOrderDialogProps) => {
   const { t, isRTL } = useLanguage();
   const tt = t as (k: string) => string;
@@ -63,6 +80,10 @@ export const RuleWorkOrderDialog = ({ rule, onClose }: RuleWorkOrderDialogProps)
   const [priority, setPriority] = useState<string>(AUTO);
   const [assignee, setAssignee] = useState<string>(NOBODY);
   const [team, setTeam] = useState<string>(NO_TEAM);
+  const [minSeverity, setMinSeverity] = useState<string>(ANY_SEVERITY);
+  const [mergeRepeats, setMergeRepeats] = useState(true);
+  const [cooldown, setCooldown] = useState("0");
+  const [dailyLimit, setDailyLimit] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Fill the form from the stored setting; a rule without one starts enabled.
@@ -73,6 +94,10 @@ export const RuleWorkOrderDialog = ({ rule, onClose }: RuleWorkOrderDialogProps)
     setPriority(s?.priority ?? AUTO);
     setAssignee(s?.assigneeUserId ?? NOBODY);
     setTeam(s?.assignedTeam ?? NO_TEAM);
+    setMinSeverity(s?.minSeverity ?? ANY_SEVERITY);
+    setMergeRepeats(s ? s.mergeRepeats : true);
+    setCooldown(String(s?.cooldownMinutes ?? 0));
+    setDailyLimit(s?.dailyLimit ? String(s.dailyLimit) : "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, rule?.id, setting.isLoading, setting.dataUpdatedAt]);
 
@@ -87,6 +112,10 @@ export const RuleWorkOrderDialog = ({ rule, onClose }: RuleWorkOrderDialogProps)
           priority: priority === AUTO ? null : (priority as WorkOrderApiPriority),
           assigneeUserId: assignee === NOBODY ? null : assignee,
           assignedTeam: team === NO_TEAM ? null : team,
+          minSeverity: minSeverity === ANY_SEVERITY ? null : (minSeverity as AlarmSeverityFloor),
+          mergeRepeats,
+          cooldownMinutes: wholeNumber(cooldown, 0, 43200) ?? 0,
+          dailyLimit: wholeNumber(dailyLimit, 1, 1000),
         });
       }
       await queryClient.invalidateQueries({ queryKey: ruleWorkOrderQueryKey(workspaceId, rule.id) });
@@ -105,7 +134,7 @@ export const RuleWorkOrderDialog = ({ rule, onClose }: RuleWorkOrderDialogProps)
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-md" dir={isRTL ? "rtl" : "ltr"}>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" dir={isRTL ? "rtl" : "ltr"}>
         <DialogHeader>
           <DialogTitle>{tt("ruleWorkOrderTitle")}</DialogTitle>
           <DialogDescription>{rule?.name}</DialogDescription>
@@ -176,6 +205,66 @@ export const RuleWorkOrderDialog = ({ rule, onClose }: RuleWorkOrderDialogProps)
                     {!knownTeam && <SelectItem value={team}>{team}</SelectItem>}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-4 rounded-lg border border-border p-3">
+                <div className="text-sm font-medium">{tt("ruleWoLimitsTitle")}</div>
+                <div>
+                  <Label className="text-xs">{tt("ruleWoMinSeverity")}</Label>
+                  <Select value={minSeverity} onValueChange={setMinSeverity} disabled={busy || !enabled}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ANY_SEVERITY}>{tt("ruleWoAnySeverity")}</SelectItem>
+                      {SEVERITY_FLOORS.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>{tt(s.label)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <Label htmlFor="rule-work-order-merge" className="text-xs font-medium">
+                      {tt("ruleWoMerge")}
+                    </Label>
+                    <p className="mt-1 text-xs text-muted-foreground">{tt("ruleWoMergeHint")}</p>
+                  </div>
+                  <Switch
+                    id="rule-work-order-merge"
+                    checked={mergeRepeats}
+                    onCheckedChange={setMergeRepeats}
+                    disabled={busy || !enabled}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">{tt("ruleWoCooldown")} ({tt("ruleWoMinutes")})</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={43200}
+                      dir="ltr"
+                      value={cooldown}
+                      onChange={(e) => setCooldown(e.target.value)}
+                      disabled={busy || !enabled}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">{tt("ruleWoDailyLimit")}</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={1000}
+                      dir="ltr"
+                      value={dailyLimit}
+                      placeholder="∞"
+                      onChange={(e) => setDailyLimit(e.target.value)}
+                      disabled={busy || !enabled}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {tt("ruleWoCooldownHint")} {tt("ruleWoDailyLimitHint")}
+                </p>
               </div>
             </div>
           </div>
