@@ -441,14 +441,12 @@ html[lang="fa"] pre {
   font-family: 'Vazirmatn', sans-serif !important;
 }
 
-/* Tabs: reverse visual order in RTL so the first tab is on the far right. */
-[dir="rtl"] [role="tablist"] {
-  flex-direction: row-reverse;
-}
-/* …and reverse each tab's own content so the icon sits to the right of the label. */
-[dir="rtl"] [role="tab"] {
-  flex-direction: row-reverse;
-}
+/* Tabs need nothing here in RTL. They take their direction from the panel's
+   language (see components/ui/tabs.tsx), so the first tab already sits on the
+   far right with its icon to the right of its label. Two rules used to
+   reverse the tab list and each tab by hand, from when the tabs were always
+   left-to-right; once the tabs had a direction of their own those rules
+   turned them back round, left-aligned and in the wrong order. */
 
 /* RTL: reverse justify-between rows (card headers, chart headers, toggle rows,
    resource bars) so the title/label sits on the right and the control on the
