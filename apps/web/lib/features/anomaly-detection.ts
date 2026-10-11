@@ -42,7 +42,7 @@ export const anomalyDetectionConfig: FeatureConfig = {
           },
           {
             title: "From detection to action",
-            description: "A confirmed anomaly becomes an alarm or a work order, with the evidence attached to the task.",
+            description: "A confirmed anomaly becomes an alarm or a work order that links back to it.",
             items: ["Escalate to an alarm", "Create a work order", "Feedback loop on false positives"],
           },
         ],
@@ -111,7 +111,7 @@ export const anomalyDetectionConfig: FeatureConfig = {
           },
           {
             title: "از تشخیص تا اقدام",
-            description: "ناهنجاری تأییدشده به هشدار یا دستور کار تبدیل می‌شود و مستندات به همان کار پیوست می‌ماند.",
+            description: "ناهنجاری تأییدشده به هشدار یا دستور کاری تبدیل می‌شود که به همان ناهنجاری پیوند دارد.",
             items: ["تشدید به هشدار", "ایجاد دستور کار", "بازخورد روی موارد نادرست"],
           },
         ],
@@ -180,7 +180,7 @@ export const anomalyDetectionConfig: FeatureConfig = {
           },
           {
             title: "من الكشف إلى الإجراء",
-            description: "يتحول الشذوذ المؤكد إلى إنذار أو أمر عمل مع إرفاق الأدلة بالمهمة.",
+            description: "يتحول الشذوذ المؤكد إلى إنذار أو أمر عمل مرتبط به.",
             items: ["تصعيد إلى إنذار", "إنشاء أمر عمل", "تغذية راجعة على الإنذارات الخاطئة"],
           },
         ],

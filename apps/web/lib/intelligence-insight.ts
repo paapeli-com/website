@@ -79,8 +79,8 @@ export const INSIGHT_COPY: Record<string, InsightCopy> = {
         {
           title: "From insight to work",
           description:
-            "Every signal can open a work order with the asset, location and evidence attached, so insight ends in a task rather than a chart.",
-          items: ["One-click work orders", "AI summaries for shifts", "Exportable reports"],
+            "Every signal can open a work order with the equipment and location filled in and a checklist to follow, so insight ends in a task rather than a chart.",
+          items: ["Work orders with checklists", "AI summaries for shifts", "Exportable reports"],
         },
       ],
     },
@@ -185,9 +185,9 @@ export const INSIGHT_COPY: Record<string, InsightCopy> = {
         {
           title: "از بینش تا کار",
           description:
-            "هر نشانه می‌تواند یک دستور کار باز کند، همراه با دارایی، موقعیت و شواهد؛ پس بینش به یک وظیفه ختم می‌شود، نه به یک نمودار.",
+            "هر نشانه می‌تواند یک دستور کار باز کند که تجهیز و موقعیتش پر شده و چک‌لیست کار را دارد؛ پس بینش به یک وظیفه ختم می‌شود، نه به یک نمودار.",
           items: [
-            "دستور کار با یک کلیک",
+            "دستور کار با چک‌لیست",
             "خلاصهٔ هوش مصنوعی برای هر شیفت",
             "گزارش قابل خروجی‌گرفتن",
           ],
@@ -294,9 +294,9 @@ export const INSIGHT_COPY: Record<string, InsightCopy> = {
         {
           title: "من الرؤية إلى العمل",
           description:
-            "كل إشارة يمكن أن تفتح أمر عمل مرفقًا بالأصل والموقع والأدلة، فتنتهي الرؤية بمهمة لا برسم بياني.",
+            "كل إشارة يمكن أن تفتح أمر عمل فيه المعدّة والموقع وقائمة مهام للتنفيذ، فتنتهي الرؤية بمهمة لا برسم بياني.",
           items: [
-            "أوامر عمل بنقرة واحدة",
+            "أوامر عمل بقوائم مهام",
             "ملخصات ذكاء اصطناعي لكل وردية",
             "تقارير قابلة للتصدير",
           ],
