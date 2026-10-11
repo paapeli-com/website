@@ -1,4 +1,5 @@
 import { useCallback, useState, type FormEvent } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { assetsService, authService, setApiAuthToken, workspacesService } from "@paapeli/api";
 import { productKeyFor } from "@paapeli/brand/config";
 import { signIn as persistSession } from "@paapeli/brand/session";
@@ -186,6 +187,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
@@ -434,14 +436,29 @@ export default function LoginPage() {
 
               <div className="mb-2">
                 <label className={label} htmlFor="password">{copy.password}</label>
-                <input
-                  id="password"
-                  className={field}
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                {/* The eye sits at the end of the field: the right in English,
+                    the left in Persian and Arabic. The padding keeps a long
+                    password from running underneath it. */}
+                <div className="relative">
+                  <input
+                    id="password"
+                    className={`${field} pe-10`}
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((shown) => !shown)}
+                    aria-label={showPassword ? copy.hidePassword : copy.showPassword}
+                    title={showPassword ? copy.hidePassword : copy.showPassword}
+                    aria-pressed={showPassword}
+                    className="absolute inset-y-0 end-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
 
               {/* In English this sits at the end of the line, under the right
