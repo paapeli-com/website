@@ -6,7 +6,9 @@ export type NotificationType =
     | 'WORK_ORDER_ASSIGNED'
     | 'WORK_ORDER_STATUS_CHANGED'
     | 'WORK_ORDER_RAISED'
-    | 'ALARM_ESCALATED';
+    | 'ALARM_ESCALATED'
+    | 'OTA_DEPLOYMENT_COMPLETED'
+    | 'OTA_DEPLOYMENT_FAILED';
 
 /** Something the signed-in user should know about, in one workspace product. */
 export interface NotificationResponse {
@@ -18,6 +20,7 @@ export interface NotificationResponse {
      * WORK_ORDER_ASSIGNED and WORK_ORDER_RAISED: the equipment's name, if any.
      * WORK_ORDER_STATUS_CHANGED: the new status.
      * ALARM_ESCALATED: the device's name.
+     * OTA_DEPLOYMENT_*: "updated/total" devices; title is the firmware.
      */
     detail?: string | null;
     priority?: WorkOrderApiPriority | null;

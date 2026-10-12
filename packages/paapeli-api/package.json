@@ -20,7 +20,8 @@
     "./workspaces": "./src/api/workspaces/index.ts",
     "./users": "./src/api/users/index.ts",
     "./dashboards": "./src/api/dashboards/index.ts",
-    "./telemetry": "./src/api/telemetry/index.ts"
+    "./telemetry": "./src/api/telemetry/index.ts",
+    "./ota": "./src/api/ota/index.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit"

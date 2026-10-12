@@ -1,7 +1,19 @@
-import { sampleDataEnabled } from "@/features/factory/data/sampleData";
 import { useEffect, useMemo, useState } from "react";
 import { dateLocale, formatDate, formatTime } from "@/shared/lib/formatDate";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import {
+  useGetProductDeviceTypesQuery,
+  type OtaDeployment,
+  type OtaDeploymentStatus,
+  type OtaDevice,
+  type OtaDeviceStatus,
+  type OtaEvent,
+  type OtaFirmware,
+  type OtaFirmwareStatus,
+  type OtaRolloutMode,
+  type OtaSettings,
+  type OtaTargetGroup,
+} from "@paapeli/api";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import { LocationCell } from "@/features/factory/components/panel/LocationCell";
@@ -12,7 +24,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/features/factory/com
 import { Button } from "@/features/factory/components/ui/button";
 import { Input } from "@/features/factory/components/ui/input";
 import { Label } from "@/features/factory/components/ui/label";
-import { Textarea } from "@/features/factory/components/ui/textarea";
 import { Switch } from "@/features/factory/components/ui/switch";
 import { Progress } from "@/features/factory/components/ui/progress";
 import { Badge } from "@/features/factory/components/ui/badge";
@@ -30,167 +41,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/features/factory/components/ui/checkbox";
 import {
   Plus, Package, Activity, AlertTriangle, Smartphone, Eye, MoreHorizontal, Play, Pause,
-  Pencil, Copy, Trash2, Upload, Download, RefreshCw, RotateCw, X, Settings as SettingsIcon, Rocket, FileText,
+  Pencil, Copy, Trash2, Upload, Download, RefreshCw, RotateCw, X, Settings as SettingsIcon, Rocket, FileText, Check,
 } from "lucide-react";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
 import { NoData } from "@/features/factory/components/NoData";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
+import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
+import {
+  useOtaActions,
+  useOtaDeploymentEvents,
+  useOtaDeploymentPreview,
+  useOtaDeployments,
+  useOtaDeviceHistory,
+  useOtaDevices,
+  useOtaFirmware,
+  useOtaSettings,
+} from "@/features/factory/hooks/useOta";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 
-// ------------------- Types -------------------
-type UpdateStatus = "Active" | "Completed" | "Failed" | "Draft";
-type DeploymentStatus = "In Progress" | "Completed" | "Failed" | "Paused";
-type DeviceOtaStatus = "Up to date" | "Update available" | "Updating" | "Failed" | "Pending";
-type TargetType = "Temperature Sensors" | "Pressure Sensors" | "Vibration Sensors" | "Flow Meters" | "Gateways" | "Energy Meters";
-
-interface FirmwareUpdate {
-  id: string;
-  name: string;
-  version: string;
-  targetType: TargetType;
-  targetKind: "Device" | "Gateway";
-  devices: number;
-  status: UpdateStatus;
-  createdBy: string;
-  createdAt: string;
-  fileName?: string;
-  fileSize?: number;
-  releaseNotes?: string;
-  checksum?: string;
-  isDefault?: boolean;
-}
-
-interface Deployment {
-  id: string;
-  name: string;
-  updateId: string;
-  version: string;
-  targetDevices: number;
-  updated: number;
-  failed: number;
-  pending: number;
-  status: DeploymentStatus;
-  startedAt: string;
-  completedAt?: string;
-  logs: { ts: string; msg: string }[];
-}
-
-interface OtaDevice {
-  id: string;
-  name: string;
-  location: string;
-  type: TargetType;
-  currentFw: string;
-  targetFw: string;
-  status: DeviceOtaStatus;
-  lastUpdated: string;
-}
-
-interface OtaSettings {
-  allowAuto: boolean;
-  requireApproval: boolean;
-  retryFailed: boolean;
-  maxRetry: number;
-  maintenanceWindow: string;
-  notifySuccess: boolean;
-  notifyFailure: boolean;
-}
-
-// ------------------- Storage -------------------
-const LS = {
-  updates: "paapeli.ota.updates",
-  deployments: "paapeli.ota.deployments",
-  devices: "paapeli.ota.devices",
-  settings: "paapeli.ota.settings",
-};
-
-const loadLS = <T,>(key: string, fallback: T): T => {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw) as T;
-  } catch { return fallback; }
-};
-const saveLS = (key: string, value: unknown) => {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
-};
-
-/* Firmware, deployments and devices come from localStorage — what the user
-   uploaded and deployed in this browser. There is no OTA endpoint yet, so the
-   three lists start empty and each tab says so, rather than opening on five
-   invented firmware images, three in-flight rollouts and eighteen fabricated
-   devices that looked exactly like a live fleet.
-
-   The fixed LOCATIONS list went with them: the location filter and the deploy
-   dialog now offer the locations the devices themselves report, so the options
-   can never name a plant that isn't in the fleet. */
-
-/* The device taxonomy the product supports — a closed set, not data. */
-const DEV_TYPES: TargetType[] = ["Temperature Sensors", "Pressure Sensors", "Vibration Sensors", "Flow Meters", "Energy Meters", "Gateways"];
-
-/* Sample data: see data/sampleData.ts. Shown only where sample data is
-   enabled, and only while the browser holds no firmware of its own. */
-const SAMPLE_UPDATES: FirmwareUpdate[] = [
-  { id: "fw-1", name: "Temp Sensor Firmware", version: "v2.1.0", targetType: "Temperature Sensors", targetKind: "Device", devices: 324, status: "Active", createdBy: "Armin Rajabi", createdAt: new Date(Date.now() - 86400000 * 5).toISOString(), fileName: "temp_v2.1.0.bin", fileSize: 1048576, isDefault: true },
-  { id: "fw-2", name: "Gateway Firmware", version: "v1.8.3", targetType: "Gateways", targetKind: "Gateway", devices: 156, status: "Completed", createdBy: "Armin Rajabi", createdAt: new Date(Date.now() - 86400000 * 10).toISOString(), fileName: "gw_v1.8.3.bin", fileSize: 2097152, isDefault: true },
-  { id: "fw-3", name: "Pressure Sensor Firmware", version: "v1.4.0", targetType: "Pressure Sensors", targetKind: "Device", devices: 98, status: "Completed", createdBy: "Armin Rajabi", createdAt: new Date(Date.now() - 86400000 * 14).toISOString(), fileName: "press_v1.4.0.hex", fileSize: 786432, isDefault: true },
-  { id: "fw-4", name: "Vibration Sensor Firmware", version: "v3.0.1", targetType: "Vibration Sensors", targetKind: "Device", devices: 64, status: "Failed", createdBy: "Armin Rajabi", createdAt: new Date(Date.now() - 86400000 * 18).toISOString(), fileName: "vib_v3.0.1.bin", fileSize: 1310720, isDefault: true },
-  { id: "fw-5", name: "Energy Meter Firmware", version: "v2.0.0", targetType: "Energy Meters", targetKind: "Device", devices: 216, status: "Completed", createdBy: "Armin Rajabi", createdAt: new Date(Date.now() - 86400000 * 22).toISOString(), fileName: "em_v2.0.0.zip", fileSize: 524288, isDefault: true },
-];
-
-const SAMPLE_DEPLOYMENTS: Deployment[] = [
-  { id: "dep-1", name: "Temp Sensor Firmware v2.1.0", updateId: "fw-1", version: "v2.1.0", targetDevices: 324, updated: 216, failed: 1, pending: 107, status: "In Progress", startedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(), logs: [
-    { ts: new Date(Date.now() - 30 * 60 * 1000).toISOString(), msg: "Deployment started" },
-    { ts: new Date(Date.now() - 15 * 60 * 1000).toISOString(), msg: "Batch 1 (50) updated" },
-    { ts: new Date(Date.now() - 5 * 60 * 1000).toISOString(), msg: "1 device failed: timeout" },
-  ] },
-  { id: "dep-2", name: "Gateway Firmware v1.8.3", updateId: "fw-2", version: "v1.8.3", targetDevices: 156, updated: 156, failed: 0, pending: 0, status: "Completed", startedAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(), completedAt: new Date(Date.now() - 3600 * 1000).toISOString(), logs: [
-    { ts: new Date(Date.now() - 2 * 3600 * 1000).toISOString(), msg: "Deployment started" },
-    { ts: new Date(Date.now() - 3600 * 1000).toISOString(), msg: "All devices updated" },
-  ] },
-  { id: "dep-3", name: "Pressure Sensor Firmware v1.4.0", updateId: "fw-3", version: "v1.4.0", targetDevices: 98, updated: 98, failed: 0, pending: 0, status: "Completed", startedAt: new Date(Date.now() - 86400000).toISOString(), completedAt: new Date(Date.now() - 80000000).toISOString(), logs: [
-    { ts: new Date(Date.now() - 86400000).toISOString(), msg: "Deployment started" },
-    { ts: new Date(Date.now() - 80000000).toISOString(), msg: "All devices updated" },
-  ] },
-];
-
-const SAMPLE_LOCATIONS = [
-  "Qazvin > Factory A > Sulfonation > Line 1",
-  "Qazvin > Factory A > Packaging > Line 3",
-  "Tehran > Factory B > Filling > Line 2",
-  "Tehran > Factory B > Utilities > Compressor Hall",
-  "Isfahan > Factory C > WTP > Inlet",
-];
-const SAMPLE_DEVICES: OtaDevice[] = Array.from({ length: 18 }).map((_, i) => {
-  const types: TargetType[] = ["Temperature Sensors", "Pressure Sensors", "Vibration Sensors", "Flow Meters", "Energy Meters", "Gateways"];
-  const type = types[i % types.length];
-  const statuses: DeviceOtaStatus[] = ["Up to date", "Update available", "Updating", "Failed", "Pending"];
-  const status = statuses[i % statuses.length];
-  return {
-    id: `dev-${1000 + i}`,
-    name: `${type.replace(" Sensors","").replace("s","")}-${100 + i}`,
-    location: SAMPLE_LOCATIONS[i % SAMPLE_LOCATIONS.length],
-    type,
-    currentFw: `v${1 + (i%3)}.${i%5}.${i%4}`,
-    targetFw: `v${2 + (i%2)}.${i%4}.0`,
-    status,
-    lastUpdated: new Date(Date.now() - i * 3600 * 1000).toISOString(),
-  };
-});
-
-const seeded = <T,>(key: string, sample: T[]): T[] => {
-  const stored = loadLS<T[]>(key, []);
-  return stored.length === 0 && sampleDataEnabled() ? sample : stored;
-};
-
-const DEFAULT_SETTINGS: OtaSettings = {
-  allowAuto: true,
-  requireApproval: true,
-  retryFailed: true,
-  maxRetry: 3,
-  maintenanceWindow: "02:00 - 04:00",
-  notifySuccess: false,
-  notifyFailure: true,
-};
+/* Firmware, rollouts, the fleet and the OTA policy, all from the gateway
+   (/api/v1/aiot/ota/{ws}/{pk}). Firmware files become ThingsBoard OTA
+   packages; a rollout assigns them to devices batch by batch and follows
+   what each device reports, so the progress shown here is the devices' own. */
 
 // ------------------- Helpers -------------------
 const fmtBytes = (b?: number) => {
@@ -199,11 +72,10 @@ const fmtBytes = (b?: number) => {
   if (b < 1024 * 1024) return `${(b/1024).toFixed(1)} KB`;
   return `${(b/1024/1024).toFixed(2)} MB`;
 };
-const fmtDate = (iso?: string) => formatDate(iso);
 
 const useFmtDate = () => {
   const { language } = useLanguage();
-  return (iso?: string) => {
+  return (iso?: string | null) => {
     if (!iso) return "—";
     const d = new Date(iso);
     /* ar-EG was Gregorian with Arabic digits — localised digits on the
@@ -217,9 +89,9 @@ const useFmtDate = () => {
 };
 
 const useFmtRel = () => {
-  const { t, formatNumber, language } = useLanguage();
+  const { t, formatNumber } = useLanguage();
   const fmtDateLocal = useFmtDate();
-  return (iso?: string) => {
+  return (iso?: string | null) => {
     if (!iso) return "—";
     const diff = Date.now() - new Date(iso).getTime();
     const m = Math.floor(diff / 60000);
@@ -231,66 +103,148 @@ const useFmtRel = () => {
   };
 };
 
-const STATUS_KEY_MAP: Record<string, string> = {
-  "Active": "otaStatusActive",
-  "Completed": "otaStatusCompleted",
-  "Failed": "otaStatusFailed",
-  "Draft": "otaStatusDraft",
-  "In Progress": "otaStatusInProgress",
-  "Paused": "otaStatusPaused",
-  "Up to date": "otaStatusUpToDate",
-  "Update available": "otaStatusUpdateAvailable",
-  "Updating": "otaStatusUpdating",
-  "Pending": "otaStatusPending",
+type AnyStatus = OtaFirmwareStatus | OtaDeploymentStatus | OtaDeviceStatus;
+
+const STATUS_KEY: Record<AnyStatus, string> = {
+  DRAFT: "otaStatusDraft",
+  ACTIVE: "otaStatusActive",
+  COMPLETED: "otaStatusCompleted",
+  FAILED: "otaStatusFailed",
+  AWAITING_APPROVAL: "otaStatusAwaitingApproval",
+  SCHEDULED: "otaStatusScheduled",
+  IN_PROGRESS: "otaStatusInProgress",
+  PAUSED: "otaStatusPaused",
+  CANCELLED: "otaStatusCancelled",
+  UP_TO_DATE: "otaStatusUpToDate",
+  UPDATE_AVAILABLE: "otaStatusUpdateAvailable",
+  PENDING: "otaStatusPending",
+  UPDATING: "otaStatusUpdating",
+  UNKNOWN: "otaStatusUnknown",
 };
 
-const STATUS_CLASS_MAP: Record<string, string> = {
-  "Active": "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30",
-  "Completed": "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30",
-  "Failed": "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30",
-  "Draft": "bg-muted text-muted-foreground border-border",
-  "In Progress": "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
-  "Paused": "bg-muted text-muted-foreground border-border",
-  "Up to date": "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30",
-  "Update available": "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
-  "Updating": "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30",
-  "Pending": "bg-muted text-muted-foreground border-border",
+const GREEN = "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30";
+const BLUE = "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30";
+const RED = "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30";
+const AMBER = "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30";
+const MUTED = "bg-muted text-muted-foreground border-border";
+
+const STATUS_CLASS: Record<AnyStatus, string> = {
+  DRAFT: MUTED,
+  ACTIVE: GREEN,
+  COMPLETED: BLUE,
+  FAILED: RED,
+  AWAITING_APPROVAL: AMBER,
+  SCHEDULED: MUTED,
+  IN_PROGRESS: AMBER,
+  PAUSED: MUTED,
+  CANCELLED: MUTED,
+  UP_TO_DATE: GREEN,
+  UPDATE_AVAILABLE: AMBER,
+  PENDING: MUTED,
+  UPDATING: BLUE,
+  UNKNOWN: MUTED,
 };
 
 const useStatusBadge = () => {
   const { t } = useLanguage();
-  return (s: UpdateStatus | DeploymentStatus | DeviceOtaStatus) => (
-    <Badge variant="outline" className={`${STATUS_CLASS_MAP[s] || ""} font-medium`}>
-      {t((STATUS_KEY_MAP[s] || s) as any)}
+  return (s: AnyStatus) => (
+    <Badge variant="outline" className={`${STATUS_CLASS[s] || ""} font-medium`}>
+      {t((STATUS_KEY[s] || s) as any)}
     </Badge>
   );
 };
 
-const TARGET_TYPE_KEY: Record<TargetType, string> = {
-  "Temperature Sensors": "tempSensors",
-  "Pressure Sensors": "pressureSensors",
-  "Vibration Sensors": "vibrationSensors",
-  "Flow Meters": "flowMeters",
-  "Gateways": "gateways",
-  "Energy Meters": "energyMeters",
+/* Device type keys are the product's own; the label is what people read. */
+const useDeviceTypeLabel = () => {
+  const { data } = useGetProductDeviceTypesQuery(PRODUCT_KEY);
+  const labels = useMemo(() => new Map((data ?? []).map((d) => [d.deviceType, d.label])), [data]);
+  return {
+    label: (type: string) => labels.get(type) || type,
+    types: data ?? [],
+  };
 };
-const useTargetTypeLabel = () => {
+
+const useLocationPath = () => {
+  const { options } = useAssetLocations();
+  const pathOf = useMemo(() => {
+    const paths = new Map(options.map((o) => [o.id, o.path]));
+    return (assetId?: string | null) => (assetId ? paths.get(assetId) ?? "" : "");
+  }, [options]);
+  return { pathOf, options };
+};
+
+const EVENT_KEY: Record<OtaEvent["type"], string> = {
+  CREATED: "otaEventCreated",
+  APPROVED: "otaEventApproved",
+  SCHEDULED: "otaEventScheduled",
+  STARTED: "otaEventStarted",
+  BATCH_SENT: "otaEventBatchSent",
+  DEVICE_UPDATED: "otaEventDeviceUpdated",
+  DEVICE_FAILED: "otaEventDeviceFailed",
+  DEVICE_RETRIED: "otaEventDeviceRetried",
+  PAUSED: "otaEventPaused",
+  RESUMED: "otaEventResumed",
+  RETRIED: "otaEventRetried",
+  THRESHOLD_EXCEEDED: "otaEventThresholdExceeded",
+  CANCELLED: "otaEventCancelled",
+  COMPLETED: "otaEventCompleted",
+  FAILED: "otaEventFailed",
+};
+
+const useEventText = () => {
+  const { t, formatNumber } = useLanguage();
+  return (e: OtaEvent) => {
+    const text = t(EVENT_KEY[e.type] as any)
+      .replace("{device}", e.deviceName ?? "")
+      .replace("{n}", formatNumber(e.deviceCount ?? 0))
+      .replace("{detail}", e.detail ?? "");
+    // A plain event that carries a reason shows it.
+    return e.detail && !text.includes(e.detail) ? `${text} — ${e.detail}` : text;
+  };
+};
+
+const isLive = (s: OtaDeploymentStatus) =>
+  s === "AWAITING_APPROVAL" || s === "SCHEDULED" || s === "IN_PROGRESS" || s === "PAUSED";
+
+const downloadCsv = (name: string, header: string[], rows: unknown[][]) => {
+  const csv = [header.join(","), ...rows.map(r => r.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = `${name}-${Date.now()}.csv`; a.click();
+  URL.revokeObjectURL(url);
+};
+
+/** Runs an OTA write and says how it went. */
+const useRun = () => {
   const { t } = useLanguage();
-  return (typ: TargetType) => t((TARGET_TYPE_KEY[typ] || typ) as any) || typ;
+  const { toast } = useToast();
+  return async <R,>(action: () => Promise<R>, success?: (result: R) => string | undefined) => {
+    try {
+      const result = await action();
+      const title = success?.(result);
+      if (title) toast({ title });
+      return result;
+    } catch (error) {
+      toast({ title: apiErrorMessage(error, t("otaActionFailed")), variant: "destructive" });
+      return undefined;
+    }
+  };
 };
 
 // ------------------- Page -------------------
 const OTAPage = () => {
   const { t, isRTL, language, formatNumber } = useLanguage();
   const statusBadge = useStatusBadge();
-  const fmtRel = useFmtRel();
   const fmtDateL = useFmtDate();
-  const targetTypeLabel = useTargetTypeLabel();
+  const { label: typeLabel } = useDeviceTypeLabel();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const run = useRun();
+  const actions = useOtaActions();
   const lp = (p: string) => localizedPath(p, language);
   const goToCreate = () => navigate(lp("/firmware/new"));
-  const goToEdit = (u: FirmwareUpdate) => navigate(lp(`/firmware/${u.id}/edit`));
+  const goToEdit = (u: OtaFirmware) => navigate(lp(`/firmware/${u.id}/edit`));
+  const goToDuplicate = (u: OtaFirmware) => navigate(lp(`/firmware/new?from=${u.id}`));
 
   // tabs (also synced with ?tab= URL param)
   const [searchParams, setSearchParams] = useSearchParams();
@@ -310,33 +264,39 @@ const OTAPage = () => {
   }, [tabParam]);
 
   // data
-  const [updates, setUpdates] = useState<FirmwareUpdate[]>(() => seeded(LS.updates, SAMPLE_UPDATES));
-  const [deployments, setDeployments] = useState<Deployment[]>(() => seeded(LS.deployments, SAMPLE_DEPLOYMENTS));
-  const [devices, setDevices] = useState<OtaDevice[]>(() => seeded(LS.devices, SAMPLE_DEVICES));
-  const [settings, setSettings] = useState<OtaSettings>(() => loadLS(LS.settings, DEFAULT_SETTINGS));
-
-  useEffect(() => saveLS(LS.updates, updates), [updates]);
-  useEffect(() => saveLS(LS.deployments, deployments), [deployments]);
-  useEffect(() => saveLS(LS.devices, devices), [devices]);
-  useEffect(() => saveLS(LS.settings, settings), [settings]);
+  const firmwareQuery = useOtaFirmware();
+  const deploymentsQuery = useOtaDeployments();
+  const firmware = firmwareQuery.data ?? [];
+  const deployments = deploymentsQuery.data ?? [];
 
   // dialogs / panels
-  const [deployFor, setDeployFor] = useState<FirmwareUpdate | null>(null);
-  const [updateDetails, setUpdateDetails] = useState<FirmwareUpdate | null>(null);
-  const [deploymentDetails, setDeploymentDetails] = useState<Deployment | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<{ kind: "update" | "updateBulk"; ids: string[] } | null>(null);
+  const [deployFor, setDeployFor] = useState<OtaFirmware | null>(null);
+  const [updateDetailsId, setUpdateDetailsId] = useState<string | null>(null);
+  const [deploymentDetailsId, setDeploymentDetailsId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string[] | null>(null);
+  // Shown from the lists, so they follow refreshes.
+  const updateDetails = firmware.find(f => f.id === updateDetailsId) ?? null;
+  const deploymentDetails = deployments.find(d => d.id === deploymentDetailsId) ?? null;
 
   // ---- KPIs
-  const totalUpdates = updates.length;
-  const activeUpdates = updates.filter(u => u.status === "Active").length;
-  const failedUpdates = updates.filter(u => u.status === "Failed").length;
+  const activeUpdates = firmware.filter(u => u.status === "ACTIVE").length;
+  const failedUpdates = firmware.filter(u => u.status === "FAILED").length;
   const devicesUpdated = deployments.reduce((s, d) => s + d.updated, 0);
+
+  const deleteFirmware = async (ids: string[]) => {
+    let deleted = 0;
+    for (const id of ids) {
+      const done = await run(() => actions.deleteFirmware.mutateAsync(id));
+      if (done) deleted++;
+    }
+    if (deleted > 0) toast({ title: t("deleted") });
+  };
 
   return (
     <>
       <PageHeader
         title={t("otaPageTitle")}
-        count={updates.length}
+        count={firmware.length}
         countLabel={t("otaCountLabel")}
         actions={
           <Button onClick={goToCreate} className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-5 gap-2 rounded-md">
@@ -345,18 +305,15 @@ const OTAPage = () => {
         }
       />
 
-      
-
       {/* KPI cards */}
       <KpiSection storageKey="ota" className="mb-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard icon={Package} label={t("totalUpdates")} value={formatNumber(totalUpdates)} sublabel={t("allFirmwareUpdates")} tone="primary" />
+        <KpiCard icon={Package} label={t("totalUpdates")} value={formatNumber(firmware.length)} sublabel={t("allFirmwareUpdates")} tone="primary" />
         <KpiCard icon={Activity} label={t("activeUpdates")} value={formatNumber(activeUpdates)} sublabel={t("currentlyRollingOut")} tone="amber" />
         <KpiCard icon={AlertTriangle} label={t("failedUpdates")} value={formatNumber(failedUpdates)} sublabel={t("needAttention")} tone="red" />
         <KpiCard icon={Smartphone} label={t("devicesUpdated")} value={formatNumber(devicesUpdated)} sublabel={t("acrossDeployments")} tone="blue" />
       </div>
       </KpiSection>
-
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-4">
         <TabsList>
@@ -370,18 +327,16 @@ const OTAPage = () => {
           <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_320px] gap-4">
             <div className="min-w-0">
               <UpdatesTab
-                updates={updates}
-                setUpdates={setUpdates}
+                updates={firmware}
+                isLoading={firmwareQuery.isLoading}
+                isRefreshing={firmwareQuery.isFetching}
+                onRefresh={() => firmwareQuery.refetch()}
                 onCreate={goToCreate}
-                onEdit={(u) => goToEdit(u)}
+                onEdit={goToEdit}
                 onDeploy={(u) => setDeployFor(u)}
-                onView={(u) => setUpdateDetails(u)}
-                onDelete={(ids) => setConfirmDelete({ kind: ids.length > 1 ? "updateBulk" : "update", ids })}
-                onDuplicate={(u) => {
-                  const dup = { ...u, id: `fw-${Date.now()}`, name: `${u.name} (Copy)`, status: "Draft" as UpdateStatus, createdAt: new Date().toISOString(), devices: 0, isDefault: false };
-                  setUpdates([dup, ...updates]);
-                  toast({ title: t("updateDuplicated") });
-                }}
+                onView={(u) => setUpdateDetailsId(u.id)}
+                onDelete={(ids) => setConfirmDelete(ids)}
+                onDuplicate={goToDuplicate}
               />
             </div>
             <RightSidePanel
@@ -389,7 +344,7 @@ const OTAPage = () => {
               onViewAll={() => setTab("deployments")}
               onCreate={goToCreate}
               onStartDeployment={() => {
-                const first = updates[0];
+                const first = firmware[0];
                 if (first) setDeployFor(first);
                 else toast({ title: t("createUpdateFirstToast") });
               }}
@@ -398,41 +353,38 @@ const OTAPage = () => {
           </div>
         </TabsContent>
 
-
         <TabsContent value="deployments">
           <DeploymentsTab
             deployments={deployments}
-            setDeployments={setDeployments}
-            onView={(d) => setDeploymentDetails(d)}
+            isLoading={deploymentsQuery.isLoading}
+            isRefreshing={deploymentsQuery.isFetching}
+            onRefresh={() => deploymentsQuery.refetch()}
+            onView={(d) => setDeploymentDetailsId(d.id)}
           />
         </TabsContent>
 
         <TabsContent value="devices">
-          <DevicesTab
-            devices={devices}
-            setDevices={setDevices}
-          />
+          <DevicesTab />
         </TabsContent>
 
         <TabsContent value="settings">
-          <SettingsTab settings={settings} setSettings={setSettings} />
+          <SettingsTab />
         </TabsContent>
       </Tabs>
 
-
       {/* Update details drawer */}
-      <Sheet open={!!updateDetails} onOpenChange={(o) => !o && setUpdateDetails(null)}>
+      <Sheet open={!!updateDetails} onOpenChange={(o) => !o && setUpdateDetailsId(null)}>
         <SheetContent side={isRTL ? "left" : "right"} className="w-full sm:max-w-md overflow-y-auto">
           {updateDetails && (
             <>
-              <SheetHeader><SheetTitle>{updateDetails.name}</SheetTitle><SheetDescription>{updateDetails.version} · {targetTypeLabel(updateDetails.targetType)}</SheetDescription></SheetHeader>
+              <SheetHeader><SheetTitle>{updateDetails.name}</SheetTitle><SheetDescription>{updateDetails.version} · {typeLabel(updateDetails.deviceType)}</SheetDescription></SheetHeader>
               <div className="space-y-3 mt-6 text-sm">
                 <DetailRow label={t("status")} value={statusBadge(updateDetails.status)} />
-                <DetailRow label={t("devices")} value={formatNumber(updateDetails.devices)} />
-                <DetailRow label={t("createdByCol")} value={updateDetails.createdBy} />
+                <DetailRow label={t("devices")} value={formatNumber(updateDetails.installedDevices)} />
+                <DetailRow label={t("createdByCol")} value={updateDetails.createdByName || "—"} />
                 <DetailRow label={t("createdAt")} value={fmtDateL(updateDetails.createdAt)} />
-                <DetailRow label={t("firmwareFile")} value={`${updateDetails.fileName || "—"} (${fmtBytes(updateDetails.fileSize)})`} />
-                {updateDetails.checksum && <DetailRow label={t("checksum")} value={<code className="text-xs" dir="ltr">{updateDetails.checksum}</code>} />}
+                <DetailRow label={t("firmwareFile")} value={`${updateDetails.fileName} (${fmtBytes(updateDetails.fileSize)})`} />
+                <DetailRow label={t("checksum")} value={<code className="text-xs break-all" dir="ltr">{updateDetails.checksum}</code>} />
                 {updateDetails.releaseNotes && (
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">{t("releaseNotes")}</div>
@@ -440,7 +392,7 @@ const OTAPage = () => {
                   </div>
                 )}
                 <div className="pt-3">
-                  <Button className="w-full" onClick={() => { setDeployFor(updateDetails); setUpdateDetails(null); }}>
+                  <Button className="w-full" onClick={() => { setDeployFor(updateDetails); setUpdateDetailsId(null); }}>
                     <Rocket className="h-4 w-4 me-2" /> {t("startDeploymentAction")}
                   </Button>
                 </div>
@@ -451,74 +403,27 @@ const OTAPage = () => {
       </Sheet>
 
       {/* Deployment details drawer */}
-      <Sheet open={!!deploymentDetails} onOpenChange={(o) => !o && setDeploymentDetails(null)}>
+      <Sheet open={!!deploymentDetails} onOpenChange={(o) => !o && setDeploymentDetailsId(null)}>
         <SheetContent side={isRTL ? "left" : "right"} className="w-full sm:max-w-md overflow-y-auto">
-          {deploymentDetails && (
-            <>
-              <SheetHeader><SheetTitle>{deploymentDetails.name}</SheetTitle><SheetDescription>{deploymentDetails.version}</SheetDescription></SheetHeader>
-              <div className="space-y-3 mt-6 text-sm">
-                <DetailRow label={t("status")} value={statusBadge(deploymentDetails.status)} />
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">{t("progressLabel")}</div>
-                  <Progress value={Math.round((deploymentDetails.updated / Math.max(deploymentDetails.targetDevices,1)) * 100)} />
-                  <div className="text-xs text-muted-foreground mt-1">{formatNumber(deploymentDetails.updated)}/{formatNumber(deploymentDetails.targetDevices)} {t("devicesShortLabel")}</div>
-                </div>
-                <DetailRow label={t("updatedLabel")} value={formatNumber(deploymentDetails.updated)} />
-                <DetailRow label={t("failedLabel")} value={formatNumber(deploymentDetails.failed)} />
-                <DetailRow label={t("pendingLabel")} value={formatNumber(deploymentDetails.pending)} />
-                <DetailRow label={t("startedAt")} value={fmtDateL(deploymentDetails.startedAt)} />
-                {deploymentDetails.completedAt && <DetailRow label={t("completedAt")} value={fmtDateL(deploymentDetails.completedAt)} />}
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">{t("logsLabel")}</div>
-                  <div className="rounded-md border bg-muted/30 p-3 space-y-1 max-h-60 overflow-y-auto">
-                    {deploymentDetails.logs.map((l, i) => (
-                      <div key={i} className="text-xs flex gap-2"><span className="text-muted-foreground">{formatTime(l.ts)}</span><span>{l.msg}</span></div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
+          {deploymentDetails && <DeploymentDetails deployment={deploymentDetails} />}
         </SheetContent>
       </Sheet>
 
-      {/* Start Deployment dialog */}
+      {/* Start Deployment panel */}
       <StartDeploymentPanel
         open={!!deployFor}
-        update={deployFor}
-        devices={devices}
+        firmware={deployFor}
         onClose={() => setDeployFor(null)}
-        onStart={(payload) => {
-          if (!deployFor) return;
-          const dep: Deployment = {
-            id: `dep-${Date.now()}`,
-            name: `${deployFor.name} ${deployFor.version}`,
-            updateId: deployFor.id,
-            version: deployFor.version,
-            targetDevices: payload.deviceCount,
-            updated: 0,
-            failed: 0,
-            pending: payload.deviceCount,
-            status: payload.scheduleLater ? "Paused" : "In Progress",
-            startedAt: new Date().toISOString(),
-            logs: [{ ts: new Date().toISOString(), msg: payload.scheduleLater ? "Deployment scheduled" : "Deployment started" }],
-          };
-          setDeployments([dep, ...deployments]);
-          // Mark update as active
-          setUpdates(updates.map(u => u.id === deployFor.id ? { ...u, status: "Active" } : u));
-          toast({ title: t("deploymentStartedToast"), description: dep.name });
-          setDeployFor(null);
-        }}
       />
 
       {/* Confirm delete */}
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{(confirmDelete?.ids.length || 0) > 1 ? t("deleteUpdatesTitle") : t("deleteUpdateTitle")}</AlertDialogTitle>
+            <AlertDialogTitle>{(confirmDelete?.length || 0) > 1 ? t("deleteUpdatesTitle") : t("deleteUpdateTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              {((confirmDelete?.ids.length || 0) > 1 ? t("deleteUpdatesDesc") : t("deleteUpdateDesc"))
-                .replace("{n}", formatNumber(confirmDelete?.ids.length || 0))}
+              {((confirmDelete?.length || 0) > 1 ? t("deleteUpdatesDesc") : t("deleteUpdateDesc"))
+                .replace("{n}", formatNumber(confirmDelete?.length || 0))}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -527,8 +432,7 @@ const OTAPage = () => {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
                 if (!confirmDelete) return;
-                setUpdates(updates.filter(u => !confirmDelete.ids.includes(u.id)));
-                toast({ title: t("deleted") });
+                void deleteFirmware(confirmDelete);
                 setConfirmDelete(null);
               }}
             >{t("delete")}</AlertDialogAction>
@@ -570,28 +474,34 @@ const KpiCard = ({ icon: Icon, label, value, sublabel, tone }: { icon: any; labe
 
 const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
   <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-2">
-    <span className="text-xs text-muted-foreground">{label}</span>
-    <span className="text-sm">{value}</span>
+    <span className="text-xs text-muted-foreground shrink-0">{label}</span>
+    <span className="text-sm text-end min-w-0">{value}</span>
   </div>
+);
+
+const ListLoading = () => (
+  <div className="py-12 flex justify-center text-muted-foreground"><RefreshCw className="h-5 w-5 animate-spin" /></div>
 );
 
 // ---------- Updates Tab ----------
 const UpdatesTab = ({
-  updates, setUpdates, onCreate, onEdit, onDeploy, onView, onDelete, onDuplicate,
+  updates, isLoading, isRefreshing, onRefresh, onCreate, onEdit, onDeploy, onView, onDelete, onDuplicate,
 }: {
-  updates: FirmwareUpdate[];
-  setUpdates: (u: FirmwareUpdate[]) => void;
+  updates: OtaFirmware[];
+  isLoading: boolean;
+  isRefreshing: boolean;
+  onRefresh: () => void;
   onCreate: () => void;
-  onEdit: (u: FirmwareUpdate) => void;
-  onDeploy: (u: FirmwareUpdate) => void;
-  onView: (u: FirmwareUpdate) => void;
+  onEdit: (u: OtaFirmware) => void;
+  onDeploy: (u: OtaFirmware) => void;
+  onView: (u: OtaFirmware) => void;
   onDelete: (ids: string[]) => void;
-  onDuplicate: (u: FirmwareUpdate) => void;
+  onDuplicate: (u: OtaFirmware) => void;
 }) => {
   const { t, formatNumber, isRTL } = useLanguage();
   const statusBadge = useStatusBadge();
   const fmtDateL = useFmtDate();
-  const targetTypeLabel = useTargetTypeLabel();
+  const { label: typeLabel, types } = useDeviceTypeLabel();
   const [search, setSearch] = useState("");
   const [statusF, setStatusF] = useState("all");
   const [typeF, setTypeF] = useState("all");
@@ -599,22 +509,26 @@ const UpdatesTab = ({
   const [sort, setSort] = useState("newest");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const onRefresh = () => { setIsRefreshing(true); setTimeout(() => setIsRefreshing(false), 600); };
   const perPage = 5;
 
+  // Drop selections that were deleted.
+  useEffect(() => {
+    setSelected((s) => s.filter((id) => updates.some((u) => u.id === id)));
+  }, [updates]);
+
   const filtered = useMemo(() => {
+    const q = search.toLowerCase();
     let list = updates.filter(u =>
-      (u.name.toLowerCase().includes(search.toLowerCase()) || u.version.toLowerCase().includes(search.toLowerCase())) &&
+      (u.name.toLowerCase().includes(q) || u.version.toLowerCase().includes(q)) &&
       (statusF === "all" || u.status === statusF) &&
-      (typeF === "all" || u.targetType === typeF) &&
-      (createdByF === "all" || u.createdBy === createdByF)
+      (typeF === "all" || u.deviceType === typeF) &&
+      (createdByF === "all" || (u.createdByName ?? "") === createdByF)
     );
     list = [...list].sort((a, b) => {
       switch (sort) {
         case "oldest": return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         case "nameAsc": return a.name.localeCompare(b.name);
-        case "version": return b.version.localeCompare(a.version);
+        case "version": return b.version.localeCompare(a.version, undefined, { numeric: true });
         case "status": return a.status.localeCompare(b.status);
         case "newest":
         default: return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -627,29 +541,27 @@ const UpdatesTab = ({
   const paged = filtered.slice((page - 1) * perPage, page * perPage);
   const activeFilters = [statusF, typeF, createdByF].filter(v => v !== "all").length;
 
-  const handleExport = () => {
-    const header = ["name", "version", "type", "devices", "status", "createdBy", "createdAt"];
-    const rows = filtered.map(u => [u.name, u.version, u.targetType, u.devices, u.status, u.createdBy, u.createdAt]);
-    const csv = [header.join(","), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `ota-updates-${Date.now()}.csv`; a.click();
-    URL.revokeObjectURL(url);
-  };
+  const handleExport = () => downloadCsv(
+    "ota-updates",
+    ["name", "version", "deviceType", "devices", "status", "createdBy", "createdAt", "checksum"],
+    filtered.map(u => [u.name, u.version, u.deviceType, u.installedDevices, u.status, u.createdByName, u.createdAt, u.checksum]),
+  );
 
+  const typeOptions = Array.from(new Set([...types.map(d => d.deviceType), ...updates.map(u => u.deviceType)]));
   const filterFields: FilterField[] = [
     { key: "status", label: t("status"), value: statusF, onChange: (v) => { setStatusF(v); setPage(1); }, options: [
       { value: "all", label: t("all") },
-      { value: "Active", label: t("otaStatusActive") },
-      { value: "Completed", label: t("otaStatusCompleted") },
-      { value: "Failed", label: t("otaStatusFailed") },
-      { value: "Draft", label: t("otaStatusDraft") },
+      { value: "ACTIVE", label: t("otaStatusActive") },
+      { value: "COMPLETED", label: t("otaStatusCompleted") },
+      { value: "FAILED", label: t("otaStatusFailed") },
+      { value: "DRAFT", label: t("otaStatusDraft") },
     ] },
     { key: "type", label: t("targetTypeFilter"), value: typeF, onChange: (v) => { setTypeF(v); setPage(1); }, options: [
-      { value: "all", label: t("all") }, ...DEV_TYPES.map(d => ({ value: d, label: targetTypeLabel(d) })),
+      { value: "all", label: t("all") }, ...typeOptions.map(d => ({ value: d, label: typeLabel(d) })),
     ] },
     { key: "createdBy", label: t("createdByFilter"), value: createdByF, onChange: (v) => { setCreatedByF(v); setPage(1); }, options: [
-      { value: "all", label: t("all") }, ...Array.from(new Set(updates.map(u => u.createdBy))).map(n => ({ value: n, label: n })),
+      { value: "all", label: t("all") },
+      ...Array.from(new Set(updates.map(u => u.createdByName).filter((n): n is string => !!n))).map(n => ({ value: n, label: n })),
     ] },
   ];
   const sortOpts: SortOption[] = [
@@ -680,11 +592,11 @@ const UpdatesTab = ({
           selectionCount={selected.length}
         />
 
-        {paged.length === 0 ? (
+        {isLoading ? <ListLoading /> : paged.length === 0 ? (
           updates.length === 0 ? <NoData size="lg" />
             : <div className="text-center py-12 text-muted-foreground text-sm">{t("noUpdatesFound")}</div>
         ) : (
-          <div dir={isRTL ? "rtl" : "ltr"} className="rounded-lg border overflow-hidden text-xs [&_th]:text-xs [&_td]:text-xs [&_th]:h-10 [&_td]:p-3">
+          <div dir={isRTL ? "rtl" : "ltr"} className="rounded-lg border overflow-x-auto text-xs [&_th]:text-xs [&_td]:text-xs [&_th]:h-10 [&_td]:p-3">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
@@ -726,11 +638,11 @@ const UpdatesTab = ({
                         {u.isDefault && <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-500/30 ms-1">{t("defaultLabel")}</Badge>}
                       </div>
                     </TableCell>
-                    <TableCell>{u.version}</TableCell>
-                    <TableCell>{targetTypeLabel(u.targetType)}</TableCell>
-                    <TableCell>{formatNumber(u.devices)}</TableCell>
+                    <TableCell dir="ltr">{u.version}</TableCell>
+                    <TableCell>{typeLabel(u.deviceType)}</TableCell>
+                    <TableCell>{formatNumber(u.installedDevices)}</TableCell>
                     <TableCell>{statusBadge(u.status)}</TableCell>
-                    <TableCell>{u.createdBy}</TableCell>
+                    <TableCell>{u.createdByName || "—"}</TableCell>
                     <TableCell>{fmtDateL(u.createdAt)}</TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
@@ -771,15 +683,15 @@ const UpdatesTab = ({
 
 // ---------- Right side panel (Updates tab) ----------
 const RightSidePanel = ({ deployments, onViewAll, onCreate, onStartDeployment, onSettings }: {
-  deployments: Deployment[];
+  deployments: OtaDeployment[];
   onViewAll: () => void;
   onCreate: () => void;
   onStartDeployment: () => void;
   onSettings: () => void;
 }) => {
-  const { t } = useLanguage();
+  const { t, formatNumber } = useLanguage();
   const fmtRel = useFmtRel();
-  const active = deployments.filter(d => d.status === "In Progress" || d.status === "Paused").slice(0, 3);
+  const active = deployments.filter(d => isLive(d.status)).slice(0, 3);
   const recent = active.length > 0 ? active : deployments.slice(0, 3);
   return (
     <div className="space-y-4">
@@ -790,25 +702,22 @@ const RightSidePanel = ({ deployments, onViewAll, onCreate, onStartDeployment, o
         </CardHeader>
         <CardContent className="space-y-4">
           {recent.length === 0 && <div className="text-sm text-muted-foreground">{t("noDeploymentsYet")}</div>}
-          {recent.map(d => {
-            const pct = Math.round((d.updated / Math.max(d.targetDevices, 1)) * 100);
-            return (
-              <div key={d.id} className="space-y-2">
-                <div>
-                  <div className="text-sm font-medium">{d.name}</div>
-                  <div className="text-xs text-muted-foreground">{t("startedAtRelative").replace("{when}", fmtRel(d.startedAt))}</div>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <Progress value={pct} className="flex-1 me-3" />
-                  <span className="font-medium">{pct}%</span>
-                </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{t("devicesUpdatedFraction").replace("{updated}", String(d.updated)).replace("{target}", String(d.targetDevices))}</span>
-                  <span>{t("failedCountSuffix").replace("{n}", String(d.failed))}</span>
-                </div>
+          {recent.map(d => (
+            <div key={d.id} className="space-y-2">
+              <div>
+                <div className="text-sm font-medium">{d.name}</div>
+                <div className="text-xs text-muted-foreground">{t("startedAtRelative").replace("{when}", fmtRel(d.startedAt ?? d.createdAt))}</div>
               </div>
-            );
-          })}
+              <div className="flex items-center justify-between text-xs">
+                <Progress value={d.progressPct} className="flex-1 me-3" />
+                <span className="font-medium">{formatNumber(d.progressPct)}%</span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{t("devicesUpdatedFraction").replace("{updated}", formatNumber(d.updated)).replace("{target}", formatNumber(d.totalDevices))}</span>
+                <span>{t("failedCountSuffix").replace("{n}", formatNumber(d.failed))}</span>
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
 
@@ -824,66 +733,103 @@ const RightSidePanel = ({ deployments, onViewAll, onCreate, onStartDeployment, o
   );
 };
 
+// ---------- Deployment details ----------
+const DeploymentDetails = ({ deployment: d }: { deployment: OtaDeployment }) => {
+  const { t, formatNumber } = useLanguage();
+  const statusBadge = useStatusBadge();
+  const fmtDateL = useFmtDate();
+  const eventText = useEventText();
+  const { data: events, isLoading } = useOtaDeploymentEvents(d.id);
+  return (
+    <>
+      <SheetHeader><SheetTitle>{d.name}</SheetTitle><SheetDescription dir="ltr">{d.firmwareVersion}</SheetDescription></SheetHeader>
+      <div className="space-y-3 mt-6 text-sm">
+        <DetailRow label={t("status")} value={statusBadge(d.status)} />
+        <div>
+          <div className="text-xs text-muted-foreground mb-1">{t("progressLabel")}</div>
+          <Progress value={d.progressPct} />
+          <div className="text-xs text-muted-foreground mt-1">{formatNumber(d.updated + d.failed)}/{formatNumber(d.totalDevices)} {t("devicesShortLabel")}</div>
+        </div>
+        <DetailRow label={t("updatedLabel")} value={formatNumber(d.updated)} />
+        <DetailRow label={t("failedLabel")} value={formatNumber(d.failed)} />
+        <DetailRow label={t("inFlightLabel")} value={formatNumber(d.inFlight)} />
+        <DetailRow label={t("pendingLabel")} value={formatNumber(d.pending)} />
+        {d.cancelled > 0 && <DetailRow label={t("otaStatusCancelled")} value={formatNumber(d.cancelled)} />}
+        {d.scheduledAt && <DetailRow label={t("scheduleAtLabel")} value={`${fmtDateL(d.scheduledAt)} ${formatTime(d.scheduledAt)}`} />}
+        <DetailRow label={t("startedAt")} value={d.startedAt ? fmtDateL(d.startedAt) : "—"} />
+        {d.completedAt && <DetailRow label={t("completedAt")} value={fmtDateL(d.completedAt)} />}
+        <DetailRow label={t("createdByCol")} value={d.createdByName || "—"} />
+        <div>
+          <div className="text-xs text-muted-foreground mb-1">{t("logsLabel")}</div>
+          <div className="rounded-md border bg-muted/30 p-3 space-y-1 max-h-72 overflow-y-auto">
+            {isLoading && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
+            {(events ?? []).map((e) => (
+              <div key={e.id} className="text-xs flex gap-2">
+                <span className="text-muted-foreground shrink-0">{formatTime(e.createdAt)}</span>
+                <span className="break-words min-w-0">{eventText(e)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
 // ---------- Deployments Tab ----------
-const DeploymentsTab = ({ deployments, setDeployments, onView }: {
-  deployments: Deployment[];
-  setDeployments: (d: Deployment[]) => void;
-  onView: (d: Deployment) => void;
+const DeploymentsTab = ({ deployments, isLoading, isRefreshing, onRefresh, onView }: {
+  deployments: OtaDeployment[];
+  isLoading: boolean;
+  isRefreshing: boolean;
+  onRefresh: () => void;
+  onView: (d: OtaDeployment) => void;
 }) => {
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, formatNumber } = useLanguage();
   const statusBadge = useStatusBadge();
   const fmtRel = useFmtRel();
+  const { label: typeLabel } = useDeviceTypeLabel();
+  const run = useRun();
+  const { deploymentAction } = useOtaActions();
   const [search, setSearch] = useState("");
   const [statusF, setStatusF] = useState("all");
   const [typeF, setTypeF] = useState("all");
   const [sort, setSort] = useState("newest");
   const [page, setPage] = useState(1);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const onRefresh = () => { setIsRefreshing(true); setTimeout(() => setIsRefreshing(false), 600); };
   const perPage = 5;
 
   const filtered = useMemo(() => {
     let list = deployments.filter(d =>
-      (d.name.toLowerCase().includes(search.toLowerCase())) &&
-      (statusF === "all" || d.status === statusF)
+      d.name.toLowerCase().includes(search.toLowerCase()) &&
+      (statusF === "all" || d.status === statusF) &&
+      (typeF === "all" || d.deviceType === typeF)
     );
     list = [...list].sort((a, b) => {
       switch (sort) {
-        case "oldest": return new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime();
+        case "oldest": return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         case "nameAsc": return a.name.localeCompare(b.name);
         case "status": return a.status.localeCompare(b.status);
-        default: return new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime();
+        default: return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
     });
     return list;
-  }, [deployments, search, statusF, sort]);
+  }, [deployments, search, statusF, typeF, sort]);
 
   const totalPages = Math.ceil(filtered.length / perPage) || 1;
   const paged = filtered.slice((page - 1) * perPage, page * perPage);
 
-  const updateStatus = (id: string, status: DeploymentStatus) => {
-    setDeployments(deployments.map(d => d.id === id ? { ...d, status, completedAt: status === "Completed" ? new Date().toISOString() : d.completedAt } : d));
-  };
-  const retryFailed = (id: string) => {
-    setDeployments(deployments.map(d => {
-      if (d.id !== id) return d;
-      const newUpdated = d.updated + d.failed;
-      return { ...d, updated: newUpdated, failed: 0, pending: d.targetDevices - newUpdated, status: newUpdated >= d.targetDevices ? "Completed" : "In Progress", logs: [...d.logs, { ts: new Date().toISOString(), msg: "Retried failed devices" }] };
-    }));
-  };
+  const act = (d: OtaDeployment, action: "approve" | "pause" | "resume" | "cancel" | "retry-failed") =>
+    run(() => deploymentAction.mutateAsync({ id: d.id, action }), () => t("deploymentUpdatedToast"));
 
-  const handleExport = () => {
-    const header = ["name", "version", "targetDevices", "updated", "failed", "pending", "status", "startedAt"];
-    const rows = filtered.map(d => [d.name, d.version, d.targetDevices, d.updated, d.failed, d.pending, d.status, d.startedAt]);
-    const csv = [header.join(","), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `ota-deployments-${Date.now()}.csv`; a.click();
-    URL.revokeObjectURL(url);
-  };
+  const handleExport = () => downloadCsv(
+    "ota-deployments",
+    ["name", "version", "targetDevices", "updated", "failed", "pending", "status", "startedAt", "completedAt"],
+    filtered.map(d => [d.name, d.firmwareVersion, d.totalDevices, d.updated, d.failed, d.pending, d.status, d.startedAt, d.completedAt]),
+  );
   const actions: ActionItem[] = [
     { key: "export", label: t("exportListAction"), icon: Download, onSelect: handleExport },
   ];
+  const statuses: OtaDeploymentStatus[] = ["AWAITING_APPROVAL", "SCHEDULED", "IN_PROGRESS", "PAUSED", "COMPLETED", "FAILED", "CANCELLED"];
+  const types = Array.from(new Set(deployments.map(d => d.deviceType)));
 
   return (
     <Card>
@@ -897,12 +843,9 @@ const DeploymentsTab = ({ deployments, setDeployments, onView }: {
           filter={{ fields: [
             { key: "status", label: t("status"), value: statusF, onChange: (v) => { setStatusF(v); setPage(1); }, options: [
               { value: "all", label: t("all") },
-              { value: "In Progress", label: t("otaStatusInProgress") },
-              { value: "Completed", label: t("otaStatusCompleted") },
-              { value: "Failed", label: t("otaStatusFailed") },
-              { value: "Paused", label: t("otaStatusPaused") },
+              ...statuses.map(s => ({ value: s, label: t(STATUS_KEY[s] as any) })),
             ] },
-            { key: "type", label: t("targetTypeFilter"), value: typeF, onChange: setTypeF, options: [{ value: "all", label: t("all") }, ...DEV_TYPES.map(d => ({ value: d, label: d }))] },
+            { key: "type", label: t("targetTypeFilter"), value: typeF, onChange: (v) => { setTypeF(v); setPage(1); }, options: [{ value: "all", label: t("all") }, ...types.map(d => ({ value: d, label: typeLabel(d) }))] },
           ], activeCount: [statusF, typeF].filter(v => v !== "all").length, onClear: () => { setStatusF("all"); setTypeF("all"); setPage(1); } }}
           sort={{ options: [
             { key: "newest", label: t("sortNewest") }, { key: "oldest", label: t("sortOldest") }, { key: "nameAsc", label: t("sortNameAsc") }, { key: "status", label: t("status") },
@@ -910,11 +853,11 @@ const DeploymentsTab = ({ deployments, setDeployments, onView }: {
           actions={actions}
         />
 
-        {paged.length === 0 ? (
+        {isLoading ? <ListLoading /> : paged.length === 0 ? (
           deployments.length === 0 ? <NoData size="lg" />
             : <div className="text-center py-12 text-muted-foreground text-sm">{t("noDeploymentsFound")}</div>
         ) : (
-          <div dir={isRTL ? "rtl" : "ltr"} className="rounded-lg border overflow-hidden text-xs [&_th]:text-xs [&_td]:text-xs [&_th]:h-10 [&_td]:p-3">
+          <div dir={isRTL ? "rtl" : "ltr"} className="rounded-lg border overflow-x-auto text-xs [&_th]:text-xs [&_td]:text-xs [&_th]:h-10 [&_td]:p-3">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
@@ -929,53 +872,51 @@ const DeploymentsTab = ({ deployments, setDeployments, onView }: {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paged.map((d) => {
-                  const pct = Math.round((d.updated / Math.max(d.targetDevices, 1)) * 100);
-                  return (
-                    <TableRow key={d.id} className="hover:bg-muted/30">
-                      <TableCell className="font-medium">{d.name}</TableCell>
-                      <TableCell>{d.version}</TableCell>
-                      <TableCell>{d.targetDevices}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Progress value={pct} className="flex-1" />
-                          <span className="text-xs w-9 text-end">{pct}%</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{statusBadge(d.status)}</TableCell>
-                      <TableCell>{fmtRel(d.startedAt)}</TableCell>
-                      <TableCell>{d.completedAt ? fmtRel(d.completedAt) : "—"}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => onView(d)}>
-                            <Eye className="h-3.5 w-3.5" /> {t("viewBtn")}
-                          </Button>
-                          <DropdownMenu modal={false}>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-44 z-[100]">
-                              <DropdownMenuItem onClick={() => onView(d)}><Eye className="h-4 w-4 me-2" />{t("viewDetailsAction")}</DropdownMenuItem>
-                              {d.status === "In Progress" && <DropdownMenuItem onClick={() => updateStatus(d.id, "Paused")}><Pause className="h-4 w-4 me-2" />{t("pauseAction")}</DropdownMenuItem>}
-                              {d.status === "Paused" && <DropdownMenuItem onClick={() => updateStatus(d.id, "In Progress")}><Play className="h-4 w-4 me-2" />{t("resumeAction")}</DropdownMenuItem>}
-                              {d.failed > 0 && <DropdownMenuItem onClick={() => retryFailed(d.id)}><RotateCw className="h-4 w-4 me-2" />{t("retryFailedAction")}</DropdownMenuItem>}
-                              {(d.status === "In Progress" || d.status === "Paused") && (
-                                <>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => updateStatus(d.id, "Failed")}>
-                                    <X className="h-4 w-4 me-2" />{t("cancelAction")}
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {paged.map((d) => (
+                  <TableRow key={d.id} className="hover:bg-muted/30">
+                    <TableCell className="font-medium">{d.name}</TableCell>
+                    <TableCell dir="ltr">{d.firmwareVersion}</TableCell>
+                    <TableCell>{formatNumber(d.totalDevices)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Progress value={d.progressPct} className="flex-1" />
+                        <span className="text-xs w-9 text-end">{formatNumber(d.progressPct)}%</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{statusBadge(d.status)}</TableCell>
+                    <TableCell>{d.startedAt ? fmtRel(d.startedAt) : "—"}</TableCell>
+                    <TableCell>{d.completedAt ? fmtRel(d.completedAt) : "—"}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => onView(d)}>
+                          <Eye className="h-3.5 w-3.5" /> {t("viewBtn")}
+                        </Button>
+                        <DropdownMenu modal={false}>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44 z-[100]">
+                            <DropdownMenuItem onClick={() => onView(d)}><Eye className="h-4 w-4 me-2" />{t("viewDetailsAction")}</DropdownMenuItem>
+                            {d.status === "AWAITING_APPROVAL" && <DropdownMenuItem onClick={() => act(d, "approve")}><Check className="h-4 w-4 me-2" />{t("approveAction")}</DropdownMenuItem>}
+                            {d.status === "IN_PROGRESS" && <DropdownMenuItem onClick={() => act(d, "pause")}><Pause className="h-4 w-4 me-2" />{t("pauseAction")}</DropdownMenuItem>}
+                            {d.status === "PAUSED" && <DropdownMenuItem onClick={() => act(d, "resume")}><Play className="h-4 w-4 me-2" />{t("resumeAction")}</DropdownMenuItem>}
+                            {d.failed > 0 && d.status !== "CANCELLED" && d.firmwareId && <DropdownMenuItem onClick={() => act(d, "retry-failed")}><RotateCw className="h-4 w-4 me-2" />{t("retryFailedAction")}</DropdownMenuItem>}
+                            {isLive(d.status) && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => act(d, "cancel")}>
+                                  <X className="h-4 w-4 me-2" />{t("cancelAction")}
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -988,62 +929,63 @@ const DeploymentsTab = ({ deployments, setDeployments, onView }: {
 };
 
 // ---------- Devices Tab ----------
-const DevicesTab = ({ devices, setDevices }: { devices: OtaDevice[]; setDevices: (d: OtaDevice[]) => void; }) => {
-  const deviceLocations = useMemo(
-    () => Array.from(new Set(devices.map(d => d.location).filter(Boolean))).sort(),
-    [devices],
-  );
+const DevicesTab = () => {
   const { t, isRTL } = useLanguage();
-  const { toast } = useToast();
   const statusBadge = useStatusBadge();
   const fmtRel = useFmtRel();
-  const targetTypeLabel = useTargetTypeLabel();
+  const { label: typeLabel } = useDeviceTypeLabel();
+  const { pathOf } = useLocationPath();
+  const run = useRun();
+  const { updateDevice, retryDevice } = useOtaActions();
+  const devicesQuery = useOtaDevices();
+  const devices = devicesQuery.data ?? [];
+  const [logsFor, setLogsFor] = useState<OtaDevice | null>(null);
   const [search, setSearch] = useState("");
   const [statusF, setStatusF] = useState("all");
   const [typeF, setTypeF] = useState("all");
   const [locF, setLocF] = useState("all");
   const [sort, setSort] = useState("newest");
   const [page, setPage] = useState(1);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const onRefresh = () => { setIsRefreshing(true); setTimeout(() => setIsRefreshing(false), 600); };
   const perPage = 8;
 
+  const rows = useMemo(() => devices.map(d => ({ ...d, location: pathOf(d.assetId) })), [devices, pathOf]);
+  const deviceLocations = useMemo(
+    () => Array.from(new Set(rows.map(d => d.location).filter(Boolean))).sort(),
+    [rows],
+  );
+  const deviceTypes = useMemo(() => Array.from(new Set(rows.map(d => d.deviceType))), [rows]);
+
   const filtered = useMemo(() => {
-    let list = devices.filter(d =>
-      (d.name.toLowerCase().includes(search.toLowerCase()) || d.id.toLowerCase().includes(search.toLowerCase())) &&
+    const q = search.toLowerCase();
+    let list = rows.filter(d =>
+      (d.name.toLowerCase().includes(q) || d.id.toLowerCase().includes(q)) &&
       (statusF === "all" || d.status === statusF) &&
-      (typeF === "all" || d.type === typeF) &&
+      (typeF === "all" || d.deviceType === typeF) &&
       (locF === "all" || d.location === locF)
     );
+    const time = (iso?: string | null) => (iso ? new Date(iso).getTime() : 0);
     list = [...list].sort((a, b) => {
       switch (sort) {
-        case "oldest": return new Date(a.lastUpdated).getTime() - new Date(b.lastUpdated).getTime();
+        case "oldest": return time(a.lastUpdated) - time(b.lastUpdated);
         case "nameAsc": return a.name.localeCompare(b.name);
         case "status": return a.status.localeCompare(b.status);
-        default: return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime();
+        default: return time(b.lastUpdated) - time(a.lastUpdated);
       }
     });
     return list;
-  }, [devices, search, statusF, typeF, locF, sort]);
+  }, [rows, search, statusF, typeF, locF, sort]);
   const totalPages = Math.ceil(filtered.length / perPage) || 1;
   const paged = filtered.slice((page - 1) * perPage, page * perPage);
 
-  const setStatus = (id: string, status: DeviceOtaStatus) => {
-    setDevices(devices.map(d => d.id === id ? { ...d, status, lastUpdated: new Date().toISOString(), currentFw: status === "Up to date" ? d.targetFw : d.currentFw } : d));
-  };
-
-  const handleExport = () => {
-    const header = ["name", "location", "type", "currentFw", "targetFw", "status", "lastUpdated"];
-    const rows = filtered.map(d => [d.name, d.location, d.type, d.currentFw, d.targetFw, d.status, d.lastUpdated]);
-    const csv = [header.join(","), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `ota-devices-${Date.now()}.csv`; a.click();
-    URL.revokeObjectURL(url);
-  };
+  const handleExport = () => downloadCsv(
+    "ota-devices",
+    ["name", "location", "type", "currentFw", "targetFw", "status", "lastUpdated"],
+    filtered.map(d => [d.name, d.location, d.deviceType, d.currentVersion, d.targetVersion, d.status, d.lastUpdated]),
+  );
   const actions: ActionItem[] = [
     { key: "export", label: t("exportListAction"), icon: Download, onSelect: handleExport },
   ];
+  const statuses: OtaDeviceStatus[] = ["UP_TO_DATE", "UPDATE_AVAILABLE", "UPDATING", "FAILED", "PENDING", "UNKNOWN"];
 
   return (
     <Card>
@@ -1052,18 +994,14 @@ const DevicesTab = ({ devices, setDevices }: { devices: OtaDevice[]; setDevices:
         <ListToolbar
           search={{ value: search, onChange: (v) => { setSearch(v); setPage(1); }, placeholder: t("searchDevicesPlaceholder") }}
           view={{ value: "table", onChange: () => {}, available: ["table"] }}
-          onRefresh={onRefresh}
-          isRefreshing={isRefreshing}
+          onRefresh={() => devicesQuery.refetch()}
+          isRefreshing={devicesQuery.isFetching}
           filter={{ fields: [
             { key: "status", label: t("otaStatus"), value: statusF, onChange: (v) => { setStatusF(v); setPage(1); }, options: [
               { value: "all", label: t("all") },
-              { value: "Up to date", label: t("otaStatusUpToDate") },
-              { value: "Update available", label: t("otaStatusUpdateAvailable") },
-              { value: "Updating", label: t("otaStatusUpdating") },
-              { value: "Failed", label: t("otaStatusFailed") },
-              { value: "Pending", label: t("otaStatusPending") },
+              ...statuses.map(s => ({ value: s, label: t(STATUS_KEY[s] as any) })),
             ] },
-            { key: "type", label: t("deviceTypeFilter"), value: typeF, onChange: (v) => { setTypeF(v); setPage(1); }, options: [{ value: "all", label: t("all") }, ...DEV_TYPES.map(d => ({ value: d, label: targetTypeLabel(d) }))] },
+            { key: "type", label: t("deviceTypeFilter"), value: typeF, onChange: (v) => { setTypeF(v); setPage(1); }, options: [{ value: "all", label: t("all") }, ...deviceTypes.map(d => ({ value: d, label: typeLabel(d) }))] },
             { key: "loc", label: t("location"), value: locF, onChange: (v) => { setLocF(v); setPage(1); }, options: [{ value: "all", label: t("all") }, ...deviceLocations.map(l => ({ value: l, label: l }))] },
           ], activeCount: [statusF, typeF, locF].filter(v => v !== "all").length, onClear: () => { setStatusF("all"); setTypeF("all"); setLocF("all"); setPage(1); } }}
           sort={{ options: [
@@ -1072,11 +1010,11 @@ const DevicesTab = ({ devices, setDevices }: { devices: OtaDevice[]; setDevices:
           actions={actions}
         />
 
-        {paged.length === 0 ? (
+        {devicesQuery.isLoading ? <ListLoading /> : paged.length === 0 ? (
           devices.length === 0 ? <NoData size="lg" />
-            : <div className="text-center py-12 text-muted-foreground text-sm">{t("noDevicesFound") || t("noDevicesYet") || "No devices found"}</div>
+            : <div className="text-center py-12 text-muted-foreground text-sm">{t("noDevicesFound") || t("noDevicesYet")}</div>
         ) : (
-          <div dir={isRTL ? "rtl" : "ltr"} className="rounded-lg border overflow-hidden text-xs [&_th]:text-xs [&_td]:text-xs [&_th]:h-10 [&_td]:p-3">
+          <div dir={isRTL ? "rtl" : "ltr"} className="rounded-lg border overflow-x-auto text-xs [&_th]:text-xs [&_td]:text-xs [&_th]:h-10 [&_td]:p-3">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
@@ -1097,12 +1035,15 @@ const DevicesTab = ({ devices, setDevices }: { devices: OtaDevice[]; setDevices:
                         <span className="h-7 w-7 rounded-md bg-primary/10 text-primary inline-flex items-center justify-center">
                           <Smartphone className="h-4 w-4" />
                         </span>
-                        {d.name}
+                        <div className="min-w-0">
+                          <div>{d.name}</div>
+                          <div className="text-[11px] text-muted-foreground font-normal">{typeLabel(d.deviceType)}</div>
+                        </div>
                       </div>
                     </TableCell>
-                    <TableCell><LocationCell path={d.location} /></TableCell>
-                    <TableCell>{d.currentFw}</TableCell>
-                    <TableCell>{d.targetFw}</TableCell>
+                    <TableCell>{d.location ? <LocationCell path={d.location} /> : "—"}</TableCell>
+                    <TableCell dir="ltr">{d.currentVersion || "—"}</TableCell>
+                    <TableCell dir="ltr">{d.targetVersion || "—"}</TableCell>
                     <TableCell>{statusBadge(d.status)}</TableCell>
                     <TableCell>{fmtRel(d.lastUpdated)}</TableCell>
                     <TableCell>
@@ -1114,17 +1055,17 @@ const DevicesTab = ({ devices, setDevices }: { devices: OtaDevice[]; setDevices:
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-44 z-[100]">
-                            {(d.status === "Update available" || d.status === "Pending") && (
-                              <DropdownMenuItem onClick={() => { setStatus(d.id, "Updating"); toast({ title: t("updateStartedToast"), description: d.name }); setTimeout(() => setStatus(d.id, "Up to date"), 1500); }}>
+                            {d.status === "UPDATE_AVAILABLE" && (
+                              <DropdownMenuItem onClick={() => run(() => updateDevice.mutateAsync({ id: d.id }), () => t("updateStartedToast"))}>
                                 <RefreshCw className="h-4 w-4 me-2" />{t("updateDeviceAction")}
                               </DropdownMenuItem>
                             )}
-                            {d.status === "Failed" && (
-                              <DropdownMenuItem onClick={() => { setStatus(d.id, "Updating"); setTimeout(() => setStatus(d.id, "Up to date"), 1500); }}>
+                            {d.status === "FAILED" && (
+                              <DropdownMenuItem onClick={() => run(() => retryDevice.mutateAsync(d.id), () => t("updateStartedToast"))}>
                                 <RotateCw className="h-4 w-4 me-2" />{t("retryUpdateAction")}
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem onClick={() => toast({ title: t("logsLabel"), description: t("logsToastDesc").replace("{name}", d.name) })}>
+                            <DropdownMenuItem onClick={() => setLogsFor(d)}>
                               <FileText className="h-4 w-4 me-2" />{t("viewLogsAction")}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -1140,40 +1081,124 @@ const DevicesTab = ({ devices, setDevices }: { devices: OtaDevice[]; setDevices:
 
         <PaginationFooter total={filtered.length} page={page} perPage={perPage} totalPages={totalPages} onChange={setPage} />
       </CardContent>
+
+      <Sheet open={!!logsFor} onOpenChange={(o) => !o && setLogsFor(null)}>
+        <SheetContent side={isRTL ? "left" : "right"} className="w-full sm:max-w-md overflow-y-auto">
+          {logsFor && <DeviceHistory device={logsFor} />}
+        </SheetContent>
+      </Sheet>
     </Card>
   );
 };
 
+const DeviceHistory = ({ device }: { device: OtaDevice }) => {
+  const { t } = useLanguage();
+  const statusBadge = useStatusBadge();
+  const fmtDateL = useFmtDate();
+  const eventText = useEventText();
+  const { data, isLoading } = useOtaDeviceHistory(device.id);
+  return (
+    <>
+      <SheetHeader>
+        <SheetTitle>{device.name}</SheetTitle>
+        <SheetDescription>{t("deviceHistoryTitle")}</SheetDescription>
+      </SheetHeader>
+      <div className="space-y-3 mt-6 text-sm">
+        <DetailRow label={t("otaStatus")} value={statusBadge(device.status)} />
+        <DetailRow label={t("currentVersionLabel")} value={<span dir="ltr">{device.currentVersion || "—"}</span>} />
+        <DetailRow label={t("targetFirmware")} value={<span dir="ltr">{device.targetVersion || "—"}</span>} />
+        {device.lastError && (
+          <div>
+            <div className="text-xs text-muted-foreground mb-1">{t("lastErrorLabel")}</div>
+            <div className="rounded-md border border-red-500/30 bg-red-500/5 p-3 text-xs break-words">{device.lastError}</div>
+          </div>
+        )}
+        <div className="space-y-2 pt-2">
+          {isLoading && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
+          {!isLoading && (data ?? []).length === 0 && <div className="text-xs text-muted-foreground">{t("noHistoryYet")}</div>}
+          {(data ?? []).map((e) => (
+            <div key={e.id} className="border-b border-border/60 pb-2">
+              <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span dir="ltr">{e.firmwareName} {e.firmwareVersion}</span>
+                <span>{fmtDateL(e.createdAt)} {formatTime(e.createdAt)}</span>
+              </div>
+              <div className="text-xs mt-0.5 break-words">{eventText(e)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+};
+
 // ---------- Settings Tab ----------
-const SettingsTab = ({ settings, setSettings }: { settings: OtaSettings; setSettings: (s: OtaSettings) => void; }) => {
+const timeZones = (): string[] => {
+  const supported = (Intl as unknown as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf;
+  const zones = supported ? supported("timeZone") : [];
+  return zones.includes("UTC") ? zones : ["UTC", ...zones];
+};
+const browserTimeZone = () => {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch { return "UTC"; }
+};
+
+const SettingsTab = () => {
   const { t, isRTL } = useLanguage();
-  const { toast } = useToast();
-  const [local, setLocal] = useState(settings);
-  useEffect(() => setLocal(settings), [settings]);
+  const run = useRun();
+  const { saveSettings } = useOtaActions();
+  const { data: settings, isLoading } = useOtaSettings();
+  const [local, setLocal] = useState<OtaSettings | null>(null);
+  const zones = useMemo(timeZones, []);
+  useEffect(() => {
+    if (!settings) return;
+    // A product that never set a window gets this browser's zone, for the first save.
+    const unset = !settings.maintenanceStart && settings.timeZone === "UTC";
+    setLocal({ ...settings, timeZone: unset ? browserTimeZone() : settings.timeZone });
+  }, [settings]);
+
+  if (isLoading || !local) return <ListLoading />;
   const update = <K extends keyof OtaSettings>(k: K, v: OtaSettings[K]) => setLocal({ ...local, [k]: v });
 
   return (
     <div dir={isRTL ? "rtl" : "ltr"} className="max-w-3xl space-y-4 me-auto">
       <Card>
         <CardHeader className="py-3 px-4 border-b"><CardTitle className="text-sm font-semibold">{t("defaultOtaPolicy")}</CardTitle></CardHeader>
-        <CardContent className="p-4 space-y-2.5">
-          <ToggleRow label={t("allowAutoUpdate")} value={local.allowAuto} onChange={(v) => update("allowAuto", v)} />
-          <ToggleRow label={t("requireManualApproval")} value={local.requireApproval} onChange={(v) => update("requireApproval", v)} />
+        <CardContent className="p-4 space-y-3">
+          <ToggleRow label={t("allowAutoUpdate")} description={t("allowAutoUpdateDesc")} value={local.allowAuto} onChange={(v) => update("allowAuto", v)} />
+          <ToggleRow label={t("requireManualApproval")} description={t("requireManualApprovalDesc")} value={local.requireApproval} onChange={(v) => update("requireApproval", v)} />
         </CardContent>
       </Card>
       <Card>
         <CardHeader className="py-3 px-4 border-b"><CardTitle className="text-sm font-semibold">{t("updateSafety")}</CardTitle></CardHeader>
         <CardContent className="p-4 space-y-3">
           <ToggleRow label={t("retryFailedUpdates")} value={local.retryFailed} onChange={(v) => update("retryFailed", v)} />
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">{t("maxRetryCount")}</Label>
-              <Input className="h-8" type="number" min={0} max={10} value={local.maxRetry} onChange={(e) => update("maxRetry", Number(e.target.value))} />
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">{t("maxRetryCount")}</Label>
+            <Input className="h-8 max-w-[160px]" type="number" min={0} max={10} disabled={!local.retryFailed} value={local.maxRetry}
+              onChange={(e) => update("maxRetry", Math.max(0, Math.min(10, Number(e.target.value) || 0)))} />
+            <p className="text-xs text-muted-foreground">{t("maxRetryDesc")}</p>
+          </div>
+          <div className="space-y-1.5 pt-1">
+            <Label className="text-xs text-muted-foreground">{t("maintenanceWindowLabel")}</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label className="text-[11px] text-muted-foreground">{t("maintenanceStartLabel")}</Label>
+                <Input className="h-8" type="time" dir="ltr" value={local.maintenanceStart ?? ""} onChange={(e) => update("maintenanceStart", e.target.value || null)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] text-muted-foreground">{t("maintenanceEndLabel")}</Label>
+                <Input className="h-8" type="time" dir="ltr" value={local.maintenanceEnd ?? ""} onChange={(e) => update("maintenanceEnd", e.target.value || null)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] text-muted-foreground">{t("timeZoneLabel")}</Label>
+                <Select value={local.timeZone} onValueChange={(v) => update("timeZone", v)}>
+                  <SelectTrigger className="h-8" dir="ltr"><SelectValue /></SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {(zones.includes(local.timeZone) ? zones : [local.timeZone, ...zones]).map(z => <SelectItem key={z} value={z}>{z}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">{t("maintenanceWindowLabel")}</Label>
-              <Input className="h-8" dir="ltr" value={local.maintenanceWindow} onChange={(e) => update("maintenanceWindow", e.target.value)} placeholder="02:00 - 04:00" />
-            </div>
+            <p className="text-xs text-muted-foreground">{t("maintenanceWindowDesc")}</p>
           </div>
         </CardContent>
       </Card>
@@ -1185,203 +1210,154 @@ const SettingsTab = ({ settings, setSettings }: { settings: OtaSettings; setSett
         </CardContent>
       </Card>
       <div className="flex justify-end">
-        <Button size="sm" onClick={() => { setSettings(local); toast({ title: t("settingsSaved") }); }}>{t("saveSettingsBtn")}</Button>
+        <Button size="sm" disabled={saveSettings.isPending}
+          onClick={() => run(() => saveSettings.mutateAsync(local), () => t("settingsSaved"))}>
+          {t("saveSettingsBtn")}
+        </Button>
       </div>
     </div>
   );
 };
 
-const ToggleRow = ({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) => (
-  <div className="flex items-center justify-between">
-    <Label className="text-sm">{label}</Label>
+const ToggleRow = ({ label, description, value, onChange }: { label: string; description?: string; value: boolean; onChange: (v: boolean) => void }) => (
+  <div className="flex items-center justify-between gap-4">
+    <div>
+      <Label className="text-sm">{label}</Label>
+      {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
+    </div>
     <Switch checked={value} onCheckedChange={onChange} />
   </div>
 );
 
-// ---------- Create / Edit Update Panel ----------
-const CreateUpdatePanel = ({ open, editing, onClose, onSave }: {
-  open: boolean;
-  editing: FirmwareUpdate | null;
-  onClose: () => void;
-  onSave: (payload: Partial<FirmwareUpdate>) => void;
-}) => {
-  const { isRTL, t } = useLanguage();
-  const { toast } = useToast();
-  const [name, setName] = useState("");
-  const [version, setVersion] = useState("");
-  const [targetKind, setTargetKind] = useState<"Device" | "Gateway">("Device");
-  const [targetType, setTargetType] = useState<TargetType>("Temperature Sensors");
-  const [releaseNotes, setReleaseNotes] = useState("");
-  const [checksum, setChecksum] = useState("");
-  const [isDefault, setIsDefault] = useState(false);
-  const [fileMeta, setFileMeta] = useState<{ name: string; size: number } | null>(null);
-
-  useEffect(() => {
-    if (editing) {
-      setName(editing.name); setVersion(editing.version); setTargetKind(editing.targetKind);
-      setTargetType(editing.targetType); setReleaseNotes(editing.releaseNotes || ""); setChecksum(editing.checksum || "");
-      setIsDefault(!!editing.isDefault); setFileMeta(editing.fileName ? { name: editing.fileName, size: editing.fileSize || 0 } : null);
-    } else if (open) {
-      setName(""); setVersion(""); setTargetKind("Device"); setTargetType("Temperature Sensors");
-      setReleaseNotes(""); setChecksum(""); setIsDefault(false); setFileMeta(null);
-    }
-  }, [editing, open]);
-
-  const onFile = (f: File | undefined) => {
-    if (!f) return;
-    const ok = /\.(bin|hex|zip)$/i.test(f.name);
-    if (!ok) { toast({ title: t("unsupportedFileType"), description: t("unsupportedFileTypeDesc"), variant: "destructive" }); return; }
-    setFileMeta({ name: f.name, size: f.size });
-  };
-
-  const handleSubmit = () => {
-    if (!name.trim() || !version.trim() || !targetType || !fileMeta) {
-      toast({ title: t("fillAllRequiredFields"), variant: "destructive" }); return;
-    }
-    onSave({
-      name: name.trim(), version: version.trim(), targetKind, targetType,
-      fileName: fileMeta.name, fileSize: fileMeta.size,
-      releaseNotes: releaseNotes.trim() || undefined,
-      checksum: checksum.trim() || undefined, isDefault,
-    });
-  };
-
-  return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent side={isRTL ? "left" : "right"} className="w-full sm:max-w-md overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>{editing ? t("editUpdate") : t("createNewUpdate")}</SheetTitle>
-          <SheetDescription>{t("createUpdateDescription")}</SheetDescription>
-        </SheetHeader>
-        <div className="space-y-4 mt-6">
-          <div className="space-y-1.5">
-            <Label className="text-xs">{t("updateNameRequired")}</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("firmwareNamePlaceholder")} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">{t("versionRequired")}</Label>
-              <Input value={version} onChange={(e) => setVersion(e.target.value)} placeholder="v2.1.0" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">{t("targetRequired")}</Label>
-              <Select value={targetKind} onValueChange={(v) => setTargetKind(v as any)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="Device">{t("deviceKind")}</SelectItem><SelectItem value="Gateway">{t("gatewayKind")}</SelectItem></SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">{t("deviceProfileRequired")}</Label>
-            <Select value={targetType} onValueChange={(v) => setTargetType(v as TargetType)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{DEV_TYPES.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">{t("firmwareFileLabel")}</Label>
-            <label className="border-2 border-dashed rounded-lg p-5 text-center hover:bg-accent/50 cursor-pointer transition-colors block">
-              <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-              {fileMeta ? (
-                <div className="text-sm">
-                  <div className="font-medium truncate">{fileMeta.name}</div>
-                  <div className="text-xs text-muted-foreground">{fmtBytes(fileMeta.size)} · {t("fileReady")}</div>
-                </div>
-              ) : (
-                <>
-                  <div className="text-sm font-medium">{t("chooseFirmwareFile")}</div>
-                  <div className="text-xs text-muted-foreground mt-1">{t("firmwareFileExts")}</div>
-                </>
-              )}
-              <input type="file" accept=".bin,.hex,.zip" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
-            </label>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">{t("releaseNotes")}</Label>
-            <Textarea rows={3} value={releaseNotes} onChange={(e) => setReleaseNotes(e.target.value)} placeholder={t("releaseNotesPlaceholder")} />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">{t("checksum")}</Label>
-            <Input value={checksum} onChange={(e) => setChecksum(e.target.value)} placeholder={t("checksumPlaceholder")} />
-          </div>
-          <div className="flex items-center justify-between">
-            <Label className="text-sm">{t("markAsDefaultLabel")}</Label>
-            <Switch checked={isDefault} onCheckedChange={setIsDefault} />
-          </div>
-          <div className="flex gap-2 pt-2">
-            <Button variant="outline" className="flex-1" onClick={onClose}>{t("cancel")}</Button>
-            <Button className="flex-1" onClick={handleSubmit}>{editing ? t("save") : t("createBtn")}</Button>
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
+// ---------- Start Deployment Panel ----------
+/* datetime-local wants local "YYYY-MM-DDTHH:mm". */
+const toLocalInput = (d: Date) => {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-// ---------- Start Deployment Panel ----------
-const StartDeploymentPanel = ({ open, update, devices, onClose, onStart }: {
+const StartDeploymentPanel = ({ open, firmware, onClose }: {
   open: boolean;
-  update: FirmwareUpdate | null;
-  devices: OtaDevice[];
+  firmware: OtaFirmware | null;
   onClose: () => void;
-  onStart: (payload: { deviceCount: number; scheduleLater: boolean }) => void;
 }) => {
-  const { isRTL, t } = useLanguage();
-  const [targetGroup, setTargetGroup] = useState<"all" | "selected" | "location">("all");
-  const deployLocations = useMemo(
-    () => Array.from(new Set(devices.map(d => d.location).filter(Boolean))).sort(),
-    [devices],
-  );
+  const { isRTL, t, formatNumber } = useLanguage();
+  const run = useRun();
+  const { createDeployment } = useOtaActions();
+  const { pathOf, options: locations } = useLocationPath();
+  const [targetGroup, setTargetGroup] = useState<OtaTargetGroup>("ALL");
   const [locationSel, setLocationSel] = useState("");
+  const [picked, setPicked] = useState<string[]>([]);
+  const [deviceSearch, setDeviceSearch] = useState("");
   const [scheduleLater, setScheduleLater] = useState(false);
-  const [rolloutMode, setRolloutMode] = useState<"all" | "batch">("all");
+  const [scheduleAt, setScheduleAt] = useState("");
+  const [rolloutMode, setRolloutMode] = useState<OtaRolloutMode>("ALL");
   const [batchSize, setBatchSize] = useState(50);
   const [failureThreshold, setFailureThreshold] = useState(10);
 
-  useEffect(() => { if (open) { setTargetGroup("all"); setLocationSel(deployLocations[0] ?? ""); setScheduleLater(false); setRolloutMode("all"); setBatchSize(50); setFailureThreshold(10); } }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    setTargetGroup("ALL"); setLocationSel(""); setPicked([]); setDeviceSearch("");
+    setScheduleLater(false); setScheduleAt(toLocalInput(new Date(Date.now() + 3600_000)));
+    setRolloutMode("ALL"); setBatchSize(50); setFailureThreshold(10);
+  }, [open]);
 
-  if (!update) return null;
-  const eligibleDevices = devices.filter(d => d.type === update.targetType);
-  /* Count what is actually eligible. This used to floor each branch at an
-     invented number (50 / 10 / 25), so an empty fleet still promised devices. */
-  const deviceCount = targetGroup === "location"
-    ? eligibleDevices.filter(d => d.location === locationSel).length
-    : eligibleDevices.length;
+  // Every device the firmware can go to: the picker's list and the ALL count.
+  const eligible = useOtaDeploymentPreview(open && firmware ? { firmwareId: firmware.id, targetGroup: "ALL" } : null);
+  const atLocation = useOtaDeploymentPreview(
+    open && firmware && targetGroup === "LOCATION" && locationSel
+      ? { firmwareId: firmware.id, targetGroup: "LOCATION", assetId: locationSel }
+      : null,
+  );
+
+  if (!firmware) return null;
+  const eligibleDevices = eligible.data ?? [];
+  const deviceCount = targetGroup === "ALL" ? eligibleDevices.length
+    : targetGroup === "LOCATION" ? (locationSel ? atLocation.data?.length ?? 0 : 0)
+    : picked.length;
+  const shownDevices = eligibleDevices.filter(d => d.name.toLowerCase().includes(deviceSearch.toLowerCase()));
+  const scheduleValid = !scheduleLater || (!!scheduleAt && new Date(scheduleAt).getTime() > Date.now());
+  const canStart = deviceCount > 0 && scheduleValid && !createDeployment.isPending
+    && (rolloutMode === "ALL" || (batchSize >= 1 && failureThreshold >= 0 && failureThreshold <= 100));
+
+  const start = async () => {
+    const result = await run(
+      () => createDeployment.mutateAsync({
+        firmwareId: firmware.id,
+        targetGroup,
+        assetId: targetGroup === "LOCATION" ? locationSel : null,
+        deviceIds: targetGroup === "DEVICES" ? picked : undefined,
+        rolloutMode,
+        batchSize: rolloutMode === "BATCH" ? batchSize : null,
+        failureThresholdPct: rolloutMode === "BATCH" ? failureThreshold : null,
+        scheduledAt: scheduleLater ? new Date(scheduleAt).toISOString() : null,
+      }),
+      (d) => d.status === "AWAITING_APPROVAL" ? t("deploymentAwaitingApprovalToast")
+        : d.status === "SCHEDULED" ? t("deploymentScheduledToast")
+        : t("deploymentStartedToast"),
+    );
+    if (result) onClose();
+  };
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent side={isRTL ? "left" : "right"} className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{t("startDeploymentAction")}</SheetTitle>
-          <SheetDescription>{update.name} {update.version}</SheetDescription>
+          <SheetDescription>{firmware.name} {firmware.version}</SheetDescription>
         </SheetHeader>
         <div className="space-y-4 mt-6">
           <div className="space-y-1.5">
             <Label className="text-xs">{t("updatePackageLabel")}</Label>
-            <Input value={`${update.name} ${update.version}`} disabled />
+            <Input value={`${firmware.name} ${firmware.version}`} disabled />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">{t("targetGroupRequired")}</Label>
-            <Select value={targetGroup} onValueChange={(v) => setTargetGroup(v as any)}>
+            <Select value={targetGroup} onValueChange={(v) => setTargetGroup(v as OtaTargetGroup)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{t("allDevicesOfType")}</SelectItem>
-                <SelectItem value="selected">{t("selectedDevicesLabel")}</SelectItem>
-                <SelectItem value="location">{t("selectedLocationLabel")}</SelectItem>
+                <SelectItem value="ALL">{t("allDevicesOfType")}</SelectItem>
+                <SelectItem value="DEVICES">{t("selectedDevicesLabel")}</SelectItem>
+                <SelectItem value="LOCATION">{t("selectedLocationLabel")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          {targetGroup === "location" && (
+          {targetGroup === "LOCATION" && (
             <div className="space-y-1.5">
               <Label className="text-xs">{t("location")}</Label>
               <Select value={locationSel} onValueChange={setLocationSel}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{deployLocations.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                <SelectTrigger><SelectValue placeholder={t("location")} /></SelectTrigger>
+                <SelectContent>{locations.map(l => <SelectItem key={l.id} value={l.id}>{l.path}</SelectItem>)}</SelectContent>
               </Select>
             </div>
           )}
+          {targetGroup === "DEVICES" && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">{t("pickDevicesLabel")}</Label>
+                <span className="text-xs text-muted-foreground">{t("devicesPickedCount").replace("{n}", formatNumber(picked.length))}</span>
+              </div>
+              <Input className="h-8" value={deviceSearch} onChange={(e) => setDeviceSearch(e.target.value)} placeholder={t("searchDevicesPlaceholder")} />
+              <div className="rounded-md border max-h-56 overflow-y-auto divide-y">
+                {eligible.isLoading && <div className="p-3"><RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" /></div>}
+                {!eligible.isLoading && eligibleDevices.length === 0 && <div className="p-3 text-xs text-muted-foreground">{t("noEligibleDevices")}</div>}
+                {shownDevices.map(d => (
+                  <label key={d.id} className="flex items-center gap-2 p-2 text-sm cursor-pointer hover:bg-muted/40">
+                    <Checkbox
+                      checked={picked.includes(d.id)}
+                      onCheckedChange={(c) => setPicked(c ? [...picked, d.id] : picked.filter(id => id !== d.id))}
+                    />
+                    <span className="flex-1 min-w-0">
+                      <span className="block truncate">{d.name}</span>
+                      {d.assetId && <span className="block text-[11px] text-muted-foreground truncate">{pathOf(d.assetId)}</span>}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="rounded-md border bg-muted/30 p-3 text-sm">
-            {t("targetDevicesLabel")}: <span className="font-semibold">{deviceCount}</span>
+            {t("targetDevicesLabel")}: <span className="font-semibold">{formatNumber(deviceCount)}</span>
           </div>
           <div className="space-y-2">
             <Label className="text-xs">{t("scheduleLabel")}</Label>
@@ -1389,15 +1365,21 @@ const StartDeploymentPanel = ({ open, update, devices, onClose, onStart }: {
               <Button variant={!scheduleLater ? "default" : "outline"} size="sm" className="flex-1" onClick={() => setScheduleLater(false)}>{t("startNowBtn")}</Button>
               <Button variant={scheduleLater ? "default" : "outline"} size="sm" className="flex-1" onClick={() => setScheduleLater(true)}>{t("scheduleBtn")}</Button>
             </div>
+            {scheduleLater && (
+              <div className="space-y-1">
+                <Label className="text-[11px] text-muted-foreground">{t("scheduleAtLabel")}</Label>
+                <Input type="datetime-local" dir="ltr" value={scheduleAt} min={toLocalInput(new Date())} onChange={(e) => setScheduleAt(e.target.value)} />
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label className="text-xs">{t("rolloutModeLabel")}</Label>
             <div className="flex gap-2">
-              <Button variant={rolloutMode === "all" ? "default" : "outline"} size="sm" className="flex-1" onClick={() => setRolloutMode("all")}>{t("allAtOnceBtn")}</Button>
-              <Button variant={rolloutMode === "batch" ? "default" : "outline"} size="sm" className="flex-1" onClick={() => setRolloutMode("batch")}>{t("batchRolloutBtn")}</Button>
+              <Button variant={rolloutMode === "ALL" ? "default" : "outline"} size="sm" className="flex-1" onClick={() => setRolloutMode("ALL")}>{t("allAtOnceBtn")}</Button>
+              <Button variant={rolloutMode === "BATCH" ? "default" : "outline"} size="sm" className="flex-1" onClick={() => setRolloutMode("BATCH")}>{t("batchRolloutBtn")}</Button>
             </div>
           </div>
-          {rolloutMode === "batch" && (
+          {rolloutMode === "BATCH" && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">{t("batchSizeLabel")}</Label>
@@ -1411,7 +1393,7 @@ const StartDeploymentPanel = ({ open, update, devices, onClose, onStart }: {
           )}
           <div className="flex gap-2 pt-2">
             <Button variant="outline" className="flex-1" onClick={onClose}>{t("cancel")}</Button>
-            <Button className="flex-1" onClick={() => onStart({ deviceCount, scheduleLater })}>
+            <Button className="flex-1" disabled={!canStart} onClick={start}>
               <Rocket className="h-4 w-4 me-2" /> {t("startBtn")}
             </Button>
           </div>

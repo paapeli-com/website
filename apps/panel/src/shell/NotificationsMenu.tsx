@@ -82,6 +82,8 @@ const WORK_ORDER_HEADLINE: Record<NotificationResponse["type"], string> = {
   WORK_ORDER_STATUS_CHANGED: "Work order status changed",
   WORK_ORDER_RAISED: "A work order was raised from an alarm",
   ALARM_ESCALATED: "An alarm was escalated to you",
+  OTA_DEPLOYMENT_COMPLETED: "A firmware update finished",
+  OTA_DEPLOYMENT_FAILED: "A firmware update failed",
 };
 
 const STATUS_PHRASE: Record<string, string> = {
@@ -101,6 +103,10 @@ const workOrderPath = (productKey: string, workOrderId?: string | null) =>
     ? `${solutionPath("SmartFactory")}/work-orders/${workOrderId}`
     : undefined;
 
+/* Firmware rollouts, too, live only in Smart Factory. */
+const deploymentsPath = (productKey: string) =>
+  productKey === productKeyFor("SmartFactory") ? `${solutionPath("SmartFactory")}/firmware?tab=deployments` : undefined;
+
 /* Alarms, too, have their page only in Smart Factory. */
 const alarmsPath = (productKey: string) =>
   productKey === productKeyFor("SmartFactory") ? `${solutionPath("SmartFactory")}/alarms` : undefined;
@@ -115,17 +121,20 @@ const fromServer = (
     ? (n.detail && STATUS_PHRASE[n.detail] ? t(STATUS_PHRASE[n.detail]) : "")
     : n.detail ?? "";
   const escalated = n.type === "ALARM_ESCALATED";
+  const firmware = n.type === "OTA_DEPLOYMENT_COMPLETED" || n.type === "OTA_DEPLOYMENT_FAILED";
   return {
     id: n.id,
-    category: escalated ? "alarm" : "workOrder",
-    tone: priorityTone(n.priority),
+    category: escalated ? "alarm" : firmware ? "system" : "workOrder",
+    tone: n.type === "OTA_DEPLOYMENT_FAILED" ? "warning" : priorityTone(n.priority),
     title: t(WORK_ORDER_HEADLINE[n.type] ?? "Work Orders"),
     source: detail ? `${n.title} · ${detail}` : n.title,
     time: timeAgo(n.createdAt, lang),
     at: new Date(n.createdAt).getTime() || 0,
     unread: !n.read,
     productKey: n.productKey,
-    path: escalated ? alarmsPath(n.productKey) : workOrderPath(n.productKey, n.workOrderId),
+    path: escalated ? alarmsPath(n.productKey)
+      : firmware ? deploymentsPath(n.productKey)
+      : workOrderPath(n.productKey, n.workOrderId),
   };
 };
 

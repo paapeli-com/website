@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useGetProductDeviceTypesQuery, type OtaTargetKind } from "@paapeli/api";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useToast } from "@/features/factory/hooks/use-toast";
 import { Button } from "@/features/factory/components/ui/button";
@@ -23,53 +24,15 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
-import { Upload, Package } from "lucide-react";
+import { Upload, Package, Lock } from "lucide-react";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
+import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { useOtaActions, useOtaFirmwareOne } from "@/features/factory/hooks/useOta";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 
-type TargetType =
-  | "Temperature Sensors"
-  | "Pressure Sensors"
-  | "Vibration Sensors"
-  | "Flow Meters"
-  | "Gateways"
-  | "Energy Meters";
-
-interface FirmwareUpdate {
-  id: string;
-  name: string;
-  version: string;
-  targetKind: "Device" | "Gateway";
-  targetType: TargetType;
-  devices: number;
-  status: "Active" | "Completed" | "Failed" | "Draft";
-  createdBy: string;
-  createdAt: string;
-  isDefault?: boolean;
-  fileName?: string;
-  fileSize?: number;
-  checksum?: string;
-  releaseNotes?: string;
-}
-
-const LS_UPDATES = "paapeli.ota.updates";
-
-const TARGET_TYPE_KEYS: Record<TargetType, string> = {
-  "Temperature Sensors": "tempSensors",
-  "Pressure Sensors": "pressureSensors",
-  "Vibration Sensors": "vibrationSensors",
-  "Flow Meters": "flowMeters",
-  "Energy Meters": "energyMeters",
-  "Gateways": "gateways",
-};
-
-const DEV_TYPES: TargetType[] = [
-  "Temperature Sensors",
-  "Pressure Sensors",
-  "Vibration Sensors",
-  "Flow Meters",
-  "Energy Meters",
-  "Gateways",
-];
+/* Uploads a firmware to the gateway, which makes its file a ThingsBoard OTA
+   package for the device type's profile. /firmware/new?from={id} starts from
+   another firmware's details: a duplicate needs its own version and file. */
 
 const fmtBytes = (n: number) => {
   if (!n) return "0 B";
@@ -77,6 +40,9 @@ const fmtBytes = (n: number) => {
   const i = Math.min(units.length - 1, Math.floor(Math.log(n) / Math.log(1024)));
   return `${(n / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
 };
+
+/** The gateway and ThingsBoard refuse larger files. */
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
 
 const StepBadge = ({ n }: { n: number }) => (
   <span className="h-6 w-6 rounded-full border-2 border-primary text-primary text-xs font-semibold flex items-center justify-center shrink-0">
@@ -130,36 +96,46 @@ const FirmwareForm = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { id } = useParams<{ id?: string }>();
+  const [searchParams] = useSearchParams();
+  const copyFrom = searchParams.get("from") ?? undefined;
   const isEdit = !!id;
   const lp = (p: string) => localizedPath(p, language);
+  const { createFirmware, updateFirmware } = useOtaActions();
+  const source = useOtaFirmwareOne(id ?? copyFrom);
+  const { data: deviceTypes } = useGetProductDeviceTypesQuery(PRODUCT_KEY);
 
   const [name, setName] = useState("");
   const [version, setVersion] = useState("");
-  const [targetKind, setTargetKind] = useState<"Device" | "Gateway">("Device");
-  const [targetType, setTargetType] = useState<TargetType>("Temperature Sensors");
+  const [targetKind, setTargetKind] = useState<OtaTargetKind>("DEVICE");
+  const [deviceType, setDeviceType] = useState("");
   const [releaseNotes, setReleaseNotes] = useState("");
   const [checksum, setChecksum] = useState("");
   const [isDefault, setIsDefault] = useState(false);
-  const [fileMeta, setFileMeta] = useState<{ name: string; size: number } | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const isLoading = createFirmware.isPending || updateFirmware.isPending;
 
   useEffect(() => {
-    if (!isEdit) return;
-    try {
-      const list: FirmwareUpdate[] = JSON.parse(localStorage.getItem(LS_UPDATES) || "[]");
-      const u = list.find(x => x.id === id);
-      if (u) {
-        setName(u.name);
-        setVersion(u.version);
-        setTargetKind(u.targetKind);
-        setTargetType(u.targetType);
-        setReleaseNotes(u.releaseNotes || "");
-        setChecksum(u.checksum || "");
-        setIsDefault(!!u.isDefault);
-        if (u.fileName) setFileMeta({ name: u.fileName, size: u.fileSize || 0 });
-      }
-    } catch {}
-  }, [id, isEdit]);
+    const u = source.data;
+    if (!u || loaded) return;
+    setName(isEdit ? u.name : `${u.name} ${t("copySuffix")}`);
+    setVersion(isEdit ? u.version : "");
+    setTargetKind(u.targetKind);
+    setDeviceType(u.deviceType);
+    setReleaseNotes(u.releaseNotes || "");
+    setIsDefault(isEdit ? u.isDefault : false);
+    setLoaded(true);
+  }, [source.data, loaded, isEdit, t]);
+
+  // A new firmware starts on the product's first enabled type.
+  const enabledTypes = (deviceTypes ?? []).filter((d) => d.enabled || d.deviceType === deviceType);
+  useEffect(() => {
+    if (!deviceType && !id && !copyFrom && enabledTypes.length > 0) setDeviceType(enabledTypes[0].deviceType);
+  }, [deviceType, id, copyFrom, enabledTypes]);
+
+  /* Once a rollout used it, its file, version and type are fixed. */
+  const locked = isEdit && source.data ? !source.data.fileReplaceable : false;
+  const existingFile = isEdit && source.data ? { name: source.data.fileName, size: source.data.fileSize } : null;
 
   const onFile = (f: File | undefined) => {
     if (!f) return;
@@ -167,57 +143,42 @@ const FirmwareForm = () => {
       toast({ title: t("unsupportedFileType"), description: t("useExt"), variant: "destructive" });
       return;
     }
-    setFileMeta({ name: f.name, size: f.size });
+    if (f.size > MAX_FILE_BYTES) {
+      toast({ title: t("unsupportedFileType"), description: "≤ 50 MB", variant: "destructive" });
+      return;
+    }
+    setFile(f);
   };
 
-  const handleSubmit = () => {
-    if (!name.trim() || !version.trim() || !targetType || !fileMeta) {
+  const handleSubmit = async () => {
+    if (!name.trim() || !version.trim() || !deviceType || (!isEdit && !file)) {
       toast({ title: t("fillAllRequiredFields"), variant: "destructive" });
       return;
     }
-    setIsLoading(true);
+    const request = {
+      name: name.trim(),
+      version: version.trim(),
+      deviceType,
+      targetKind,
+      releaseNotes: releaseNotes.trim() || null,
+      checksum: checksum.trim() || null,
+      isDefault,
+    };
     try {
-      const list: FirmwareUpdate[] = JSON.parse(localStorage.getItem(LS_UPDATES) || "[]");
-      if (isEdit) {
-        const next = list.map(u => u.id === id ? {
-          ...u,
-          name: name.trim(),
-          version: version.trim(),
-          targetKind,
-          targetType,
-          fileName: fileMeta.name,
-          fileSize: fileMeta.size,
-          releaseNotes: releaseNotes.trim() || undefined,
-          checksum: checksum.trim() || undefined,
-          isDefault,
-        } : u);
-        localStorage.setItem(LS_UPDATES, JSON.stringify(next));
+      if (isEdit && id) {
+        await updateFirmware.mutateAsync({ id, request, file });
         toast({ title: t("updateSavedToast") });
       } else {
-        const created: FirmwareUpdate = {
-          id: `fw-${Date.now()}`,
-          name: name.trim(),
-          version: version.trim(),
-          targetKind,
-          targetType,
-          devices: 0,
-          status: "Draft",
-          createdBy: "You",
-          createdAt: new Date().toISOString(),
-          fileName: fileMeta.name,
-          fileSize: fileMeta.size,
-          releaseNotes: releaseNotes.trim() || undefined,
-          checksum: checksum.trim() || undefined,
-          isDefault,
-        };
-        localStorage.setItem(LS_UPDATES, JSON.stringify([created, ...list]));
+        const created = await createFirmware.mutateAsync({ request, file: file! });
         toast({ title: t("updateCreatedToast"), description: `${created.name} ${created.version}` });
       }
       navigate(lp("/firmware"));
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      toast({ title: apiErrorMessage(error, t("otaActionFailed")), variant: "destructive" });
     }
   };
+
+  const shownFile = file ? { name: file.name, size: file.size } : existingFile;
 
   return (
     <>
@@ -246,6 +207,16 @@ const FirmwareForm = () => {
         </div>
       </div>
 
+      {locked && (
+        <div className="mb-4 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+          <Lock className="h-4 w-4 mt-0.5 shrink-0" />
+          <span>{t("firmwareLockedNote")}</span>
+        </div>
+      )}
+      {!isEdit && deviceTypes && enabledTypes.length === 0 && (
+        <div className="mb-4 rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">{t("noDeviceTypesYet")}</div>
+      )}
+
       <div className="space-y-4">
         <SectionCard step={1} title={t("basicInformation")}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -268,6 +239,8 @@ const FirmwareForm = () => {
                 onChange={(e) => setVersion(e.target.value)}
                 placeholder={t("versionPlaceholder")}
                 className="h-11"
+                dir="ltr"
+                disabled={locked}
               />
             </div>
           </div>
@@ -277,21 +250,21 @@ const FirmwareForm = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <FieldLabel required>{t("targetKind")}</FieldLabel>
-              <Select value={targetKind} onValueChange={(v) => setTargetKind(v as "Device" | "Gateway")}>
+              <Select value={targetKind} onValueChange={(v) => setTargetKind(v as OtaTargetKind)}>
                 <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Device">{t("device")}</SelectItem>
-                  <SelectItem value="Gateway">{t("gateway")}</SelectItem>
+                  <SelectItem value="DEVICE">{t("device")}</SelectItem>
+                  <SelectItem value="GATEWAY">{t("gateway")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <FieldLabel required>{t("deviceProfileOrType")}</FieldLabel>
-              <Select value={targetType} onValueChange={(v) => setTargetType(v as TargetType)}>
-                <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+              <FieldLabel required>{t("deviceTypeRequired")}</FieldLabel>
+              <Select value={deviceType} onValueChange={setDeviceType} disabled={locked}>
+                <SelectTrigger className="h-11"><SelectValue placeholder={t("deviceTypeRequired")} /></SelectTrigger>
                 <SelectContent>
-                  {DEV_TYPES.map(d => (
-                    <SelectItem key={d} value={d}>{t(TARGET_TYPE_KEYS[d] as any)}</SelectItem>
+                  {enabledTypes.map(d => (
+                    <SelectItem key={d.deviceType} value={d.deviceType}>{d.label || d.deviceType}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -308,14 +281,14 @@ const FirmwareForm = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <SectionCard step={3} title={t("firmwareFile")}>
-            <FieldLabel required>{t("firmwareFileWithExt")}</FieldLabel>
-            <label className="border-2 border-dashed rounded-lg p-8 text-center hover:bg-accent/50 cursor-pointer transition-colors block">
+            <FieldLabel required={!isEdit}>{t("firmwareFileWithExt")}</FieldLabel>
+            <label className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors block ${locked ? "opacity-60 cursor-not-allowed" : "hover:bg-accent/50 cursor-pointer"}`}>
               <Upload className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
-              {fileMeta ? (
+              {shownFile ? (
                 <div>
-                  <div className="text-sm font-medium truncate">{fileMeta.name}</div>
-                  <div className="text-xs text-muted-foreground mt-1">{fmtBytes(fileMeta.size)} · {t("readyLabel")}</div>
-                  <div className="text-xs text-primary mt-2">{t("clickChooseDifferent")}</div>
+                  <div className="text-sm font-medium truncate">{shownFile.name}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{fmtBytes(shownFile.size)} · {t("readyLabel")}</div>
+                  {!locked && <div className="text-xs text-primary mt-2">{t("clickChooseDifferent")}</div>}
                 </div>
               ) : (
                 <>
@@ -323,8 +296,9 @@ const FirmwareForm = () => {
                   <div className="text-xs text-muted-foreground mt-1">{t("acceptedFormats")}</div>
                 </>
               )}
-              <input type="file" accept=".bin,.hex,.zip" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
+              <input type="file" accept=".bin,.hex,.zip" className="hidden" disabled={locked} onChange={(e) => onFile(e.target.files?.[0])} />
             </label>
+            {isEdit && !locked && <p className="text-xs text-muted-foreground mt-2">{t("fileOptionalOnEdit")}</p>}
           </SectionCard>
 
           <SectionCard step={4} title={t("metadata")} optionalLabel={t("optionalLabel")}>
@@ -337,7 +311,12 @@ const FirmwareForm = () => {
                   onChange={(e) => setChecksum(e.target.value)}
                   placeholder={t("checksumPh")}
                   className="h-11"
+                  dir="ltr"
+                  disabled={locked || (isEdit && !file)}
                 />
+                {isEdit && source.data && !file && (
+                  <p className="text-xs text-muted-foreground mt-1 break-all" dir="ltr">SHA-256: {source.data.checksum}</p>
+                )}
               </div>
               <div>
                 <FieldLabel htmlFor="fw-notes">{t("releaseNotes")}</FieldLabel>
