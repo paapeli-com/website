@@ -1,7 +1,7 @@
 import { UniformPage } from "@/features/factory/components/UniformPage";
-import { sampleDataEnabled } from "@/features/factory/data/sampleData";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import type { AiFailureForecast, AiForecastStatus } from "@paapeli/api";
 import { LocationCell } from "@/features/factory/components/panel/LocationCell";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { NoData, NoDataValue } from "@/features/factory/components/NoData";
@@ -26,7 +26,6 @@ import {
   MoreHorizontal,
   Download,
   AlertTriangle,
-  Archive,
   Check,
   Search,
   CheckCircle2,
@@ -37,116 +36,122 @@ import {
   WorkOrderSheet,
   type WorkOrderSource,
 } from "@/features/factory/components/anomalies/WorkOrderSheet";
-import {
-  FORECAST_ASSETS,
-  RISK_BADGE,
-  ROW_BORDER,
-  type ForecastAsset,
-  type ForecastRisk,
-} from "@/features/factory/data/forecastAssets";
-import {
-  useForecastStore,
-  FORECAST_STATUS_BADGE,
-  type ForecastStatus,
-} from "@/features/factory/hooks/useForecastStore";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
+import { formatDateTime } from "@/shared/lib/formatDate";
+import { apiErrorMessage } from "@/shared/lib/apiError";
+import { useAiActions, useAiForecasts } from "@/features/factory/hooks/useAi";
+import { useAiText } from "@/features/factory/i18n/aiText";
+import { AiStatusBar } from "@/features/factory/components/ai/AiStatusBar";
+import {
+  FORECAST_STATUS_KEY,
+  RISK_BADGE,
+  RISK_RANK,
+  ROW_BORDER,
+  STATUS_BADGE,
+  optionsOf,
+  useLocationPath,
+  type Risk,
+} from "@/features/factory/components/ai/aiShared";
 
-interface Recommendation {
-  asset: string;
+/** A forecast as the list shows it. */
+interface Row {
+  forecast: AiFailureForecast;
+  name: string;
   devId: string;
-  action: string;
-  priority: ForecastRisk;
-  impact: string;
+  type: string;
   location: string;
+  health: number;
+  risk: Risk;
+  date: string;
+  rulDays: number | null;
+  cause: string;
+  actions: string[];
 }
-
-/* Six hand-written maintenance actions ("Reduce failure risk by 45%") against
-   named assets, presented as model output. Empty until something computes them. */
-// Sample data: see data/sampleData.ts.
-const SAMPLE_RECOMMENDATIONS: Recommendation[] = [
-  { asset: "Pump P101", devId: "DEV-101", action: "Inspect bearing — abnormal vibration signature detected", priority: "Critical", impact: "Reduce failure risk by 45%", location: "Factory A > Sulfonation > Line 1" },
-  { asset: "Boiler Pump BP-2", devId: "DEV-810", action: "Check suction pressure to prevent cavitation damage", priority: "Critical", impact: "Avoid 12h unplanned downtime", location: "Factory A > Boiler > Line 1" },
-  { asset: "Compressor C3", devId: "DEV-205", action: "Lubricate shaft and re-balance rotor", priority: "High", impact: "Reduce vibration by 25%", location: "Factory A > Sulfonation > Line 2" },
-  { asset: "Motor M12", devId: "DEV-322", action: "Schedule cooling system inspection", priority: "High", impact: "Stabilize operating temperature", location: "Factory B > Processing > Line 1" },
-  { asset: "Heat Exchanger HX-7", devId: "DEV-705", action: "Plan chemical cleaning cycle for fouled tubes", priority: "High", impact: "Restore 8% efficiency", location: "Factory B > Processing > Line 2" },
-  { asset: "Furnace Fan F2", devId: "DEV-411", action: "Inspect electrical supply for current spikes", priority: "Medium", impact: "Prevent winding damage", location: "Factory A > Furnace > Line 3" },
-];
-const RECOMMENDATIONS: Recommendation[] = sampleDataEnabled() ? SAMPLE_RECOMMENDATIONS : [];
-
-const toSource = (r: ForecastAsset): WorkOrderSource => ({
-  id: r.devId,
-  asset: r.id,
-  devId: r.devId,
-  location: r.location,
-  severity: r.risk,
-  suggestedActions: r.recommendedActions,
-  fallbackAction: `Inspect ${r.cause.toLowerCase()}`,
-  kind: "forecast",
-});
 
 const AIoTForecastFailures = () => {
   const navigate = useNavigate();
   const { language, t, formatNumber } = useLanguage();
   const { toast } = useToast();
-  const { getStatus, setStatus } = useForecastStore();
   const tt = t as (k: string) => string;
+  const ai = useAiText();
   const lp = (p: string) => localizedPath(p, language);
+  const pathOf = useLocationPath();
+  const forecasts = useAiForecasts();
+  const { setForecastStatus } = useAiActions();
 
-  const riskLabel = (r: ForecastRisk): string => {
-    const map: Record<ForecastRisk, string> = {
-      Critical: tt("riskCriticalShort"),
-      High: tt("riskHighShort"),
-      Medium: tt("riskMediumShort"),
-      Low: tt("riskLowShort"),
-    };
-    return map[r] || r;
-  };
+  const riskLabel = (r: Risk): string =>
+    ({ Critical: tt("riskCriticalShort"), High: tt("riskHighShort"), Medium: tt("riskMediumShort"), Low: tt("riskLowShort") })[r] || r;
+  const statusLabel = (s: AiForecastStatus) => tt(FORECAST_STATUS_KEY[s]);
 
-  const ROWS = FORECAST_ASSETS;
+  const ROWS: Row[] = useMemo(
+    () =>
+      (forecasts.data ?? []).map((f) => ({
+        forecast: f,
+        name: f.deviceName,
+        devId: f.deviceId,
+        type: f.deviceType,
+        location: pathOf(f.assetId),
+        health: f.health,
+        risk: f.risk,
+        date: f.predictedFailureAt ? formatDateTime(f.predictedFailureAt, language) : ai.tr("noFailureWithin90"),
+        rulDays: f.rulDays ?? null,
+        cause: `${f.causeKey} · ${ai.category(f.causeCategory)}`,
+        actions: f.actions.map(ai.action),
+      })),
+    [forecasts.data, pathOf, language, ai],
+  );
 
   const [tab, setTab] = useState("overview");
-  const [riskFilter, setRiskFilter] = useState<ForecastRisk | "all">("all");
+  const [riskFilter, setRiskFilter] = useState<Risk | "all">("all");
   const [search, setSearch] = useState("");
   const [locFilter, setLocFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [timeWindow, setTimeWindow] = useState("30d");
+  const [timeWindow, setTimeWindow] = useState("all");
   const [sortKey, setSortKey] = useState("highestRisk");
   const [listView, setListView] = useState<"table" | "grid" | "compact" | "board">("table");
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [woSource, setWoSource] = useState<WorkOrderSource | null>(null);
-  const [statusFilter, setStatusFilter] = useState<ForecastStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<AiForecastStatus | "all">("all");
 
-  const handleRefresh = () => { setIsRefreshing(true); setTimeout(() => setIsRefreshing(false), 500); };
+  const toSource = (r: Row): WorkOrderSource => ({
+    id: r.devId,
+    asset: r.name,
+    devId: r.devId,
+    location: r.location,
+    severity: r.risk,
+    suggestedActions: r.actions,
+    fallbackAction: ai.action("INSPECT_ASSET"),
+    kind: "forecast",
+    deviceId: r.devId,
+    assetId: r.forecast.assetId,
+  });
 
-  const statusLabel = (s: ForecastStatus) =>
-    ({ Open: tt("fcStatusOpen"), Acknowledged: tt("fcStatusAcknowledged"), Investigating: tt("fcStatusInvestigating"), Resolved: tt("fcStatusResolved"), Dismissed: tt("fcStatusDismissed") } as Record<ForecastStatus, string>)[s];
-
-  const updateStatus = (devId: string, next: ForecastStatus, label?: string) => {
-    setStatus(devId, next);
-    toast({ title: label ?? statusLabel(next), description: devId });
+  const updateStatus = (ids: string[], next: AiForecastStatus, label?: string) => {
+    Promise.all(ids.map((deviceId) => setForecastStatus.mutateAsync({ deviceId, status: next })))
+      .then(() => toast({ title: label ?? statusLabel(next), description: ids.length === 1 ? ROWS.find((r) => r.devId === ids[0])?.name : formatNumber(ids.length) }))
+      .catch((e) => toast({ title: statusLabel(next), description: apiErrorMessage(e, statusLabel(next)), variant: "destructive" }));
   };
 
-
   const filtered = useMemo(() => {
-    const rank: Record<string, number> = { Critical: 4, High: 3, Medium: 2, Low: 1 };
+    const windowDays = timeWindow === "all" ? null : parseInt(timeWindow, 10);
     return ROWS.filter((r) => {
       if (riskFilter !== "all" && r.risk !== riskFilter) return false;
-      if (locFilter !== "all" && !r.location.toLowerCase().includes(locFilter)) return false;
-      if (typeFilter !== "all" && r.type.toLowerCase() !== typeFilter) return false;
-      if (statusFilter !== "all" && getStatus(r.devId) !== statusFilter) return false;
-      if (search && !`${r.id} ${r.devId} ${r.location} ${r.cause}`.toLowerCase().includes(search.toLowerCase())) return false;
+      if (locFilter !== "all" && r.location !== locFilter) return false;
+      if (typeFilter !== "all" && r.type !== typeFilter) return false;
+      if (statusFilter !== "all" && r.forecast.status !== statusFilter) return false;
+      if (windowDays !== null && (r.rulDays === null || r.rulDays > windowDays)) return false;
+      if (search && !`${r.name} ${r.type} ${r.location} ${r.cause}`.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     }).sort((a, b) => {
       switch (sortKey) {
         case "lowestHealth": return a.health - b.health;
-        case "shortestRUL": return a.rulDays - b.rulDays;
+        case "shortestRUL": return (a.rulDays ?? Infinity) - (b.rulDays ?? Infinity);
         case "highestRisk":
-        default: return (rank[b.risk] || 0) - (rank[a.risk] || 0);
+        default: return RISK_RANK[b.risk] - RISK_RANK[a.risk] || a.health - b.health;
       }
     });
-  }, [ROWS, riskFilter, locFilter, typeFilter, statusFilter, search, sortKey, getStatus]);
+  }, [ROWS, riskFilter, locFilter, typeFilter, statusFilter, search, sortKey, timeWindow]);
 
   const counts = useMemo(() => ({
     critical: ROWS.filter((r) => r.risk === "Critical").length,
@@ -155,19 +160,33 @@ const AIoTForecastFailures = () => {
     low: ROWS.filter((r) => r.risk === "Low").length,
   }), [ROWS]);
 
+  /* What to do first: each at-risk device's top recommendation, worst first. */
+  const recommendations = useMemo(
+    () =>
+      ROWS.filter((r) => (r.risk === "Critical" || r.risk === "High") && r.forecast.status !== "DISMISSED" && r.forecast.status !== "RESOLVED")
+        .sort((a, b) => RISK_RANK[b.risk] - RISK_RANK[a.risk] || a.health - b.health)
+        .map((r) => ({
+          row: r,
+          action: r.actions[0] ?? ai.action("INSPECT_ASSET"),
+          impact: `${tt("failureProbability")} (${ai.tr("probabilityWithin", { days: formatNumber(30) })}): ${formatNumber(r.forecast.probability30d)}%`,
+        })),
+    [ROWS, ai, tt, formatNumber],
+  );
+
   const toggleAll = () => {
     if (selected.size === filtered.length) setSelected(new Set());
     else setSelected(new Set(filtered.map((r) => r.devId)));
   };
 
-  const openAsset = (r: ForecastAsset) => {
-    navigate(lp(`/aiot/forecast-failures/${r.devId}`));
-  };
+  const openAsset = (r: Row) => navigate(lp(`/aiot/forecast-failures/${r.devId}`));
 
-  const goAssetsTabFiltered = (r: ForecastRisk | "all") => {
+  const goAssetsTabFiltered = (r: Risk | "all") => {
     setRiskFilter(r);
     setTab("assets");
   };
+
+  const locations = optionsOf(ROWS.map((r) => r.location));
+  const types = optionsOf(ROWS.map((r) => r.type));
 
   // ---------- Overview Tab ----------
   const Overview = (
@@ -175,12 +194,11 @@ const AIoTForecastFailures = () => {
       <KpiSection storageKey="aiot-forecast">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {([
-          { key: "Critical" as ForecastRisk, label: tt("riskCritical"), value: counts.critical, icon: AlertTriangle, accent: "text-red-500", bg: "from-red-50 to-transparent dark:from-red-500/10" },
-          { key: "High" as ForecastRisk, label: tt("riskHigh"), value: counts.high, icon: AlertTriangle, accent: "text-orange-500", bg: "from-orange-50 to-transparent dark:from-orange-500/10" },
-          { key: "Medium" as ForecastRisk, label: tt("riskMedium"), value: counts.medium, icon: AlertTriangle, accent: "text-yellow-500", bg: "from-yellow-50 to-transparent dark:from-yellow-500/10" },
-          { key: "Low" as ForecastRisk, label: tt("riskLow"), value: counts.low, icon: AlertTriangle, accent: "text-blue-500", bg: "from-blue-50 to-transparent dark:from-blue-500/10" },
+          { key: "Critical" as Risk, label: tt("riskCritical"), value: counts.critical, accent: "text-red-500", bg: "from-red-50 to-transparent dark:from-red-500/10" },
+          { key: "High" as Risk, label: tt("riskHigh"), value: counts.high, accent: "text-orange-500", bg: "from-orange-50 to-transparent dark:from-orange-500/10" },
+          { key: "Medium" as Risk, label: tt("riskMedium"), value: counts.medium, accent: "text-yellow-500", bg: "from-yellow-50 to-transparent dark:from-yellow-500/10" },
+          { key: "Low" as Risk, label: tt("riskLow"), value: counts.low, accent: "text-blue-500", bg: "from-blue-50 to-transparent dark:from-blue-500/10" },
         ]).map((k) => {
-          const Icon = k.icon;
           const isActive = riskFilter === k.key && tab === "assets";
           return (
             <button
@@ -190,7 +208,7 @@ const AIoTForecastFailures = () => {
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-medium text-muted-foreground truncate">{k.label}</span>
-                <Icon className={`h-3.5 w-3.5 shrink-0 ${k.accent}`} />
+                <AlertTriangle className={`h-3.5 w-3.5 shrink-0 ${k.accent}`} />
               </div>
               <div className="mt-1 flex items-baseline gap-2">
                 <span className="text-xl font-bold text-foreground leading-none">
@@ -204,7 +222,6 @@ const AIoTForecastFailures = () => {
       </div>
       </KpiSection>
 
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2">
           <CardContent className="p-4">
@@ -217,7 +234,10 @@ const AIoTForecastFailures = () => {
             </div>
             <div className="divide-y border rounded-md">
               {ROWS.length === 0 && <NoData size="sm" />}
-              {ROWS.filter((r) => r.risk === "Critical" || r.risk === "High").slice(0, 5).map((r) => (
+              {ROWS.filter((r) => r.risk === "Critical" || r.risk === "High")
+                .sort((a, b) => RISK_RANK[b.risk] - RISK_RANK[a.risk] || a.health - b.health)
+                .slice(0, 5)
+                .map((r) => (
                 <button
                   key={r.devId}
                   onClick={() => openAsset(r)}
@@ -225,14 +245,14 @@ const AIoTForecastFailures = () => {
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm truncate">{r.id}</span>
+                      <span className="font-medium text-sm truncate">{r.name}</span>
                       <Badge className={`${RISK_BADGE[r.risk]} text-[10px]`}>{riskLabel(r.risk)}</Badge>
                     </div>
-                    <div className="text-xs text-muted-foreground truncate">{r.devId} · {r.type} · {r.location}</div>
+                    <div className="text-xs text-muted-foreground truncate">{r.type} · {r.location || "—"}</div>
                   </div>
                   <div className="text-end shrink-0">
                     <div className="text-xs text-muted-foreground">{tt("rul")}</div>
-                    <div className="text-sm font-semibold">{formatNumber(r.rulDays)}{tt("daysShort")}</div>
+                    <div className="text-sm font-semibold">{r.rulDays === null ? "—" : `${formatNumber(Math.round(r.rulDays))}${tt("daysShort")}`}</div>
                   </div>
                   <div className="w-20 shrink-0">
                     <Progress value={r.health} className="h-1.5" />
@@ -254,15 +274,15 @@ const AIoTForecastFailures = () => {
               <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setTab("recommendations")}>{tt("viewAll")}</Button>
             </div>
             <div className="space-y-2">
-              {RECOMMENDATIONS.length === 0 && <NoData size="sm" />}
-              {RECOMMENDATIONS.slice(0, 4).map((r, i) => (
-                <div key={i} className="border rounded-md p-2.5">
+              {recommendations.length === 0 && <NoData size="sm" />}
+              {recommendations.slice(0, 4).map((r) => (
+                <button key={r.row.devId} onClick={() => openAsset(r.row)} className="w-full text-start border rounded-md p-2.5 hover:bg-muted/50">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium truncate">{r.asset}</span>
-                    <Badge className={`${RISK_BADGE[r.priority]} text-[10px]`}>{riskLabel(r.priority)}</Badge>
+                    <span className="text-xs font-medium truncate">{r.row.name}</span>
+                    <Badge className={`${RISK_BADGE[r.row.risk]} text-[10px]`}>{riskLabel(r.row.risk)}</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground leading-snug line-clamp-2">{r.action}</p>
-                </div>
+                </button>
               ))}
             </div>
           </CardContent>
@@ -278,7 +298,7 @@ const AIoTForecastFailures = () => {
         const filterFields: FilterField[] = [
           {
             key: "risk", label: tt("riskLevel"), value: riskFilter,
-            onChange: (v) => setRiskFilter(v as any),
+            onChange: (v) => setRiskFilter(v as Risk | "all"),
             options: [
               { value: "all", label: tt("all") },
               { value: "Critical", label: tt("riskCriticalShort") },
@@ -289,44 +309,27 @@ const AIoTForecastFailures = () => {
           },
           {
             key: "location", label: tt("location"), value: locFilter, onChange: setLocFilter,
-            options: [
-              { value: "all", label: tt("all") },
-              { value: "factory a", label: "Factory A" },
-              { value: "factory b", label: "Factory B" },
-            ],
+            options: [{ value: "all", label: tt("all") }, ...locations.map((l) => ({ value: l, label: l }))],
           },
           {
             key: "assetType", label: tt("assetType"), value: typeFilter, onChange: setTypeFilter,
-            options: [
-              { value: "all", label: tt("all") },
-              { value: "pump", label: "Pump" },
-              { value: "motor", label: "Motor" },
-              { value: "compressor", label: "Compressor" },
-              { value: "fan", label: "Fan" },
-              { value: "conveyor", label: "Conveyor" },
-              { value: "valve", label: "Valve" },
-              { value: "heat exchanger", label: "Heat Exchanger" },
-            ],
+            options: [{ value: "all", label: tt("all") }, ...types.map((v) => ({ value: v, label: v }))],
           },
           {
             key: "status", label: tt("statusLabelGeneric"), value: statusFilter,
-            onChange: (v) => setStatusFilter(v as ForecastStatus | "all"),
+            onChange: (v) => setStatusFilter(v as AiForecastStatus | "all"),
             options: [
               { value: "all", label: tt("all") },
-              { value: "Open", label: tt("fcStatusOpen") },
-              { value: "Acknowledged", label: tt("fcStatusAcknowledged") },
-              { value: "Investigating", label: tt("fcStatusInvestigating") },
-              { value: "Resolved", label: tt("fcStatusResolved") },
-              { value: "Dismissed", label: tt("fcStatusDismissed") },
+              ...(Object.keys(FORECAST_STATUS_KEY) as AiForecastStatus[]).map((s) => ({ value: s, label: statusLabel(s) })),
             ],
           },
-
           {
             key: "timeWindow", label: tt("timeWindow"), value: timeWindow, onChange: setTimeWindow,
             options: [
-              { value: "7d", label: "7d" },
-              { value: "30d", label: "30d" },
-              { value: "90d", label: "90d" },
+              { value: "all", label: tt("all") },
+              { value: "7", label: "7d" },
+              { value: "30", label: "30d" },
+              { value: "90", label: "90d" },
             ],
           },
         ];
@@ -336,8 +339,9 @@ const AIoTForecastFailures = () => {
           { key: "shortestRUL", label: tt("sortShortestRUL") },
         ];
         const handleExport = () => {
-          const header = ["id", "devId", "location", "type", "risk", "cause"];
-          const csv = [header.join(","), ...filtered.map((r) => header.map((h) => `"${String((r as any)[h] ?? "").replace(/"/g, '""')}"`).join(","))].join("\n");
+          const header = ["name", "devId", "location", "type", "health", "risk", "rulDays", "predictedFailure", "probability30d", "cause", "status"];
+          const rows = filtered.map((r) => [r.name, r.devId, r.location, r.type, r.health, r.risk, r.rulDays ?? "", r.forecast.predictedFailureAt ?? "", r.forecast.probability30d, r.forecast.causeKey, r.forecast.status]);
+          const csv = [header.join(","), ...rows.map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))].join("\n");
           const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
@@ -346,16 +350,15 @@ const AIoTForecastFailures = () => {
         };
         const actionItems: ActionItem[] = [
           { key: "export", label: tt("export"), icon: Download, onSelect: handleExport },
-          { key: "archive", label: tt("archive"), icon: Archive, comingSoon: true },
         ];
-        const activeFilterCount = [riskFilter, locFilter, typeFilter, statusFilter].filter((v) => v !== "all").length;
+        const activeFilterCount = [riskFilter, locFilter, typeFilter, statusFilter, timeWindow].filter((v) => v !== "all").length;
         return (
           <ListToolbar
             search={{ value: search, onChange: setSearch, placeholder: tt("searchAssetsPlaceholder") }}
             view={{ value: listView, onChange: setListView, available: ["table"] }}
-            onRefresh={handleRefresh}
-            isRefreshing={isRefreshing}
-            filter={{ fields: filterFields, activeCount: activeFilterCount, onClear: () => { setRiskFilter("all"); setLocFilter("all"); setTypeFilter("all"); setStatusFilter("all"); } }}
+            onRefresh={() => forecasts.refetch()}
+            isRefreshing={forecasts.isFetching}
+            filter={{ fields: filterFields, activeCount: activeFilterCount, onClear: () => { setRiskFilter("all"); setLocFilter("all"); setTypeFilter("all"); setStatusFilter("all"); setTimeWindow("all"); } }}
             sort={{ options: sortOptions, value: sortKey, onChange: setSortKey }}
             actions={actionItems}
             selectionCount={selected.size}
@@ -367,9 +370,12 @@ const AIoTForecastFailures = () => {
         <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-md px-3 py-2">
           <span className="text-sm font-medium">{formatNumber(selected.size)} {tt("selectedCount")}</span>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="h-8">{tt("createWorkOrders")}</Button>
-            <Button size="sm" variant="outline" className="h-8">{tt("assign")}</Button>
-            <Button size="sm" variant="outline" className="h-8">{tt("ignorePredictions")}</Button>
+            <Button size="sm" variant="outline" className="h-8" onClick={() => { updateStatus([...selected], "ACKNOWLEDGED", tt("toastPredictionAcknowledged")); setSelected(new Set()); }}>
+              {tt("actionAcknowledgeMenu")}
+            </Button>
+            <Button size="sm" variant="outline" className="h-8" onClick={() => { updateStatus([...selected], "DISMISSED", tt("predictionIgnoredToast")); setSelected(new Set()); }}>
+              {tt("ignorePredictions")}
+            </Button>
           </div>
         </div>
       )}
@@ -418,16 +424,16 @@ const AIoTForecastFailures = () => {
                     checked={selected.has(r.devId)}
                     onCheckedChange={(v) => {
                       const s = new Set(selected);
-                      v ? s.add(r.devId) : s.delete(r.devId);
+                      if (v) s.add(r.devId); else s.delete(r.devId);
                       setSelected(s);
                     }}
                   />
                 </td>
                 <td className="px-3 py-2.5">
-                  <div className="font-medium">{r.id}</div>
-                  <div className="text-xs text-muted-foreground">{r.devId} · {r.type}</div>
+                  <div className="font-medium">{r.name}</div>
+                  <div className="text-xs text-muted-foreground">{r.type} · {r.cause}</div>
                 </td>
-                <td className="px-3 py-2.5"><LocationCell path={r.location} /></td>
+                <td className="px-3 py-2.5">{r.location ? <LocationCell path={r.location} /> : "—"}</td>
                 <td className="px-3 py-2.5">
                   <div className="flex items-center gap-2">
                     <Progress value={r.health} className="h-1.5 flex-1" />
@@ -436,14 +442,9 @@ const AIoTForecastFailures = () => {
                 </td>
                 <td className="px-3 py-2.5"><Badge className={`${RISK_BADGE[r.risk]} text-[10px]`}>{riskLabel(r.risk)}</Badge></td>
                 <td className="px-3 py-2.5 text-xs">{r.date}</td>
-                <td className="px-3 py-2.5 text-xs font-medium">{formatNumber(r.rulDays)} {tt("days")}</td>
+                <td className="px-3 py-2.5 text-xs font-medium">{r.rulDays === null ? "—" : `${formatNumber(r.rulDays)} ${tt("days")}`}</td>
                 <td className="px-3 py-2.5">
-                  {(() => {
-                    const st = getStatus(r.devId);
-                    return (
-                      <Badge className={`${FORECAST_STATUS_BADGE[st]} text-[10px]`}>{statusLabel(st)}</Badge>
-                    );
-                  })()}
+                  <Badge className={`${STATUS_BADGE[r.forecast.status]} text-[10px]`}>{statusLabel(r.forecast.status)}</Badge>
                 </td>
                 <td className="px-3 py-2.5 text-end" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-end gap-1">
@@ -457,12 +458,11 @@ const AIoTForecastFailures = () => {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => openAsset(r)}><Eye className="h-4 w-4 me-2" /> {tt("viewAnalysis")}</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setWoSource(toSource(r))}><Wrench className="h-4 w-4 me-2" /> {tt("createWorkOrder")}</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => updateStatus(r.devId, "Acknowledged", tt("toastPredictionAcknowledged"))}><Check className="h-4 w-4 me-2" /> {tt("actionAcknowledgeMenu")}</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => updateStatus(r.devId, "Investigating", tt("toastInvestigationStarted"))}><Search className="h-4 w-4 me-2" /> {tt("actionStartInvestigating")}</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => updateStatus(r.devId, "Resolved", tt("toastPredictionResolved"))}><CheckCircle2 className="h-4 w-4 me-2" /> {tt("actionMarkResolved")}</DropdownMenuItem>
-                        <DropdownMenuItem><Bell className="h-4 w-4 me-2" /> {tt("createAlarmRule")}</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => updateStatus(r.devId, "Dismissed", tt("predictionIgnoredToast"))}><EyeOff className="h-4 w-4 me-2" /> {tt("ignorePrediction")}</DropdownMenuItem>
-
+                        <DropdownMenuItem onClick={() => updateStatus([r.devId], "ACKNOWLEDGED", tt("toastPredictionAcknowledged"))}><Check className="h-4 w-4 me-2" /> {tt("actionAcknowledgeMenu")}</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => updateStatus([r.devId], "INVESTIGATING", tt("toastInvestigationStarted"))}><Search className="h-4 w-4 me-2" /> {tt("actionStartInvestigating")}</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => updateStatus([r.devId], "RESOLVED", tt("toastPredictionResolved"))}><CheckCircle2 className="h-4 w-4 me-2" /> {tt("actionMarkResolved")}</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate(lp("/alarms"))}><Bell className="h-4 w-4 me-2" /> {tt("createAlarmRule")}</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => updateStatus([r.devId], "DISMISSED", tt("predictionIgnoredToast"))}><EyeOff className="h-4 w-4 me-2" /> {tt("ignorePrediction")}</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -480,45 +480,35 @@ const AIoTForecastFailures = () => {
     <div className="space-y-3">
       <div className="text-sm text-muted-foreground">{tt("aiGeneratedActions")}</div>
       <div className="border rounded-md bg-card divide-y">
-        {RECOMMENDATIONS.length === 0 && <NoData />}
-        {RECOMMENDATIONS.map((r, i) => {
-          const asset = ROWS.find((a) => a.devId === r.devId);
-          return (
-            <div key={i} className={`${ROW_BORDER[r.priority]} p-4 flex flex-col md:flex-row md:items-center gap-3`}>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-medium text-sm">{r.asset}</span>
-                  <span className="text-xs text-muted-foreground">{r.devId}</span>
-                  <Badge className={`${RISK_BADGE[r.priority]} text-[10px]`}>{riskLabel(r.priority)}</Badge>
-                </div>
-                <p className="text-sm">{r.action}</p>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
-                  <span>{r.location}</span>
-                  <span>·</span>
-                  <span className="text-emerald-600">{tt("expectedImpact")}: {r.impact}</span>
-                </div>
+        {recommendations.length === 0 && <NoData />}
+        {recommendations.map(({ row: r, action, impact }) => (
+          <div key={r.devId} className={`${ROW_BORDER[r.risk]} p-4 flex flex-col md:flex-row md:items-center gap-3`}>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-medium text-sm">{r.name}</span>
+                <span className="text-xs text-muted-foreground">{r.type}</span>
+                <Badge className={`${RISK_BADGE[r.risk]} text-[10px]`}>{riskLabel(r.risk)}</Badge>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {asset && (
-                  <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => openAsset(asset)}>
-                    <Eye className="h-3.5 w-3.5" /> {tt("analysis")}
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  className="h-8 gap-1.5"
-                  onClick={() => asset && setWoSource(toSource(asset))}
-                  disabled={!asset}
-                >
-                  <Wrench className="h-3.5 w-3.5" /> {tt("createWorkOrder")}
-                </Button>
-                <Button size="sm" variant="ghost" className="h-8 gap-1.5">
-                  <EyeOff className="h-3.5 w-3.5" /> {tt("dismiss")}
-                </Button>
+              <p className="text-sm">{action}</p>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
+                <span>{r.location || "—"}</span>
+                <span>·</span>
+                <span className="text-orange-600">{impact}</span>
               </div>
             </div>
-          );
-        })}
+            <div className="flex items-center gap-2 shrink-0">
+              <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => openAsset(r)}>
+                <Eye className="h-3.5 w-3.5" /> {tt("analysis")}
+              </Button>
+              <Button size="sm" className="h-8 gap-1.5" onClick={() => setWoSource(toSource(r))}>
+                <Wrench className="h-3.5 w-3.5" /> {tt("createWorkOrder")}
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8 gap-1.5" onClick={() => updateStatus([r.devId], "DISMISSED", tt("predictionIgnoredToast"))}>
+                <EyeOff className="h-3.5 w-3.5" /> {tt("dismiss")}
+              </Button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -530,6 +520,7 @@ const AIoTForecastFailures = () => {
         count={ROWS.length || null}
         countLabel={tt("assetsAtRiskLabel")}
       />
+      <AiStatusBar />
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <div className="overflow-x-auto">
@@ -544,7 +535,7 @@ const AIoTForecastFailures = () => {
             </TabsTrigger>
             <TabsTrigger value="recommendations" className="gap-1.5 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none pb-2 px-0">
               {tt("recommendationsTab")}
-              <Badge variant="secondary" className="ms-1 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[10px] leading-none">{formatNumber(RECOMMENDATIONS.length)}</Badge>
+              <Badge variant="secondary" className="ms-1 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[10px] leading-none">{formatNumber(recommendations.length)}</Badge>
             </TabsTrigger>
           </TabsList>
         </div>

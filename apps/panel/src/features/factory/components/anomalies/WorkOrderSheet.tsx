@@ -25,11 +25,8 @@ import { useToast } from "@/features/factory/hooks/use-toast";
 import { ToastAction } from "@/features/factory/components/ui/toast";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
-import {
-  useAnomalyStore,
-  type Anomaly,
-  type AnomalySeverity,
-} from "@/features/factory/hooks/useAnomalyStore";
+
+type AnomalySeverity = "Critical" | "High" | "Medium" | "Low";
 
 export interface WorkOrderSource {
   /** Unique source id. For anomalies this is the anomaly id; for forecasts use the device id. */
@@ -43,49 +40,36 @@ export interface WorkOrderSource {
   suggestedActions: string[];
   /** Fallback action text when there are no suggestions. */
   fallbackAction?: string;
-  /** Source category; only "anomaly" triggers anomaly status updates. */
+  /** Source category: the order's source (ANOMALY or FORECAST). */
   kind?: "anomaly" | "forecast";
+  /** The Paapeli device it is about, so the order links to it. */
+  deviceId?: string | null;
+  /** The location it is at. */
+  assetId?: string | null;
 }
 
 interface WorkOrderSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Generic source. Preferred. */
   source?: WorkOrderSource | null;
-  /** Legacy: pass an anomaly directly. */
-  anomaly?: Anomaly | null;
   onCreated?: () => void;
 }
-
-const fromAnomaly = (a: Anomaly): WorkOrderSource => ({
-  id: a.id,
-  asset: a.asset,
-  devId: a.devId,
-  location: a.location,
-  severity: a.severity,
-  suggestedActions: a.suggestedActions,
-  fallbackAction: `Investigate ${a.anomaly.toLowerCase()}`,
-  kind: "anomaly",
-});
 
 export const WorkOrderSheet = ({
   open,
   onOpenChange,
   source,
-  anomaly,
   onCreated,
 }: WorkOrderSheetProps) => {
   const { toast } = useToast();
   const { language, t } = useLanguage();
   const navigate = useNavigate();
-  const { updateStatus } = useAnomalyStore();
   const { create: createWorkOrder } = useWorkOrders();
   const [saving, setSaving] = useState(false);
   const isRtl = language === "fa" || language === "ar";
   const langPrefix = language === "en" ? "" : `/${language}`;
 
-  const src: WorkOrderSource | null =
-    source ?? (anomaly ? fromAnomaly(anomaly) : null);
+  const src: WorkOrderSource | null = source ?? null;
 
   const CUSTOM = "__custom__";
   const [action, setAction] = useState("");
@@ -127,6 +111,8 @@ export const WorkOrderSheet = ({
         source: src.kind === "forecast" ? "FORECAST" : "ANOMALY",
         asset: src.asset,
         location: src.location,
+        deviceId: src.deviceId ?? undefined,
+        assetId: src.assetId ?? undefined,
         action: action.trim(),
         priority,
         assignedTeam: team,
@@ -150,9 +136,6 @@ export const WorkOrderSheet = ({
         </ToastAction>
       ),
     });
-    if (src.kind === "anomaly" && anomaly && anomaly.status === "Open") {
-      updateStatus(anomaly.id, "Investigating");
-    }
     onOpenChange(false);
     onCreated?.();
   };

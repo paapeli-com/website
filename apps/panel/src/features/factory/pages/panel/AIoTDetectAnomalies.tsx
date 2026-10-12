@@ -2,6 +2,7 @@ import { UniformPage } from "@/features/factory/components/UniformPage";
 import { useMemo, useState } from "react";
 import { formatDateTime } from "@/shared/lib/formatDate";
 import { useNavigate } from "react-router-dom";
+import type { AiAnomaly, AiAnomalyStatus } from "@paapeli/api";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { NoData, NoDataValue } from "@/features/factory/components/NoData";
 import { LocationCell } from "@/features/factory/components/panel/LocationCell";
@@ -27,7 +28,6 @@ import {
   Wrench,
   MoreHorizontal,
   Download,
-  Archive,
   Activity,
   Radar,
 } from "lucide-react";
@@ -37,46 +37,42 @@ import {
   type FilterField,
   type SortOption,
 } from "@/features/factory/components/panel/ListToolbar";
-import {
-  useAnomalyStore,
-  type Anomaly,
-  type AnomalySeverity,
-  type AnomalyStatus,
-} from "@/features/factory/hooks/useAnomalyStore";
-import { WorkOrderSheet } from "@/features/factory/components/anomalies/WorkOrderSheet";
+import { WorkOrderSheet, type WorkOrderSource } from "@/features/factory/components/anomalies/WorkOrderSheet";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
-
-
-const SEV_BADGE: Record<AnomalySeverity, string> = {
-  Critical: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-  High: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
-  Medium: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
-  Low: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-};
-
-const ROW_BORDER: Record<AnomalySeverity, string> = {
-  Critical: "border-s-4 border-red-500",
-  High: "border-s-4 border-orange-500",
-  Medium: "border-s-4 border-yellow-500",
-  Low: "border-s-4 border-blue-400",
-};
-
-const STATUS_BADGE: Record<AnomalyStatus, string> = {
-  Open: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-  Acknowledged: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  Investigating: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  Resolved: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  Dismissed: "bg-muted text-muted-foreground",
-  "False Positive": "bg-muted text-muted-foreground",
-};
+import { apiErrorMessage } from "@/shared/lib/apiError";
+import { useAiActions, useAiAnomalies, useAiStatus } from "@/features/factory/hooks/useAi";
+import { useAiText } from "@/features/factory/i18n/aiText";
+import { AiStatusBar } from "@/features/factory/components/ai/AiStatusBar";
+import {
+  ACTIVE_ANOMALY,
+  ANOMALY_STATUS_KEY,
+  RISK_BADGE as SEV_BADGE,
+  RISK_RANK,
+  ROW_BORDER,
+  STATUS_BADGE,
+  optionsOf,
+  useLocationPath,
+  type Risk,
+} from "@/features/factory/components/ai/aiShared";
 
 const AIoTDetectAnomalies = () => {
   const { language, formatNumber, t } = useLanguage();
+  const tt = t as (k: string) => string;
+  const ai = useAiText();
   const navigate = useNavigate();
   const { toast } = useToast();
   const lp = (p: string) => localizedPath(p, language);
-  const { items, updateStatus } = useAnomalyStore();
+  const pathOf = useLocationPath();
+  const anomalies = useAiAnomalies();
+  const status = useAiStatus();
+  const { setAnomalyStatus } = useAiActions();
+
+  const items = useMemo(
+    () => (anomalies.data ?? []).map((a) => ({ ...a, location: pathOf(a.assetId), title: ai.kind(a.kind) })),
+    [anomalies.data, pathOf, ai],
+  );
+  type Item = (typeof items)[number];
 
   const formatRelative = (iso: string) => {
     const diff = Math.max(0, Date.now() - new Date(iso).getTime());
@@ -87,14 +83,10 @@ const AIoTDetectAnomalies = () => {
     if (h < 24) return t("hoursAgo").replace("{n}", formatNumber(h));
     return t("daysAgo").replace("{n}", formatNumber(Math.floor(h / 24)));
   };
-
-  /* Was toLocaleString(language): "fa" happens to default to the Persian
-     calendar, "ar" does not. The shared helper spells both out. */
-  const formatDate = (iso?: string) => formatDateTime(iso);
-
+  const statusLabel = (s: AiAnomalyStatus) => tt(ANOMALY_STATUS_KEY[s]);
 
   const [tab, setTab] = useState("overview");
-  const [sevFilter, setSevFilter] = useState<AnomalySeverity | "all">("all");
+  const [sevFilter, setSevFilter] = useState<Risk | "all">("all");
   const [locFilter, setLocFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [sensorFilter, setSensorFilter] = useState("all");
@@ -102,50 +94,42 @@ const AIoTDetectAnomalies = () => {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState("severity");
   const [listView, setListView] = useState<"table" | "grid" | "compact" | "board">("table");
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = 10;
-  const [woAnomaly, setWoAnomaly] = useState<Anomaly | null>(null);
-
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
+  const [woAnomaly, setWoAnomaly] = useState<Item | null>(null);
 
   const openAnomaly = (id: string) => navigate(lp(`/aiot/detect-anomalies/${id}`));
 
-  const active = items.filter((a) =>
-    ["Open", "Acknowledged", "Investigating"].includes(a.status),
-  );
-  const investigated = items.filter((a) =>
-    ["Resolved", "Dismissed", "False Positive"].includes(a.status),
-  );
+  const changeStatus = (a: AiAnomaly, next: AiAnomalyStatus, label: string) =>
+    setAnomalyStatus.mutate(
+      { id: a.id, status: next },
+      {
+        onSuccess: () => toast({ title: label, description: a.deviceName }),
+        onError: (e) => toast({ title: label, description: apiErrorMessage(e, label), variant: "destructive" }),
+      },
+    );
+
+  const active = items.filter((a) => ACTIVE_ANOMALY.includes(a.status));
+  const investigated = items.filter((a) => !ACTIVE_ANOMALY.includes(a.status));
 
   const counts = {
-    critical: items.filter((a) => a.severity === "Critical").length,
-    high: items.filter((a) => a.severity === "High").length,
-    medium: items.filter((a) => a.severity === "Medium").length,
+    critical: active.filter((a) => a.severity === "Critical").length,
+    high: active.filter((a) => a.severity === "High").length,
+    medium: active.filter((a) => a.severity === "Medium").length,
     investigatedToday: investigated.filter(
-      (a) => a.resolvedAt && Date.now() - new Date(a.resolvedAt).getTime() < 86_400_000,
+      (a) => a.statusChangedAt && Date.now() - new Date(a.statusChangedAt).getTime() < 86_400_000,
     ).length,
   };
 
-  const applyFilters = (list: Anomaly[]) => {
-    const rank: Record<AnomalySeverity, number> = { Critical: 4, High: 3, Medium: 2, Low: 1 };
-    return list
+  const applyFilters = (list: Item[]) =>
+    list
       .filter((a) => {
         if (sevFilter !== "all" && a.severity !== sevFilter) return false;
-        if (locFilter !== "all" && !a.location.toLowerCase().includes(locFilter)) return false;
-        if (typeFilter !== "all" && a.assetType.toLowerCase() !== typeFilter) return false;
-        if (sensorFilter !== "all" && a.sensorType.toLowerCase() !== sensorFilter) return false;
+        if (locFilter !== "all" && a.location !== locFilter) return false;
+        if (typeFilter !== "all" && a.deviceType !== typeFilter) return false;
+        if (sensorFilter !== "all" && a.category !== sensorFilter) return false;
         if (statusFilter !== "all" && a.status !== statusFilter) return false;
-        if (
-          search &&
-          !`${a.asset} ${a.devId} ${a.anomaly} ${a.location}`
-            .toLowerCase()
-            .includes(search.toLowerCase())
-        )
-          return false;
+        if (search && !`${a.deviceName} ${a.key} ${a.title} ${a.location}`.toLowerCase().includes(search.toLowerCase())) return false;
         return true;
       })
       .sort((a, b) => {
@@ -153,18 +137,31 @@ const AIoTDetectAnomalies = () => {
           case "confidence":
             return b.confidence - a.confidence;
           case "recent":
-            return new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime();
+            return new Date(b.peakAt).getTime() - new Date(a.peakAt).getTime();
           case "severity":
           default:
-            return rank[b.severity] - rank[a.severity];
+            return RISK_RANK[b.severity] - RISK_RANK[a.severity] || new Date(b.peakAt).getTime() - new Date(a.peakAt).getTime();
         }
       });
-  };
+
+  const toSource = (a: Item): WorkOrderSource => ({
+    id: a.id,
+    asset: a.deviceName,
+    devId: a.deviceId,
+    location: a.location,
+    severity: a.severity,
+    suggestedActions: a.actions.map(ai.action),
+    fallbackAction: ai.action("VERIFY_SENSOR_READING"),
+    kind: "anomaly",
+    deviceId: a.deviceId,
+    assetId: a.assetId,
+  });
+
+  const avgConfidence = items.length ? Math.round(items.reduce((s, a) => s + a.confidence, 0) / items.length) : null;
 
   // ---------- Overview Tab ----------
   const Overview = (
     <div className="space-y-4">
-      {/* KPI cards */}
       <KpiSection storageKey="aiot-anomalies">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {([
@@ -198,17 +195,13 @@ const AIoTDetectAnomalies = () => {
       </div>
       </KpiSection>
 
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Needs Investigation */}
         <Card className="lg:col-span-2">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className="font-semibold text-sm">{t("needsInvestigation")}</h3>
-                <p className="text-xs text-muted-foreground">
-                  {t("needsInvestigationDesc")}
-                </p>
+                <p className="text-xs text-muted-foreground">{t("needsInvestigationDesc")}</p>
               </div>
               <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setTab("active")}>
                 {t("viewAll")}
@@ -226,14 +219,14 @@ const AIoTDetectAnomalies = () => {
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm truncate">{a.asset}</span>
+                        <span className="font-medium text-sm truncate">{a.deviceName}</span>
                         <Badge className={`${SEV_BADGE[a.severity]} text-[10px]`}>{a.severity}</Badge>
                       </div>
-                      <div className="text-xs text-muted-foreground truncate">{a.anomaly}</div>
+                      <div className="text-xs text-muted-foreground truncate">{a.title} · {a.key}</div>
                     </div>
                     <div className="text-end shrink-0">
                       <div className="text-[10px] text-muted-foreground">{t("detectedLabel")}</div>
-                      <div className="text-xs font-medium">{formatRelative(a.detectedAt)}</div>
+                      <div className="text-xs font-medium">{formatRelative(a.peakAt)}</div>
                     </div>
                     <div className="w-16 shrink-0 text-end">
                       <div className="text-[10px] text-muted-foreground">{t("confidence")}</div>
@@ -243,30 +236,26 @@ const AIoTDetectAnomalies = () => {
                 ))}
               {active.filter((a) => a.severity === "Critical" || a.severity === "High").length === 0 && (
                 items.length === 0 ? <NoData size="sm" /> : (
-                  <div className="px-3 py-6 text-center text-xs text-muted-foreground">
-                    {t("noHighSeverityNow")}
-                  </div>
+                  <div className="px-3 py-6 text-center text-xs text-muted-foreground">{t("noHighSeverityNow")}</div>
                 )
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* AI Findings */}
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className="font-semibold text-sm">{t("aiFindings")}</h3>
-                <p className="text-xs text-muted-foreground">
-                  {t("aiFindingsDesc")}
-                </p>
+                <p className="text-xs text-muted-foreground">{t("aiFindingsDesc")}</p>
               </div>
               <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setTab("active")}>
                 {t("viewAll")}
               </Button>
             </div>
             <div className="space-y-2">
+              {active.length === 0 && <NoData size="sm" />}
               {active.slice(0, 4).map((a) => (
                 <button
                   key={a.id}
@@ -274,15 +263,13 @@ const AIoTDetectAnomalies = () => {
                   className="w-full text-start border rounded-md p-2.5 hover:bg-muted/50"
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium truncate">{a.asset}</span>
+                    <span className="text-xs font-medium truncate">{a.deviceName}</span>
                     <Badge className={`${SEV_BADGE[a.severity]} text-[10px]`}>{a.severity}</Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground leading-snug line-clamp-2">
-                    {a.explanation}
-                  </p>
-                  {a.causes.length > 0 && (
+                  <p className="text-xs text-muted-foreground leading-snug line-clamp-2">{ai.anomalyText(a).explanation}</p>
+                  {a.causes.length > 1 && (
                     <p className="text-[11px] text-muted-foreground mt-1 truncate">
-                      {t("possiblePrefix")} {a.causes.slice(0, 2).map((c) => c.label).join(", ")}
+                      {t("possiblePrefix")} {a.causes.slice(0, 2).map((c) => c.key).join(", ")}
                     </p>
                   )}
                 </button>
@@ -292,7 +279,6 @@ const AIoTDetectAnomalies = () => {
         </Card>
       </div>
 
-      {/* AI Monitoring Summary */}
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center gap-2 mb-3">
@@ -301,22 +287,15 @@ const AIoTDetectAnomalies = () => {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {([
-              // "312 devices analyzed" was a bare constant, not a count of anything.
-              { label: t("devicesAnalyzed"), value: null },
+              { label: t("devicesAnalyzed"), value: status.data?.lastRunAt ? status.data.devicesAnalyzed : null },
               { label: t("anomaliesDetectedLabel"), value: items.length || null },
-              {
-                label: t("averageConfidence"),
-                value: items.length
-                  ? `${formatNumber(Math.round(items.reduce((s, a) => s + a.confidence, 0) / items.length))}%`
-                  : null,
-              },
-              { label: t("criticalAssetsLabel"), value: items.length ? counts.critical : null },
+              { label: t("averageConfidence"), value: avgConfidence === null ? null : `${formatNumber(avgConfidence)}%` },
+              { label: t("criticalAssetsLabel"), value: items.length ? new Set(active.filter((a) => a.severity === "Critical").map((a) => a.deviceId)).size : null },
             ] as { label: string; value: number | string | null }[]).map((s, i) => (
               <div key={i} className="border rounded-md p-3">
                 <div className="text-xs text-muted-foreground">{s.label}</div>
                 <div className="text-xl font-bold mt-1">
-                  {s.value === null ? <NoDataValue />
-                    : typeof s.value === "number" ? formatNumber(s.value) : s.value}
+                  {s.value === null ? <NoDataValue /> : typeof s.value === "number" ? formatNumber(s.value) : s.value}
                 </div>
               </div>
             ))}
@@ -326,17 +305,16 @@ const AIoTDetectAnomalies = () => {
     </div>
   );
 
-
-  // ---------- Table renderer ----------
   const renderToolbar = (isInvestigated: boolean) => {
+    const pool = isInvestigated ? investigated : active;
     const filterFields: FilterField[] = [
       {
         key: "sev",
         label: t("severity"),
         value: sevFilter,
-        onChange: (v) => setSevFilter(v as any),
+        onChange: (v) => setSevFilter(v as Risk | "all"),
         options: [
-          { value: "all", label: t("allLocationsFilter").includes("All") ? "All" : "All" },
+          { value: "all", label: tt("all") },
           { value: "Critical", label: t("riskCriticalShort") },
           { value: "High", label: t("riskHighShort") },
           { value: "Medium", label: t("riskMediumShort") },
@@ -348,62 +326,34 @@ const AIoTDetectAnomalies = () => {
         label: t("location"),
         value: locFilter,
         onChange: setLocFilter,
-        options: [
-          { value: "all", label: "All" },
-          { value: "factory a", label: "Factory A" },
-          { value: "factory b", label: "Factory B" },
-        ],
+        options: [{ value: "all", label: tt("all") }, ...optionsOf(items.map((a) => a.location)).map((l) => ({ value: l, label: l }))],
       },
       {
         key: "type",
         label: t("deviceTypeLabel"),
         value: typeFilter,
         onChange: setTypeFilter,
-        options: [
-          { value: "all", label: "All" },
-          { value: "pump", label: "Pump" },
-          { value: "motor", label: "Motor" },
-          { value: "compressor", label: "Compressor" },
-          { value: "fan", label: "Fan" },
-          { value: "conveyor", label: "Conveyor" },
-          { value: "valve", label: "Valve" },
-          { value: "heat exchanger", label: "Heat Exchanger" },
-        ],
+        options: [{ value: "all", label: tt("all") }, ...optionsOf(items.map((a) => a.deviceType)).map((v) => ({ value: v, label: v }))],
       },
       {
         key: "sensor",
         label: t("sensorTypeLabel"),
         value: sensorFilter,
         onChange: setSensorFilter,
-        options: [
-          { value: "all", label: "All" },
-          { value: "vibration", label: "Vibration" },
-          { value: "temperature", label: "Temperature" },
-          { value: "pressure", label: "Pressure" },
-          { value: "flow", label: "Flow" },
-          { value: "current", label: "Current" },
-          { value: "speed", label: "Speed" },
-          { value: "position", label: "Position" },
-        ],
+        options: [{ value: "all", label: tt("all") }, ...optionsOf(items.map((a) => a.category)).map((c) => ({ value: c, label: ai.category(c) }))],
       },
       {
         key: "status",
         label: t("status"),
         value: statusFilter,
         onChange: setStatusFilter,
-        options: isInvestigated
-          ? [
-              { value: "all", label: "All" },
-              { value: "Resolved", label: t("chipResolved") },
-              { value: "Dismissed", label: t("chipDismissed") },
-              { value: "False Positive", label: t("chipFalsePositive") },
-            ]
-          : [
-              { value: "all", label: "All" },
-              { value: "Open", label: t("chipOpen") },
-              { value: "Acknowledged", label: t("acknowledged") },
-              { value: "Investigating", label: t("chipInvestigating") },
-            ],
+        options: [
+          { value: "all", label: tt("all") },
+          ...(isInvestigated
+            ? (["RESOLVED", "DISMISSED", "FALSE_POSITIVE"] as AiAnomalyStatus[])
+            : ACTIVE_ANOMALY
+          ).map((s) => ({ value: s, label: statusLabel(s) })),
+        ],
       },
     ];
     const sortOptions: SortOption[] = [
@@ -412,36 +362,26 @@ const AIoTDetectAnomalies = () => {
       { key: "recent", label: t("sortMostRecent") },
     ];
     const handleExport = () => {
-      const list = isInvestigated ? investigated : active;
-      const header = ["asset", "devId", "anomaly", "severity", "status", "confidence", "detectedAt", "location"];
-      const csv = [
-        header.join(","),
-        ...list.map((r) =>
-          header.map((h) => `"${String((r as any)[h] ?? "").replace(/"/g, '""')}"`).join(","),
-        ),
-      ].join("\n");
+      const header = ["device", "key", "kind", "severity", "status", "confidence", "peakAt", "peakValue", "expectedValue", "location"];
+      const rows = applyFilters(pool).map((a) => [a.deviceName, a.key, a.kind, a.severity, a.status, a.confidence, a.peakAt, a.peakValue, a.expectedValue ?? "", a.location]);
+      const csv = [header.join(","), ...rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))].join("\n");
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `anomalies-${Date.now()}.csv`;
-      a.click();
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `anomalies-${Date.now()}.csv`;
+      link.click();
       URL.revokeObjectURL(url);
     };
-    const actionItems: ActionItem[] = [
-      { key: "export", label: t("exportCsv"), icon: Download, onSelect: handleExport },
-      { key: "archive", label: t("archive"), icon: Archive, comingSoon: true },
-    ];
-    const activeFilterCount = [sevFilter, locFilter, typeFilter, sensorFilter, statusFilter].filter(
-      (v) => v !== "all",
-    ).length;
+    const actionItems: ActionItem[] = [{ key: "export", label: t("exportCsv"), icon: Download, onSelect: handleExport }];
+    const activeFilterCount = [sevFilter, locFilter, typeFilter, sensorFilter, statusFilter].filter((v) => v !== "all").length;
 
     return (
       <ListToolbar
         search={{ value: search, onChange: setSearch, placeholder: t("searchAnomaliesPh") }}
         view={{ value: listView, onChange: setListView, available: ["table"] }}
-        onRefresh={handleRefresh}
-        isRefreshing={isRefreshing}
+        onRefresh={() => anomalies.refetch()}
+        isRefreshing={anomalies.isFetching}
         filter={{
           fields: filterFields,
           activeCount: activeFilterCount,
@@ -459,8 +399,7 @@ const AIoTDetectAnomalies = () => {
     );
   };
 
-
-  const renderTable = (rows: Anomaly[], isInvestigated: boolean) => {
+  const renderTable = (rows: Item[], isInvestigated: boolean) => {
     const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
     const safePage = Math.min(page, totalPages);
     const slice = rows.slice((safePage - 1) * pageSize, safePage * pageSize);
@@ -512,53 +451,44 @@ const AIoTDetectAnomalies = () => {
                   className={`${ROW_BORDER[r.severity]} border-b hover:bg-muted/40 cursor-pointer`}
                 >
                   <td className="px-3 py-2.5">
-                    <div className="font-medium">{r.asset}</div>
-                    <div className="text-xs text-muted-foreground">{r.devId} · {r.assetType}</div>
+                    <div className="font-medium">{r.deviceName}</div>
+                    <div className="text-xs text-muted-foreground">{r.deviceType}</div>
                   </td>
                   <td className="px-3 py-2.5 hidden md:table-cell">
-                    <LocationCell path={r.location} />
+                    {r.location ? <LocationCell path={r.location} /> : "—"}
                   </td>
                   <td className="px-3 py-2.5">
-                    <div className="text-sm">{r.anomaly}</div>
-                    <div className="text-[11px] text-muted-foreground">{r.sensorType}</div>
+                    <div className="text-sm">{r.title}</div>
+                    <div className="text-[11px] text-muted-foreground">{r.key} · {ai.category(r.category)}</div>
                   </td>
                   <td className="px-3 py-2.5">
                     <Badge className={`${SEV_BADGE[r.severity]} text-[10px]`}>{r.severity}</Badge>
                   </td>
                   {isInvestigated ? (
                     <>
-                      <td className="px-3 py-2.5 text-xs">{formatDate(r.resolvedAt)}</td>
+                      <td className="px-3 py-2.5 text-xs">{formatDateTime(r.statusChangedAt, language)}</td>
                       <td className="px-3 py-2.5">
-                        <Badge className={`${STATUS_BADGE[r.status]} text-[10px]`}>
-                          {r.resolutionType || r.status}
-                        </Badge>
+                        <Badge className={`${STATUS_BADGE[r.status]} text-[10px]`}>{statusLabel(r.status)}</Badge>
                       </td>
-                      <td className="px-3 py-2.5 text-xs">{r.resolvedBy || "—"}</td>
+                      <td className="px-3 py-2.5 text-xs">{r.statusChangedByName || "—"}</td>
                     </>
                   ) : (
                     <>
-                      <td className="px-3 py-2.5 text-xs">{formatRelative(r.detectedAt)}</td>
+                      <td className="px-3 py-2.5 text-xs">{formatRelative(r.peakAt)}</td>
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-2 w-24">
                           <Progress value={r.confidence} className="h-1.5 flex-1" />
-                          <span className="text-xs font-medium w-9 text-end">
-                            {formatNumber(r.confidence)}%
-                          </span>
+                          <span className="text-xs font-medium w-9 text-end">{formatNumber(r.confidence)}%</span>
                         </div>
                       </td>
                       <td className="px-3 py-2.5">
-                        <Badge className={`${STATUS_BADGE[r.status]} text-[10px]`}>{r.status}</Badge>
+                        <Badge className={`${STATUS_BADGE[r.status]} text-[10px]`}>{statusLabel(r.status)}</Badge>
                       </td>
                     </>
                   )}
                   <td className="px-3 py-2.5 text-end" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 gap-1 text-xs"
-                        onClick={() => openAnomaly(r.id)}
-                      >
+                      <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={() => openAnomaly(r.id)}>
                         <Eye className="h-3.5 w-3.5" /> {t("view")}
                       </Button>
                       {!isInvestigated && (
@@ -572,21 +502,14 @@ const AIoTDetectAnomalies = () => {
                             <DropdownMenuItem onClick={() => openAnomaly(r.id)}>
                               <Eye className="h-4 w-4 me-2" /> {t("viewAnalysis")}
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                updateStatus(r.id, "Acknowledged");
-                                toast({ title: t("acknowledgedToast"), description: r.asset });
-                              }}
-                            >
+                            <DropdownMenuItem onClick={() => changeStatus(r, "ACKNOWLEDGED", t("acknowledgedToast"))}>
                               <Check className="h-4 w-4 me-2" /> {t("acknowledge")}
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                updateStatus(r.id, "Dismissed");
-                                toast({ title: t("dismissedToast"), description: r.asset });
-                              }}
-                            >
+                            <DropdownMenuItem onClick={() => changeStatus(r, "DISMISSED", t("dismissedToast"))}>
                               <X className="h-4 w-4 me-2" /> {t("dismiss")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => changeStatus(r, "FALSE_POSITIVE", t("chipFalsePositive"))}>
+                              <X className="h-4 w-4 me-2" /> {t("chipFalsePositive")}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setWoAnomaly(r)}>
                               <Wrench className="h-4 w-4 me-2" /> {t("createWorkOrder")}
@@ -594,7 +517,6 @@ const AIoTDetectAnomalies = () => {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}
-
                     </div>
                   </td>
                 </tr>
@@ -612,27 +534,10 @@ const AIoTDetectAnomalies = () => {
     );
   };
 
-  const ActiveTab = (
-    <div className="space-y-3">
-      {renderToolbar(false)}
-      {renderTable(applyFilters(active), false)}
-    </div>
-  );
-
-  const InvestigatedTab = (
-    <div className="space-y-3">
-      {renderToolbar(true)}
-      {renderTable(applyFilters(investigated), true)}
-    </div>
-  );
-
   return (
     <UniformPage>
-      <PageHeader
-        title={t("detectAnomalies")}
-        count={items.length || null}
-        countLabel={t("anomaliesWord")}
-      />
+      <PageHeader title={t("detectAnomalies")} count={active.length || null} countLabel={t("anomaliesWord")} />
+      <AiStatusBar />
 
       <Tabs
         value={tab}
@@ -644,51 +549,48 @@ const AIoTDetectAnomalies = () => {
       >
         <div className="overflow-x-auto">
           <TabsList className="inline-flex w-auto min-w-full sm:min-w-0 bg-transparent border-b rounded-none h-auto p-0 gap-6">
-            <TabsTrigger
-              value="overview"
-              className="gap-1.5 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none pb-2 px-0"
-            >
+            <TabsTrigger value="overview" className="gap-1.5 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none pb-2 px-0">
               <Activity className="h-3.5 w-3.5" />
               {t("overview")}
             </TabsTrigger>
-            <TabsTrigger
-              value="active"
-              className="gap-1.5 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none pb-2 px-0"
-            >
+            <TabsTrigger value="active" className="gap-1.5 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none pb-2 px-0">
               <AlertTriangle className="h-3.5 w-3.5" />
               {t("activeAnomalies")}
-              <Badge
-                variant="secondary"
-                className="ms-1 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[10px] leading-none"
-              >
+              <Badge variant="secondary" className="ms-1 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[10px] leading-none">
                 {formatNumber(active.length)}
               </Badge>
             </TabsTrigger>
-            <TabsTrigger
-              value="investigated"
-              className="gap-1.5 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none pb-2 px-0"
-            >
+            <TabsTrigger value="investigated" className="gap-1.5 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none pb-2 px-0">
               {t("investigatedTab")}
-              <Badge
-                variant="secondary"
-                className="ms-1 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[10px] leading-none"
-              >
+              <Badge variant="secondary" className="ms-1 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[10px] leading-none">
                 {formatNumber(investigated.length)}
               </Badge>
             </TabsTrigger>
           </TabsList>
         </div>
 
-
         <TabsContent value="overview">{Overview}</TabsContent>
-        <TabsContent value="active">{ActiveTab}</TabsContent>
-        <TabsContent value="investigated">{InvestigatedTab}</TabsContent>
+        <TabsContent value="active">
+          <div className="space-y-3">
+            {renderToolbar(false)}
+            {renderTable(applyFilters(active), false)}
+          </div>
+        </TabsContent>
+        <TabsContent value="investigated">
+          <div className="space-y-3">
+            {renderToolbar(true)}
+            {renderTable(applyFilters(investigated), true)}
+          </div>
+        </TabsContent>
       </Tabs>
 
       <WorkOrderSheet
         open={!!woAnomaly}
         onOpenChange={(o) => !o && setWoAnomaly(null)}
-        anomaly={woAnomaly}
+        source={woAnomaly ? toSource(woAnomaly) : null}
+        onCreated={() => {
+          if (woAnomaly && woAnomaly.status === "OPEN") changeStatus(woAnomaly, "INVESTIGATING", t("investigationStarted"));
+        }}
       />
     </UniformPage>
   );

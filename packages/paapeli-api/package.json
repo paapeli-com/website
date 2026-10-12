@@ -21,7 +21,8 @@
     "./users": "./src/api/users/index.ts",
     "./dashboards": "./src/api/dashboards/index.ts",
     "./telemetry": "./src/api/telemetry/index.ts",
-    "./ota": "./src/api/ota/index.ts"
+    "./ota": "./src/api/ota/index.ts",
+    "./ai": "./src/api/ai/index.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit"

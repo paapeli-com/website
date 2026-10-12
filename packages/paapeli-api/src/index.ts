@@ -10,6 +10,7 @@ export * from './api/telemetry';
 export * from './api/dashboards';
 export * from './api/workOrders';
 export * from './api/ota';
+export * from './api/ai';
 export * from './api/notifications';
 export * from './api/productAssetTypes';
 export * from './api/productDeviceTypes';

@@ -26,7 +26,8 @@ import {
   Bot,
   Lightbulb,
 } from "lucide-react";
-import { OPPORTUNITIES } from "@/features/factory/data/trends";
+import { useAiOpportunities } from "@/features/factory/hooks/useAi";
+import { useAiText } from "@/features/factory/i18n/aiText";
 import { NoData, NoDataValue } from "@/features/factory/components/NoData";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 
@@ -148,6 +149,12 @@ const DICT: Record<string, Record<Lang, string>> = {
 
 const ExecutiveDashboard = () => {
   const { language, isRTL, formatNumber } = useLanguage();
+  /* The analysis's open improvement opportunities, worded for this reader. */
+  const aiOpportunities = useAiOpportunities();
+  const aiText = useAiText();
+  const OPPORTUNITIES = (aiOpportunities.data ?? [])
+    .filter((o) => o.active && o.status !== "DISMISSED" && o.status !== "IMPLEMENTED")
+    .map((o) => ({ id: o.id, impactPct: o.impactPct, ...aiText.opportunity(o) }));
   const navigate = useNavigate();
   const lp = (p: string) => localizedPath(p, language);
   const tr = (k: keyof typeof DICT) => DICT[k][language as Lang] ?? DICT[k].en;

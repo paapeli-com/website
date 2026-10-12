@@ -21,7 +21,8 @@ import { Input } from "@/features/factory/components/ui/input";
 import { Label } from "@/features/factory/components/ui/label";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useDashboards, AI_MANAGERS_DASHBOARD_ID } from "@/features/factory/hooks/useDashboards";
-import { OPPORTUNITIES } from "@/features/factory/data/trends";
+import { useAiOpportunities } from "@/features/factory/hooks/useAi";
+import { useAiText } from "@/features/factory/i18n/aiText";
 import { NoData, NoDataValue } from "@/features/factory/components/NoData";
 import { DATA_SOURCES, findDataSource, getKPI, getSeries, getBreakdown, getTable } from "@/features/factory/lib/dashboardData";
 import {
@@ -144,6 +145,12 @@ const formatLocaleDate = (d: Date, lang: Lang) =>
 const ManagersDashboard = () => {
   const navigate = useNavigate();
   const { language, isRTL, formatNumber } = useLanguage();
+  /* The analysis's open improvement opportunities, worded for this reader. */
+  const aiOpportunities = useAiOpportunities();
+  const aiText = useAiText();
+  const OPPORTUNITIES = (aiOpportunities.data ?? [])
+    .filter((o) => o.active && o.status !== "DISMISSED" && o.status !== "IMPLEMENTED")
+    .map((o) => ({ id: o.id, impactPct: o.impactPct, ...aiText.opportunity(o) }));
   const lang = language as Lang;
   const lp = (p: string) => localizedPath(p, language);
   const t = (k: keyof typeof DICT) => DICT[k][lang] ?? DICT[k].en;
@@ -925,7 +932,7 @@ const ManagersDashboard = () => {
                         <div className="text-[11px] text-muted-foreground truncate">{o.impactLabel}</div>
                       </div>
                       <div className="w-20 h-1.5 rounded-full bg-muted overflow-hidden">
-                        <div className="h-full rounded-full bg-emerald-500" style={{ width: "60%" }} />
+                        <div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.min(100, Math.abs(o.impactPct) * 4)}%` }} />
                       </div>
                       <span className="text-xs font-semibold text-emerald-600 w-12 text-end">{o.impactValue}</span>
                     </button>
