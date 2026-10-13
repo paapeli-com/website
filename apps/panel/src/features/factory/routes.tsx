@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { SampleDataNotice } from "@/features/factory/components/SampleDataNotice";
 import { useCreateProductMutation } from "@paapeli/api";
 import { Toaster } from "@/features/factory/components/ui/toaster";
 import { TooltipProvider } from "@/features/factory/components/ui/tooltip";
@@ -96,7 +95,6 @@ export default function FactoryRoutes() {
     <LanguageProvider>
       <TooltipProvider>
         <Toaster />
-        <SampleDataNotice />
         {/* data-panel-headings: headings keep the size they were written at
             in every language (see index.css). `contents` keeps this wrapper
             out of the layout. */}
