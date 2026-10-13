@@ -1,3 +1,0 @@
-[submodule "gateway"]
-	path = gateway
-	url = git@git.paapeli.me:paapeli/paapeli-gateway.git
