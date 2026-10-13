@@ -2,7 +2,6 @@ import { ReactNode, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useAuth } from "@/features/factory/store/authStore";
-import { useSecretVirtualFleet } from "@/features/factory/hooks/useSecretVirtualFleet";
 import {
   PieChart,
   LayoutDashboard,
@@ -194,9 +193,7 @@ export const PanelLayout = ({ children }: PanelLayoutProps) => {
     if (storedCollapsed === "1") setCollapsed(true);
   }, []);
 
-  const secretVirtualFleet = useSecretVirtualFleet();
   const toggleTheme = () => {
-    secretVirtualFleet();
     const next = !isDark;
     setIsDark(next);
     document.documentElement.classList.toggle("dark", next);

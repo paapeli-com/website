@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { SecretVirtualFleet } from "@/features/factory/hooks/useSecretVirtualFleet";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useCreateProductMutation } from "@paapeli/api";
 import { Toaster } from "@/features/factory/components/ui/toaster";
@@ -95,6 +96,7 @@ export default function FactoryRoutes() {
     <LanguageProvider>
       <TooltipProvider>
         <Toaster />
+        <SecretVirtualFleet />
         {/* data-panel-headings: headings keep the size they were written at
             in every language (see index.css). `contents` keeps this wrapper
             out of the layout. */}
