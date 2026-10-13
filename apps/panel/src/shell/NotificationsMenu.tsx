@@ -158,8 +158,8 @@ const iconBtn =
   "inline-flex size-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
 
 /* Temporary, for testing the AI pages: the bell also reports how the
-   workspace's virtual GPS trackers are sending, as a table in the browser
-   console and a one-line toast. Delete with the trackers. */
+   workspace's virtual devices are sending, as a table in the browser
+   console and a one-line toast. Delete with the virtual devices. */
 function reportVirtualDevices() {
   const workspaceId = getActiveWorkspaceId();
   if (!workspaceId) return;
@@ -169,7 +169,7 @@ function reportVirtualDevices() {
       console.table(
         devices.map((d) => ({
           name: d.name,
-          scenario: d.scenario,
+          kind: d.kind,
           historyComplete: d.historyComplete,
           sentUntil: d.sentUntil,
           lastError: d.lastError ?? "",
@@ -177,7 +177,7 @@ function reportVirtualDevices() {
       );
       const failing = devices.filter((d) => d.lastError);
       const done = devices.filter((d) => d.historyComplete).length;
-      const summary = `${devices.length} virtual trackers · ${done} with history sent · ${failing.length} failing`;
+      const summary = `${devices.length} virtual devices · ${done} with history sent · ${failing.length} failing`;
       if (failing.length) toast.error(summary, { description: failing[0].lastError ?? undefined });
       else toast(summary);
     })

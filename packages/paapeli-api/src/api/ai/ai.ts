@@ -329,22 +329,23 @@ export const aiService = {
         );
         return data;
     },
-    /* Temporary, for testing: simulated GPS trackers whose telemetry the
-       gateway sends (/virtual-devices/{ws}/{pk}). One of each scenario when
+    /* Temporary, for testing: virtual devices (a temperature sensor, a gas
+       sensor, a GPS tracker) whose telemetry the gateway sends
+       (/virtual-devices/{ws}/{pk}). One of each kind when
        none are named. Remove with the panel's secret trigger. */
     async createVirtualDevices(
         workspaceId: string,
         productKey: string,
         assetId: string,
-        scenarios?: string[],
+        kinds?: AiVirtualDeviceKind[],
     ): Promise<AiVirtualDevice[]> {
         const { data } = await napiHttpHandler.post<AiVirtualDevice[]>(
             `/api/v1/aiot/virtual-devices/${workspaceId}/${productKey}`,
-            { assetId, scenarios },
+            { assetId, kinds },
         );
         return data;
     },
-    /* Temporary, for testing: the virtual trackers and how their sending is going. */
+    /* Temporary, for testing: the virtual devices and how their sending is going. */
     async listVirtualDevices(workspaceId: string, productKey: string): Promise<AiVirtualDevice[]> {
         const { data } = await napiHttpHandler.get<AiVirtualDevice[]>(
             `/api/v1/aiot/virtual-devices/${workspaceId}/${productKey}`,
@@ -374,11 +375,12 @@ export interface AiCopilotReply {
     charts: AiCopilotChart[];
 }
 
+export type AiVirtualDeviceKind = 'TEMPERATURE' | 'GAS' | 'GPS';
+
 export interface AiVirtualDevice {
     deviceId: string;
     name: string;
-    label?: string | null;
-    scenario: string;
+    kind: AiVirtualDeviceKind;
     description: string;
     createdAt: string;
     sentUntil: string;
