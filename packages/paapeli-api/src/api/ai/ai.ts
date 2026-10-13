@@ -312,4 +312,32 @@ export const aiService = {
         );
         return data;
     },
+
+    /* Temporary, for testing: simulated GPS trackers whose telemetry the
+       gateway sends (/virtual-devices/{ws}/{pk}). One of each scenario when
+       none are named. Remove with the panel's secret trigger. */
+    async createVirtualDevices(
+        workspaceId: string,
+        productKey: string,
+        assetId: string,
+        scenarios?: string[],
+    ): Promise<AiVirtualDevice[]> {
+        const { data } = await napiHttpHandler.post<AiVirtualDevice[]>(
+            `/api/v1/aiot/virtual-devices/${workspaceId}/${productKey}`,
+            { assetId, scenarios },
+        );
+        return data;
+    },
 };
+
+export interface AiVirtualDevice {
+    deviceId: string;
+    name: string;
+    label?: string | null;
+    scenario: string;
+    description: string;
+    createdAt: string;
+    sentUntil: string;
+    historyComplete: boolean;
+    lastError?: string | null;
+}
