@@ -313,6 +313,22 @@ export const aiService = {
         return data;
     },
 
+    /* The AI Co-Pilot: the conversation so far, oldest first, ending with the
+       user's message. The gateway adds a snapshot of the product and asks the
+       language model; it answers in `language`. 502 when the model is down. */
+    async copilotChat(
+        workspaceId: string,
+        productKey: string,
+        messages: AiCopilotMessage[],
+        language: 'en' | 'fa' | 'ar',
+    ): Promise<AiCopilotReply> {
+        const { data } = await napiHttpHandler.post<AiCopilotReply>(
+            `/api/v1/aiot/copilot/${workspaceId}/${productKey}/chat`,
+            { messages, language },
+            { quiet: true },
+        );
+        return data;
+    },
     /* Temporary, for testing: simulated GPS trackers whose telemetry the
        gateway sends (/virtual-devices/{ws}/{pk}). One of each scenario when
        none are named. Remove with the panel's secret trigger. */
@@ -336,6 +352,16 @@ export const aiService = {
         return data;
     },
 };
+
+export interface AiCopilotMessage {
+    role: 'user' | 'assistant';
+    content: string;
+}
+
+export interface AiCopilotReply {
+    reply: string;
+    model: string;
+}
 
 export interface AiVirtualDevice {
     deviceId: string;

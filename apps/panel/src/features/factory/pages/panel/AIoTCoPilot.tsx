@@ -57,6 +57,9 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
+import { aiService, type AiCopilotMessage } from "@paapeli/api";
+import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 
 // ---------- Types & storage ----------
 type Role = "user" | "assistant";
@@ -67,6 +70,8 @@ interface ChatMessage {
   content: string;
   ts: number;
   chart?: { title: string; data: { time: string; value: number }[] };
+  /** A reply that failed: shown, but never sent back to the model. */
+  error?: boolean;
 }
 
 interface ChatThread {
@@ -81,7 +86,7 @@ const STORAGE_KEY = "paapeli.copilot.threads.v1";
 
 const seedThread = (
   title: string = "New conversation",
-  greeting: string = "Hi — I'm the Paapeli AI Co-Pilot. Ask me about device performance, anomalies, energy use, or forecasts. I can also draft reports and surface charts.",
+  greeting: string = "Hi — I'm the Paapeli AI Co-Pilot. Ask me about your devices' health, failure forecasts, anomalies, trends and work orders, or how anything in the panel works.",
 ): ChatThread => ({
   id: `t-${Date.now()}`,
   title,
@@ -113,49 +118,39 @@ const saveThreads = (t: ChatThread[]) => {
   } catch {}
 };
 
-// ---------- Mock AI ----------
-const sampleSeries = () =>
-  Array.from({ length: 12 }, (_, i) => ({
-    time: `${String(i * 2).padStart(2, "0")}:00`,
-    value: Math.round(40 + Math.sin(i / 2) * 18 + Math.random() * 8),
-  }));
-
-const mockReply = (q: string, t: (k: any) => string): ChatMessage => {
-  const lower = q.toLowerCase();
-  const id = `m-${Date.now()}-r`;
-  const base = { id, role: "assistant" as const, ts: Date.now() };
-  if (/(anomal|outlier|abnormal|شذوذ|ناهنجار)/.test(lower)) {
-    return { ...base, content: t("copilotReplyAnomaly") };
-  }
-  if (/(forecast|fail|predict|تنبؤ|پیش‌بینی|خراب)/.test(lower)) {
-    return { ...base, content: t("copilotReplyForecast") };
-  }
-  if (/(energy|power|consum|kwh|طاقة|انرژی|مصرف)/.test(lower)) {
-    return {
-      ...base,
-      content: t("copilotReplyEnergy"),
-      chart: { title: t("copilotReplyEnergyChart"), data: sampleSeries() },
-    };
-  }
-  if (/(trend|temperature|performance|metric|اتجاه|روند|دما|عملکرد)/.test(lower)) {
-    return {
-      ...base,
-      content: t("copilotReplyTrend"),
-      chart: { title: t("copilotReplyTrendChart"), data: sampleSeries() },
-    };
-  }
-  if (/(report|summary|export|تقرير|گزارش|خروجی)/.test(lower)) {
-    return { ...base, content: t("copilotReplyReport") };
-  }
-  return { ...base, content: t("copilotReplyDefault") };
+// ---------- Model ----------
+/* What the model is sent: the thread from the first question on, without the
+   greeting or failed replies. */
+const toConversation = (messages: ChatMessage[]): AiCopilotMessage[] => {
+  const first = messages.findIndex((m) => m.role === "user");
+  return first < 0
+    ? []
+    : messages
+        .slice(first)
+        .filter((m) => !m.error)
+        .map((m) => ({ role: m.role, content: m.content }));
 };
+
+/* The model answers in plain text, with **bold** for what matters. */
+const RichText = ({ text }: { text: string }) => (
+  <>
+    {text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+      part.startsWith("**") && part.endsWith("**") && part.length > 4 ? (
+        <strong key={i}>{part.slice(2, -2)}</strong>
+      ) : (
+        <span key={i}>{part}</span>
+      ),
+    )}
+  </>
+);
 
 const titleFromMsg = (msg: string) =>
   msg.trim().split(/\s+/).slice(0, 6).join(" ").slice(0, 48) || "New conversation";
 
 // ---------- Page ----------
 const AIoTCoPilot = () => {
-  const { isRTL, formatNumber, t } = useLanguage();
+  const { isRTL, formatNumber, t, language } = useLanguage();
+  const workspaceId = useWorkspaceId();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -260,18 +255,31 @@ const AIoTCoPilot = () => {
       ),
     );
     setInput("");
+    ask(activeId, [...(active?.messages ?? []), userMsg]);
+  };
+
+  /* Sends the thread to the model and appends its answer, or the reason it failed. */
+  const ask = (threadId: string, messages: ChatMessage[]) => {
+    if (!workspaceId) return;
     setPending(true);
-    setTimeout(() => {
-      const reply = mockReply(q, t);
+    const append = (reply: ChatMessage) =>
       setThreads((prev) =>
-        prev.map((t) =>
-          t.id === activeId
-            ? { ...t, updatedAt: Date.now(), messages: [...t.messages, reply] }
-            : t,
+        prev.map((th) =>
+          th.id === threadId
+            ? { ...th, updatedAt: Date.now(), messages: [...th.messages, reply] }
+            : th,
         ),
       );
-      setPending(false);
-    }, 700);
+    aiService
+      .copilotChat(workspaceId, PRODUCT_KEY, toConversation(messages), language)
+      .then((res) =>
+        append({ id: `m-${Date.now()}-r`, role: "assistant", ts: Date.now(), content: res.reply }),
+      )
+      .catch((error) => {
+        const detail = error?.response?.data?.detail ?? t("copilotUnavailable");
+        append({ id: `m-${Date.now()}-e`, role: "assistant", ts: Date.now(), content: String(detail), error: true });
+      })
+      .finally(() => setPending(false));
   };
 
   const regenerate = () => {
@@ -279,26 +287,10 @@ const AIoTCoPilot = () => {
     const lastUser = [...active.messages].reverse().find((m) => m.role === "user");
     if (!lastUser) return;
     // drop the last assistant if present
-    setThreads((prev) =>
-      prev.map((t) => {
-        if (t.id !== active.id) return t;
-        const msgs = [...t.messages];
-        if (msgs[msgs.length - 1]?.role === "assistant") msgs.pop();
-        return { ...t, messages: msgs };
-      }),
-    );
-    setPending(true);
-    setTimeout(() => {
-      const reply = mockReply(lastUser.content, t);
-      setThreads((prev) =>
-        prev.map((t) =>
-          t.id === active.id
-            ? { ...t, updatedAt: Date.now(), messages: [...t.messages, reply] }
-            : t,
-        ),
-      );
-      setPending(false);
-    }, 600);
+    const msgs = [...active.messages];
+    if (msgs[msgs.length - 1]?.role === "assistant") msgs.pop();
+    setThreads((prev) => prev.map((th) => (th.id === active.id ? { ...th, messages: msgs } : th)));
+    ask(active.id, msgs);
   };
 
   const copyMsg = (text: string) => {
@@ -610,7 +602,9 @@ const AIoTCoPilot = () => {
                         : "bg-muted text-foreground"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
+                    <p className={`whitespace-pre-wrap leading-relaxed ${m.error ? "text-destructive" : ""}`}>
+                      <RichText text={m.content} />
+                    </p>
                     {m.chart && (
                       <div className="mt-3 p-3 bg-background rounded-md border">
                         <div className="flex items-center justify-between mb-2 gap-2">
