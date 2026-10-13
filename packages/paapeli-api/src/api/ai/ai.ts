@@ -358,9 +358,20 @@ export interface AiCopilotMessage {
     content: string;
 }
 
+export interface AiCopilotChart {
+    title: string;
+    device: string;
+    key: string;
+    points: { ts: string; value: number }[];
+}
+
 export interface AiCopilotReply {
     reply: string;
     model: string;
+    /** The lookups the assistant made to answer, in order (find_devices, get_telemetry, …). */
+    toolsUsed: string[];
+    /** Telemetry it read, to draw under the answer. */
+    charts: AiCopilotChart[];
 }
 
 export interface AiVirtualDevice {

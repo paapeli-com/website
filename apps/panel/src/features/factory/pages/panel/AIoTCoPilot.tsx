@@ -57,19 +57,28 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
-import { aiService, type AiCopilotMessage } from "@paapeli/api";
+import { aiService, type AiCopilotChart, type AiCopilotMessage } from "@paapeli/api";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 
 // ---------- Types & storage ----------
 type Role = "user" | "assistant";
 
+interface ChartData {
+  title: string;
+  data: { time: string; value: number }[];
+}
+
 interface ChatMessage {
   id: string;
   role: Role;
   content: string;
   ts: number;
-  chart?: { title: string; data: { time: string; value: number }[] };
+  chart?: ChartData;
+  /** Telemetry the assistant read for this answer. */
+  charts?: ChartData[];
+  /** The lookups it made (tool names). */
+  tools?: string[];
   /** A reply that failed: shown, but never sent back to the model. */
   error?: boolean;
 }
@@ -131,6 +140,45 @@ const toConversation = (messages: ChatMessage[]): AiCopilotMessage[] => {
         .map((m) => ({ role: m.role, content: m.content }));
 };
 
+/* A chart the assistant read, labelled by the hour, or by the day past two days. */
+const toChart = (c: AiCopilotChart): ChartData => {
+  const first = c.points[0] ? Date.parse(c.points[0].ts) : 0;
+  const last = c.points.length ? Date.parse(c.points[c.points.length - 1].ts) : 0;
+  const long = last - first > 2 * 86_400_000;
+  return {
+    title: c.title,
+    data: c.points.map((p) => ({
+      time: long ? formatDateTime(p.ts).split(/[,،]?\s+/)[0] : formatTime(p.ts),
+      value: p.value,
+    })),
+  };
+};
+
+/* What each lookup is called under an answer. */
+const TOOL_LABELS: Record<string, Record<string, string>> = {
+  en: {
+    find_devices: "Devices", get_device: "Device", get_telemetry: "Telemetry",
+    get_failure_forecast: "Failure forecast", list_failure_forecasts: "Failure forecasts",
+    list_anomalies: "Anomalies", list_trends: "Trends", list_opportunities: "Opportunities",
+    list_alarms: "Alarms", list_work_orders: "Work orders", get_work_order_summary: "Work orders",
+    list_locations: "Locations",
+  },
+  fa: {
+    find_devices: "دستگاه‌ها", get_device: "دستگاه", get_telemetry: "تله‌متری",
+    get_failure_forecast: "پیش‌بینی خرابی", list_failure_forecasts: "پیش‌بینی خرابی‌ها",
+    list_anomalies: "ناهنجاری‌ها", list_trends: "روندها", list_opportunities: "فرصت‌ها",
+    list_alarms: "هشدارها", list_work_orders: "دستور کارها", get_work_order_summary: "دستور کارها",
+    list_locations: "مکان‌ها",
+  },
+  ar: {
+    find_devices: "الأجهزة", get_device: "الجهاز", get_telemetry: "القياسات",
+    get_failure_forecast: "تنبؤ الأعطال", list_failure_forecasts: "تنبؤات الأعطال",
+    list_anomalies: "الشذوذات", list_trends: "الاتجاهات", list_opportunities: "الفرص",
+    list_alarms: "الإنذارات", list_work_orders: "أوامر العمل", get_work_order_summary: "أوامر العمل",
+    list_locations: "المواقع",
+  },
+};
+
 /* The model answers in plain text, with **bold** for what matters. */
 const RichText = ({ text }: { text: string }) => (
   <>
@@ -181,7 +229,7 @@ const AIoTCoPilot = () => {
     return {
       conversations: threads.length,
       messages: allMsgs.length,
-      insights: allMsgs.filter((m) => m.role === "assistant" && m.chart).length,
+      insights: allMsgs.filter((m) => m.role === "assistant" && (m.chart || m.charts?.length)).length,
       today: allMsgs.filter(
         (m) => Date.now() - m.ts < 86_400_000 && m.role === "user",
       ).length,
@@ -273,7 +321,14 @@ const AIoTCoPilot = () => {
     aiService
       .copilotChat(workspaceId, PRODUCT_KEY, toConversation(messages), language)
       .then((res) =>
-        append({ id: `m-${Date.now()}-r`, role: "assistant", ts: Date.now(), content: res.reply }),
+        append({
+          id: `m-${Date.now()}-r`,
+          role: "assistant",
+          ts: Date.now(),
+          content: res.reply,
+          charts: (res.charts ?? []).filter((c) => c.points.length > 0).map(toChart),
+          tools: res.toolsUsed ?? [],
+        }),
       )
       .catch((error) => {
         const detail = error?.response?.data?.detail ?? t("copilotUnavailable");
@@ -605,30 +660,16 @@ const AIoTCoPilot = () => {
                     <p className={`whitespace-pre-wrap leading-relaxed ${m.error ? "text-destructive" : ""}`}>
                       <RichText text={m.content} />
                     </p>
-                    {m.chart && (
-                      <div className="mt-3 p-3 bg-background rounded-md border">
-                        <div className="flex items-center justify-between mb-2 gap-2">
-                          <p className="text-xs font-medium text-foreground truncate">
-                            {m.chart.title}
-                          </p>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-xs"
-                            onClick={() => {
-                              toast({ title: t("copilotOpenedInDashboards") });
-                              navigate("/dashboard");
-                            }}
-                          >
-                            <Plus className="h-3 w-3" />
-                            {t("copilotAddToDashboard")}
-                          </Button>
-                        </div>
+                    {[...(m.chart ? [m.chart] : []), ...(m.charts ?? [])].map((chart, ci) => (
+                      <div key={ci} className="mt-3 p-3 bg-background rounded-md border">
+                        <p className="text-xs font-medium text-foreground truncate mb-2" dir="ltr">
+                          {chart.title}
+                        </p>
                         <ResponsiveContainer width="100%" height={180}>
-                          <LineChart data={m.chart.data}>
+                          <LineChart data={chart.data}>
                             <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                            <XAxis dataKey="time" fontSize={11} />
-                            <YAxis fontSize={11} />
+                            <XAxis dataKey="time" fontSize={11} minTickGap={24} />
+                            <YAxis fontSize={11} width={44} domain={["auto", "auto"]} />
                             <RTooltip />
                             <Line
                               type="monotone"
@@ -639,6 +680,15 @@ const AIoTCoPilot = () => {
                             />
                           </LineChart>
                         </ResponsiveContainer>
+                      </div>
+                    ))}
+                    {!!m.tools?.length && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {Array.from(new Set(m.tools)).map((tool) => (
+                          <Badge key={tool} variant="outline" className="text-[10px] font-normal bg-background">
+                            {(TOOL_LABELS[language] ?? TOOL_LABELS.en)[tool] ?? tool}
+                          </Badge>
+                        ))}
                       </div>
                     )}
                   </div>
