@@ -179,18 +179,84 @@ const TOOL_LABELS: Record<string, Record<string, string>> = {
   },
 };
 
+/* Which way a message reads: right to left when it is mostly Persian or
+   Arabic, whatever the panel's language. Device names, keys and numbers are
+   Latin even in a Persian answer, so it is a share, not any one letter. */
+const RTL_LETTERS = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/g;
+const LATIN_LETTERS = /[A-Za-z]/g;
+const directionOf = (text: string): "rtl" | "ltr" => {
+  const rtl = text.match(RTL_LETTERS)?.length ?? 0;
+  const latin = text.match(LATIN_LETTERS)?.length ?? 0;
+  return rtl > 0 && rtl >= latin * 0.5 ? "rtl" : "ltr";
+};
+
+/* In right-to-left text, a Latin run is kept whole and left to right instead
+   of being reordered around it: "coolant_temp", "52%/84%", and phrases such
+   as "GPS Tracker 1" or "AI & Analytics > Forecast Failures". */
+const LTR_WORD = "[A-Za-z0-9](?:[A-Za-z0-9_.,:/%+\\-]*[A-Za-z0-9%])?";
+const LTR_RUN = new RegExp(`(${LTR_WORD}(?:\\s*[&>/]\\s*${LTR_WORD}|[ \\t]+${LTR_WORD})*)`, "g");
+const Isolated = ({ text, rtl }: { text: string; rtl: boolean }) =>
+  !rtl ? (
+    <>{text}</>
+  ) : (
+    <>
+      {text.split(LTR_RUN).map((part, i) =>
+        i % 2 === 1 ? (
+          <bdi key={i} dir="ltr">
+            {part}
+          </bdi>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </>
+  );
+
 /* The model answers in plain text, with **bold** for what matters. */
-const RichText = ({ text }: { text: string }) => (
+const RichText = ({ text, rtl }: { text: string; rtl: boolean }) => (
   <>
     {text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
       part.startsWith("**") && part.endsWith("**") && part.length > 4 ? (
-        <strong key={i}>{part.slice(2, -2)}</strong>
+        <strong key={i}>
+          <Isolated text={part.slice(2, -2)} rtl={rtl} />
+        </strong>
       ) : (
-        <span key={i}>{part}</span>
+        <Isolated key={i} text={part} rtl={rtl} />
       ),
     )}
   </>
 );
+
+/* A message, line by line in its own direction: "- " and "1. " lines are
+   list rows, so the bullet sits at the start, on the right in Persian. */
+const MessageText = ({ text, className = "" }: { text: string; className?: string }) => {
+  const dir = directionOf(text);
+  const rtl = dir === "rtl";
+  return (
+    <div dir={dir} className={`space-y-1 text-start leading-relaxed break-words ${className}`}>
+      {text.split("\n").map((line, i) => {
+        if (!line.trim()) return <div key={i} className="h-1" />;
+        const item = line.match(/^(\s*)([-*•]|\d+[.)])\s+(.*)$/);
+        if (item) {
+          const depth = Math.min(Math.floor(item[1].replace(/\t/g, "  ").length / 2), 3);
+          return (
+            <div key={i} className="flex gap-2" style={{ paddingInlineStart: `${depth}rem` }}>
+              <span className="shrink-0 select-none">{/\d/.test(item[2]) ? <bdi>{item[2]}</bdi> : "•"}</span>
+              <span className="min-w-0">
+                <RichText text={item[3]} rtl={rtl} />
+              </span>
+            </div>
+          );
+        }
+        return (
+          <p key={i}>
+            <RichText text={line} rtl={rtl} />
+          </p>
+        );
+      })}
+    </div>
+  );
+};
 
 const titleFromMsg = (msg: string) =>
   msg.trim().split(/\s+/).slice(0, 6).join(" ").slice(0, 48) || "New conversation";
@@ -535,7 +601,7 @@ const AIoTCoPilot = () => {
                     onClick={() => selectThread(th.id)}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">{th.title}</p>
+                      <p className="text-xs font-medium truncate" dir="auto">{th.title}</p>
                       <p className="text-[11px] text-muted-foreground truncate">
                         {preview}
                       </p>
@@ -588,7 +654,7 @@ const AIoTCoPilot = () => {
                 <Bot className="h-5 w-5 text-primary" />
               </div>
               <div className="min-w-0">
-                <p className="font-semibold text-sm truncate">{active?.title}</p>
+                <p className="font-semibold text-sm truncate" dir="auto">{active?.title}</p>
                 <p className="text-[11px] text-muted-foreground">
                   {t("copilotSubtitle")}
                 </p>
@@ -657,9 +723,7 @@ const AIoTCoPilot = () => {
                         : "bg-muted text-foreground"
                     }`}
                   >
-                    <p className={`whitespace-pre-wrap leading-relaxed ${m.error ? "text-destructive" : ""}`}>
-                      <RichText text={m.content} />
-                    </p>
+                    <MessageText text={m.content} className={m.error ? "text-destructive" : ""} />
                     {[...(m.chart ? [m.chart] : []), ...(m.charts ?? [])].map((chart, ci) => (
                       <div key={ci} className="mt-3 p-3 bg-background rounded-md border">
                         <p className="text-xs font-medium text-foreground truncate mb-2" dir="ltr">
@@ -754,6 +818,7 @@ const AIoTCoPilot = () => {
               </TooltipProvider>
               <Input
                 placeholder={t("copilotPlaceholder")}
+                dir={input.trim() ? directionOf(input) : undefined}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
