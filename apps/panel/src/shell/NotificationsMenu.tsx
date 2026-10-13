@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Bell, ClipboardList } from "lucide-react";
 import {
+  aiService,
   notificationService,
   notificationsQueryKey,
   useGetNotificationsQueries,
@@ -13,6 +14,7 @@ import {
   type WorkspaceAlarmItem,
 } from "@paapeli/api";
 import { productKeyFor, solutionPath } from "@paapeli/brand/config";
+import { getActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { useActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { cn } from "@/shared/lib/utils";
 import { useShellT } from "@/shared/i18n/shell";
@@ -155,6 +157,38 @@ const TABS: { key: "all" | Category; label: string }[] = [
 const iconBtn =
   "inline-flex size-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
 
+/* Temporary, for testing the AI pages: the bell also reports how the
+   workspace's virtual GPS trackers are sending, as a table in the browser
+   console and a one-line toast. Delete with the trackers. */
+function reportVirtualDevices() {
+  const workspaceId = getActiveWorkspaceId();
+  if (!workspaceId) return;
+  aiService
+    .listVirtualDevices(workspaceId, "smartFactory")
+    .then((devices) => {
+      console.table(
+        devices.map((d) => ({
+          name: d.name,
+          scenario: d.scenario,
+          historyComplete: d.historyComplete,
+          sentUntil: d.sentUntil,
+          lastError: d.lastError ?? "",
+        })),
+      );
+      const failing = devices.filter((d) => d.lastError);
+      const done = devices.filter((d) => d.historyComplete).length;
+      const summary = `${devices.length} virtual trackers · ${done} with history sent · ${failing.length} failing`;
+      if (failing.length) toast.error(summary, { description: failing[0].lastError ?? undefined });
+      else toast(summary);
+    })
+    .catch((error) => {
+      console.error("Virtual devices", error);
+      toast.error("Virtual devices request failed", {
+        description: String(error?.response?.data?.detail ?? error?.message ?? error),
+      });
+    });
+}
+
 export function NotificationsMenu() {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("all");
@@ -234,7 +268,14 @@ export function NotificationsMenu() {
 
   return (
     <div className="relative" ref={ref}>
-      <button onClick={() => setOpen((o) => !o)} className={`relative ${iconBtn}`} aria-label={t("Notifications")}>
+      <button
+        onClick={() => {
+          setOpen((o) => !o);
+          reportVirtualDevices();
+        }}
+        className={`relative ${iconBtn}`}
+        aria-label={t("Notifications")}
+      >
         <Bell className="h-5 w-5" />
         {hasUnread && <span className="absolute right-2 top-2 size-2 rounded-full bg-destructive" aria-hidden />}
       </button>

@@ -328,6 +328,13 @@ export const aiService = {
         );
         return data;
     },
+    /* Temporary, for testing: the virtual trackers and how their sending is going. */
+    async listVirtualDevices(workspaceId: string, productKey: string): Promise<AiVirtualDevice[]> {
+        const { data } = await napiHttpHandler.get<AiVirtualDevice[]>(
+            `/api/v1/aiot/virtual-devices/${workspaceId}/${productKey}`,
+        );
+        return data;
+    },
 };
 
 export interface AiVirtualDevice {
