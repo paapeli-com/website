@@ -141,7 +141,6 @@ export type AlarmRuleProvisioningState = 'PROVISIONING' | 'ACTIVE' | 'FAILED' | 
 export interface AlarmRuleItem {
     /** Stable Paapeli alarm-rule id — the one the delete endpoint takes. */
     id: string;
-    thingsBoardId?: string;
     /** The device that owns the rule. */
     deviceId: string;
     name: string;

@@ -1,13 +1,13 @@
 import napiHttpHandler from '../napiHttpHandler';
 
-/** Product-specific ThingsBoard resources to provision. */
-export type TbProvisioningTemplate = 'NONE' | 'GPS_TRACKING_V1';
+/** Product-specific resources to provision. */
+export type ProvisioningTemplate = 'NONE' | 'GPS_TRACKING_V1';
 
 export interface ProductDTO {
     productKey: string;
     name: string;
     /** Defaults to 'NONE' server-side. */
-    tbProvisioningTemplate?: TbProvisioningTemplate;
+    provisioningTemplate?: ProvisioningTemplate;
 }
 
 export const productsService = {
