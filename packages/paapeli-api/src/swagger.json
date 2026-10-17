@@ -64,6 +64,376 @@
     }
   ],
   "paths": {
+    "/api/v1/aiot/users/me/preferences": {
+      "put": {
+        "tags": [
+          "Account security"
+        ],
+        "summary": "Save my panel preferences",
+        "operationId": "savePreferences",
+        "description": "Stores the panel colour on the account, so it follows the user to every device. panelAccent is \"paapeli\" or \"green\"; null returns to the brand's own colour. GET /users/me reads it back.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferencesRequest"
+              },
+              "example": {
+                "panelAccent": "green"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Done"
+          },
+          "400": {
+            "description": "INVALID_ACCENT"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/users/me/password": {
+      "put": {
+        "tags": [
+          "Account security"
+        ],
+        "summary": "Change my password",
+        "operationId": "changePassword",
+        "description": "Changes the password, or sets the first one of an account made by Google sign-in (then currentPassword may be omitted; see hasPassword on GET /users/me). A new password has 8 characters at least and 72 UTF-8 bytes at most. Every session, this one included, is signed out after.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              },
+              "example": {
+                "currentPassword": "old-secret",
+                "newPassword": "a-longer-secret",
+                "confirmPassword": "a-longer-secret"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Done"
+          },
+          "400": {
+            "description": "WRONG_PASSWORD, WEAK_PASSWORD or PASSWORDS_DIFFER"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/users/me/two-factor/setup": {
+      "post": {
+        "tags": [
+          "Account security"
+        ],
+        "summary": "Start two-factor setup",
+        "operationId": "setupTwoFactor",
+        "description": "Creates a new authenticator secret (TOTP: SHA-1, six digits, 30 seconds). otpauthUri is what the QR code holds; secret is the same key to type in. It counts only once /enable proves it with a code.",
+        "responses": {
+          "200": {
+            "description": "Secret created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorSetupResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "TWO_FACTOR_ALREADY_ON"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/users/me/two-factor/enable": {
+      "post": {
+        "tags": [
+          "Account security"
+        ],
+        "summary": "Turn two-factor on",
+        "operationId": "enableTwoFactor",
+        "description": "A current code from the authenticator turns two-factor on. The answer lists ten one-time recovery codes, shown this once. From then on, password and Google sign-in end in a challenge (POST /auth/login/two-factor).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorCodeRequest"
+              },
+              "example": {
+                "code": "482913"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Two-factor on",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCodesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "CODE_INVALID"
+          },
+          "409": {
+            "description": "TWO_FACTOR_ALREADY_ON or TWO_FACTOR_NOT_SET_UP"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/users/me/two-factor/recovery-codes": {
+      "post": {
+        "tags": [
+          "Account security"
+        ],
+        "summary": "Replace my recovery codes",
+        "operationId": "regenerateRecoveryCodes",
+        "description": "Ten new recovery codes for a current authenticator or recovery code; the old ones stop working.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorCodeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "New codes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCodesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "CODE_INVALID"
+          },
+          "409": {
+            "description": "TWO_FACTOR_OFF"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/users/me/two-factor/disable": {
+      "post": {
+        "tags": [
+          "Account security"
+        ],
+        "summary": "Turn two-factor off",
+        "operationId": "disableTwoFactor",
+        "description": "Needs a current authenticator code or an unused recovery code. The secret and recovery codes are dropped.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorCodeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Done"
+          },
+          "400": {
+            "description": "CODE_INVALID"
+          },
+          "409": {
+            "description": "TWO_FACTOR_OFF"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/users/me/recovery-email": {
+      "put": {
+        "tags": [
+          "Account security"
+        ],
+        "summary": "Set my recovery email",
+        "operationId": "setRecoveryEmail",
+        "description": "Saves an address other than the account's own and emails it a six-digit code, good for ten minutes and five tries; another may be asked for after 60 seconds. Once confirmed, password reset codes go to it as well.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecoveryEmailRequest"
+              },
+              "example": {
+                "email": "backup@example.com"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Code emailed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryEmailCodeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "SAME_AS_ACCOUNT_EMAIL or an invalid address"
+          },
+          "429": {
+            "description": "RESEND_TOO_SOON, with retryAfterSeconds"
+          },
+          "503": {
+            "description": "EMAIL_UNAVAILABLE"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Account security"
+        ],
+        "summary": "Remove my recovery email",
+        "operationId": "removeRecoveryEmail",
+        "responses": {
+          "204": {
+            "description": "Done"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/users/me/recovery-email/confirm": {
+      "post": {
+        "tags": [
+          "Account security"
+        ],
+        "summary": "Confirm my recovery email",
+        "operationId": "confirmRecoveryEmail",
+        "description": "The emailed code verifies the recovery email. A wrong code is CODE_INVALID with attemptsLeft.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecoveryEmailConfirmRequest"
+              },
+              "example": {
+                "code": "482913"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Done"
+          },
+          "400": {
+            "description": "CODE_INVALID, CODE_EXPIRED or NO_PENDING_CODE"
+          },
+          "429": {
+            "description": "TOO_MANY_ATTEMPTS"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/workspaces/{workspaceId}/security-summary": {
+      "get": {
+        "tags": [
+          "Account security"
+        ],
+        "summary": "Workspace security summary",
+        "operationId": "workspaceSecuritySummary",
+        "description": "How many active members the workspace has and how many sign in with two-factor, with the password rule every account is held to. Any member with workspace READ access may read it.",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Summary returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceSecuritySummary"
+                },
+                "example": {
+                  "members": 12,
+                  "membersWithTwoFactor": 5,
+                  "passwordMinLength": 8,
+                  "passwordMaxBytes": 72
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace READ access required"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/auth/login/two-factor": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Finish signing in with the second factor",
+        "operationId": "loginTwoFactor",
+        "security": [],
+        "description": "For an account with two-factor on, POST /auth/login and POST /auth/google answer {\"twoFactorRequired\": true, \"challengeToken\": \"...\"} instead of a token. Send that token here with a current authenticator code or an unused recovery code to get the session (token and refresh cookie). The challenge lasts five minutes and five wrong codes.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorLoginRequest"
+              },
+              "example": {
+                "challengeToken": "0f2b6c1e-6d1a-4a8e-9a51-7c6f1f0a3b21",
+                "code": "482913"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in"
+          },
+          "400": {
+            "description": "CODE_INVALID, with attemptsLeft"
+          },
+          "401": {
+            "description": "CHALLENGE_EXPIRED: sign in again"
+          },
+          "429": {
+            "description": "TOO_MANY_ATTEMPTS: sign in again"
+          }
+        }
+      }
+    },
     "/api/v1/aiot/users/me": {
       "get": {
         "tags": ["User profile"],
@@ -6210,6 +6580,155 @@
           "verifiedAt": { "type": "string", "format": "date-time", "nullable": true }
         }
       },
+      "PreferencesRequest": {
+        "type": "object",
+        "properties": {
+          "panelAccent": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "paapeli",
+              "green"
+            ]
+          }
+        }
+      },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "required": [
+          "newPassword",
+          "confirmPassword"
+        ],
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "nullable": true,
+            "description": "Omitted when hasPassword is false."
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8,
+            "description": "At least 8 characters, at most 72 UTF-8 bytes."
+          },
+          "confirmPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "TwoFactorSetupResponse": {
+        "type": "object",
+        "properties": {
+          "secret": {
+            "type": "string",
+            "description": "Base32"
+          },
+          "otpauthUri": {
+            "type": "string"
+          }
+        }
+      },
+      "TwoFactorCodeRequest": {
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "A 6-digit authenticator code or a recovery code (xxxxx-xxxxx)."
+          }
+        }
+      },
+      "RecoveryCodesResponse": {
+        "type": "object",
+        "properties": {
+          "recoveryCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "TwoFactorLoginRequest": {
+        "type": "object",
+        "required": [
+          "challengeToken",
+          "code"
+        ],
+        "properties": {
+          "challengeToken": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 32
+          }
+        }
+      },
+      "RecoveryEmailRequest": {
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          }
+        }
+      },
+      "RecoveryEmailConfirmRequest": {
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 12
+          }
+        }
+      },
+      "RecoveryEmailCodeResponse": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resendAvailableAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WorkspaceSecuritySummary": {
+        "type": "object",
+        "properties": {
+          "members": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "membersWithTwoFactor": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "passwordMinLength": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "passwordMaxBytes": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "UserProfileRequest": {
         "type": "object",
         "properties": {
@@ -6219,9 +6738,39 @@
       "UserProfileResponse": {
         "type": "object",
         "properties": {
-          "userId": { "type": "string", "format": "uuid" },
-          "email": { "type": "string" },
-          "displayName": { "type": "string", "nullable": true }
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "panelAccent": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "paapeli",
+              "green"
+            ]
+          },
+          "hasPassword": {
+            "type": "boolean",
+            "description": "False for an account made by Google sign-in that never set a password."
+          },
+          "twoFactorEnabled": {
+            "type": "boolean"
+          },
+          "recoveryEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "recoveryEmailVerified": {
+            "type": "boolean"
+          }
         }
       },
       "PhoneVerificationResponse": {

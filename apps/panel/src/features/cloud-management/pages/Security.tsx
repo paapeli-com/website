@@ -2,10 +2,17 @@ import { useState } from "react";
 import { toast } from "@/shared/lib/toast";
 import { Button, Card, NoDataValue, PageHeader, SettingRow, Tabs } from "@/features/cloud-management/ui";
 import { useShellT } from "@/shared/i18n/shell";
-import { useAppLanguage } from "@/shared/i18n/appLanguage";
+import { localizeDigits, useAppLanguage } from "@/shared/i18n/appLanguage";
 import { currencyName, useBillingCurrency } from "@/shared/lib/billingCurrency";
+import { useGetWorkspaceSecuritySummaryQuery } from "@paapeli/api";
+import { useActiveWorkspaceId } from "@paapeli/brand/workspace";
 
-/* No settings backend yet.
+const fill = (text: string, values: Record<string, string>) =>
+  Object.entries(values).reduce((acc, [key, value]) => acc.replace(`{${key}}`, value), text);
+
+/* Mostly no settings backend yet. Two rows are real: how many members sign in
+   with two-factor, and the password rule, both from the workspace's security
+   summary.
 
    Every control on this page asserted account state and none of it was read
    from anywhere: two-factor "on", SSO "Connected to Azure Entra ID", an IP
@@ -31,6 +38,9 @@ export default function Security() {
   const language = useAppLanguage();
   const { currency } = useBillingCurrency();
   const [tab, setTab] = useState("Security");
+  // Two-factor take-up and the password rule (GET /workspaces/{id}/security-summary).
+  const workspaceId = useActiveWorkspaceId();
+  const { data: summary } = useGetWorkspaceSecuritySummaryQuery(workspaceId ?? "");
 
   const labelled = TABS.map((name) => t(name));
   const tabFor = (label: string) => TABS[labelled.indexOf(label)] ?? "Security";
@@ -61,10 +71,20 @@ export default function Security() {
           <div className="flex flex-col gap-6">
             <Card className="flex flex-col p-4">
               <h2 className="px-1 pb-1 text-sm font-bold text-foreground">{t("Authentication")}</h2>
+              {/* Each member turns two-factor on for their own account (Account
+                  settings); this shows how many have. Requiring it of everyone
+                  is not offered yet. */}
               <SettingRow
                 title={t("Two-factor authentication")}
-                description={t("Require a second factor for every member of this account.")}
-                control={<NoDataValue />}
+                description={t("Members who sign in with a code from an authenticator app.")}
+                control={summary ? (
+                  <span className="text-[13.5px] font-medium text-foreground">
+                    {fill(t("{on} of {all} members"), {
+                      on: localizeDigits(language, summary.membersWithTwoFactor),
+                      all: localizeDigits(language, summary.members),
+                    })}
+                  </span>
+                ) : <NoDataValue />}
               />
               <SettingRow
                 title={t("Single sign-on (SAML)")}
@@ -76,10 +96,16 @@ export default function Security() {
                 description={t("Sign members out after a period of inactivity.")}
                 control={<NoDataValue />}
               />
+              {/* The rule every account's password is held to, as the gateway
+                  enforces it. It is the platform's, not editable per account. */}
               <SettingRow
                 title={t("Password policy")}
-                description={t("Length, complexity and rotation rules for member passwords.")}
-                control={<Button variant="ghost">{t("Edit")}</Button>}
+                description={t("The length every member's password is held to.")}
+                control={summary ? (
+                  <span className="text-[13.5px] font-medium text-foreground">
+                    {fill(t("At least {n} characters"), { n: localizeDigits(language, summary.passwordMinLength) })}
+                  </span>
+                ) : <NoDataValue />}
               />
             </Card>
 

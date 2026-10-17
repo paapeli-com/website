@@ -50,17 +50,117 @@ export type PhoneVerificationRefusal =
     | 'TOO_MANY_ATTEMPTS'
     | 'SMS_UNAVAILABLE';
 
-/** The signed-in user as others see them. */
+/** The signed-in user as others see them, and the state of their own settings. */
 export interface UserProfileResponse {
     userId: string;
     email: string;
     /** Null when unset; the email stands in. */
     displayName: string | null;
+    /** The panel colour, "paapeli" or "green"; null for the brand's own. */
+    panelAccent?: string | null;
+    /** False for an account made by Google sign-in that never set a password. */
+    hasPassword?: boolean;
+    twoFactorEnabled?: boolean;
+    /** Where password reset codes also go, or null. */
+    recoveryEmail?: string | null;
+    recoveryEmailVerified?: boolean;
 }
 
-/* The signed-in user's own profile (/users/me) and contact methods
-   (/users/me/contact-methods). */
+/** Why an account security change was refused: the problem response's `code`. */
+export type AccountSecurityRefusal =
+    | 'WRONG_PASSWORD'
+    | 'WEAK_PASSWORD'
+    | 'PASSWORDS_DIFFER'
+    | 'INVALID_ACCENT'
+    | 'TWO_FACTOR_ALREADY_ON'
+    | 'TWO_FACTOR_NOT_SET_UP'
+    | 'TWO_FACTOR_OFF'
+    | 'CODE_INVALID'
+    | 'CHALLENGE_EXPIRED'
+    | 'TOO_MANY_ATTEMPTS'
+    | 'SAME_AS_ACCOUNT_EMAIL'
+    | 'RESEND_TOO_SOON'
+    | 'NO_PENDING_CODE'
+    | 'CODE_EXPIRED'
+    | 'EMAIL_UNAVAILABLE';
+
+export interface ChangePasswordRequest {
+    /** Omitted when the account has no password yet (hasPassword false). */
+    currentPassword?: string;
+    newPassword: string;
+    confirmPassword: string;
+}
+
+/** What an authenticator app needs: the QR code's URI, or the key typed in. */
+export interface TwoFactorSetup {
+    secret: string;
+    otpauthUri: string;
+}
+
+/** Shown once; each signs in a single time when the authenticator is lost. */
+export interface RecoveryCodes {
+    recoveryCodes: string[];
+}
+
+export interface RecoveryEmailCode {
+    email: string;
+    expiresAt: string;
+    resendAvailableAt: string;
+}
+
+/** A workspace's security at a glance, for its settings page. */
+export interface WorkspaceSecuritySummary {
+    members: number;
+    membersWithTwoFactor: number;
+    passwordMinLength: number;
+    passwordMaxBytes: number;
+}
+
+/* The signed-in user's own profile (/users/me), security (/users/me/...) and
+   contact methods (/users/me/contact-methods). */
 export const usersService = {
+    /** Stores the panel colour on the account, so it follows the user. */
+    async savePreferences(req: { panelAccent: string | null }): Promise<void> {
+        await napiHttpHandler.put('/api/v1/aiot/users/me/preferences', req);
+    },
+    /** Changes the password; every session, this one included, is signed out after. */
+    async changePassword(req: ChangePasswordRequest): Promise<void> {
+        await napiHttpHandler.put('/api/v1/aiot/users/me/password', req);
+    },
+    async setupTwoFactor(): Promise<TwoFactorSetup> {
+        const { data } = await napiHttpHandler.post<TwoFactorSetup>('/api/v1/aiot/users/me/two-factor/setup');
+        return data;
+    },
+    async enableTwoFactor(code: string): Promise<RecoveryCodes> {
+        const { data } = await napiHttpHandler.post<RecoveryCodes>('/api/v1/aiot/users/me/two-factor/enable', { code });
+        return data;
+    },
+    async disableTwoFactor(code: string): Promise<void> {
+        await napiHttpHandler.post('/api/v1/aiot/users/me/two-factor/disable', { code });
+    },
+    async regenerateRecoveryCodes(code: string): Promise<RecoveryCodes> {
+        const { data } = await napiHttpHandler.post<RecoveryCodes>(
+            '/api/v1/aiot/users/me/two-factor/recovery-codes',
+            { code },
+        );
+        return data;
+    },
+    async setRecoveryEmail(email: string): Promise<RecoveryEmailCode> {
+        const { data } = await napiHttpHandler.put<RecoveryEmailCode>('/api/v1/aiot/users/me/recovery-email', { email });
+        return data;
+    },
+    async confirmRecoveryEmail(code: string): Promise<void> {
+        await napiHttpHandler.post('/api/v1/aiot/users/me/recovery-email/confirm', { code });
+    },
+    async removeRecoveryEmail(): Promise<void> {
+        await napiHttpHandler.del('/api/v1/aiot/users/me/recovery-email');
+    },
+    async getWorkspaceSecuritySummary(workspaceId: string): Promise<WorkspaceSecuritySummary> {
+        const { data } = await napiHttpHandler.get<WorkspaceSecuritySummary>(
+            `/api/v1/aiot/workspaces/${workspaceId}/security-summary`,
+        );
+        return data;
+    },
     async getProfile(): Promise<UserProfileResponse> {
         const { data } = await napiHttpHandler.get<UserProfileResponse>('/api/v1/aiot/users/me');
         return data;

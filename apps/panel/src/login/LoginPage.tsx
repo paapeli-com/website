@@ -183,7 +183,13 @@ async function ensureWorkspaceSetup() {
 
 export default function LoginPage() {
   const copy = useCopy();
-  const [mode, setMode] = useState<"signin" | "signup" | "reset">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "reset" | "twoFactor">("signin");
+
+  /* A sign-in whose first factor passed on an account with two-factor on:
+     the challenge to finish it with, and who it is for. */
+  const [challenge, setChallenge] = useState<{ token: string; email: string; name?: string } | null>(null);
+  const [twoFactorCode, setTwoFactorCode] = useState("");
+  const [twoFactorError, setTwoFactorError] = useState("");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -209,7 +215,7 @@ export default function LoginPage() {
   const [resetError, setResetError] = useState("");
   const [resetNotice, setResetNotice] = useState("");
 
-  const show = (next: "signin" | "signup" | "reset") => {
+  const show = (next: "signin" | "signup" | "reset" | "twoFactor") => {
     setError("");
     setSignupError("");
     setResetError("");
@@ -237,7 +243,12 @@ export default function LoginPage() {
     setError("");
     setBusy(true);
     try {
-      const { token } = await authService.login({ username: email.trim(), password });
+      const result = await authService.login({ username: email.trim(), password });
+      if (result.twoFactorRequired && result.challengeToken) {
+        askForSecondFactor(result.challengeToken, email.trim());
+        return;
+      }
+      const { token } = result;
       persistSession(email.trim(), token);
       setApiAuthToken(token);
       await ensureWorkspaceSetup();
@@ -246,6 +257,40 @@ export default function LoginPage() {
       const status = (err as { response?: { status?: number } })?.response?.status;
       setError(status === 401 ? copy.errInvalidCredentials : copy.errSignInFailed);
     } finally {
+      setBusy(false);
+    }
+  };
+
+  /** The first factor passed; the account wants its second. */
+  const askForSecondFactor = (token: string, who: string, name?: string) => {
+    setChallenge({ token, email: who, name });
+    setTwoFactorCode("");
+    setTwoFactorError("");
+    setMode("twoFactor");
+  };
+
+  const handleTwoFactor = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!challenge || !twoFactorCode.trim()) return;
+    setTwoFactorError("");
+    setBusy(true);
+    try {
+      const { token } = await authService.loginTwoFactor(challenge.token, twoFactorCode.trim());
+      persistSession(challenge.email, token, challenge.name);
+      setApiAuthToken(token);
+      await ensureWorkspaceSetup();
+      window.location.href = redirectTarget();
+    } catch (err) {
+      const data = (err as { response?: { data?: { code?: string; attemptsLeft?: number } } })?.response?.data;
+      if (data?.code === "CODE_INVALID") {
+        setTwoFactorError(copy.errTwoFactorWrong.replace("{n}", String(data.attemptsLeft ?? 0)));
+      } else {
+        // Expired, spent or too many wrong codes: the sign-in starts over.
+        setChallenge(null);
+        setPassword("");
+        setError(copy.errTwoFactorExpired);
+        setMode("signin");
+      }
       setBusy(false);
     }
   };
@@ -360,8 +405,14 @@ export default function LoginPage() {
       setSignupError("");
       setBusy(true);
       try {
-        const { token } = await authService.googleSignIn({ idToken });
+        const result = await authService.googleSignIn({ idToken });
         const { email: googleEmail, name } = decodeGoogleIdentity(idToken);
+        if (result.twoFactorRequired && result.challengeToken) {
+          askForSecondFactor(result.challengeToken, googleEmail ?? "", name);
+          setBusy(false);
+          return;
+        }
+        const { token } = result;
         persistSession(googleEmail ?? "", token, name);
         setApiAuthToken(token);
         // Google sign-up is silent — there is no separate "account created"
@@ -413,7 +464,52 @@ export default function LoginPage() {
             <Mark />
           </div>
 
-          {mode === "signin" ? (
+          {mode === "twoFactor" ? (
+            <form onSubmit={handleTwoFactor}>
+              <h1 className="mb-2 text-center text-xl font-bold text-foreground">
+                {copy.twoFactorTitle}
+              </h1>
+              <p className="mb-5 text-center text-sm text-muted-foreground">{copy.twoFactorHint}</p>
+
+              {twoFactorError && <Notice tone="error">{twoFactorError}</Notice>}
+
+              <div className="mb-4">
+                <label className={label} htmlFor="two-factor-code">{copy.twoFactorCode}</label>
+                <input
+                  id="two-factor-code"
+                  className={`${field} text-center tracking-[0.3em]`}
+                  type="text"
+                  dir="ltr"
+                  inputMode="text"
+                  autoComplete="one-time-code"
+                  autoFocus
+                  maxLength={16}
+                  value={twoFactorCode}
+                  onChange={(e) => setTwoFactorCode(e.target.value
+                    .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
+                    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))))}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={busy || !twoFactorCode.trim()}
+                className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+              >
+                {busy ? copy.verifying : copy.verify}
+              </button>
+
+              <p className="mt-5 text-center text-sm">
+                <button
+                  type="button"
+                  className="font-medium text-primary hover:underline"
+                  onClick={() => { setChallenge(null); show("signin"); }}
+                >
+                  {copy.backToSignIn}
+                </button>
+              </p>
+            </form>
+          ) : mode === "signin" ? (
             <form onSubmit={handleSignIn}>
               <h1 className="mb-5 text-center text-xl font-bold text-foreground">
                 {copy.signInTitle}

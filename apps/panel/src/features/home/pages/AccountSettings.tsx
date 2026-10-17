@@ -9,7 +9,7 @@ import { useDisplayName } from "@/shared/hooks/useDisplayName";
 import { getCurrentUser, signOut as endSession } from "@paapeli/brand/session";
 import {
   E164_PHONE_PATTERN, endServerSession, useGetMyPhoneQuery, useGetMyProfileQuery, useLogoutAllMutation,
-  useSetMyPhoneMutation, useUpdateMyProfileMutation,
+  useSavePreferencesMutation, useSetMyPhoneMutation, useUpdateMyProfileMutation,
 } from "@paapeli/api";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 import { Button } from "@/features/factory/components/ui/button";
@@ -25,6 +25,7 @@ import { useShellT } from "@/shared/i18n/shell";
 import { APP_LANGUAGES, isRTLLanguage, setAppLanguage, useAppLanguage } from "@/shared/i18n/appLanguage";
 import { cn } from "@/shared/lib/utils";
 import { PhoneSmsNote, PhoneVerification } from "@/features/home/PhoneVerification";
+import { AccountSecurity } from "@/features/home/AccountSecurity";
 
 /* The account's own settings, at /Home/account-settings.
  *
@@ -35,11 +36,11 @@ import { PhoneSmsNote, PhoneVerification } from "@/features/home/PhoneVerificati
  * What is real: the display name (GET/PUT /users/me), the email from the
  * session, the phone contact method
  * (GET/PUT /users/me/contact-methods/phone) and its verification by a texted
- * code (see PhoneVerification), dark mode, the panel language,
- * the accent colour, signing out, and signing out everywhere. Password, two
- * factor, the recovery email and the session list have no endpoint, so they
- * keep their headings and report no data rather than asserting an account is
- * protected in ways it may not be. */
+ * code (see PhoneVerification), dark mode, the panel language, the accent
+ * colour (stored on the account), the password, two-factor sign-in and the
+ * recovery email (see AccountSecurity), signing out, and signing out
+ * everywhere. The session list has no endpoint, so it reports no data rather
+ * than naming devices nobody checked. */
 
 const AVATAR_STORAGE_KEY = "paapeli.profile.avatar.";
 
@@ -220,14 +221,22 @@ export default function AccountSettings() {
     window.location.href = "/login";
   };
 
-  /* Password, two factor and the recovery email describe controls the product
-     intends to offer. None has an endpoint, so each says so rather than
-     claiming a state. */
-  const securityRows = [
-    { title: "Password", description: "Change the password you sign in with." },
-    { title: "Two factor authentication", description: "A second factor on top of your password." },
-    { title: "Recovery email", description: "Where a reset link is sent if you are locked out." },
-  ];
+  /* Save does something only when a saved field differs from what is
+     stored: the name, or a non-empty phone (the phone cannot be cleared). */
+  const nameChanged = nameSeeded && nameTrimmed !== (profileQuery.data?.displayName ?? "");
+  const phoneChanged = phoneTrimmed !== "" && phoneTrimmed !== (phoneQuery.data?.phone ?? "");
+  const dirty = nameChanged || phoneChanged;
+
+  /* The colour paints at once and is stored on the account, so it follows
+     the user to every device (PUT /users/me/preferences). */
+  const savePreferences = useSavePreferencesMutation();
+  const chooseAccent = (id: AccentId) => {
+    setAccent(id);
+    savePreferences.mutate(
+      { panelAccent: id },
+      { onError: () => toast.error(t("Could not save the panel colour to your account.")) },
+    );
+  };
 
   return (
     <div
@@ -257,7 +266,7 @@ export default function AccountSettings() {
             <LogOut className="size-4" />
             {t("Sign out")}
           </Button>
-          <Button onClick={save} disabled={setPhone.isPending || updateProfile.isPending} className="gap-2">
+          <Button onClick={save} disabled={!dirty || setPhone.isPending || updateProfile.isPending} className="gap-2">
             {(setPhone.isPending || updateProfile.isPending) && <Loader2 className="size-4 animate-spin" />}
             {t("Save changes")}
           </Button>
@@ -397,7 +406,7 @@ export default function AccountSettings() {
               <button
                 key={option.id}
                 type="button"
-                onClick={() => setAccent(option.id)}
+                onClick={() => chooseAccent(option.id)}
                 className={cn(
                   "flex h-9 items-center gap-2.5 rounded-full border px-3.5 text-sm transition-colors",
                   on ? "border-primary bg-primary/5 font-semibold text-foreground" : "border-border text-muted-foreground hover:bg-muted/40",
@@ -410,25 +419,12 @@ export default function AccountSettings() {
             );
           })}
         </div>
-        <p className="mt-2.5 text-xs text-muted-foreground">{t("Kept in this browser for now.")}</p>
+        <p className="mt-2.5 text-xs text-muted-foreground">{t("Saved to your account, so it follows you to every device.")}</p>
       </Section>
 
       {/* Sign in and security */}
       <Section icon={Shield} title={t("Sign in and security")}>
-        {securityRows.map((row) => (
-          <div
-            key={row.title}
-            className="flex flex-wrap items-center gap-4 border-b border-border py-3.5 last:border-0"
-          >
-            <div className="min-w-[180px] flex-1">
-              <div className="text-sm font-semibold text-foreground">{t(row.title)}</div>
-              <div className="text-xs text-muted-foreground">{t(row.description)}</div>
-            </div>
-            {/* No endpoint behind any of these yet, so the control says so
-                rather than opening a form that cannot save. */}
-            <span className="text-xs text-muted-foreground">—</span>
-          </div>
-        ))}
+        <AccountSecurity profile={profileQuery.data} onSignedOut={() => void signOutHere()} />
 
         <div className="mt-4 border-t border-border pt-4">
           <div className="mb-3 flex flex-wrap items-center gap-3">

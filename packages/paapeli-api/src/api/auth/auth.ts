@@ -7,8 +7,12 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
+    /** Absent when twoFactorRequired: the sign-in still owes its second factor. */
     token: string;
     tokenType?: string;
+    /** The account has two-factor on: finish with loginTwoFactor(challengeToken, code). */
+    twoFactorRequired?: boolean;
+    challengeToken?: string;
 }
 
 export interface SignupRequest {
@@ -52,6 +56,18 @@ export const authService = {
         const { data } = await napiHttpHandler.post<LoginResponse>(
             '/api/v1/aiot/auth/login',
             req,
+            { withCredentials: true },
+        );
+        return data;
+    },
+    /**
+     * The second step of a sign-in with two-factor on: the challenge from
+     * login (or Google) and a code from the authenticator or a recovery code.
+     */
+    async loginTwoFactor(challengeToken: string, code: string): Promise<LoginResponse> {
+        const { data } = await napiHttpHandler.post<LoginResponse>(
+            '/api/v1/aiot/auth/login/two-factor',
+            { challengeToken, code },
             { withCredentials: true },
         );
         return data;

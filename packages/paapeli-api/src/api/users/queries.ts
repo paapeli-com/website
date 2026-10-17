@@ -22,3 +22,13 @@ export function useGetMyPhoneQuery(enabled = true) {
             (error as { response?: { status?: number } })?.response?.status !== 404 && count < 2,
     });
 }
+
+/** A workspace's members with two-factor, and the password rule, for its settings page. */
+export function useGetWorkspaceSecuritySummaryQuery(workspaceId: string, enabled = true) {
+    return useQuery({
+        queryKey: ['workspaceSecuritySummary', workspaceId],
+        queryFn: () => usersService.getWorkspaceSecuritySummary(workspaceId),
+        enabled: enabled && !!workspaceId,
+        staleTime: 60_000,
+    });
+}

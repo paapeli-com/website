@@ -7,6 +7,7 @@ import { cn } from "@/shared/lib/utils";
 import { recordVisit } from "@/shared/lib/userHistory";
 import { resolveNavEntry } from "@/shell/nav/resolveNavEntry";
 import { Header } from "./Header";
+import { useAccountAccent } from "./useAccountAccent";
 import { SidebarContent } from "./Sidebar";
 import { factoryNav } from "@/shell/nav/factoryNav";
 import { trackNav } from "@/shell/nav/trackNav";
@@ -26,6 +27,8 @@ export function Layout() {
   const [collapsed, setCollapsed] = useState(() => window.localStorage.getItem(COLLAPSED_KEY) === "1");
 
   useEffect(() => startSessionWatch(), []);
+  // The account's panel colour, on every device it signs in on.
+  useAccountAccent();
 
   /* Home's "Recently visited" list, recorded here because this is the one
      component every in-app navigation passes through. Only pages the sidebar
