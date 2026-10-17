@@ -64,7 +64,7 @@ import {
 } from "lucide-react";
 import { useDashboards, useViewMode, dashboardDescription, DashboardItem } from "@/features/factory/hooks/useDashboards";
 import { apiErrorMessage } from "@/shared/lib/apiError";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 type Lang = "en" | "ar" | "fa";

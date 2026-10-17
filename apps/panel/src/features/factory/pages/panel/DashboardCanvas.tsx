@@ -110,7 +110,7 @@ import {
   Trash2,
   Undo2,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { TopoBackdrop } from "@/shared/components/TopoBackdrop";

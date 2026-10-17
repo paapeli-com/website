@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { History, Loader2, RotateCcw, TriangleAlert } from "lucide-react";
 import { dashboardVersionService, useListWorkspaceMembersQuery, type DashboardResponse } from "@paapeli/api";
 import { Button } from "@/features/factory/components/ui/button";

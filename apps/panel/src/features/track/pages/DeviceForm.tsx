@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { ArrowLeft, Cpu, Loader2, ScanBarcode } from "lucide-react";
 import {
   useCreateDeviceMutation,

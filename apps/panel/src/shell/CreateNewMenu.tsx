@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { Bell, LayoutGrid, MapPin, Plus, Server, Settings, Wrench, type LucideIcon } from "lucide-react";
 import { solutionPath } from "@paapeli/brand/config";
 import { cn } from "@/shared/lib/utils";

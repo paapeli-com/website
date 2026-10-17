@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { Loader2, X } from "lucide-react";
 import { getCurrentUser } from "@paapeli/brand/session";
 import { isEmailAddress, sendContactRequest } from "@/shared/lib/contactForm";

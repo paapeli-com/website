@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { BadgeCheck, CircleAlert, Loader2, MessageSquare } from "lucide-react";
 import {
   IRANIAN_MOBILE_PATTERN,
@@ -115,10 +115,12 @@ export function PhoneVerification({ stored, typed }: { stored: UserPhoneResponse
     }
   };
 
+  /* Sits under the phone input, in that field's own column, so the status and
+     the button read as part of the number they are about. */
   return (
-    <div className="flex flex-col gap-3 sm:col-span-2 lg:col-span-3">
+    <div className="flex flex-col gap-2">
       {typed !== "" && (
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {verified ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
               <BadgeCheck className="size-3.5" />
@@ -144,15 +146,15 @@ export function PhoneVerification({ stored, typed }: { stored: UserPhoneResponse
             </Button>
           )}
 
-          {!verified && unsaved && (
-            <span className="text-xs text-muted-foreground">{t("Save the number first.")}</span>
-          )}
-          {!verified && !unsaved && !iranian && (
-            <span className="text-xs text-muted-foreground">
-              {t("Text messages only go to Iranian mobile numbers (+989...).")}
-            </span>
-          )}
         </div>
+      )}
+      {typed !== "" && !verified && unsaved && (
+        <span className="text-xs text-muted-foreground">{t("Save the number first.")}</span>
+      )}
+      {typed !== "" && !verified && !unsaved && !iranian && (
+        <span className="text-xs text-muted-foreground">
+          {t("Text messages only go to Iranian mobile numbers (+989...).")}
+        </span>
       )}
 
       {pending && !verified && (
@@ -197,16 +199,23 @@ export function PhoneVerification({ stored, typed }: { stored: UserPhoneResponse
           </span>
         </div>
       )}
-
-      <InfoNote
-        title={t("About text messages")}
-        items={[
-          t("Alarm text messages only go to a verified number."),
-          t("A code is valid for 2 minutes and 5 tries. You can ask for a new one after 60 seconds, up to 5 times an hour."),
-          t("Changing the number means verifying it again."),
-          t("Text messages only go to Iranian mobile numbers (+989...)."),
-        ]}
-      />
     </div>
+  );
+}
+
+/** The rules a code and an alarm text are held to, under the profile fields. */
+export function PhoneSmsNote({ className }: { className?: string }) {
+  const t = useShellT();
+  return (
+    <InfoNote
+      className={className}
+      title={t("About text messages")}
+      items={[
+        t("Alarm text messages only go to a verified number."),
+        t("A code is valid for 2 minutes and 5 tries. You can ask for a new one after 60 seconds, up to 5 times an hour."),
+        t("Changing the number means verifying it again."),
+        t("Text messages only go to Iranian mobile numbers (+989...)."),
+      ]}
+    />
   );
 }

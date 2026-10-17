@@ -29,7 +29,7 @@ import {
   LocationTreeSkeleton,
   LocationDetailSkeleton,
 } from "@/features/factory/components/locations/LocationsSkeleton";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { queryLoad, usePageLoad } from "@/shared/hooks/usePageLoad";
 import { LoadFailed } from "@/shared/components/LoadFailed";

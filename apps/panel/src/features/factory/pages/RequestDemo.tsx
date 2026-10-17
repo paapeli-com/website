@@ -14,7 +14,7 @@ import {
 } from "@/features/factory/components/ui/select";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { Calendar, Send, Building2, Users } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 
 const FORMSPREE_ENDPOINT = "https://formspree.io/f/mnjqowpy";
 

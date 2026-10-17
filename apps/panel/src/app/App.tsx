@@ -9,6 +9,7 @@ import { BrandProvider } from "@/shell/BrandProvider";
 import { Layout } from "@/shell/Layout";
 import { RequireAuth } from "@/shell/RequireAuth";
 import { PAAPELI_API_BASE_URL } from "@/shared/config";
+import { isRTLLanguage, useAppLanguage } from "@/shared/i18n/appLanguage";
 import { Feature } from "./Feature";
 import {
   aiInferenceRoutes,
@@ -32,15 +33,20 @@ const queryClient = new QueryClient();
 setApiBaseUrl(PAAPELI_API_BASE_URL);
 setApiAuthToken(getToken());
 
+/* The one toaster, for every feature's toasts (shared/lib/toast draws each
+   card). It sits at the bottom corner the text starts from: right in English,
+   left in Persian and Arabic. */
+function AppToaster() {
+  const rtl = isRTLLanguage(useAppLanguage());
+  return <Toaster position={rtl ? "bottom-left" : "bottom-right"} dir={rtl ? "rtl" : "ltr"} gap={10} />;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrandProvider>
         <BrowserRouter>
-          {/* Bottom-right, which is also where the factory feature's own
-              shadcn toaster sits (sm:bottom-0 sm:right-0), so the two
-              systems no longer pop up at opposite ends of the screen. */}
-          <Toaster richColors position="bottom-right" />
+          <AppToaster />
           <Routes>
             {/* A dashboard opened through a share link. Outside RequireAuth
                 and the shell on purpose: its visitor has no account. */}

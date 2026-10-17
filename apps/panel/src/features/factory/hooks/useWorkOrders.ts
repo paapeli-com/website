@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import {
   useListWorkspaceMembersQuery,
   workOrderService,

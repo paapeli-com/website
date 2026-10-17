@@ -7,7 +7,7 @@ import { Textarea } from "@/features/factory/components/ui/textarea";
 import { Label } from "@/features/factory/components/ui/label";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { Mail, Phone, MapPin, Send } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 
 const Contact = () => {
   const { t, isRTL } = useLanguage();

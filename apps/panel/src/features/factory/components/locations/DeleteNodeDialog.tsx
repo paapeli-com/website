@@ -10,7 +10,7 @@ import {
   AlertDialogTitle,
 } from "@/features/factory/components/ui/alert-dialog";
 import { useDeleteAssetMutation } from "@paapeli/api";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 
 interface DeleteNodeDialogProps {

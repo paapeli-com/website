@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { Circle, Hexagon, Loader2, Pencil, Plus, Radar, RectangleHorizontal, Trash2, Undo2 } from "lucide-react";
 import {
   useDeleteDeviceZoneMutation,

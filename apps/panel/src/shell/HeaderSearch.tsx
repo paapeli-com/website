@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { AlertTriangle, Search } from "lucide-react";
 import { useShellT } from "@/shared/i18n/shell";
 

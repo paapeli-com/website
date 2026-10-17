@@ -11,7 +11,7 @@ import { Button } from "@/features/factory/components/ui/button";
 import { Input } from "@/features/factory/components/ui/input";
 import { Label } from "@/features/factory/components/ui/label";
 import { useUpdateAssetMutation } from "@paapeli/api";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 
 interface EditLabelDialogProps {

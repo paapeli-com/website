@@ -1,4 +1,4 @@
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { useLanguage } from "@/features/track/i18n/LanguageContext";
 import { useBrand } from "@/shell/BrandProvider";
 

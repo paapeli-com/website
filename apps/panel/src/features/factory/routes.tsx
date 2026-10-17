@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { SecretVirtualFleet } from "@/features/factory/hooks/useSecretVirtualFleet";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useCreateProductMutation } from "@paapeli/api";
-import { Toaster } from "@/features/factory/components/ui/toaster";
 import { TooltipProvider } from "@/features/factory/components/ui/tooltip";
 import { LanguageProvider } from "@/features/factory/contexts/LanguageContext";
 import { ProtectedRoute } from "@/features/factory/components/ProtectedRoute";
@@ -71,9 +70,9 @@ import WorkOrderDetails from "./pages/panel/WorkOrderDetails";
    This module is the feature's lazy chunk boundary (see src/app/features.ts).
    Auth, the API client, the query client and sonner's toaster are owned by the
    app shell now — when this was a Module Federation remote it had to set up
-   its own copy of each, because it was a separate bundle. The <Toaster /> kept
-   below is shadcn's (driven by this feature's own useToast hook), which is a
-   different system from the shell's sonner toaster.
+   its own copy of each, because it was a separate bundle. Its useToast hook
+   now draws through the shell's one toast (shared/lib/toast), so it mounts no
+   toaster of its own.
 
    `relative="path"` + ".." drops exactly one URL segment, so "/home" → the
    solution root and "/fa/home" → "/fa". An absolute "/" would instead resolve
@@ -95,7 +94,6 @@ export default function FactoryRoutes() {
   return (
     <LanguageProvider>
       <TooltipProvider>
-        <Toaster />
         <SecretVirtualFleet />
         {/* data-panel-headings: headings keep the size they were written at
             in every language (see index.css). `contents` keeps this wrapper

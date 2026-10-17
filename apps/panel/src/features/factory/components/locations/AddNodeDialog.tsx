@@ -19,7 +19,7 @@ import {
 } from "@/features/factory/components/ui/select";
 import { useCreateAssetChildMutation } from "@paapeli/api";
 import { useAllowedChildTypes } from "@/features/factory/hooks/useAllowedChildTypes";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 
 interface AddNodeDialogProps {

@@ -4,7 +4,7 @@ import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useAuth } from "@/features/factory/store/authStore";
 import { CognitoUserPool, CognitoUser } from 'amazon-cognito-identity-js';
 import paapeliLogo from "@/features/factory/assets/paapeli-logo.svg";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 
 const REGION = 'me-central-1';
 const USER_POOL_ID = 'me-central-1_WCBtB2Rc0';

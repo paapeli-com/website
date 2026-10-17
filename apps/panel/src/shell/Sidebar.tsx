@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import type { NavItem, NavSection } from "@/shell/nav/types";

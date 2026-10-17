@@ -1,5 +1,5 @@
 import { Check, Cpu, Loader2, Plus } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { PRODUCTS } from "@paapeli/brand/config";
 import {
   useListWorkspaceProductsQuery,

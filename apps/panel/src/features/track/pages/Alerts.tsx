@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { AlertTriangle, CheckCheck, Info, Siren, type LucideIcon } from "lucide-react";
 import { useAlarmActions, type AlarmAction } from "@/shared/hooks/useAlarmActions";
 import { useLanguage } from "@/features/track/i18n/LanguageContext";

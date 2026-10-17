@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { Bell, Building2, Check, LogOut, Menu, Moon, Plus, Search, Settings as SettingsIcon, Sun } from "lucide-react";
 import paapeliLogo from "@paapeli/brand/logo.svg";
 import paapeliLogoDark from "@paapeli/brand/logo-dark.svg";

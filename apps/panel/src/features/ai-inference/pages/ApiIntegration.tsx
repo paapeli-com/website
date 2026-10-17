@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { Copy, Info, Key, Plus, Shield } from "lucide-react";
 import { Button } from "@/features/factory/components/ui/button";
 import { centralApiKeysPath } from "@/shell/nav/aiInferenceNav";

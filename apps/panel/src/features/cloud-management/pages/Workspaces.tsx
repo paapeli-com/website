@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { useNavigate } from "react-router-dom";
 import { Building2, Check, Loader2, Plus, UserPlus } from "lucide-react";
 import { useCreateWorkspaceMutation, useListWorkspaceProductsQuery } from "@paapeli/api";

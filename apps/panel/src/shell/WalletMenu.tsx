@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { ArrowLeftRight, CreditCard, FileText, Gauge, Gift, Plus, Settings } from "lucide-react";
 import { useDisplayName } from "@/shared/hooks/useDisplayName";
 import { localizeDigits, useAppLanguage } from "@/shared/i18n/appLanguage";

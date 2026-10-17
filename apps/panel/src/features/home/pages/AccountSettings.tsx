@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import {
   Camera, Check, ChevronRight, Loader2, LogOut, Mail, Monitor, Paintbrush,
   Palette, Phone, Shield, User as UserIcon,
@@ -24,7 +24,7 @@ import { useBrand, type AccentId } from "@/shell/BrandProvider";
 import { useShellT } from "@/shared/i18n/shell";
 import { APP_LANGUAGES, isRTLLanguage, setAppLanguage, useAppLanguage } from "@/shared/i18n/appLanguage";
 import { cn } from "@/shared/lib/utils";
-import { PhoneVerification } from "@/features/home/PhoneVerification";
+import { PhoneSmsNote, PhoneVerification } from "@/features/home/PhoneVerification";
 
 /* The account's own settings, at /Home/account-settings.
  *
@@ -331,20 +331,25 @@ export default function AccountSettings() {
           <Field icon={Mail} label={t("Email")}>
             <Input value={email} dir="ltr" disabled className="bg-muted" />
           </Field>
-          <Field
-            icon={Phone}
-            label={t("Phone")}
-            hint={t("International format with the country code, for example +989121234567.")}
-          >
-            <Input
-              value={phoneInput}
-              dir="ltr"
-              onChange={(e) => setPhoneInput(e.target.value)}
-              placeholder="+989121234567"
-              className={cn(phoneInvalid && "border-destructive")}
-            />
-          </Field>
-          <PhoneVerification stored={phoneQuery.data} typed={phoneTrimmed} />
+          {/* The phone and its verification share one column, so the badge
+              and the button sit right under the number they are about. */}
+          <div className="flex flex-col gap-2">
+            <Field
+              icon={Phone}
+              label={t("Phone")}
+              hint={t("International format with the country code, for example +989121234567.")}
+            >
+              <Input
+                value={phoneInput}
+                dir="ltr"
+                onChange={(e) => setPhoneInput(e.target.value)}
+                placeholder="+989121234567"
+                className={cn(phoneInvalid && "border-destructive")}
+              />
+            </Field>
+            <PhoneVerification stored={phoneQuery.data} typed={phoneTrimmed} />
+          </div>
+          <PhoneSmsNote className="sm:col-span-2 lg:col-span-3" />
         </div>
       </section>
 

@@ -60,7 +60,7 @@ import {
   valueToTimeZone,
 } from "@/features/factory/lib/dashboardSettings";
 import { apiErrorMessage } from "@/shared/lib/apiError";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 type Lang = "en" | "ar" | "fa";

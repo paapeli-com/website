@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { Button, Card, NoDataValue, PageHeader, SettingRow, Tabs } from "@/features/cloud-management/ui";
 import { useShellT } from "@/shared/i18n/shell";
 import { useAppLanguage } from "@/shared/i18n/appLanguage";

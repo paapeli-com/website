@@ -21,7 +21,7 @@ import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { DEFAULT_DASHBOARD_SETTINGS } from "@/features/factory/lib/dashboardSettings";
 import { apiErrorMessage } from "@/shared/lib/apiError";
-import { toast } from "sonner";
+import { toast } from "@/shared/lib/toast";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 
 type Lang = "en" | "ar" | "fa";
