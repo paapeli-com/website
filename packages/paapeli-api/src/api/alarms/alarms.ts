@@ -27,8 +27,62 @@ export interface WorkspaceAlarmItem {
     assetName?: string;
     /** ISO date-time. */
     createdAt: string;
+    /** ISO date-time of the first recorded acknowledgement, or null. */
+    acknowledgedAt?: string | null;
+    /** ISO date-time of the first recorded clear, or null. */
+    clearedAt?: string | null;
     /** Always null until the server implements alarm assignment. */
     assignedTo: AlarmAssignee | null;
+}
+
+/** ThingsBoard's severities, as the analytics endpoint keys them. */
+export type AlarmAnalyticsSeverity = 'CRITICAL' | 'MAJOR' | 'MINOR' | 'WARNING' | 'INDETERMINATE';
+
+/**
+ * GET /alarms/{ws}/{pk}/analytics: the alarms raised in [from, to), all
+ * aggregated on the server. openAlarms ignores the window.
+ */
+export interface AlarmAnalytics {
+    from: string;
+    to: string;
+    timeZone: string;
+    bucket: 'HOUR' | 'DAY' | 'WEEK';
+    summary: {
+        total: number;
+        critical: number;
+        acknowledged: number;
+        cleared: number;
+        /** Null when no alarm in the window has a recorded acknowledgement. */
+        mttaSeconds: number | null;
+        /** Null when no alarm in the window has a recorded clear. */
+        mttrSeconds: number | null;
+    };
+    openAlarms: {
+        total: number;
+        unacknowledged: number;
+        underOneHour: number;
+        oneHourToOneDay: number;
+        oneDayToOneWeek: number;
+        overOneWeek: number;
+    };
+    /** One point per bucket, empty buckets included. */
+    timeline: { start: string; total: number; bySeverity: Record<string, number> }[];
+    bySeverity: { severity: string; count: number }[];
+    /** A null assetId gathers devices without an asset. */
+    byLocation: { assetId: string | null; assetName: string | null; count: number }[];
+    topDevices: { deviceId: string | null; deviceName: string | null; count: number; criticalCount: number }[];
+    topRules: { alarmName: string; count: number; deviceCount: number }[];
+}
+
+export interface AlarmAnalyticsParams {
+    /** ISO date-time; defaults to seven days before `to`. */
+    from?: string;
+    /** ISO date-time; defaults to now. */
+    to?: string;
+    /** IANA zone for bucket boundaries; defaults to UTC. */
+    timeZone?: string;
+    /** Rows per top list, 1-50; defaults to 10. */
+    limit?: number;
 }
 
 export type RuleOperator = 'GT' | 'LT' | 'EQ' | 'NEQ' | 'GTE' | 'LTE';
@@ -169,6 +223,18 @@ export const alarmService = {
         const { data } = await napiHttpHandler.get<PageResponse<WorkspaceAlarmItem>>(
             `/api/v1/aiot/alarms/${workspaceId}/${productKey}`,
             { page, size },
+        );
+        return data;
+    },
+    /** Totals, MTTA/MTTR, a timeline and top lists, aggregated on the server. */
+    async getAlarmAnalytics(
+        workspaceId: string,
+        productKey: string,
+        params: AlarmAnalyticsParams = {},
+    ): Promise<AlarmAnalytics> {
+        const { data } = await napiHttpHandler.get<AlarmAnalytics>(
+            `/api/v1/aiot/alarms/${workspaceId}/${productKey}/analytics`,
+            { ...params },
         );
         return data;
     },

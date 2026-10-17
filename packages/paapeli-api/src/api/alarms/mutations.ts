@@ -55,6 +55,7 @@ export function useAckAlarmMutation() {
         onSuccess: (_data, { workspaceId, productKey, deviceId }) => {
             queryClient.invalidateQueries({ queryKey: ['deviceAlarms', workspaceId, productKey, deviceId] });
             queryClient.invalidateQueries({ queryKey: ['workspaceAlarms', workspaceId, productKey] });
+            queryClient.invalidateQueries({ queryKey: ['alarmAnalytics', workspaceId, productKey] });
         },
     });
 }
@@ -77,6 +78,7 @@ export function useClearAlarmMutation() {
         onSuccess: (_data, { workspaceId, productKey, deviceId }) => {
             queryClient.invalidateQueries({ queryKey: ['deviceAlarms', workspaceId, productKey, deviceId] });
             queryClient.invalidateQueries({ queryKey: ['workspaceAlarms', workspaceId, productKey] });
+            queryClient.invalidateQueries({ queryKey: ['alarmAnalytics', workspaceId, productKey] });
         },
     });
 }

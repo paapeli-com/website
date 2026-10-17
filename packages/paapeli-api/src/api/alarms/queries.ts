@@ -1,5 +1,10 @@
-import { useQueries, useQuery } from '@tanstack/react-query';
-import { alarmService, type AlarmEscalationChain, type WorkspaceAlarmItem } from './alarms';
+import { keepPreviousData, useQueries, useQuery } from '@tanstack/react-query';
+import {
+    alarmService,
+    type AlarmAnalyticsParams,
+    type AlarmEscalationChain,
+    type WorkspaceAlarmItem,
+} from './alarms';
 
 /**
  * The escalation chain of each given alarm rule, one query per rule. A rule
@@ -75,6 +80,26 @@ export function useGetWorkspaceAlarmsQueries(
             queryFn: () => fetchAllWorkspaceAlarms(workspaceId, productKey),
             enabled: enabled && !!workspaceId && !!productKey,
         })),
+    });
+}
+
+/**
+ * Alarm analytics for one window. Keyed ['alarmAnalytics', ws, pk, params],
+ * which the ack/clear mutations invalidate. Changing the window keeps the
+ * previous figures on screen until the new ones arrive.
+ */
+export function useGetAlarmAnalyticsQuery(
+    workspaceId: string,
+    productKey: string,
+    params: AlarmAnalyticsParams,
+    enabled = true,
+) {
+    return useQuery({
+        queryKey: ['alarmAnalytics', workspaceId, productKey, params],
+        queryFn: () => alarmService.getAlarmAnalytics(workspaceId, productKey, params),
+        enabled: enabled && !!workspaceId && !!productKey,
+        placeholderData: keepPreviousData,
+        staleTime: 60_000,
     });
 }
 

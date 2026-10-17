@@ -3847,7 +3847,7 @@
       "get": {
         "tags": ["Alarms"],
         "summary": "List workspace-product alarms",
-        "description": "Returns the locally recorded alarms for every device in the\nauthorized workspace product. Current status is derived from\nALARM_TRIGGERED, ALARM_ACKNOWLEDGED, and ALARM_CLEARED\nactivities. Assignment is reserved in the response and is\nnull until alarm assignment is implemented.\n",
+        "description": "Returns the locally recorded alarms for every device in the\nauthorized workspace product. Current status is derived from\nALARM_TRIGGERED, ALARM_ACKNOWLEDGED, and ALARM_CLEARED\nactivities. acknowledgedAt and clearedAt are the times of the\nfirst recorded ALARM_ACKNOWLEDGED and ALARM_CLEARED, and are\nnull when none was recorded, even if the status reported by\nThingsBoard says otherwise. Assignment is reserved in the\nresponse and is null until alarm assignment is implemented.\n",
         "operationId": "getWorkspaceProductAlarms",
         "parameters": [
           {
@@ -3884,6 +3884,8 @@
                       "assetId": "7bc846ea-08fe-4c43-a53e-3d7ae31c8177",
                       "assetName": "Tehran Fleet",
                       "createdAt": "2026-09-14T16:34:50Z",
+                      "acknowledgedAt": "2026-09-14T16:51:02Z",
+                      "clearedAt": null,
                       "assignedTo": null
                     }
                   ],
@@ -3903,6 +3905,106 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/alarms/{workspaceId}/{productKey}/analytics": {
+      "get": {
+        "tags": ["Alarms"],
+        "summary": "Workspace-product alarm analytics",
+        "description": "Aggregates the alarms the authorized workspace product raised\nin [from, to): totals, MTTA and MTTR, a timeline split by\nseverity, counts by severity, and the locations, devices and\nrules raising the most alarms. openAlarms ignores the window\nand covers every alarm not cleared yet, grouped by age.\nEverything is computed in the database from local alarm\nactivities, so the response size does not grow with the\nnumber of alarms and no ThingsBoard call is made.\n\nfrom defaults to seven days before to, and to defaults to\nnow; the window may span at most 366 days. The timeline is\nbucketed by hour up to three days, by day up to 92 days, and\nby ISO week beyond that, with bucket boundaries in timeZone.\nEmpty buckets are included as zero. MTTA and MTTR average\nonly alarms with a recorded acknowledgement or clear, and\nare null when there are none. Severity keys are\nThingsBoard's: CRITICAL, MAJOR, MINOR, WARNING,\nINDETERMINATE.\n",
+        "operationId": "analyze",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Inclusive window start, ISO-8601. Defaults to seven days before to.",
+            "required": false,
+            "schema": { "type": "string", "format": "date-time" },
+            "example": "2026-10-10T00:00:00Z"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Exclusive window end, ISO-8601. Defaults to now.",
+            "required": false,
+            "schema": { "type": "string", "format": "date-time" },
+            "example": "2026-10-17T00:00:00Z"
+          },
+          {
+            "name": "timeZone",
+            "in": "query",
+            "description": "IANA time zone for timeline bucket boundaries. Defaults to UTC.",
+            "required": false,
+            "schema": { "type": "string" },
+            "example": "Asia/Tehran"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Rows in each top list, clamped to 1 through 50. Defaults to 10.",
+            "required": false,
+            "schema": { "type": "integer", "format": "int32" },
+            "example": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Alarm analytics returned",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AlarmAnalyticsResponse" },
+                "example": {
+                  "from": "2026-10-10T00:00:00Z",
+                  "to": "2026-10-17T00:00:00Z",
+                  "timeZone": "Asia/Tehran",
+                  "bucket": "DAY",
+                  "summary": {
+                    "total": 42,
+                    "critical": 9,
+                    "acknowledged": 30,
+                    "cleared": 21,
+                    "mttaSeconds": 1260.5,
+                    "mttrSeconds": 15840.0
+                  },
+                  "openAlarms": {
+                    "total": 21,
+                    "unacknowledged": 8,
+                    "underOneHour": 2,
+                    "oneHourToOneDay": 5,
+                    "oneDayToOneWeek": 10,
+                    "overOneWeek": 4
+                  },
+                  "timeline": [
+                    {
+                      "start": "2026-10-09T20:30:00Z",
+                      "total": 6,
+                      "bySeverity": { "CRITICAL": 1, "MAJOR": 3, "MINOR": 2, "WARNING": 0, "INDETERMINATE": 0 }
+                    }
+                  ],
+                  "bySeverity": [
+                    { "severity": "CRITICAL", "count": 9 },
+                    { "severity": "MAJOR", "count": 20 }
+                  ],
+                  "byLocation": [
+                    { "assetId": "7bc846ea-08fe-4c43-a53e-3d7ae31c8177", "assetName": "Line 2", "count": 18 }
+                  ],
+                  "topDevices": [
+                    { "deviceId": "2ce7b35c-e5dc-47f7-8f17-626501507503", "deviceName": "pump-p101", "count": 14, "criticalCount": 6 }
+                  ],
+                  "topRules": [
+                    { "alarmName": "Pump P-101 critical vibration", "count": 12, "deviceCount": 1 }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed parameters, from not before to, a window over 366 days, or an unknown time zone"
+          },
+          "403": {
+            "description": "READ product access required"
           }
         }
       }
@@ -7194,7 +7296,98 @@
           "assetId": { "type": "string", "format": "uuid" },
           "assetName": { "type": "string" },
           "createdAt": { "type": "string", "format": "date-time" },
+          "acknowledgedAt": { "type": "string", "format": "date-time", "nullable": true },
+          "clearedAt": { "type": "string", "format": "date-time", "nullable": true },
           "assignedTo": { "$ref": "#/components/schemas/Assignee" }
+        }
+      },
+      "AlarmAnalyticsResponse": {
+        "type": "object",
+        "properties": {
+          "from": { "type": "string", "format": "date-time" },
+          "to": { "type": "string", "format": "date-time" },
+          "timeZone": { "type": "string" },
+          "bucket": { "type": "string", "enum": ["HOUR", "DAY", "WEEK"] },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "total": { "type": "integer", "format": "int64" },
+              "critical": { "type": "integer", "format": "int64" },
+              "acknowledged": { "type": "integer", "format": "int64" },
+              "cleared": { "type": "integer", "format": "int64" },
+              "mttaSeconds": { "type": "number", "format": "double", "nullable": true },
+              "mttrSeconds": { "type": "number", "format": "double", "nullable": true }
+            }
+          },
+          "openAlarms": {
+            "type": "object",
+            "properties": {
+              "total": { "type": "integer", "format": "int64" },
+              "unacknowledged": { "type": "integer", "format": "int64" },
+              "underOneHour": { "type": "integer", "format": "int64" },
+              "oneHourToOneDay": { "type": "integer", "format": "int64" },
+              "oneDayToOneWeek": { "type": "integer", "format": "int64" },
+              "overOneWeek": { "type": "integer", "format": "int64" }
+            }
+          },
+          "timeline": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "start": { "type": "string", "format": "date-time" },
+                "total": { "type": "integer", "format": "int64" },
+                "bySeverity": {
+                  "type": "object",
+                  "additionalProperties": { "type": "integer", "format": "int64" }
+                }
+              }
+            }
+          },
+          "bySeverity": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "severity": { "type": "string" },
+                "count": { "type": "integer", "format": "int64" }
+              }
+            }
+          },
+          "byLocation": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "assetId": { "type": "string", "format": "uuid", "nullable": true },
+                "assetName": { "type": "string", "nullable": true },
+                "count": { "type": "integer", "format": "int64" }
+              }
+            }
+          },
+          "topDevices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "deviceId": { "type": "string", "format": "uuid", "nullable": true },
+                "deviceName": { "type": "string", "nullable": true },
+                "count": { "type": "integer", "format": "int64" },
+                "criticalCount": { "type": "integer", "format": "int64" }
+              }
+            }
+          },
+          "topRules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "alarmName": { "type": "string" },
+                "count": { "type": "integer", "format": "int64" },
+                "deviceCount": { "type": "integer", "format": "int64" }
+              }
+            }
+          }
         }
       },
       "AlarmRuleItem": {

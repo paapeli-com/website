@@ -104,11 +104,12 @@ const formatElapsed = (ms: number) => {
 
 /* Each alarm carries its own device and asset. `locationPath` is the asset's
    full breadcrumb from the asset tree, when it has loaded; otherwise the bare
-   asset name stands in. The API gives no clear time, so a resolved alarm has
-   no duration. */
+   asset name stands in. A cleared alarm lasted until its clear; one cleared
+   without a recorded time has no duration. */
 const toAlert = (a: WorkspaceAlarmItem, locationPath: string | undefined): Alert => {
   const status = toStatus(a.status);
   const created = new Date(a.createdAt).getTime();
+  const cleared = a.clearedAt ? new Date(a.clearedAt).getTime() : null;
   return {
     id: a.id,
     ruleId: "",
@@ -122,7 +123,11 @@ const toAlert = (a: WorkspaceAlarmItem, locationPath: string | undefined): Alert
     assignedTo: a.assignedTo?.displayName || a.assignedTo?.email || undefined,
     triggerCondition: "",
     startTime: new Date(created).toISOString(),
-    duration: status === "resolved" ? "" : formatElapsed(Date.now() - created),
+    duration: status !== "resolved"
+      ? formatElapsed(Date.now() - created)
+      : cleared !== null ? formatElapsed(cleared - created) : "",
+    acknowledgedAt: a.acknowledgedAt ?? undefined,
+    resolvedAt: a.clearedAt ?? undefined,
     notes: [],
   };
 };
