@@ -86,6 +86,7 @@ const WORK_ORDER_HEADLINE: Record<NotificationResponse["type"], string> = {
   ALARM_ESCALATED: "An alarm was escalated to you",
   OTA_DEPLOYMENT_COMPLETED: "A firmware update finished",
   OTA_DEPLOYMENT_FAILED: "A firmware update failed",
+  SMS_DAILY_LIMIT_REACHED: "Today's alarm text limit was reached",
 };
 
 const STATUS_PHRASE: Record<string, string> = {
@@ -124,17 +125,21 @@ const fromServer = (
     : n.detail ?? "";
   const escalated = n.type === "ALARM_ESCALATED";
   const firmware = n.type === "OTA_DEPLOYMENT_COMPLETED" || n.type === "OTA_DEPLOYMENT_FAILED";
+  // The daily SMS limit: detail is the limit; until tomorrow, alerts arrive here.
+  const smsLimit = n.type === "SMS_DAILY_LIMIT_REACHED";
   return {
     id: n.id,
-    category: escalated ? "alarm" : firmware ? "system" : "workOrder",
-    tone: n.type === "OTA_DEPLOYMENT_FAILED" ? "warning" : priorityTone(n.priority),
+    category: escalated || smsLimit ? "alarm" : firmware ? "system" : "workOrder",
+    tone: n.type === "OTA_DEPLOYMENT_FAILED" || smsLimit ? "warning" : priorityTone(n.priority),
     title: t(WORK_ORDER_HEADLINE[n.type] ?? "Work Orders"),
-    source: detail ? `${n.title} · ${detail}` : n.title,
+    source: smsLimit
+      ? t("Alarm escalations reach members in the panel until tomorrow.")
+      : detail ? `${n.title} · ${detail}` : n.title,
     time: timeAgo(n.createdAt, lang),
     at: new Date(n.createdAt).getTime() || 0,
     unread: !n.read,
     productKey: n.productKey,
-    path: escalated ? alarmsPath(n.productKey)
+    path: escalated || smsLimit ? alarmsPath(n.productKey)
       : firmware ? deploymentsPath(n.productKey)
       : workOrderPath(n.productKey, n.workOrderId),
   };

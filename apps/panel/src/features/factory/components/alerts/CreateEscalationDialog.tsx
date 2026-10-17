@@ -18,12 +18,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from "@/features/factory/components/ui/badge";
 import { Plus, X } from "lucide-react";
 import { useToast } from "@/features/factory/hooks/use-toast";
+import { SmsRulesNote } from "@/features/factory/components/alerts/SmsRulesNote";
 
 /* One step of the chain: whom to tell, how, and how long to wait before telling them. */
 interface EscalationLevel {
   level: number;
   userId: string;
-  /** How the person is told: in the panel, or by a phone call. */
+  /** How the person is told: in the panel, or by a text message. */
   channel: EscalationActionType;
   /** "" while the field is cleared mid-edit; saved as 0. */
   delayMinutes: number | "";
@@ -33,8 +34,14 @@ interface EscalationLevel {
 const DEFAULT_CHANNEL: EscalationActionType = "IN_APP";
 const CHANNEL_LABEL: Record<EscalationActionType, string> = {
   IN_APP: "escalationChannelInApp",
+  SMS: "escalationChannelSms",
   CALL: "escalationChannelCall",
 };
+/* Phone calls are not offered for now: nothing places them, and the gateway
+   refuses a new chain with one. A loaded step that still says CALL opens as
+   in-app, so saving the chain does not fail on it. */
+const offeredChannel = (channel: EscalationActionType | undefined): EscalationActionType =>
+  channel === "SMS" ? "SMS" : DEFAULT_CHANNEL;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -113,7 +120,7 @@ export const CreateEscalationDialog = ({ open, onOpenChange, inline, hideActions
       setLevels(steps.map((s, i) => ({
         level: i + 1,
         userId: s.actions?.[0]?.userId ?? currentUserId,
-        channel: s.actions?.[0]?.actionType ?? DEFAULT_CHANNEL,
+        channel: offeredChannel(s.actions?.[0]?.actionType),
         delayMinutes: Math.round((s.delaySeconds ?? 0) / 60),
       })));
       setSlaMinutes(String(Math.round(steps.reduce((sum, s) => sum + (s.delaySeconds ?? 0), 0) / 60)));
@@ -291,7 +298,7 @@ export const CreateEscalationDialog = ({ open, onOpenChange, inline, hideActions
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="IN_APP">{tt(CHANNEL_LABEL.IN_APP)}</SelectItem>
-                      <SelectItem value="CALL">{tt(CHANNEL_LABEL.CALL)}</SelectItem>
+                      <SelectItem value="SMS">{tt(CHANNEL_LABEL.SMS)}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -322,6 +329,9 @@ export const CreateEscalationDialog = ({ open, onOpenChange, inline, hideActions
               </div>
             ))}
           </div>
+
+          {/* The rules a text is held to, shown as soon as a step uses one. */}
+          {levels.some((l) => l.channel === "SMS") && <SmsRulesNote />}
 
           {/* Summary */}
           <div className="bg-muted/50 p-3 rounded-lg space-y-2">

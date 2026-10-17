@@ -30,6 +30,27 @@ const asText = (value: unknown): string | undefined => {
  * translated generic message as the fallback so an offline or non-HTTP failure
  * (where there is no response body) still reads sensibly.
  */
+/**
+ * The problem's machine-readable `code` and the extra fields some refusals
+ * carry, for callers that answer each refusal differently.
+ */
+export function apiProblem(error: unknown): {
+  status?: number;
+  code?: string;
+  retryAfterSeconds?: number;
+  attemptsLeft?: number;
+} {
+  const response = (error as { response?: { status?: number; data?: Record<string, unknown> } })?.response;
+  const data = response?.data ?? {};
+  const num = (value: unknown) => (typeof value === "number" ? value : undefined);
+  return {
+    status: response?.status,
+    code: asText(data.code),
+    retryAfterSeconds: num(data.retryAfterSeconds),
+    attemptsLeft: num(data.attemptsLeft),
+  };
+}
+
 export function apiErrorMessage(error: unknown, fallback: string): string {
   const data = (error as { response?: { data?: ProblemDetail } })?.response?.data;
   if (!data) return fallback;

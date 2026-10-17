@@ -64,6 +64,89 @@
     }
   ],
   "paths": {
+    "/api/v1/aiot/users/me/contact-methods/phone/verification": {
+      "post": {
+        "tags": ["User contact methods"],
+        "summary": "Text a verification code to my phone",
+        "description": "Sends a six-digit code to the saved phone, which must be an\nIranian mobile (+989...). The code is good for two minutes\nand five tries. A new code may be asked for 60 seconds after\nthe last, and a number gets at most five codes an hour. Only\na verified number is ever sent an alarm.\n\nA refusal is a problem response whose code says why:\nPHONE_NOT_SET and ALREADY_VERIFIED (409), UNSUPPORTED_NUMBER\n(400), RESEND_TOO_SOON and HOURLY_LIMIT (429, with\nretryAfterSeconds), SMS_UNAVAILABLE (503).\n\nsandboxCode carries the code itself only while the gateway\nruns on an sms.ir Sandbox key, which sends nothing.\n",
+        "operationId": "sendVerificationCode",
+        "responses": {
+          "200": {
+            "description": "Code sent",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PhoneVerificationResponse" },
+                "example": {
+                  "phone": "+989121234567",
+                  "expiresAt": "2026-10-17T10:02:00Z",
+                  "resendAvailableAt": "2026-10-17T10:01:00Z",
+                  "sandboxCode": null
+                }
+              }
+            }
+          },
+          "400": { "description": "Not an Iranian mobile number" },
+          "409": { "description": "No phone saved, or it is already verified" },
+          "429": { "description": "Asked again too soon, or five codes this hour" },
+          "503": { "description": "Text messages are not set up, or sms.ir refused" }
+        }
+      }
+    },
+    "/api/v1/aiot/users/me/contact-methods/phone/verification/confirm": {
+      "post": {
+        "tags": ["User contact methods"],
+        "summary": "Confirm my phone with the texted code",
+        "description": "A right code marks the phone verified. A wrong one is a 400\nwith code CODE_INVALID and attemptsLeft; the fifth wrong one\nspends the code (429, TOO_MANY_ATTEMPTS). An expired code, or\none sent to a number since changed, is CODE_EXPIRED; no code\nat all is NO_PENDING_CODE.\n",
+        "operationId": "confirmVerificationCode",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PhoneVerificationConfirmRequest" },
+              "example": { "code": "482913" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Phone verified",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/UserPhoneResponse" } }
+            }
+          },
+          "400": { "description": "Wrong, expired or missing code" },
+          "409": { "description": "No phone saved" },
+          "429": { "description": "Too many wrong codes" }
+        }
+      }
+    },
+    "/api/v1/aiot/sms/{workspaceId}/{productKey}/usage": {
+      "get": {
+        "tags": ["SMS"],
+        "summary": "Alarm text usage",
+        "description": "How many alarm texts the workspace has sent today and in the\nlast 30 days, across all its products, with the limits they\nare held to. A text goes only to a verified phone, at most\nonce per member, rule and device in cooldownMinutes, and no\nmore than dailyLimit a day for the workspace; past that,\nescalations reach people in the panel and owners and admins\nare told once. \"Today\" starts at midnight Asia/Tehran.\n",
+        "operationId": "usage",
+        "responses": {
+          "200": {
+            "description": "Usage returned",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SmsUsageResponse" },
+                "example": {
+                  "available": true,
+                  "sandbox": false,
+                  "sentToday": 12,
+                  "sentLast30Days": 214,
+                  "dailyLimit": 100,
+                  "cooldownMinutes": 30
+                }
+              }
+            }
+          },
+          "403": { "description": "READ product access required" }
+        }
+      }
+    },
     "/api/v1/aiot/users/me/contact-methods/phone": {
       "get": {
         "tags": ["User contact methods"],
@@ -1372,7 +1455,7 @@
                     "delaySeconds": 0,
                     "actions": [
                       {
-                        "actionType": "CALL",
+                        "actionType": "IN_APP",
                         "userId": "d26cb81c-7861-4e41-8a6e-e98e70449336"
                       }
                     ]
@@ -1381,7 +1464,7 @@
                     "delaySeconds": 300,
                     "actions": [
                       {
-                        "actionType": "CALL",
+                        "actionType": "SMS",
                         "userId": "18ce6118-24c3-49e9-b564-289d5807fb55"
                       }
                     ]
@@ -6074,7 +6157,36 @@
         "properties": {
           "phone": { "type": "string" },
           "enabled": { "type": "boolean" },
-          "updatedAt": { "type": "string", "format": "date-time" }
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "verified": { "type": "boolean", "description": "Proved by a texted code; only a verified number is texted an alarm. A changed number is unverified again." },
+          "verifiedAt": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "PhoneVerificationResponse": {
+        "type": "object",
+        "properties": {
+          "phone": { "type": "string" },
+          "expiresAt": { "type": "string", "format": "date-time" },
+          "resendAvailableAt": { "type": "string", "format": "date-time" },
+          "sandboxCode": { "type": "string", "nullable": true, "description": "The code itself, only on an sms.ir Sandbox key, which sends nothing." }
+        }
+      },
+      "PhoneVerificationConfirmRequest": {
+        "type": "object",
+        "required": ["code"],
+        "properties": {
+          "code": { "type": "string", "pattern": "^[0-9]{6}$" }
+        }
+      },
+      "SmsUsageResponse": {
+        "type": "object",
+        "properties": {
+          "available": { "type": "boolean" },
+          "sandbox": { "type": "boolean" },
+          "sentToday": { "type": "integer", "format": "int64" },
+          "sentLast30Days": { "type": "integer", "format": "int64" },
+          "dailyLimit": { "type": "integer", "format": "int32" },
+          "cooldownMinutes": { "type": "integer", "format": "int64" }
         }
       },
       "UpdateProductDeviceTypeRequest": {
@@ -6542,7 +6654,7 @@
         "properties": {
           "id": { "type": "string", "format": "uuid" },
           "position": { "type": "integer", "format": "int32" },
-          "actionType": { "type": "string", "enum": ["CALL"] },
+          "actionType": { "type": "string", "enum": ["IN_APP", "SMS", "CALL"], "description": "IN_APP or SMS. CALL is refused for new chains until something places calls." },
           "userId": { "type": "string", "format": "uuid" }
         }
       },

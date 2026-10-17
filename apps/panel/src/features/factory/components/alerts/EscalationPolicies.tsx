@@ -27,6 +27,7 @@ import { queryLoad, usePageLoad } from "@/shared/hooks/usePageLoad";
 import { LoadFailed } from "@/shared/components/LoadFailed";
 import { LoadingOverlay } from "@/shared/components/LoadingOverlay";
 import { useToast } from "@/features/factory/hooks/use-toast";
+import { SmsRulesNote } from "@/features/factory/components/alerts/SmsRulesNote";
 
 /* The chain API is addressed by rule id, not chain id, so each card keeps it. */
 type ChainPolicy = EscalationPolicy & { alarmRuleId: string };
@@ -147,6 +148,7 @@ export const EscalationPolicies = ({ onCreateClick, onEditClick }: EscalationPol
         </Button>
       </div>
 
+      <SmsRulesNote />
 
       {pageLoad.status === "failed" ? (
         <LoadFailed onRetry={pageLoad.retry} />

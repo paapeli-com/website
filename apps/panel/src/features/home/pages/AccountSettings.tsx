@@ -22,6 +22,7 @@ import { useBrand, type AccentId } from "@/shell/BrandProvider";
 import { useShellT } from "@/shared/i18n/shell";
 import { APP_LANGUAGES, isRTLLanguage, setAppLanguage, useAppLanguage } from "@/shared/i18n/appLanguage";
 import { cn } from "@/shared/lib/utils";
+import { PhoneVerification } from "@/features/home/PhoneVerification";
 
 /* The account's own settings, at /Home/account-settings.
  *
@@ -30,7 +31,8 @@ import { cn } from "@/shared/lib/utils";
  * a workspace or a product belongs under /Home, and this is the first of them.
  *
  * What is real: the name and email from the session, the phone contact method
- * (GET/PUT /users/me/contact-methods/phone), dark mode, the panel language,
+ * (GET/PUT /users/me/contact-methods/phone) and its verification by a texted
+ * code (see PhoneVerification), dark mode, the panel language,
  * the accent colour, signing out, and signing out everywhere. Password, two
  * factor, the recovery email and the session list have no endpoint, so they
  * keep their headings and report no data rather than asserting an account is
@@ -318,6 +320,7 @@ export default function AccountSettings() {
               className={cn(phoneInvalid && "border-destructive")}
             />
           </Field>
+          <PhoneVerification stored={phoneQuery.data} typed={phoneTrimmed} />
         </div>
       </section>
 

@@ -8,7 +8,9 @@ export type NotificationType =
     | 'WORK_ORDER_RAISED'
     | 'ALARM_ESCALATED'
     | 'OTA_DEPLOYMENT_COMPLETED'
-    | 'OTA_DEPLOYMENT_FAILED';
+    | 'OTA_DEPLOYMENT_FAILED'
+    /** The workspace sent its alarm texts for the day; detail is the limit. Owners and admins, once a day. */
+    | 'SMS_DAILY_LIMIT_REACHED';
 
 /** Something the signed-in user should know about, in one workspace product. */
 export interface NotificationResponse {

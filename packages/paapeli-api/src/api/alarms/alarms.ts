@@ -156,8 +156,26 @@ export interface AlarmRuleItem {
     createdAt: string;
 }
 
-/** CALL: a phone call, placed by the escalation workflow. IN_APP: a notification in the panel. */
-export type EscalationActionType = 'CALL' | 'IN_APP';
+/**
+ * IN_APP: a notification in the panel. SMS: a text to the member's verified
+ * phone, falling back to the panel when it cannot go. CALL: a phone call;
+ * refused for new chains until something places calls, but older chains may
+ * still carry it.
+ */
+export type EscalationActionType = 'CALL' | 'IN_APP' | 'SMS';
+
+/** GET /sms/{ws}/{pk}/usage: the workspace's alarm texts and their limits. */
+export interface SmsUsage {
+    /** Whether alarm texts can be sent at all. */
+    available: boolean;
+    /** An sms.ir Sandbox key, which sends nothing. */
+    sandbox: boolean;
+    /** Since midnight Tehran, the whole workspace. */
+    sentToday: number;
+    sentLast30Days: number;
+    dailyLimit: number;
+    cooldownMinutes: number;
+}
 
 export interface EscalationAction {
     id?: string;
@@ -223,6 +241,13 @@ export const alarmService = {
         const { data } = await napiHttpHandler.get<PageResponse<WorkspaceAlarmItem>>(
             `/api/v1/aiot/alarms/${workspaceId}/${productKey}`,
             { page, size },
+        );
+        return data;
+    },
+    /** How many alarm texts the workspace has sent, and the limits. */
+    async getSmsUsage(workspaceId: string, productKey: string): Promise<SmsUsage> {
+        const { data } = await napiHttpHandler.get<SmsUsage>(
+            `/api/v1/aiot/sms/${workspaceId}/${productKey}/usage`,
         );
         return data;
     },

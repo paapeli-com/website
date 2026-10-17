@@ -103,6 +103,16 @@ export function useGetAlarmAnalyticsQuery(
     });
 }
 
+/** The workspace's alarm texts today and in the last 30 days, with the limits. */
+export function useGetSmsUsageQuery(workspaceId: string, productKey: string, enabled = true) {
+    return useQuery({
+        queryKey: ['smsUsage', workspaceId, productKey],
+        queryFn: () => alarmService.getSmsUsage(workspaceId, productKey),
+        enabled: enabled && !!workspaceId && !!productKey,
+        staleTime: 60_000,
+    });
+}
+
 export function useGetDeviceAlarmsQuery(
     workspaceId: string,
     productKey: string,
