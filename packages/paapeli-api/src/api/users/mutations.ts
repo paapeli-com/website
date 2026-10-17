@@ -12,6 +12,19 @@ export function useSetMyPhoneMutation() {
     });
 }
 
+/** Saves the name shown for the user; the member lists that show it refresh. */
+export function useUpdateMyProfileMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationKey: ['updateMyProfile'],
+        mutationFn: (req: { displayName: string | null }) => usersService.updateProfile(req),
+        onSuccess: (data) => {
+            queryClient.setQueryData(['myProfile'], data);
+            queryClient.invalidateQueries({ queryKey: ['workspaceMembers'] });
+        },
+    });
+}
+
 /** Texts a verification code to the saved phone. */
 export function useSendPhoneVerificationMutation() {
     return useMutation({

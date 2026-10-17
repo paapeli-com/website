@@ -50,8 +50,26 @@ export type PhoneVerificationRefusal =
     | 'TOO_MANY_ATTEMPTS'
     | 'SMS_UNAVAILABLE';
 
-/* Contact methods owned by the signed-in user (/users/me/contact-methods). */
+/** The signed-in user as others see them. */
+export interface UserProfileResponse {
+    userId: string;
+    email: string;
+    /** Null when unset; the email stands in. */
+    displayName: string | null;
+}
+
+/* The signed-in user's own profile (/users/me) and contact methods
+   (/users/me/contact-methods). */
 export const usersService = {
+    async getProfile(): Promise<UserProfileResponse> {
+        const { data } = await napiHttpHandler.get<UserProfileResponse>('/api/v1/aiot/users/me');
+        return data;
+    },
+    /** Sets the name shown for the user; at most 100 characters, blank clears it. */
+    async updateProfile(req: { displayName: string | null }): Promise<UserProfileResponse> {
+        const { data } = await napiHttpHandler.put<UserProfileResponse>('/api/v1/aiot/users/me', req);
+        return data;
+    },
     /** The user's phone contact. 404 when no enabled phone contact exists. */
     async getPhone(): Promise<UserPhoneResponse> {
         const { data } = await napiHttpHandler.get<UserPhoneResponse>(

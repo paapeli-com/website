@@ -8,8 +8,10 @@ import {
 import { useDisplayName } from "@/shared/hooks/useDisplayName";
 import { getCurrentUser, signOut as endSession } from "@paapeli/brand/session";
 import {
-  E164_PHONE_PATTERN, endServerSession, useGetMyPhoneQuery, useLogoutAllMutation, useSetMyPhoneMutation,
+  E164_PHONE_PATTERN, endServerSession, useGetMyPhoneQuery, useGetMyProfileQuery, useLogoutAllMutation,
+  useSetMyPhoneMutation, useUpdateMyProfileMutation,
 } from "@paapeli/api";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 import { Button } from "@/features/factory/components/ui/button";
 import { Input } from "@/features/factory/components/ui/input";
 import { Switch } from "@/features/factory/components/ui/switch";
@@ -30,7 +32,8 @@ import { PhoneVerification } from "@/features/home/PhoneVerification";
  * property of one product. Anything that belongs to the person rather than to
  * a workspace or a product belongs under /Home, and this is the first of them.
  *
- * What is real: the name and email from the session, the phone contact method
+ * What is real: the display name (GET/PUT /users/me), the email from the
+ * session, the phone contact method
  * (GET/PUT /users/me/contact-methods/phone) and its verification by a texted
  * code (see PhoneVerification), dark mode, the panel language,
  * the accent colour, signing out, and signing out everywhere. Password, two
@@ -108,9 +111,19 @@ export default function AccountSettings() {
   const accountName = useDisplayName();
   const email = currentUser?.email ?? "";
 
-  /* The field must stay empty when the account has no name: seeding it with
-     the "no data" placeholder would let that be saved as the actual name. */
-  const [displayNameInput, setDisplayNameInput] = useState(accountName);
+  /* Seeded once from the profile (GET /users/me), never while the user types.
+     It stays empty when the account has no name: seeding it with the email
+     stand-in would let that be saved as the actual name. */
+  const profileQuery = useGetMyProfileQuery();
+  const updateProfile = useUpdateMyProfileMutation();
+  const [displayNameInput, setDisplayNameInput] = useState("");
+  const [nameSeeded, setNameSeeded] = useState(false);
+  useEffect(() => {
+    if (nameSeeded || !profileQuery.data) return;
+    setDisplayNameInput(profileQuery.data.displayName ?? "");
+    setNameSeeded(true);
+  }, [profileQuery.data, nameSeeded]);
+  const nameTrimmed = displayNameInput.trim();
 
   const storageKey = AVATAR_STORAGE_KEY + (username || "anon");
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -165,6 +178,15 @@ export default function AccountSettings() {
   };
 
   const save = async () => {
+    if (nameSeeded && nameTrimmed !== (profileQuery.data?.displayName ?? "")) {
+      try {
+        const saved = await updateProfile.mutateAsync({ displayName: nameTrimmed || null });
+        setDisplayNameInput(saved.displayName ?? "");
+      } catch (err) {
+        toast.error(apiErrorMessage(err, t("Could not save your name.")));
+        return;
+      }
+    }
     const stored = phoneQuery.data?.phone ?? "";
     if (phoneTrimmed !== stored) {
       if (!phoneTrimmed) {
@@ -235,8 +257,8 @@ export default function AccountSettings() {
             <LogOut className="size-4" />
             {t("Sign out")}
           </Button>
-          <Button onClick={save} disabled={setPhone.isPending} className="gap-2">
-            {setPhone.isPending && <Loader2 className="size-4 animate-spin" />}
+          <Button onClick={save} disabled={setPhone.isPending || updateProfile.isPending} className="gap-2">
+            {(setPhone.isPending || updateProfile.isPending) && <Loader2 className="size-4 animate-spin" />}
             {t("Save changes")}
           </Button>
         </div>
@@ -297,11 +319,13 @@ export default function AccountSettings() {
         <div className="h-px bg-border" />
 
         <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
-          <Field icon={UserIcon} label={t("Display name")} hint={t("Not stored yet: the panel has no endpoint for the display name.")}>
+          <Field icon={UserIcon} label={t("Display name")} hint={t("Shown to the members of your workspaces.")}>
             <Input
               value={displayNameInput}
               onChange={(e) => setDisplayNameInput(e.target.value)}
               placeholder={t("Your name")}
+              maxLength={100}
+              disabled={!nameSeeded}
             />
           </Field>
           <Field icon={Mail} label={t("Email")}>

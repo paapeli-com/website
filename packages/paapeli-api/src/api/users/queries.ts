@@ -1,6 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { usersService } from './users';
 
+/** The signed-in user's profile: the name shown for them. */
+export function useGetMyProfileQuery(enabled = true) {
+    return useQuery({
+        queryKey: ['myProfile'],
+        queryFn: () => usersService.getProfile(),
+        enabled,
+        staleTime: 5 * 60_000,
+    });
+}
+
 /** The signed-in user's phone contact; the query errors with 404 when none is set. */
 export function useGetMyPhoneQuery(enabled = true) {
     return useQuery({
