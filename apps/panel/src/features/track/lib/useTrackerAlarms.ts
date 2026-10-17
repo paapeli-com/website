@@ -3,15 +3,16 @@ import { useGetWorkspaceAlarmsQuery, type WorkspaceAlarmItem } from "@paapeli/ap
 import { useActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { queryLoad } from "@/shared/hooks/usePageLoad";
 import { PRODUCT_KEY } from "@/features/track/lib/product";
+import { alarmStateOf, isUnacknowledged, type AlarmState } from "@/shared/lib/alarmStatus";
 
 /* The alarms of every tracker in the active workspace, straight from
  * GET /api/v1/aiot/alarms/{workspaceId}/gpsTracking — the same list and cache
  * key the factory alerts use, so ack/clear refresh every reader at once.
  *
- * Statuses are ThingsBoard's: ACTIVE_UNACK, ACTIVE_ACK, CLEARED_UNACK,
- * CLEARED_ACK. An unacknowledged alarm is what this feature calls "unread". */
+ * States come from the panel-wide reading in shared/lib/alarmStatus. An
+ * unacknowledged alarm is what this feature calls "unread". */
 
-export type AlarmState = "active" | "acknowledged" | "cleared";
+export type { AlarmState };
 
 export type TrackerAlarm = WorkspaceAlarmItem & {
   state: AlarmState;
@@ -19,17 +20,10 @@ export type TrackerAlarm = WorkspaceAlarmItem & {
   unread: boolean;
 };
 
-const stateOf = (status: string): AlarmState => {
-  const v = (status || "").toUpperCase();
-  if (v.startsWith("CLEARED")) return "cleared";
-  if (v === "ACTIVE_ACK") return "acknowledged";
-  return "active";
-};
-
 const toAlarm = (a: WorkspaceAlarmItem): TrackerAlarm => ({
   ...a,
-  state: stateOf(a.status),
-  unread: (a.status || "").toUpperCase().endsWith("_UNACK"),
+  state: alarmStateOf(a.status),
+  unread: isUnacknowledged(a.status),
 });
 
 export function useTrackerAlarms() {

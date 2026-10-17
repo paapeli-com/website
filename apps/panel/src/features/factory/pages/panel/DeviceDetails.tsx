@@ -78,8 +78,6 @@ import {
   useSendDeviceCommandMutation,
   useGetProductDeviceCommandsQuery,
   useGetDeviceAlarmsQuery,
-  useAckAlarmMutation,
-  useClearAlarmMutation,
   useGetDeviceTimeSeriesQuery,
   useCreateProductDeviceCommandMutation,
   useEditProductDeviceCommandMutation,
@@ -91,6 +89,8 @@ import {
   type PaapeliCredentials,
   type UpdateDeviceCredentialsRequest,
 } from "@paapeli/api";
+import { alarmStateOf, type AlarmState } from "@/shared/lib/alarmStatus";
+import { useAlarmActions, type AlarmAction } from "@/shared/hooks/useAlarmActions";
 import { DeviceAlarmRules } from "@/features/factory/components/alerts/DeviceAlarmRules";
 import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
@@ -200,13 +200,12 @@ const normalizeSeverity = (raw: string): string => {
   }
 };
 
-const normalizeAlarmStatus = (raw: string): string => {
-  const v = raw?.toUpperCase() ?? "";
-  if (v.startsWith("CLEARED")) return "Cleared";
-  if (v.endsWith("_ACK") || v === "ACKNOWLEDGED") return "Acknowledged";
-  if (v.startsWith("ACTIVE")) return "Active";
-  return raw;
+const ALARM_STATUS_LABEL: Record<AlarmState, string> = {
+  active: "Active",
+  acknowledged: "Acknowledged",
+  cleared: "Cleared",
 };
+const normalizeAlarmStatus = (raw: string): string => ALARM_STATUS_LABEL[alarmStateOf(raw)];
 
 /** The row shape the alarm tables render, mapped from PaapeliAlarmListItem. */
 interface AlarmRow {
@@ -1648,33 +1647,23 @@ const DeviceAlarms = ({ device }: { device: UserDevice }) => {
   const { t, isRTL, formatNumber } = useLanguage();
   const workspaceId = useWorkspaceId();
   const { rows, isLoading } = useDeviceAlarmRows(device?.id);
-  const ackAlarm = useAckAlarmMutation();
-  const clearAlarm = useClearAlarmMutation();
+  const alarmActions = useAlarmActions(workspaceId, PRODUCT_KEY);
   const filtered = rows.filter(a =>
     (severity === "all" || a.severity.toLowerCase() === severity) &&
     (status === "all" || a.status.toLowerCase() === status)
   );
   const { toast } = useToast();
 
-  /* Both endpoints are POST /alarms/{ws}/{pk}/{ack|clear}/{alarmId}/device/{deviceId}
-     and their mutations invalidate this device's alarm list, so the row's
-     status updates from the server rather than being patched locally. */
   const runAlarmAction = async (
-    kind: "ack" | "clear",
+    kind: AlarmAction,
     alarm: AlarmRow,
   ) => {
     if (!workspaceId) {
       toast({ title: t("error"), description: t("noWorkspaceSelected"), variant: "destructive" });
       return;
     }
-    const mutation = kind === "ack" ? ackAlarm : clearAlarm;
     try {
-      await mutation.mutateAsync({
-        workspaceId,
-        productKey: PRODUCT_KEY,
-        alarmId: alarm.id,
-        deviceId: device.id,
-      });
+      await alarmActions.run(kind, alarm.id, device.id);
       toast({
         title: kind === "ack" ? t("alarmAcknowledged") : t("alarmCleared"),
         description: alarm.name,
@@ -1740,11 +1729,11 @@ const DeviceAlarms = ({ device }: { device: UserDevice }) => {
                       {/* Acknowledging a cleared alarm, or clearing a cleared one,
                           is not something the backend has anything to do. */}
                       <DropdownMenuItem
-                        disabled={a.status !== "Active" || ackAlarm.isPending}
+                        disabled={a.status !== "Active" || alarmActions.busyId === a.id}
                         onClick={() => runAlarmAction("ack", a)}
                       >{t("acknowledge")}</DropdownMenuItem>
                       <DropdownMenuItem
-                        disabled={a.status === "Cleared" || clearAlarm.isPending}
+                        disabled={a.status === "Cleared" || alarmActions.busyId === a.id}
                         onClick={() => runAlarmAction("clear", a)}
                       >{t("clearAlarm")}</DropdownMenuItem>
                     </DropdownMenuContent>

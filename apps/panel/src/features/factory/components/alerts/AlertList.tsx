@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/features/factory/com
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/features/factory/components/ui/dropdown-menu";
 import {
   Search, Bell, BellOff, AlertOctagon, Users, Zap, User, Clock,
-  Bookmark, Archive, CheckCircle2, MoreHorizontal, ChevronLeft, ChevronRight, Eye,
+  Bookmark, Archive, CheckCircle2, MoreHorizontal, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Eye,
   CircleDot, ListFilter, Download, Pencil, UserPlus, Trash2, ArrowRight,
   ClipboardList,
 } from "lucide-react";
@@ -35,12 +35,9 @@ import { queryLoad, usePageLoad } from "@/shared/hooks/usePageLoad";
 import { LoadFailed } from "@/shared/components/LoadFailed";
 import { LoadingOverlay } from "@/shared/components/LoadingOverlay";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
-import {
-  useAckAlarmMutation,
-  useClearAlarmMutation,
-  useGetWorkspaceAlarmsQuery,
-  type WorkspaceAlarmItem,
-} from "@paapeli/api";
+import { useGetWorkspaceAlarmsQuery, type WorkspaceAlarmItem } from "@paapeli/api";
+import { alarmStateOf } from "@/shared/lib/alarmStatus";
+import { useAlarmActions, type AlarmAction } from "@/shared/hooks/useAlarmActions";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useToast } from "@/features/factory/hooks/use-toast";
@@ -82,7 +79,7 @@ const statusLabel = (s: AlertStatus, tt: (k: string) => string): string => {
   const map: Record<AlertStatus, string> = {
     active: tt("alertStatusActive"),
     acknowledged: tt("alertStatusAcknowledged"),
-    resolved: tt("alertStatusResolved"),
+    resolved: tt("alertStatusCleared"),
     suppressed: tt("alertStatusSuppressed"),
     escalated: tt("alertStatusEscalated"),
     archived: tt("alertStatusArchived"),
@@ -90,14 +87,11 @@ const statusLabel = (s: AlertStatus, tt: (k: string) => string): string => {
   return map[s];
 };
 
-/* Gateway alarm statuses are ThingsBoard's: ACTIVE_UNACK, ACTIVE_ACK,
-   CLEARED_UNACK, CLEARED_ACK. A cleared alarm is resolved whether or not
-   anyone acknowledged it first. */
+/* The panel-wide alarm state, in this list's vocabulary, where a cleared
+   alarm is "resolved". */
 const toStatus = (raw: string): AlertStatus => {
-  const v = raw?.toUpperCase() ?? "";
-  if (v.startsWith("CLEARED")) return "resolved";
-  if (v === "ACTIVE_ACK") return "acknowledged";
-  return "active";
+  const state = alarmStateOf(raw);
+  return state === "cleared" ? "resolved" : state;
 };
 
 const formatElapsed = (ms: number) => {
@@ -216,26 +210,24 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
     return (alarmsQuery.data ?? []).map((a) => toAlert(a, a.assetId ? pathById.get(a.assetId) : undefined));
   }, [alarmsQuery.data, assetLocations]);
 
-  const ackAlarm = useAckAlarmMutation();
-  const clearAlarm = useClearAlarmMutation();
-  /* Both mutations invalidate the device's ['deviceAlarms', …] queries, so the
-     row's status updates from the server rather than being patched locally. */
-  const runAlarmAction = async (kind: "ack" | "clear", alert: Alert) => {
+  const alarmActions = useAlarmActions(workspaceId, PRODUCT_KEY);
+  const runAlarmAction = async (kind: AlarmAction, alert: Alert) => {
     if (!workspaceId) {
       toast({ title: tt("error"), description: tt("noWorkspaceSelected"), variant: "destructive" });
       return;
     }
     try {
-      await (kind === "ack" ? ackAlarm : clearAlarm).mutateAsync({
-        workspaceId, productKey: PRODUCT_KEY, alarmId: alert.id, deviceId: alert.deviceId,
-      });
+      await alarmActions.run(kind, alert.id, alert.deviceId);
       toast({ title: tt(kind === "ack" ? "alarmAcknowledged" : "alarmCleared"), description: alert.ruleName });
     } catch (error) {
       toast({ title: tt("error"), description: error instanceof Error ? error.message : tt("error"), variant: "destructive" });
     }
   };
 
-  const [activeKpi, setActiveKpi] = useState<"active" | "unacknowledged" | "critical" | "escalated">("active");
+  /* The KPI cards and the status filter both narrow by status, so only one
+     leads at a time: picking a status lets go of the card, and picking a card
+     resets the status. Null is no card, every alarm. */
+  const [activeKpi, setActiveKpi] = useState<"active" | "unacknowledged" | "critical" | "escalated" | "acknowledged" | null>("active");
   const [statusChip, setStatusChip] = useState<StatusChip | "all">("all");
   const [search, setSearch] = useState("");
   const [severity, setSeverity] = useState("all");
@@ -246,6 +238,14 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
   const [timeRange, setTimeRange] = useState("24h");
   const [listView, setListView] = useState<"table" | "grid" | "compact" | "board">("table");
   const [sortKey, setSortKey] = useState<string>("severity");
+  /* Direction for the column headers' sorts (duration, assignee); the
+     toolbar's own sorts carry their direction in their key. */
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const sortByColumn = (key: "duration" | "assignee") => {
+    if (sortKey === key) setSortDir(d => (d === "desc" ? "asc" : "desc"));
+    else { setSortKey(key); setSortDir(key === "duration" ? "desc" : "asc"); }
+    setPage(1);
+  };
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -281,6 +281,7 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
       if (activeKpi === "unacknowledged" && a.status !== "active" && a.status !== "escalated") return false;
       if (activeKpi === "critical" && a.severity !== "critical") return false;
       if (activeKpi === "escalated" && a.status !== "escalated") return false;
+      if (activeKpi === "acknowledged" && a.status !== "acknowledged") return false;
 
       if (statusChip !== "all") {
         if (statusChip === "unacknowledged" && a.status !== "active" && a.status !== "escalated") return false;
@@ -305,11 +306,22 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
       switch (sortKey) {
         case "newest": return dB - dA;
         case "oldest": return dA - dB;
+        // Longest-running first is the earliest start; a cleared alarm has no duration and sinks.
+        case "duration": {
+          if (!a.duration !== !b.duration) return a.duration ? -1 : 1;
+          return sortDir === "desc" ? dA - dB : dB - dA;
+        }
+        // Unassigned alarms sink whichever way the names run.
+        case "assignee": {
+          if (!a.assignedTo !== !b.assignedTo) return a.assignedTo ? -1 : 1;
+          const cmp = (a.assignedTo ?? "").localeCompare(b.assignedTo ?? "", language);
+          return sortDir === "asc" ? cmp : -cmp;
+        }
         case "severity":
         default: return (sevRank[b.severity] || 0) - (sevRank[a.severity] || 0);
       }
     });
-  }, [alerts, activeKpi, statusChip, search, severity, location, device, assignee, statusFilter, sortKey]);
+  }, [alerts, activeKpi, statusChip, search, severity, location, device, assignee, statusFilter, sortKey, sortDir, language]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -326,7 +338,7 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
 
   const clearFilters = () => {
     setActiveKpi("active"); setStatusChip("all"); setSearch("");
-    setSeverity("all"); setLocation("all"); setDevice("all"); setAssignee("all");
+    setSeverity("all"); setLocation("all"); setDevice("all"); setAssignee("all"); setStatusFilter("all");
   };
 
   const kpis = [
@@ -334,6 +346,7 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
     { key: "unacknowledged" as const, label: tt("kpiUnacknowledged"), value: counts.unacknowledged, trend: "5", icon: Bell, accent: "text-amber-500", bg: "from-amber-50 to-transparent dark:from-amber-500/10" },
     { key: "critical" as const, label: tt("kpiCritical"), value: counts.critical, trend: "2", icon: AlertOctagon, accent: "text-red-500", bg: "from-red-50 to-transparent dark:from-red-500/10" },
     { key: "escalated" as const, label: tt("kpiEscalated"), value: counts.escalated, trend: "1", icon: Users, accent: "text-purple-500", bg: "from-purple-50 to-transparent dark:from-purple-500/10" },
+    { key: "acknowledged" as const, label: tt("kpiAcknowledged"), value: counts.acknowledged, trend: "0", icon: CheckCircle2, accent: "text-blue-500", bg: "from-blue-50 to-transparent dark:from-blue-500/10" },
   ];
 
   const chips: { key: StatusChip; label: string; count: number; color: string }[] = [
@@ -351,14 +364,14 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
 
       {/* KPI cards - compact */}
       <KpiSection storageKey="alerts">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {kpis.map(k => {
           const Icon = k.icon;
           const isActive = activeKpi === k.key;
           return (
             <button
               key={k.key}
-              onClick={() => { setActiveKpi(k.key); setPage(1); }}
+              onClick={() => { setActiveKpi(isActive ? null : k.key); setStatusFilter("all"); setPage(1); }}
               className={cn(
                 "relative text-start rounded-lg border bg-card px-3 py-2.5 transition-all hover:shadow-sm",
                 "bg-gradient-to-br",
@@ -419,12 +432,12 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
           },
           {
             key: "status", label: tt("status"), value: statusFilter,
-            onChange: (v) => { setStatusFilter(v); setPage(1); },
+            onChange: (v) => { setStatusFilter(v); if (v !== "all") setActiveKpi(null); setPage(1); },
             options: [
               { value: "all", label: tt("all") },
               { value: "active", label: tt("alertStatusActive") },
               { value: "acknowledged", label: tt("alertStatusAcknowledged") },
-              { value: "resolved", label: tt("alertStatusResolved") },
+              { value: "resolved", label: tt("alertStatusCleared") },
               { value: "escalated", label: tt("alertStatusEscalated") },
               { value: "archived", label: tt("alertStatusArchived") },
             ],
@@ -486,8 +499,20 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
               <TableHead>{tt("alertStatus")}</TableHead>
               <TableHead>{tt("device")}</TableHead>
               <TableHead>{tt("location")}</TableHead>
-              <TableHead>{tt("alertDuration")}</TableHead>
-              <TableHead>{tt("alertAssignedTo")}</TableHead>
+              {([["duration", "alertDuration"], ["assignee", "alertAssignedTo"]] as const).map(([key, label]) => (
+                <TableHead key={key}>
+                  {/* The same toggle the device list's Updated column has. */}
+                  <button
+                    onClick={() => sortByColumn(key)}
+                    className={cn("inline-flex items-center gap-1 hover:text-foreground transition-colors", sortKey === key && "text-foreground")}
+                  >
+                    {tt(label)}
+                    {sortKey === key && sortDir === "asc"
+                      ? <ChevronUp className="h-3 w-3" />
+                      : <ChevronDown className={cn("h-3 w-3", sortKey !== key && "opacity-50")} />}
+                  </button>
+                </TableHead>
+              ))}
               <TableHead className="text-end">{tt("actions")}</TableHead>
             </TableRow>
           </TableHeader>
@@ -589,17 +614,17 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
                   </TableCell>
                   <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
-                      {isAck ? (
-                        <Button variant="outline" size="sm" className="h-7 px-3" onClick={() => setOpenId(a.id)}>
-                          <Eye className="h-3.5 w-3.5 me-1" />{tt("alertView")}
-                        </Button>
-                      ) : (
+                      {/* View sits outside the menu, as on the device list. */}
+                      <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => setOpenId(a.id)}>
+                        <Eye className="h-3.5 w-3.5" />{tt("alertView")}
+                      </Button>
+                      {!isAck && (
                         <Button
                           variant="outline"
                           size="sm"
                           className="h-7 px-3 text-orange-600 border-orange-200 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-500/30 dark:hover:bg-orange-500/10"
                           onClick={() => runAlarmAction("ack", a)}
-                          disabled={ackAlarm.isPending}
+                          disabled={alarmActions.busyId === a.id}
                         >
                           {tt("alertAcknowledge")}
                         </Button>
@@ -611,11 +636,8 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-background z-[100] w-48">
-                          <DropdownMenuItem onClick={() => setOpenId(a.id)}>
-                            <Eye className="h-4 w-4 me-2" />{tt("alertView")}
-                          </DropdownMenuItem>
                           {a.status !== "resolved" && (
-                            <DropdownMenuItem onClick={() => runAlarmAction("clear", a)} disabled={clearAlarm.isPending}>
+                            <DropdownMenuItem onClick={() => runAlarmAction("clear", a)} disabled={alarmActions.busyId === a.id}>
                               <CheckCircle2 className="h-4 w-4 me-2" />{tt("clearAlarm")}
                             </DropdownMenuItem>
                           )}
@@ -625,9 +647,6 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
                           </DropdownMenuItem>
                           <DropdownMenuItem>
                             <UserPlus className="h-4 w-4 me-2" />{tt("alertAssign")}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Archive className="h-4 w-4 me-2" />{tt("alertArchive")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -669,7 +688,7 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
             <AlertDetailPanel
               alert={opened}
               tt={tt}
-              busy={ackAlarm.isPending || clearAlarm.isPending}
+              busy={alarmActions.busyId === opened.id}
               onAck={() => runAlarmAction("ack", opened)}
               onClear={() => runAlarmAction("clear", opened)}
               hasWorkOrder={!!workOrderOf(opened.id)}
@@ -757,13 +776,9 @@ const AlertDetailPanel = ({ alert, tt, busy, onAck, onClear, hasWorkOrder, raisi
         )}
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" size="sm">{tt("alertAssign")}</Button>
-          <Button variant="outline" size="sm">{tt("alertArchive")}</Button>
-        </div>
-        <div className="grid grid-cols-[1fr_auto] gap-2">
           <Button variant="outline" size="sm" onClick={onWorkOrder} disabled={raising}>
             {tt(hasWorkOrder ? "alertViewWorkOrder" : "alertCreateWorkOrder")}
           </Button>
-          <Button variant="outline" size="icon" className="h-9 w-9"><MoreHorizontal className="h-4 w-4" /></Button>
         </div>
       </div>
     </div>

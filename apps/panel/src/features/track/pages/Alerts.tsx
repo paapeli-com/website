@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCheck, Info, Siren, type LucideIcon } from "lucide-react";
-import { useAckAlarmMutation, useClearAlarmMutation } from "@paapeli/api";
+import { useAlarmActions, type AlarmAction } from "@/shared/hooks/useAlarmActions";
 import { useLanguage } from "@/features/track/i18n/LanguageContext";
 import { TranslationKey } from "@/features/track/i18n/translations";
 import { Button } from "@/features/track/components/ui/button";
@@ -50,22 +50,16 @@ export default function Alerts() {
     onRetry: refetch,
   });
 
-  const ack = useAckAlarmMutation();
-  const clear = useClearAlarmMutation();
-  // Which row has a request in flight, so only its buttons disable.
-  const [busyId, setBusyId] = useState<string | null>(null);
+  // busyId: which row has a request in flight, so only its buttons disable.
+  const { run: runAction, busyId } = useAlarmActions(workspaceId, PRODUCT_KEY);
   const [markingAll, setMarkingAll] = useState(false);
 
-  const run = async (a: TrackerAlarm, action: "ack" | "clear") => {
+  const run = async (a: TrackerAlarm, action: AlarmAction) => {
     if (!workspaceId) return;
-    setBusyId(a.id);
     try {
-      const vars = { workspaceId, productKey: PRODUCT_KEY, alarmId: a.id, deviceId: a.deviceId };
-      await (action === "ack" ? ack : clear).mutateAsync(vars);
+      await runAction(action, a.id, a.deviceId);
     } catch (error) {
       toast.error(t("alarmActionFailed"), { description: error instanceof Error ? error.message : undefined });
-    } finally {
-      setBusyId(null);
     }
   };
 
@@ -74,9 +68,7 @@ export default function Alerts() {
     if (!workspaceId) return;
     setMarkingAll(true);
     const results = await Promise.allSettled(
-      alarms
-        .filter((a) => a.unread)
-        .map((a) => ack.mutateAsync({ workspaceId, productKey: PRODUCT_KEY, alarmId: a.id, deviceId: a.deviceId })),
+      alarms.filter((a) => a.unread).map((a) => runAction("ack", a.id, a.deviceId)),
     );
     setMarkingAll(false);
     if (results.some((r) => r.status === "rejected")) toast.error(t("alarmActionFailed"));

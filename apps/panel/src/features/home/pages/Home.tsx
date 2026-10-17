@@ -28,6 +28,7 @@ import { productKeyFor, solutionPath } from "@paapeli/brand/config";
 import { getCurrentUser } from "@paapeli/brand/session";
 import { useActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { cn } from "@/shared/lib/utils";
+import { needsAttention } from "@/shared/lib/alarmStatus";
 import { useShellT } from "@/shared/i18n/shell";
 import { isRTLLanguage, localizeDigits, useAppLanguage } from "@/shared/i18n/appLanguage";
 import {
@@ -70,14 +71,9 @@ const TRACKING = "GPSTracking";
 /** How many attention rows fit before the card starts scrolling the rest off. */
 const ATTENTION_ROWS = 4;
 
-/* "Needs attention" = an alarm nobody has acknowledged yet. The gateway's
-   statuses are ThingsBoard's: ACTIVE_UNACK, ACTIVE_ACK, CLEARED_UNACK,
-   CLEARED_ACK, so anything cleared, or already acknowledged, is out. Same
-   rule the Smart Factory overview applies to its own attention list. */
-const isUnacknowledged = (a: WorkspaceAlarmItem) => {
-  const s = a.status?.toUpperCase() ?? "";
-  return !s.startsWith("CLEARED") && s !== "ACTIVE_ACK";
-};
+/* "Needs attention" = an alarm nobody has acknowledged or cleared yet, the
+   same rule the Smart Factory overview applies to its own attention list. */
+const isUnacknowledged = (a: WorkspaceAlarmItem) => needsAttention(a.status);
 
 const isCritical = (a: WorkspaceAlarmItem) => a.severity?.toUpperCase() === "CRITICAL";
 

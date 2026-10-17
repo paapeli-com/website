@@ -16,6 +16,7 @@ import {
   Wrench as Operations,
 } from "lucide-react";
 import { useGetWorkspaceAlarmsQuery, type WorkspaceAlarmItem } from "@paapeli/api";
+import { needsAttention } from "@/shared/lib/alarmStatus";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useDevices } from "@/features/factory/hooks/useDevices";
@@ -75,13 +76,8 @@ const D: Record<string, Record<Lang, string>> = {
   noData: { en: "—", ar: "—", fa: "—" },
 };
 
-/* "Needs attention" = an alarm nobody has acknowledged yet. The gateway's
-   statuses are ThingsBoard's: ACTIVE_UNACK, ACTIVE_ACK, CLEARED_UNACK,
-   CLEARED_ACK — so anything cleared, or already acknowledged, is out. */
-const isUnacknowledged = (a: WorkspaceAlarmItem) => {
-  const s = a.status?.toUpperCase() ?? "";
-  return !s.startsWith("CLEARED") && s !== "ACTIVE_ACK";
-};
+/* "Needs attention" = an alarm nobody has acknowledged or cleared yet. */
+const isUnacknowledged = (a: WorkspaceAlarmItem) => needsAttention(a.status);
 
 const SEVERITY_DOT: Record<string, string> = {
   CRITICAL: "bg-red-500",
