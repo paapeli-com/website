@@ -4736,6 +4736,38 @@
         }
       }
     },
+    "/api/v1/aiot/search/{workspaceId}/{productKey}": {
+      "get": {
+        "tags": ["Search"],
+        "summary": "Search a workspace product by name",
+        "description": "Finds devices, locations, alarm rules, work orders and dashboards\nwhose name (or label, for devices and locations) contains the query,\ncase-insensitively. Hits come grouped in that order, names that start\nwith the query first, at most `limit` of each kind. Alarm rules are\nonly searched for a product admin, since only an admin can list them;\ndashboards only include those the caller may open. A query shorter\nthan 2 characters returns no hits; one longer than 100 is cut to 100.\n",
+        "operationId": "search",
+        "parameters": [
+          { "name": "workspaceId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "productKey", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "q", "in": "query", "description": "Text to look for", "required": true, "schema": { "type": "string" }, "example": "hall" },
+          { "name": "limit", "in": "query", "description": "Most hits of each kind, 1-20. Defaults to 5.", "required": false, "schema": { "type": "integer", "format": "int32" }, "example": 5 }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hits returned",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SearchResponse" },
+                "example": {
+                  "query": "hall",
+                  "hits": [
+                    { "type": "DEVICE", "id": "2ce7b35c-e5dc-47f7-8f17-626501507503", "title": "climate-hall-2", "subtitle": "Hall 2" },
+                    { "type": "ALARM_RULE", "id": "44c630f8-62be-4b42-8a8f-579e2f67bfe8", "title": "Hall 2 high temperature", "subtitle": "climate-hall-2" }
+                  ]
+                }
+              }
+            }
+          },
+          "403": { "description": "READ product access required" }
+        }
+      }
+    },
     "/api/v1/aiot/work-orders/{workspaceId}/{productKey}": {
       "get": {
         "tags": [
@@ -8157,6 +8189,26 @@
               }
             }
           }
+        }
+      },
+      "SearchHit": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "What was found; decides which page the result opens",
+            "enum": ["DEVICE", "LOCATION", "ALARM_RULE", "WORK_ORDER", "DASHBOARD"]
+          },
+          "id": { "type": "string", "format": "uuid", "description": "The thing's Paapeli ID: device, asset, alarm rule, work order or dashboard" },
+          "title": { "type": "string", "description": "Its name or title", "example": "Pump P-101" },
+          "subtitle": { "type": "string", "description": "A second line, such as a label, status or device name; may be null", "example": "Hall 2" }
+        }
+      },
+      "SearchResponse": {
+        "type": "object",
+        "properties": {
+          "query": { "type": "string" },
+          "hits": { "type": "array", "items": { "$ref": "#/components/schemas/SearchHit" } }
         }
       },
       "AlarmRuleItem": {

@@ -225,7 +225,8 @@ const Locations = () => {
 
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  // ?q= arrives from the header search, which opens a location by its name.
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
   const [refreshing, setRefreshing] = useState(false);
 
   // Dialogs

@@ -71,7 +71,14 @@ const fa: Record<string, string> = {
 
   // Header search
   "AI Assets": "دارایی‌های هوشمند",
-  "Searches every product you have access to": "در همه محصولاتی که به آن‌ها دسترسی دارید جستجو می‌کند",
+  "Searches all your products": "جستجو در همه محصولات",
+  "Type at least 2 characters.": "دست‌کم ۲ حرف بنویسید.",
+  "Search failed. Try again.": "جستجو انجام نشد. دوباره تلاش کنید.",
+  "Searching…": "در حال جستجو…",
+  "No results found.": "نتیجه‌ای پیدا نشد.",
+  "Locations": "مکان‌ها",
+  "Alarm rules": "قوانین هشدار",
+  "Work orders": "دستور کارها",
   "See all": "مشاهده همه",
   "See all results": "مشاهده همه نتایج",
   "High Temperature Alarm": "هشدار دمای بالا",
@@ -687,7 +694,14 @@ const ar: Record<string, string> = {
 
   // Header search
   "AI Assets": "الأصول الذكية",
-  "Searches every product you have access to": "يبحث في جميع المنتجات التي لديك حق الوصول إليها",
+  "Searches all your products": "البحث في كل منتجاتك",
+  "Type at least 2 characters.": "اكتب حرفين على الأقل.",
+  "Search failed. Try again.": "تعذر البحث. حاول مرة أخرى.",
+  "Searching…": "جارٍ البحث…",
+  "No results found.": "لم يتم العثور على نتائج.",
+  "Locations": "المواقع",
+  "Alarm rules": "قواعد التنبيه",
+  "Work orders": "أوامر العمل",
   "See all": "عرض الكل",
   "See all results": "عرض كل النتائج",
   "High Temperature Alarm": "إنذار ارتفاع درجة الحرارة",

@@ -20,3 +20,4 @@ export * from './api/alarms';
 export * from './api/products';
 export * from './api/workspaces';
 export * from './api/users';
+export * from './api/search';
