@@ -7,11 +7,10 @@ import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
 import { useToast } from "@/features/factory/hooks/use-toast";
 
 /* Temporary, for testing the AI pages: flip dark mode on and off TOGGLES
-   times within WINDOW_MS and the gateway creates a virtual temperature
-   sensor, gas sensor and GPS tracker in this workspace, under its root
-   location. The devices get
-   90 days of history and the AI analyzes them once it is in, a few minutes
-   later. It watches the `dark` class on <html>, so any dark-mode toggle
+   times within WINDOW_MS and the gateway creates a virtual GPS tracker
+   (position, altitude, speed, battery and moving/parked status) in this
+   workspace, under its root location. It gets 90 days of history, then a
+   reading a minute. It watches the `dark` class on <html>, so any dark-mode toggle
    counts (the host header's). Delete this file and <SecretVirtualFleet />
    in routes.tsx to remove it. */
 
@@ -42,13 +41,13 @@ export const useSecretVirtualFleet = () => {
         return;
       }
       busy.current = true;
-      toast({ title: "Creating virtual devices…" });
+      toast({ title: "Creating a virtual GPS tracker…" });
       aiService
-        .createVirtualDevices(workspaceId, PRODUCT_KEY, root)
+        .createVirtualDevices(workspaceId, PRODUCT_KEY, root, ["GPS"])
         .then((made) => {
           toast({
             title: `Created ${made.map((d) => d.name).join(", ")}`,
-            description: "History is being sent now; the AI analyzes them in a few minutes.",
+            description: "Its history is being sent now.",
           });
           queryClient.invalidateQueries();
         })
