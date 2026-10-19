@@ -98,7 +98,7 @@ const Alarms = () => {
         countLabel={tt("activeAlarmsLabel") || "Active Alarms"}
         actions={
           showCreate ? (
-            <Button onClick={goCreateRule} className="h-9 gap-2 bg-primary px-4 text-primary-foreground hover:bg-primary/90">
+            <Button onClick={() => goCreateRule()} className="h-9 gap-2 bg-primary px-4 text-primary-foreground hover:bg-primary/90">
               <Plus className="h-4 w-4" />
               {tt("alertCreateRule")}
             </Button>

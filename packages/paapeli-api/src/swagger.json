@@ -4638,6 +4638,52 @@
       }
     },
     "/api/v1/aiot/alarms/{workspaceId}/{productKey}/rule/{alarmRuleId}/device/{deviceId}": {
+      "put": {
+        "tags": ["Alarms"],
+        "summary": "Edit a device alarm rule",
+        "description": "Replaces an active alarm rule's name, description and create rules\nwith the body given, which has the same shape as the create call.\nThe rule keeps its ID, so its escalation chain, work-order rule and\npast alarms stay attached to it. The change is applied immediately\nand the updated rule is returned. When the body has no clearRule,\nthe rule's current clear rule, if any, is kept. A rule that is still\nprovisioning, has failed or is being deleted cannot be edited.\n",
+        "operationId": "updateDeviceAlarmRule",
+        "parameters": [
+          {
+            "name": "alarmRuleId",
+            "in": "path",
+            "description": "Alarm rule ID returned by the create or list rule endpoint",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "44c630f8-62be-4b42-8a8f-579e2f67bfe8"
+          },
+          {
+            "name": "deviceId",
+            "in": "path",
+            "description": "Paapeli device ID that owns the alarm rule",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "example": "2ce7b35c-e5dc-47f7-8f17-626501507503"
+          }
+        ],
+        "requestBody": {
+          "description": "The rule's new definition, shaped like the create body",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PaapeliAlarmCreateRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Alarm rule updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AlarmRuleItem" }
+              }
+            }
+          },
+          "400": { "description": "Malformed or invalid alarm-rule definition" },
+          "403": { "description": "ADMINISTER product access required, device access denied, or rule does not belong to the device" },
+          "409": { "description": "ALARM_RULE_NOT_ACTIVE: the rule is provisioning, failed or being deleted" }
+        }
+      },
       "delete": {
         "tags": ["Alarms"],
         "summary": "Delete a device alarm rule",

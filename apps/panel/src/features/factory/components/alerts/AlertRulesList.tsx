@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   useDeleteAlarmRuleMutation,
   useGetWorkspaceAlarmRulesQuery,
@@ -14,7 +15,12 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/features/factory/components/ui/alert-dialog";
-import { Trash2, Copy, Zap, Clock, Repeat, Download, ClipboardList } from "lucide-react";
+import { Trash2, Copy, Zap, Clock, Repeat, Download, ClipboardList, ChevronDown, ChevronUp, MoreHorizontal, Pencil, BellRing } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/features/factory/components/ui/dropdown-menu";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
+import { formatDate } from "@/shared/lib/formatDate";
 import { RuleWorkOrderDialog } from "@/features/factory/components/alerts/RuleWorkOrderDialog";
 import { AlertTemplates } from "@/features/factory/components/alerts/AlertTemplates";
 import { SectionHead } from "@/features/factory/components/alerts/AlertSection";
@@ -74,6 +80,29 @@ export const severityColors: Record<AlertSeverity, string> = {
   low: "bg-blue-500 text-white",
 };
 
+/* The table reads like the Devices list: a dot and a word for each state,
+   not a filled badge per cell. */
+const stateDots: Record<AlarmRuleProvisioningState, string> = {
+  ACTIVE: "bg-emerald-500",
+  PROVISIONING: "bg-sky-500",
+  DELETING: "bg-muted-foreground",
+  FAILED: "bg-rose-500",
+};
+
+const severityDots: Record<AlertSeverity, string> = {
+  critical: "bg-destructive",
+  high: "bg-orange-500",
+  medium: "bg-yellow-500",
+  low: "bg-blue-500",
+};
+
+const ExpandField = ({ label, value, mono }: { label: string; value: string; mono?: boolean }) => (
+  <div className="rounded-lg border bg-background px-4 py-3">
+    <div className="text-xs text-muted-foreground mb-1">{label}</div>
+    <div className={`text-sm break-words ${mono ? "font-mono" : "font-medium"}`} dir={mono ? "ltr" : "auto"}>{value}</div>
+  </div>
+);
+
 /** The row the table renders, derived from an AlarmRuleItem. */
 export interface RuleRow {
   id: string;
@@ -120,8 +149,13 @@ export const AlertRulesList = ({
   showTemplates = false,
   onShowTemplatesChange,
 }: AlertRulesListProps) => {
-  const { t, isRTL, formatNumber } = useLanguage();
+  const { t, isRTL, formatNumber, language } = useLanguage();
   const tt = t as (k: string) => string;
+  const navigate = useNavigate();
+  const editRule = (rule: RuleRow) => navigate(localizedPath(`/alarms/rules/${rule.id}/edit`, language));
+  const [expanded, setExpanded] = useState<string[]>([]);
+  const toggleExpand = (id: string) =>
+    setExpanded((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   const { toast } = useToast();
   const workspaceId = useWorkspaceId();
   const { items: devices } = useDevices();
@@ -312,24 +346,28 @@ export const AlertRulesList = ({
         selectionCount={0}
       />
 
-      <div className="relative rounded-lg border bg-card overflow-hidden text-sm [&_th]:text-xs [&_td]:text-sm [&_th]:h-10 [&_td]:p-3">
+      {/* data-uniform-type: the table is set in Tailwind steps and reads at
+          those steps in every language, as the Devices list does. */}
+      <div data-uniform-type className="relative rounded-lg border bg-card overflow-hidden text-sm [&_th]:text-xs [&_td]:text-sm [&_th]:h-10 [&_td]:p-3">
         {pageLoad.status === "loading" && <LoadingOverlay className="items-center pt-0" />}
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40">
+              <TableHead className="w-[36px]"></TableHead>
               <TableHead>{tt("alertRuleName")}</TableHead>
-              <TableHead>{tt("triggerType")}</TableHead>
-              <TableHead>{tt("alertSeverity")}</TableHead>
               <TableHead className="hidden lg:table-cell">{tt("alertRuleDevice")}</TableHead>
+              <TableHead className="hidden md:table-cell">{tt("triggerType")}</TableHead>
+              <TableHead>{tt("alertSeverity")}</TableHead>
               <TableHead>{tt("status")}</TableHead>
-              <TableHead className="w-[112px] text-end">{tt("actions")}</TableHead>
+              <TableHead className="hidden md:table-cell">{tt("created")}</TableHead>
+              <TableHead className="text-end">{tt("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {pageLoad.status === "loading" && <TableRowsSkeleton rows={4} columns={6} />}
+            {pageLoad.status === "loading" && <TableRowsSkeleton rows={4} columns={8} />}
             {pageLoad.status === "ready" && paged.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="p-0">
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={8} className="p-0">
                   {/* Nothing on the server is "no data"; nothing matching the
                       current search/filters is an empty result set. */}
                   {rules.length === 0 ? (
@@ -342,65 +380,102 @@ export const AlertRulesList = ({
             )}
             {pageLoad.status === "ready" && paged.map((rule) => {
               const TypeIcon = rule.triggerType ? triggerIcons[rule.triggerType] : Zap;
+              const isExpanded = expanded.includes(rule.id);
+              const active = rule.state === "ACTIVE";
               return (
-                <TableRow key={rule.id}>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{rule.name}</p>
-                      {rule.description && <p className="text-xs text-muted-foreground">{rule.description}</p>}
-                      {rule.expression && <p className="text-xs text-muted-foreground font-mono mt-0.5" dir="ltr">{rule.expression}</p>}
-                      {rule.state === "FAILED" && rule.lastError && (
-                        <p className="text-xs text-destructive mt-0.5">{rule.lastError}</p>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {rule.triggerType ? (
-                      <div className="flex items-center gap-1.5">
-                        <TypeIcon className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-xs">{tt(triggerLabelKeys[rule.triggerType])}</span>
+                <Fragment key={rule.id}>
+                  <TableRow className="cursor-pointer hover:bg-muted/30 border-b" onClick={() => toggleExpand(rule.id)}>
+                    <TableCell>
+                      {isExpanded
+                        ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 font-medium min-w-0">
+                        <span className="h-7 w-7 shrink-0 rounded-md bg-primary/10 text-primary inline-flex items-center justify-center">
+                          <BellRing className="h-4 w-4" />
+                        </span>
+                        <span className="text-sm truncate" dir="auto">{rule.name}</span>
                       </div>
-                    ) : <span className="text-xs text-muted-foreground">{tt("noData")}</span>}
-                  </TableCell>
-                  <TableCell>
-                    {rule.severity ? (
-                      <Badge className={severityColors[rule.severity]}>
-                        {tt(`alert${rule.severity.charAt(0).toUpperCase() + rule.severity.slice(1)}`)}
-                      </Badge>
-                    ) : <span className="text-xs text-muted-foreground">{tt("noData")}</span>}
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell text-xs">{deviceName(rule.deviceId)}</TableCell>
-                  <TableCell>
-                    <Badge className={stateColors[rule.state] ?? "bg-muted text-muted-foreground"}>
-                      {stateLabelKeys[rule.state] ? tt(stateLabelKeys[rule.state]) : rule.state}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1 justify-end">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-foreground"
-                        onClick={() => setWorkOrderRule(rule)}
-                        disabled={rule.state !== "ACTIVE"}
-                        aria-label={tt("ruleWorkOrderTitle")}
-                        title={tt("ruleWorkOrderTitle")}
-                      >
-                        <ClipboardList className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-destructive"
-                        onClick={() => setConfirmDelete(rule)}
-                        disabled={rule.state === "DELETING"}
-                        aria-label={tt("delete")}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">{deviceName(rule.deviceId)}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {rule.triggerType ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <TypeIcon className="h-4 w-4 text-muted-foreground" />
+                          {tt(triggerLabelKeys[rule.triggerType])}
+                        </span>
+                      ) : <span className="text-muted-foreground">{tt("noData")}</span>}
+                    </TableCell>
+                    <TableCell>
+                      {rule.severity ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className={`h-2 w-2 rounded-full ${severityDots[rule.severity]}`} />
+                          {tt(`alert${rule.severity.charAt(0).toUpperCase() + rule.severity.slice(1)}`)}
+                        </span>
+                      ) : <span className="text-muted-foreground">{tt("noData")}</span>}
+                    </TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className={`h-2 w-2 rounded-full ${stateDots[rule.state] ?? "bg-muted-foreground"}`} />
+                        {stateLabelKeys[rule.state] ? tt(stateLabelKeys[rule.state]) : rule.state}
+                      </span>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-muted-foreground">{formatDate(rule.createdAt)}</TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 gap-1 text-xs"
+                          onClick={() => editRule(rule)}
+                          disabled={!active}
+                          title={active ? undefined : tt("alertRuleEditNotActive")}
+                        >
+                          <Pencil className="h-3.5 w-3.5" /> {tt("edit")}
+                        </Button>
+                        <DropdownMenu modal={false}>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" aria-label={tt("actions")}>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-background z-[100] w-52">
+                            <DropdownMenuItem onClick={() => editRule(rule)} disabled={!active}>
+                              <Pencil className="h-4 w-4 me-2" />{tt("alertEditRule")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setWorkOrderRule(rule)} disabled={!active}>
+                              <ClipboardList className="h-4 w-4 me-2" />{tt("ruleWorkOrderTitle")}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setConfirmDelete(rule)}
+                              disabled={rule.state === "DELETING"}
+                            >
+                              <Trash2 className="h-4 w-4 me-2" />{tt("delete")}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                  {isExpanded && (
+                    <TableRow className="bg-muted/20 hover:bg-muted/20">
+                      <TableCell colSpan={8} className="p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <ExpandField label={tt("description")} value={rule.description || tt("noData")} />
+                          <ExpandField label={tt("alertRuleExpression")} value={rule.expression || tt("noData")} mono />
+                          <ExpandField label={tt("alertRuleDevice")} value={deviceName(rule.deviceId)} />
+                          <ExpandField label={tt("alertRuleId")} value={rule.id} mono />
+                        </div>
+                        {rule.state === "FAILED" && rule.lastError && (
+                          <p className="mt-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">{rule.lastError}</p>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </Fragment>
               );
             })}
           </TableBody>

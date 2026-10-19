@@ -379,6 +379,24 @@ export const alarmService = {
             `/api/v1/aiot/alarms/${workspaceId}/${productKey}/rule/${alarmRuleId}/escalation-chain`,
         );
     },
+    /**
+     * Replace an active rule's name, description and conditions in place; the
+     * rule keeps its id. Same body as create. 409 ALARM_RULE_NOT_ACTIVE when
+     * the rule is provisioning, failed or being deleted.
+     */
+    async updateAlarmRule(
+        workspaceId: string,
+        productKey: string,
+        alarmRuleId: string,
+        deviceId: string,
+        req: CreateAlarmRuleRequest,
+    ): Promise<AlarmRuleItem> {
+        const { data } = await napiHttpHandler.put<AlarmRuleItem>(
+            `/api/v1/aiot/alarms/${workspaceId}/${productKey}/rule/${alarmRuleId}/device/${deviceId}`,
+            req,
+        );
+        return data;
+    },
     async deleteAlarmRule(
         workspaceId: string,
         productKey: string,

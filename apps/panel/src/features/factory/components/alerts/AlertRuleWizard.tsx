@@ -1,11 +1,14 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
   useCreateAlarmRuleMutation,
+  useUpdateAlarmRuleMutation,
+  type AlarmRuleItem,
   type CreateRule,
   type LeafRule,
   type RuleExpression,
   type RuleOperator,
   type RuleValueType,
+  type SeverityRule,
 } from "@paapeli/api";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { Button } from "@/features/factory/components/ui/button";
@@ -27,7 +30,9 @@ import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { PRODUCT_KEY } from "@/features/factory/lib/product";
 import { useDeviceTelemetry } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
-import { UI_TO_API_SEVERITY } from "./alarmRuleMapping";
+import { SEVERITY_RANK, UI_TO_API_SEVERITY, apiSeverityToUi } from "./alarmRuleMapping";
+import { durationMinutes, parseTriggerExpression, severityRuleToCreateRule } from "./ruleExpression";
+import { apiErrorMessage, apiProblem } from "@/shared/lib/apiError";
 
 /* An empty list the user can fix themselves: says what is missing and, when
    given an action, links to where it's created. Laid out like NoData. */
@@ -89,6 +94,8 @@ interface AlertRuleWizardProps {
   /** Devices the scope step starts with, and returns to after a create —
       the device details page opens the wizard for its own device. */
   initialDeviceIds?: string[];
+  /** A saved rule to edit in place. Its device is fixed: a rule belongs to one. */
+  editRule?: AlarmRuleItem;
 }
 
 
@@ -177,7 +184,79 @@ const toExpression = (groups: ConditionGroupData[]): RuleExpression => {
     .reduce<RuleExpression>((acc, g) => ({ combinator: g.logic, rules: [acc, groupExpression(g)] }), groupExpression(nonEmpty[0]));
 };
 
-export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onActionsChange, onCancel, onCreated, initialDeviceIds }: AlertRuleWizardProps) => {
+/* ---- Back from a saved rule to the builder -------------------------------
+   The inverse of toExpression, for editing. A pair of GTE/LTE on one field is
+   a "between"; a group of plain conditions is one builder group; a two-member
+   group whose head is itself a chain is the chain plus one more group. */
+
+let rowSeq = 0;
+const rowId = (prefix: string) => `${prefix}${Date.now()}-${rowSeq++}`;
+
+const API_TO_OPERATOR: Record<RuleOperator, ConditionOperator> = {
+  GT: '>', LT: '<', EQ: '=', NEQ: '!=', GTE: '>=', LTE: '<=',
+};
+
+const isGroup = (e: RuleExpression): e is Extract<RuleExpression, { combinator: unknown }> => 'combinator' in e;
+
+const toConditionRow = (e: RuleExpression): ConditionRow | null => {
+  if (isGroup(e)) {
+    const [a, b] = e.rules;
+    const between = e.combinator === 'AND' && e.rules.length === 2 && !isGroup(a) && !isGroup(b)
+      && a.field === b.field && a.operator === 'GTE' && b.operator === 'LTE'
+      && a.valueType === 'NUMBER_LITERAL' && b.valueType === 'NUMBER_LITERAL';
+    return between
+      ? { id: rowId('c'), tag: a.field, operator: 'between', valueType: 'NUMBER_LITERAL', value: String(a.value), valueTo: String(b.value), timeWindow: '' }
+      : null;
+  }
+  const valueType = e.valueType ?? 'NUMBER_LITERAL';
+  return {
+    id: rowId('c'),
+    tag: e.field,
+    operator: API_TO_OPERATOR[e.operator],
+    valueType,
+    value: valueType === 'NULL' || e.value === undefined || e.value === null ? '' : String(e.value),
+    valueTo: '',
+    timeWindow: '',
+  };
+};
+
+const fromExpression = (e: RuleExpression): ConditionGroupData[] | null => {
+  const single = toConditionRow(e);
+  if (single) return [{ id: rowId('g'), logic: 'AND', conditions: [single] }];
+  if (!isGroup(e)) return null;
+  const rows = e.rules.map(toConditionRow);
+  if (rows.every((r): r is ConditionRow => r !== null)) return [{ id: rowId('g'), logic: e.combinator, conditions: rows }];
+  if (e.rules.length !== 2) return null;
+  const head = fromExpression(e.rules[0]);
+  if (!head) return null;
+  const last = e.rules[1];
+  const lastRow = toConditionRow(last);
+  if (lastRow) return [...head, { id: rowId('g'), logic: e.combinator, conditions: [lastRow] }];
+  if (isGroup(last) && last.combinator === e.combinator) {
+    const lastRows = last.rules.map(toConditionRow);
+    if (lastRows.every((r): r is ConditionRow => r !== null)) return [...head, { id: rowId('g'), logic: e.combinator, conditions: lastRows }];
+  }
+  return null;
+};
+
+/** The most severe of a saved rule's severity levels, the one the form edits. */
+const topSeverityOf = (rule: AlarmRuleItem): { key: string; rule: SeverityRule } | undefined =>
+  Object.entries(rule.alarmRules ?? {})
+    .map(([key, r]) => ({ key, rule: r }))
+    .sort((a, b) => SEVERITY_RANK[apiSeverityToUi(b.key)] - SEVERITY_RANK[apiSeverityToUi(a.key)])[0];
+
+/** The builder's starting conditions for a saved rule; null when its script can't be read. */
+const editGroupsOf = (rule: AlarmRuleItem): ConditionGroupData[] | null => {
+  const top = topSeverityOf(rule);
+  const expression = top && parseTriggerExpression(top.rule.triggerExpression);
+  const groups = expression ? fromExpression(expression) : null;
+  if (!groups || !top) return null;
+  const minutes = durationMinutes(top.rule);
+  if (minutes > 0) groups[0].conditions[0].timeWindow = String(minutes);
+  return groups;
+};
+
+export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onActionsChange, onCancel, onCreated, initialDeviceIds, editRule }: AlertRuleWizardProps) => {
   const { t, isRTL, language } = useLanguage();
   const { toast } = useToast();
   const tt = t as (k: string) => string;
@@ -186,6 +265,25 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
   const workspaceId = useWorkspaceId();
   const { items: devices, isLoading: devicesLoading } = useDevices();
   const createAlarmRule = useCreateAlarmRuleMutation();
+  const updateAlarmRule = useUpdateAlarmRuleMutation();
+  const saving = createAlarmRule.isPending || updateAlarmRule.isPending;
+
+  /* Editing: the most severe level is the one the form shows. Any other
+     levels the rule defines are carried over untouched, as long as their
+     scripts read back; one that doesn't would be dropped on save, so say so. */
+  const [edit] = useState(() => {
+    if (!editRule) return null;
+    const top = topSeverityOf(editRule);
+    const others: Record<string, CreateRule> = {};
+    let othersUnreadable = false;
+    for (const [key, r] of Object.entries(editRule.alarmRules ?? {})) {
+      if (key === top?.key) continue;
+      const rebuilt = severityRuleToCreateRule(r);
+      if (rebuilt) others[key] = rebuilt; else othersUnreadable = true;
+    }
+    const groups = editGroupsOf(editRule);
+    return { top, others, othersUnreadable, groups, severity: top ? apiSeverityToUi(top.key) : ('medium' as AlertSeverity) };
+  });
   /* Steps 4 and 5 pick from what the user has actually created. They used to
      offer the seeded ESC and CH entries, so a rule could be saved pointing at
      an escalation policy and channels that existed nowhere but this array. */
@@ -200,13 +298,13 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
   const preset = templateId ? RULE_TEMPLATE_PRESETS[templateId] : undefined;
 
   // Step 1: Scope
-  const [ruleName, setRuleName] = useState(() => (preset ? tt(preset.nameKey) : ""));
-  const [ruleDescription, setRuleDescription] = useState("");
+  const [ruleName, setRuleName] = useState(() => editRule?.name ?? (preset ? tt(preset.nameKey) : ""));
+  const [ruleDescription, setRuleDescription] = useState(editRule?.description ?? "");
   const [ruleType, setRuleType] = useState<RuleType>("threshold");
-  const [selectedDevices, setSelectedDevices] = useState<string[]>(initialDeviceIds ?? []);
+  const [selectedDevices, setSelectedDevices] = useState<string[]>(editRule ? [editRule.deviceId] : initialDeviceIds ?? []);
 
   // Step 2: Conditions
-  const [conditionGroups, setConditionGroups] = useState<ConditionGroupData[]>([
+  const [conditionGroups, setConditionGroups] = useState<ConditionGroupData[]>(() => edit?.groups ?? [
     {
       id: 'g1',
       logic: 'AND',
@@ -223,7 +321,7 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
   ]);
 
   // Step 3: Severity
-  const [severity, setSeverity] = useState<AlertSeverity>("medium");
+  const [severity, setSeverity] = useState<AlertSeverity>(edit?.severity ?? "medium");
 
   // Step 4: Escalation
   const [escalationPolicyId, setEscalationPolicyId] = useState("");
@@ -317,6 +415,41 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
     // rejects a blank or missing one with a bare 400; an empty box sends the
     // rule's name.
     const description = ruleDescription.trim() || name;
+
+    if (editRule && edit) {
+      // The form has no repeat count, so a repeating rule stays one unless a
+      // time window now makes it a duration rule.
+      const original = edit.top?.rule;
+      const edited: CreateRule = windowMinutes === 0 && original?.triggerType === 'REPEATING'
+        ? { type: 'REPEATING', expression: rule.expression, count: original.count }
+        : rule;
+      // An untouched severity keeps its exact API level (the panel folds two into "low").
+      const key = edit.top && severity === edit.severity ? edit.top.key : UI_TO_API_SEVERITY[severity];
+      try {
+        await updateAlarmRule.mutateAsync({
+          workspaceId,
+          productKey: PRODUCT_KEY,
+          alarmRuleId: editRule.id,
+          deviceId: editRule.deviceId,
+          name,
+          description,
+          createRules: { ...edit.others, [key]: edited },
+        });
+      } catch (error) {
+        const notActive = apiProblem(error).code === 'ALARM_RULE_NOT_ACTIVE';
+        toast({
+          title: tt("alertRuleUpdateFailed"),
+          description: notActive ? tt("alertRuleEditNotActive") : apiErrorMessage(error, tt("alertRuleUpdateFailed")),
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({ title: tt("alertRuleUpdated"), description: name });
+      if (inline) { onCreated?.(); return; }
+      onOpenChange?.(false);
+      return;
+    }
+
     const body = {
       name,
       description,
@@ -363,14 +496,14 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
   useEffect(() => {
     if (!hideActions || !onActionsChange) return;
     onActionsChange({
-      primary: isLastStep
-        ? { label: t("alertCreateRule"), onClick: () => { void handleCreateRef.current(); }, disabled: createAlarmRule.isPending }
+      primary: isLastStep || editRule
+        ? { label: editRule ? t("saveChanges") : t("alertCreateRule"), onClick: () => { void handleCreateRef.current(); }, disabled: saving }
         : { label: t("next"), onClick: () => setCurrentStep(p => p + 1) },
       secondary: currentStep > 0 ? { label: t("back"), onClick: () => setCurrentStep(p => p - 1) } : undefined,
       tertiary: { label: t("cancel"), onClick: handleClose },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hideActions, currentStep, ruleName, ruleType, severity, createAlarmRule.isPending]);
+  }, [hideActions, currentStep, ruleName, ruleType, severity, saving]);
 
   const stepLabels = [
     t("alertStepScope"),
@@ -402,7 +535,7 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
     <div data-uniform-type>
         {!inline && (
           <SheetHeader>
-            <SheetTitle>{t("alertCreateRule")}</SheetTitle>
+            <SheetTitle>{editRule ? tt("alertEditRule") : t("alertCreateRule")}</SheetTitle>
           </SheetHeader>
         )}
 
@@ -465,6 +598,16 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
                   </SelectContent>
                 </Select>
               </div>
+              {editRule ? (
+              <div className="space-y-2">
+                <Label>{t("alertScopeDevices")}</Label>
+                <div className="flex items-center gap-2 border rounded-md p-2 bg-muted/30">
+                  <Checkbox checked disabled />
+                  <span className="text-sm">{devices.find(d => d.id === editRule.deviceId)?.name ?? editRule.deviceId}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">{tt("alertRuleDeviceLocked")}</p>
+              </div>
+              ) : (
               <div className="space-y-2">
                 <Label>{t("alertScopeDevices")}</Label>
                 <div className="space-y-1 max-h-32 overflow-y-auto border rounded-md p-2">
@@ -486,6 +629,7 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
                   })}
                 </div>
               </div>
+              )}
             </div>
           )}
 
@@ -496,6 +640,17 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
                   muted paragraph, which left this one step reading lighter and
                   greyer than the five around it. */}
               <Label>{t("alertConditionBuilderDesc")}</Label>
+              {edit && !edit.groups && (
+                <p className="rounded-md bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                  {tt("alertRuleConditionsUnreadable")}
+                  {edit.top && <span className="mt-1 block font-mono" dir="ltr">{edit.top.rule.triggerExpression}</span>}
+                </p>
+              )}
+              {edit?.othersUnreadable && (
+                <p className="rounded-md bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                  {tt("alertRuleOtherSeveritiesUnreadable")}
+                </p>
+              )}
               {conditionGroups.map((group, gi) => (
                 <div key={group.id} className="border rounded-lg p-3 space-y-3 bg-muted/30">
                   {gi > 0 && (
@@ -734,7 +889,7 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
                 <NextIcon className="h-4 w-4 ms-1" />
               </Button>
             ) : (
-              <Button onClick={() => { void handleCreate(); }} disabled={createAlarmRule.isPending}>{t("alertCreateRule")}</Button>
+              <Button onClick={() => { void handleCreate(); }} disabled={saving}>{editRule ? t("saveChanges") : t("alertCreateRule")}</Button>
             )}
           </div>
         )}

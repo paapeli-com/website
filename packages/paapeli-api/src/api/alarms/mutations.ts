@@ -101,6 +101,29 @@ export function useCreateAlarmRuleMutation() {
     });
 }
 
+export function useUpdateAlarmRuleMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationKey: ['updateAlarmRule'],
+        mutationFn: ({
+            workspaceId,
+            productKey,
+            alarmRuleId,
+            deviceId,
+            ...req
+        }: CreateAlarmRuleRequest & {
+            workspaceId: string;
+            productKey: string;
+            alarmRuleId: string;
+            deviceId: string;
+        }) => alarmService.updateAlarmRule(workspaceId, productKey, alarmRuleId, deviceId, req),
+        onSuccess: (_data, { workspaceId, productKey }) => {
+            // Prefix match: refreshes both the per-device and the workspace lists.
+            queryClient.invalidateQueries({ queryKey: ['alarmRules', workspaceId, productKey] });
+        },
+    });
+}
+
 export function useDeleteAlarmRuleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
