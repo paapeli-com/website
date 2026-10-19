@@ -176,7 +176,7 @@ export function PhoneVerification({ stored, typed }: { stored: UserPhoneResponse
               autoComplete="one-time-code"
               dir="ltr"
               placeholder={t("6-digit code")}
-              className="h-9 w-36 text-center tracking-[0.3em]"
+              className="h-9 w-40 text-center tracking-[0.3em] placeholder:tracking-normal"
               autoFocus
             />
             <Button size="sm" onClick={submitCode} disabled={code.length !== 6 || confirm.isPending || expiresIn === 0} className="gap-2">

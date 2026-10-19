@@ -10,6 +10,7 @@ import { Checkbox } from "@/features/factory/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/features/factory/components/ui/popover";
 import { Mail, MessageSquare, Bell, Phone, X, ChevronDown } from "lucide-react";
 import { getCurrentUser } from "@paapeli/brand/session";
+import { useGetMyPhoneQuery } from "@paapeli/api";
 import type { Member } from "@/features/factory/data/workspaceMembers";
 import type { NotificationChannelType } from "@/features/factory/types/alerts";
 import { useChannelsStore } from "@/features/factory/hooks/useAlertStore";
@@ -64,13 +65,14 @@ const contactOf = (m: Member, kind: RecipientKind) =>
    offered colleagues at company.com who cannot be reached at all.
 
    When a list-members endpoint exists, this is the one place to swap. */
-const workspacePeople = (): Member[] => {
+const workspacePeople = (phone?: string): Member[] => {
   const me = getCurrentUser();
   if (!me) return [];
   return [{
     id: "self",
     name: me.name || me.email,
     email: me.email,
+    phone,
     role: "Full Access",
     status: "Active",
   }];
@@ -83,8 +85,10 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
   const { create: createChannel } = useChannelsStore();
   const [name, setName] = useState("");
   const [channelType, setChannelType] = useState<NotificationChannelType>("email");
-  // Recipients are picked from the workspace's members, never typed.
-  const [members] = useState<Member[]>(workspacePeople);
+  // Recipients are picked from the workspace's members, never typed. Only a
+  // verified number is ever texted, so an unverified one counts as none.
+  const { data: myPhone } = useGetMyPhoneQuery();
+  const members = workspacePeople(myPhone?.verified ? myPhone.phone : undefined);
   const selfEmail = getCurrentUser()?.email.toLowerCase();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -139,7 +143,7 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
       secondary: { label: t("cancel"), onClick: handleCancel, variant: "outline" },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hideActions, name, channelType, selectedIds]);
+  }, [hideActions, name, channelType, selectedIds, myPhone]);
 
   const Icon = channelIcons[channelType];
 
@@ -255,7 +259,9 @@ export const CreateChannelDialog = ({ open, onOpenChange, inline, hideActions, o
                             {contact ? (
                               <span className="block truncate text-xs text-muted-foreground" dir="ltr">{contact}</span>
                             ) : (
-                              <span className="block truncate text-xs text-muted-foreground">{t("noPhoneNumber")}</span>
+                              <span className="block text-xs text-muted-foreground">
+                                {m.id === "self" ? t("noPhoneNumberSelf") : t("noPhoneNumber")}
+                              </span>
                             )}
                           </span>
                         </label>
