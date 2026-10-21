@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, TriangleAlert } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import {
   useListActiveWorkspacesQuery,
   useListWorkspaceProductsQuery,
@@ -38,25 +38,24 @@ const statusOf = (e: unknown) => (e as { response?: { status?: number } })?.resp
 
 function describe(error: unknown): string {
   const status = statusOf(error);
-  if (status === 403) return "this account isn't allowed to enable products for the active workspace";
-  if (status === 404) return "the active workspace or product no longer exists";
-  if (status && status >= 500) return `the server returned ${status}`;
-  if (status) return `the server returned ${status}`;
-  return "the request didn't reach the server";
+  if (status === 403) {
+    return "Only an owner or admin can set it up. Ask one of them to open it once; after that it works for everyone.";
+  }
+  if (status === 404) return "The workspace or the product no longer exists.";
+  if (status) return `Setting it up failed: the server returned ${status}.`;
+  return "Setting it up failed: the request didn't reach the server.";
 }
 
 /**
  * Ensures the active workspace has this feature's product before rendering it.
  *
- * Deliberately **never blocks on a failed subscribe**. It asks the server what
- * the workspace already has rather than inferring it from a POST's error code,
- * and if enabling genuinely fails it still renders the feature with a banner —
- * the feature's own pages handle their API errors, and a dead-end wall is
- * strictly worse than a degraded page you can still navigate out of.
- *
- * A subscription the server reports as not ACTIVE is different: every request
- * the feature made would be refused, so it waits out PROVISIONING and says
- * so for SUSPENDED, or for a setup that failed again, instead.
+ * It asks the server what the workspace already has rather than inferring it
+ * from a POST's error code, and renders the feature only once its product is
+ * ACTIVE: the gateway refuses every product-scoped request until then (409
+ * PRODUCT_UNAVAILABLE), so a feature rendered earlier is a page of errors.
+ * Meanwhile it waits out PROVISIONING, and says why for SUSPENDED, a setup
+ * that failed again, or one this account may not start (403). The notice sits
+ * inside the shell, so the rest of the panel stays a click away.
  */
 export function ProductGate({ name, productKey, children }: Props) {
   const workspaceId = useActiveWorkspaceId();
@@ -166,22 +165,13 @@ export function ProductGate({ name, productKey, children }: Props) {
 
   if (ready) return <>{children}</>;
 
-  // Enabling failed. Render the feature anyway, with a banner explaining why
-  // parts of it may be empty — never a wall.
+  // Enabling failed. The product is not ACTIVE (or it would not have been
+  // asked), so every page of the feature would be refused: say why instead.
   if (failure) {
     return (
-      <>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-[13px] text-foreground">
-          <TriangleAlert className="size-4 shrink-0 text-amber-600" />
-          <span>
-            {name} isn't fully set up for this workspace — {failure}. Some data may be missing.
-          </span>
-          <button type="button" onClick={retry} className="font-semibold text-primary hover:underline">
-            Retry
-          </button>
-        </div>
-        {children}
-      </>
+      <ProductNotice title={`${name} isn't set up for this workspace.`} onRetry={retry}>
+        {failure}
+      </ProductNotice>
     );
   }
 
