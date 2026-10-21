@@ -1,8 +1,10 @@
 "use client";
 
 import { VerticalLanding } from "@/components/vertical/VerticalLanding";
-import { edgeHubConfig } from "@/lib/verticals/solution-hubs";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { edgeHubConfigs } from "@/lib/verticals/solution-hubs-i18n";
 
 export default function EdgeHubPage() {
-  return <VerticalLanding config={edgeHubConfig} />;
+  const { language } = useLanguage();
+  return <VerticalLanding config={edgeHubConfigs[language]} />;
 }

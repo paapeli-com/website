@@ -1,8 +1,10 @@
 "use client";
 
 import { VerticalLanding } from "@/components/vertical/VerticalLanding";
-import { intelligenceHubConfig } from "@/lib/verticals/solution-hubs";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { intelligenceHubConfigs } from "@/lib/verticals/solution-hubs-i18n";
 
 export default function IntelligenceHubPage() {
-  return <VerticalLanding config={intelligenceHubConfig} />;
+  const { language } = useLanguage();
+  return <VerticalLanding config={intelligenceHubConfigs[language]} />;
 }

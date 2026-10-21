@@ -1,6 +1,7 @@
 "use client";
 
 import { Baby, Car, Dog, MapPin, type LucideIcon } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -31,7 +32,16 @@ const MAP_ANIM_CSS = `
 
 /* A stylised, animated "live map" with a geofence, a route trail, a    */
 /* traveling GPS dot, a radar sweep and floating pin markers.           */
+const MAP_COPY = {
+  en: { live: "Live tracking", status: "Buddy is inside the Home zone", meta: "Updated 12 seconds ago · 8 m accuracy", safe: "Safe" },
+  fa: { live: "ردیابی زنده", status: "باکی داخل محدودهٔ خانه است", meta: "۱۲ ثانیه پیش به‌روز شد · دقت ۸ متر", safe: "امن" },
+  ar: { live: "تتبّع مباشر", status: "بادي داخل منطقة المنزل", meta: "تم التحديث قبل 12 ثانية · دقة 8 م", safe: "آمن" },
+};
+
 export function LiveMapVisual({ className }: { className?: string }) {
+  const { language } = useLanguage();
+  const copy = MAP_COPY[language];
+
   return (
     <div
       className={cn(
@@ -116,7 +126,7 @@ export function LiveMapVisual({ className }: { className?: string }) {
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500/70" />
           <span className="relative inline-flex size-2 rounded-full bg-green-500" />
         </span>
-        Live tracking
+        {copy.live}
       </div>
 
       {MAP_PINS.map(({ icon: Icon, label, top, left, tint, delay }) => (
@@ -148,10 +158,10 @@ export function LiveMapVisual({ className }: { className?: string }) {
           <MapPin className="size-5 text-primary" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-foreground">Buddy is inside the Home zone</p>
-          <p className="truncate text-xs text-muted-foreground">Updated 12 seconds ago · 8 m accuracy</p>
+          <p className="truncate text-sm font-semibold text-foreground">{copy.status}</p>
+          <p className="truncate text-xs text-muted-foreground">{copy.meta}</p>
         </div>
-        <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">Safe</span>
+        <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">{copy.safe}</span>
       </div>
     </div>
   );

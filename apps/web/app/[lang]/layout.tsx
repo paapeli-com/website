@@ -56,17 +56,18 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: {
   params: Promise<{ lang: Language }>;
 }): Promise<Metadata> {
-  const home = await metadataForRoute('/')({ params });
+  /* The home page's title is in its own language (lib/page-meta), but
+     it goes in as the default only: a plain string here would replace
+     the template and every other page would lose its "| Paapeli". */
+  const { title: homeTitle, ...home } = await metadataForRoute('/')({ params });
 
   return {
     metadataBase: new URL(SITE_URL),
 
     title: {
-      default: 'Paapeli - AI-Powered IoT Cloud Platform',
+      default: typeof homeTitle === 'string' ? homeTitle : 'Paapeli - AI-Powered IoT Cloud Platform',
       template: '%s | Paapeli',
     },
-    description:
-      "Build, connect, and manage IoT infrastructure intelligently with Paapeli's AI-powered cloud platform. Device management, real-time analytics, and secure OTA updates.",
 
     authors: [{ name: 'Paapeli' }],
 
@@ -79,9 +80,6 @@ export async function generateMetadata({ params }: {
     ...home,
 
     openGraph: {
-      title: 'Paapeli - AI-Powered IoT Cloud Platform',
-      description:
-        'Connect devices, collect insights, and control your IoT infrastructure from anywhere with Paapeli.',
       siteName: 'Paapeli',
       type: 'website',
       ...home.openGraph,

@@ -1,6 +1,7 @@
 "use client";
 
 import { Bell, History, MapPin, Radar, Settings, Smartphone } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { LiveMapVisual } from "./visuals";
 
 /* ------------------------------------------------------------------ */
@@ -11,13 +12,37 @@ import { LiveMapVisual } from "./visuals";
 /* ------------------------------------------------------------------ */
 
 const NAV = [
-  { icon: MapPin, label: "Live Map", active: true },
-  { icon: Smartphone, label: "Devices" },
-  { icon: Radar, label: "Safe Zones" },
-  { icon: History, label: "Playback" },
-  { icon: Bell, label: "Alerts" },
-  { icon: Settings, label: "Settings" },
-];
+  { icon: MapPin, key: "map", active: true },
+  { icon: Smartphone, key: "devices", active: false },
+  { icon: Radar, key: "zones", active: false },
+  { icon: History, key: "playback", active: false },
+  { icon: Bell, key: "alerts", active: false },
+  { icon: Settings, key: "settings", active: false },
+] as const;
+
+const COPY = {
+  en: {
+    heading: "One simple panel for the whole family",
+    body: "Watch pets, kids, and vehicles on a single live map, with safe zones, history, and alerts. The same experience your customers get, ready to white-label.",
+    nav: { map: "Live Map", devices: "Devices", zones: "Safe Zones", playback: "Playback", alerts: "Alerts", settings: "Settings" },
+    status: "Buddy · Home zone",
+    meta: "Online · 82% · 8 m",
+  },
+  fa: {
+    heading: "یک پنل ساده برای کل خانواده",
+    body: "حیوان خانگی، کودک و خودرو را روی یک نقشهٔ زنده ببینید، با محدودهٔ امن، تاریخچه و هشدار. همان تجربه‌ای که مشتریان شما می‌گیرند، آماده برای عرضه با برند خودتان.",
+    nav: { map: "نقشهٔ زنده", devices: "دستگاه‌ها", zones: "محدوده‌های امن", playback: "بازپخش مسیر", alerts: "هشدارها", settings: "تنظیمات" },
+    status: "باکی · محدودهٔ خانه",
+    meta: "آنلاین · ۸۲٪ · ۸ متر",
+  },
+  ar: {
+    heading: "لوحة واحدة بسيطة للعائلة كلها",
+    body: "تابع الحيوانات الأليفة والأطفال والمركبات على خريطة مباشرة واحدة، مع المناطق الآمنة والسجل والتنبيهات. التجربة نفسها التي يحصل عليها عملاؤك، جاهزة لتحمل علامتك التجارية.",
+    nav: { map: "الخريطة المباشرة", devices: "الأجهزة", zones: "المناطق الآمنة", playback: "إعادة التشغيل", alerts: "التنبيهات", settings: "الإعدادات" },
+    status: "بادي · منطقة المنزل",
+    meta: "متصل · 82% · 8 م",
+  },
+};
 
 const CURSOR_CSS = `
 @keyframes pp-cursor {
@@ -34,14 +59,14 @@ const CURSOR_CSS = `
 `;
 
 export function PanelPreview() {
+  const { language } = useLanguage();
+  const copy = COPY[language];
+
   return (
     <section className="flex w-full flex-col items-center gap-10 bg-[#fafafa] px-6 py-14 sm:gap-12 sm:py-20">
       <div className="flex w-full max-w-[768px] flex-col items-center gap-4 text-center">
-        <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">One simple panel for the whole family</h2>
-        <p className="text-lg text-muted-foreground">
-          Watch pets, kids, and vehicles on a single live map, with safe zones, history, and alerts.
-          The same experience your customers get, ready to white-label.
-        </p>
+        <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">{copy.heading}</h2>
+        <p className="text-lg text-muted-foreground">{copy.body}</p>
       </div>
 
       <div className="relative w-full max-w-[1024px]">
@@ -68,15 +93,15 @@ export function PanelPreview() {
                 <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">P</span>
                 <span className="text-sm font-semibold text-foreground">Paapeli Track</span>
               </div>
-              {NAV.map(({ icon: Icon, label, active }) => (
+              {NAV.map(({ icon: Icon, key, active }) => (
                 <div
-                  key={label}
+                  key={key}
                   className={`mb-1 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium ${
                     active ? "bg-primary/10 text-primary" : "text-muted-foreground"
                   }`}
                 >
                   <Icon className="size-4" />
-                  {label}
+                  {copy.nav[key]}
                 </div>
               ))}
             </div>
@@ -90,8 +115,8 @@ export function PanelPreview() {
                 <div className="flex items-center gap-2">
                   <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">🐶</span>
                   <div>
-                    <p className="text-xs font-semibold text-foreground">Buddy · Home zone</p>
-                    <p className="text-[10px] text-muted-foreground">Online · 82% · 8 m</p>
+                    <p className="text-xs font-semibold text-foreground">{copy.status}</p>
+                    <p className="text-[10px] text-muted-foreground">{copy.meta}</p>
                   </div>
                 </div>
               </div>

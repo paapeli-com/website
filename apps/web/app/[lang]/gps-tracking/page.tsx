@@ -2,8 +2,10 @@
 
 import { VerticalLanding } from "@/components/vertical/VerticalLanding";
 import { PanelPreview } from "@/components/vertical/PanelPreview";
-import { gpsTrackingConfig } from "@/lib/verticals/gps-tracking";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { gpsTrackingConfigs } from "@/lib/verticals/gps-tracking-i18n";
 
 export default function GpsTrackingPage() {
-  return <VerticalLanding config={gpsTrackingConfig} beforeCta={<PanelPreview />} />;
+  const { language } = useLanguage();
+  return <VerticalLanding config={gpsTrackingConfigs[language]} beforeCta={<PanelPreview />} />;
 }
