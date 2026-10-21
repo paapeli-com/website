@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { SecretVirtualFleet } from "@/features/factory/hooks/useSecretVirtualFleet";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useCreateProductMutation } from "@paapeli/api";
 import { TooltipProvider } from "@/features/factory/components/ui/tooltip";
@@ -94,7 +93,6 @@ export default function FactoryRoutes() {
   return (
     <LanguageProvider>
       <TooltipProvider>
-        <SecretVirtualFleet />
         {/* data-panel-headings: headings keep the size they were written at
             in every language (see index.css). `contents` keeps this wrapper
             out of the layout. */}

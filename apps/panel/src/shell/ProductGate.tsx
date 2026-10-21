@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { TriangleAlert } from "lucide-react";
+import { Loader2, TriangleAlert } from "lucide-react";
 import {
   useListActiveWorkspacesQuery,
   useListWorkspaceProductsQuery,
@@ -29,6 +29,11 @@ interface Props {
    skip the round-trip entirely. */
 const confirmed = new Set<string>();
 
+/** How often to look again while the workspace's product is being set up. */
+const PROVISIONING_POLL_MS = 3000;
+/** How often to ask again to set it up while it stays PROVISIONING. */
+const RESUBSCRIBE_MS = 60_000;
+
 const statusOf = (e: unknown) => (e as { response?: { status?: number } })?.response?.status;
 
 function describe(error: unknown): string {
@@ -48,6 +53,10 @@ function describe(error: unknown): string {
  * and if enabling genuinely fails it still renders the feature with a banner —
  * the feature's own pages handle their API errors, and a dead-end wall is
  * strictly worse than a degraded page you can still navigate out of.
+ *
+ * A subscription the server reports as not ACTIVE is different: every request
+ * the feature made would be refused, so it waits out PROVISIONING and says
+ * so for SUSPENDED, or for a setup that failed again, instead.
  */
 export function ProductGate({ name, productKey, children }: Props) {
   const workspaceId = useActiveWorkspaceId();
@@ -72,39 +81,54 @@ export function ProductGate({ name, productKey, children }: Props) {
     !!key && !ready,
   );
   const { data: products, isFetching: productsFetching } = productsQuery;
+  /* Only ACTIVE lets the feature in: the gateway answers every product-scoped
+     request for one still provisioning, failed or suspended with a 409
+     PRODUCT_UNAVAILABLE, so rendering it then is a page of errors. */
+  const status = products?.find((p) => p.productKey === productKey)?.status;
 
   const subscribe = useSubscribeWorkspaceProductMutation();
+  /* Once per attempt; while PROVISIONING, once a minute as well: a setup whose
+     request was cut off stays PROVISIONING until a subscribe takes it over,
+     which the gateway allows once it has sat untouched for a few minutes. */
+  const fireKey = key
+    ? `${key}#${attempt}` + (status === "PROVISIONING" ? `#${Math.floor(Date.now() / RESUBSCRIBE_MS)}` : "")
+    : null;
+  // Set up again this attempt and it failed again: say so rather than loop.
+  const setupFailed = status === "FAILED" && firedRef.current === fireKey && !subscribe.isPending;
 
   useEffect(() => {
     if (!key || ready || !products) return;
 
-    // Already subscribed — nothing to do, and no POST to 409 against.
-    if (products.some((p) => p.productKey === productKey)) {
+    if (status === "ACTIVE") {
       confirmed.add(key);
       setConfirmedKey(key);
       setFailure(null);
       return;
     }
+    // Suspended: subscribing only 409s; say so (below).
+    if (status === "SUSPENDED") return;
 
-    const fireKey = `${key}#${attempt}`;
+    // Not subscribed yet, its setup failed, or it may have been abandoned:
+    // subscribing (re)starts setup. A setup really in progress just 409s.
     if (firedRef.current === fireKey) return;
     firedRef.current = fireKey;
 
     subscribe.mutate(
       { workspaceId: workspaceId!, productKey: productKey! },
       {
-        onSuccess: () => {
-          confirmed.add(key);
-          setConfirmedKey(key);
+        onSuccess: (product) => {
           setFailure(null);
-        },
-        onError: (error: unknown) => {
-          // 409 = the workspace already holds an active/provisioning/suspended
-          // subscription — the state we wanted, not a failure.
-          if (statusOf(error) === 409) {
+          if (product.status === "ACTIVE") {
             confirmed.add(key);
             setConfirmedKey(key);
-            setFailure(null);
+          } else {
+            void productsQuery.refetch();
+          }
+        },
+        onError: (error: unknown) => {
+          // 409 = a subscription is already there; what state it is in, the list says.
+          if (statusOf(error) === 409) {
+            void productsQuery.refetch();
             return;
           }
           console.error(`[panel] couldn't enable "${productKey}" for workspace ${workspaceId}:`, error);
@@ -113,7 +137,15 @@ export function ProductGate({ name, productKey, children }: Props) {
       },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, ready, products, attempt]);
+  }, [key, ready, products, status, attempt]);
+
+  // Being set up: look again every few seconds until it is ACTIVE or FAILED.
+  useEffect(() => {
+    if (ready || status !== "PROVISIONING") return;
+    const timer = window.setInterval(() => void productsQuery.refetch(), PROVISIONING_POLL_MS);
+    return () => window.clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, status]);
 
   const retry = useCallback(() => {
     setFailure(null);
@@ -175,9 +207,61 @@ export function ProductGate({ name, productKey, children }: Props) {
     return <FeatureFallback failed={lookupFailed} onRetry={retryLookup} />;
   }
 
+  if (status === "SUSPENDED") {
+    return (
+      <ProductNotice title={`${name} is suspended in this workspace.`}>
+        Its data stays as it was, but nothing can be read or changed until it is resumed.
+      </ProductNotice>
+    );
+  }
+  if (setupFailed) {
+    return (
+      <ProductNotice title={`${name} couldn't be set up for this workspace.`} onRetry={retry}>
+        Setting it up failed on the server. Retrying starts it again.
+      </ProductNotice>
+    );
+  }
+  if (status === "PROVISIONING") {
+    return (
+      <ProductNotice busy title={`Setting up ${name} for this workspace…`}>
+        This takes a moment the first time. The page opens by itself once it's ready.
+      </ProductNotice>
+    );
+  }
+
   if (productsFetching || subscribe.isPending) return <FeatureFallback onRetry={retryLookup} />;
 
   return <FeatureFallback failed={lookupFailed} onRetry={retryLookup} />;
+}
+
+/** Why the feature isn't shown yet, centred where it would be. */
+function ProductNotice({
+  title,
+  busy = false,
+  onRetry,
+  children,
+}: {
+  title: string;
+  busy?: boolean;
+  onRetry?: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
+      {busy && <Loader2 className="size-6 animate-spin text-primary" aria-hidden />}
+      <p className="text-sm font-medium text-foreground">{title}</p>
+      <p className="max-w-sm text-[13px] text-muted-foreground">{children}</p>
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
+        >
+          Retry
+        </button>
+      )}
+    </div>
+  );
 }
 
 const reloadPage = () => window.location.reload();

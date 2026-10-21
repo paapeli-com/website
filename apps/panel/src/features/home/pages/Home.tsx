@@ -122,7 +122,9 @@ export default function Home() {
     workspaceId,
     !!workspaceId,
   );
-  const owned = new Set((workspaceProducts ?? []).map((p) => p.productKey));
+  /* Active ones only: the gateway refuses a product still provisioning, failed
+     or suspended (409 PRODUCT_UNAVAILABLE), so there is nothing to ask it yet. */
+  const owned = new Set((workspaceProducts ?? []).filter((p) => p.status === "ACTIVE").map((p) => p.productKey));
   /* Until this answers, "not subscribed" and "still asking" look identical,
      and every count below would flash a zero it hasn't confirmed. */
   const subscriptionsUnknown = !workspaceId || productsPending;

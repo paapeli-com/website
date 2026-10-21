@@ -9,6 +9,7 @@ import DeviceDetail from "./pages/DeviceDetail";
 import Geofences from "./pages/Geofences";
 import Playback from "./pages/Playback";
 import Alerts from "./pages/Alerts";
+import { SecretVirtualTracker } from "./lib/useSecretVirtualTracker";
 import "./track.css";
 
 /* GPS Tracking, mounted at /AIoT/GPSTracking/*.
@@ -21,6 +22,7 @@ export default function TrackRoutes() {
   return (
     <LanguageProvider>
       <AuthProvider>
+        <SecretVirtualTracker />
         <Routes>
           {/* Login is product-agnostic (the panel's /login). Targets here
               are ROUTE-RELATIVE on purpose: an absolute "/" would resolve

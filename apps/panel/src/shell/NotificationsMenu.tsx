@@ -206,7 +206,11 @@ export function NotificationsMenu() {
 
   const workspaceId = useActiveWorkspaceId();
   const { data: products } = useListWorkspaceProductsQuery(workspaceId ?? "");
-  const productKeys = useMemo(() => (products ?? []).map((p) => p.productKey), [products]);
+  // Active ones only: the gateway refuses the rest with a 409 PRODUCT_UNAVAILABLE.
+  const productKeys = useMemo(
+    () => (products ?? []).filter((p) => p.status === "ACTIVE").map((p) => p.productKey),
+    [products],
+  );
   const alarmQueries = useGetWorkspaceAlarmsQueries(workspaceId ?? "", productKeys);
   const loading = !!workspaceId && (!products || alarmQueries.some((q) => q.isLoading));
   const alarmsVersion = alarmQueries.map((q) => q.dataUpdatedAt).join(",");
