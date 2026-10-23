@@ -228,15 +228,11 @@ export function SidebarContent({ section, onNavigate, collapsed, onExpand }: Sid
   const footerItems = section.footerItems ?? [];
   const location = useLocation();
   const activePath = activeNavPath(location.pathname, [...section.items, ...footerItems]);
-  /* A footer row is a shortcut, not a place. When the page it points at
-     already has its own row in the list above, that row is the one that
-     lights, so the sidebar never marks the same page twice. A row that names
-     an area rather than a page (activeOnPrefix) is exempt: saying which area
-     you are in is the whole point of it. */
-  const mainPaths = new Set(
-    section.items.flatMap((i) => [i, ...(i.children ?? [])]).flatMap((i) => (i.path ? [i.path] : [])),
-  );
-  const footerActivePath = activePath && mainPaths.has(activePath) ? undefined : activePath;
+  /* A footer row lights for its own page even when the list above has a row
+     for that page too: it is the row that was clicked, and leaving it dark
+     while only the area row (Cloud Management) lit read as having landed
+     somewhere else. */
+  const footerActivePath = activePath;
   return (
     /* data-sidebar-nav: one row size per language — see the matching block in
        src/index.css for what was pulling the group rows out of line. */

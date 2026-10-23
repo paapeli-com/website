@@ -12,6 +12,7 @@ import { PRODUCT_KEY } from "@/features/track/lib/product";
 import { useTrackerAlarms, type AlarmState, type TrackerAlarm } from "@/features/track/lib/useTrackerAlarms";
 import { cn } from "@/shared/lib/utils";
 import { AlertRules } from "@/features/track/components/AlertRules";
+import { PageBreadcrumb } from "@/shell/PageBreadcrumb";
 
 /* ThingsBoard severities, most to least urgent: CRITICAL, MAJOR, MINOR,
    WARNING, INDETERMINATE. */
@@ -78,6 +79,7 @@ export default function Alerts() {
 
   return (
     <div className="mx-auto max-w-3xl p-4 lg:p-6">
+      <PageBreadcrumb />
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold">{t("alerts")}</h1>

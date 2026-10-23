@@ -9,7 +9,7 @@ import {
 } from "@/features/factory/components/ui/dialog";
 import { Button } from "@/features/factory/components/ui/button";
 import { Input } from "@/features/factory/components/ui/input";
-import { Label } from "@/features/factory/components/ui/label";
+import { FieldLabel } from "@/features/factory/components/FieldLabel";
 import {
   Select,
   SelectContent,
@@ -100,7 +100,7 @@ export const AddNodeDialog = ({ open, onOpenChange, workspaceId, productKey, par
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label>{t("selectNodeType")}</Label>
+            <FieldLabel required className="mb-0">{t("selectNodeType")}</FieldLabel>
             <Select value={type} onValueChange={setType} disabled={typesLoading || allowedTypes.length === 0}>
               <SelectTrigger>
                 <SelectValue placeholder={typesLoading ? t("loading") : t("selectNodeType")} />
@@ -118,7 +118,7 @@ export const AddNodeDialog = ({ open, onOpenChange, workspaceId, productKey, par
             )}
           </div>
           <div className="space-y-2">
-            <Label>{t("name")}</Label>
+            <FieldLabel required className="mb-0">{t("name")}</FieldLabel>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -127,7 +127,7 @@ export const AddNodeDialog = ({ open, onOpenChange, workspaceId, productKey, par
             />
           </div>
           <div className="space-y-2">
-            <Label>{t("label")}</Label>
+            <FieldLabel optional className="mb-0">{t("label")}</FieldLabel>
             <Input
               value={label}
               onChange={(e) => setLabel(e.target.value)}

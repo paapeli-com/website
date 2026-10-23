@@ -5,6 +5,7 @@ import { useToast } from "@/features/factory/hooks/use-toast";
 import { Button } from "@/features/factory/components/ui/button";
 import { Input } from "@/features/factory/components/ui/input";
 import { Label } from "@/features/factory/components/ui/label";
+import { FieldLabel, OptionalNote } from "@/features/factory/components/FieldLabel";
 import { Textarea } from "@/features/factory/components/ui/textarea";
 import { Switch } from "@/features/factory/components/ui/switch";
 import { Card } from "@/features/factory/components/ui/card";
@@ -118,7 +119,7 @@ const SectionCard = ({
       <div className="flex items-center gap-2.5">
         <StepBadge n={step} />
         <h3 className="text-base font-semibold text-foreground">{title}</h3>
-        {optional && <span className="text-sm text-muted-foreground">(Optional)</span>}
+        {optional && <OptionalNote />}
       </div>
       {right}
     </div>
@@ -126,25 +127,6 @@ const SectionCard = ({
   </Card>
 );
 
-const FieldLabel = ({
-  children,
-  required,
-  hint,
-  htmlFor,
-}: {
-  children: React.ReactNode;
-  required?: boolean;
-  hint?: boolean;
-  htmlFor?: string;
-}) => (
-  <Label
-    htmlFor={htmlFor}
-    className="text-sm font-medium text-foreground inline-flex items-center gap-1.5 mb-1.5"
-  >
-    {children}
-    {required && <span className="text-destructive">*</span>}
-  </Label>
-);
 
 const ToggleCard = ({
   icon: Icon,
@@ -379,7 +361,7 @@ const DeviceForm = () => {
         <SectionCard step={1} title={t("deviceTypeSection")}>
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5">
             <div>
-              <FieldLabel>{t("deviceTypeSection")}</FieldLabel>
+              <FieldLabel required>{t("deviceTypeSection")}</FieldLabel>
               <Select
                 value={deviceType}
                 onValueChange={(v) => { setDeviceType(v); if (v !== "popular") setSelectedSensors([]); if (v !== "templates") setSelectedTemplate(""); }}
@@ -445,7 +427,7 @@ const DeviceForm = () => {
         <SectionCard step={2} title={t("basicInformation")} right={<span className="text-xs text-muted-foreground hidden sm:inline">{t("onlyNameRequiredHint")}</span>}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <FieldLabel required hint htmlFor="device-name">{t("name")}</FieldLabel>
+              <FieldLabel required htmlFor="device-name">{t("name")}</FieldLabel>
               <Input
                 id="device-name"
                 value={deviceName}
@@ -456,7 +438,7 @@ const DeviceForm = () => {
               />
             </div>
             <div>
-              <FieldLabel required hint>{t("location")}</FieldLabel>
+              <FieldLabel required>{t("location")}</FieldLabel>
               <Select value={assetId} onValueChange={setAssetId} disabled={locationsLoading || locationOptions.length === 0}>
                 <SelectTrigger className="h-11">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -473,7 +455,7 @@ const DeviceForm = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
             <div>
-              <FieldLabel hint>{t("tagsLabel")}</FieldLabel>
+              <FieldLabel optional>{t("tagsLabel")}</FieldLabel>
               <div className="min-h-11 rounded-md border border-input bg-background px-2 py-1.5 flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring focus-within:border-transparent">
                 {tags.map((tag) => (
                   <span
@@ -517,12 +499,12 @@ const DeviceForm = () => {
               <p className="text-xs text-muted-foreground mt-1.5">{t("pressEnterTags")}</p>
             </div>
             <div>
-              <FieldLabel hint>{t("descriptionLabel")}</FieldLabel>
+              <FieldLabel optional>{t("descriptionLabel")}</FieldLabel>
               <Textarea
                 value={description}
                 maxLength={500}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder={t("enterDescriptionOptional")}
+                placeholder={t("enterDescription")}
                 className={persianTextClass(description)}
                 rows={3}
               />
@@ -550,7 +532,7 @@ const DeviceForm = () => {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="mt-5">
-                <FieldLabel hint>{t("shareWithUsers")}</FieldLabel>
+                <FieldLabel optional>{t("shareWithUsers")}</FieldLabel>
                 <ShareWithUsers value={sharedUsers} onChange={setSharedUsers} />
               </div>
             </CollapsibleContent>

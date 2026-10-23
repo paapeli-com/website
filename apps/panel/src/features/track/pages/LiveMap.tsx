@@ -18,6 +18,7 @@ import { useActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { cn } from "@/shared/lib/utils";
 import { trackPath } from "@/features/track/lib/trackPath";
 import { TrackerAvatar, trackerIconOf } from "@/features/track/lib/trackerIcons";
+import { PageBreadcrumb } from "@/shell/PageBreadcrumb";
 
 /* The fleet on a map: the device list from the API, each tracker placed at the
  * last fix in its telemetry (see lib/useTrackerPositions). A tracker with no
@@ -72,6 +73,7 @@ export default function LiveMap() {
 
   return (
     <div className="flex h-full flex-col gap-4 p-4 lg:p-6">
+      <PageBreadcrumb className="mb-0" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold">{t("liveMap")}</h1>

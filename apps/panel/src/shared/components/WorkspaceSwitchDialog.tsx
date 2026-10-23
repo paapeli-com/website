@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
+import { X } from "lucide-react";
 import { setActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { useShellT } from "@/shared/i18n/shell";
 import { useAppLanguage, isRTLLanguage } from "@/shared/i18n/appLanguage";
@@ -61,9 +62,18 @@ function WorkspaceSwitchDialog({
           dir={isRTLLanguage(language) ? "rtl" : "ltr"}
           className="fixed left-1/2 top-1/2 z-[100] w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-background p-6 shadow-lg"
         >
-          <AlertDialog.Title className="text-lg font-semibold text-foreground">
-            {t("Switch workspace?")}
-          </AlertDialog.Title>
+          <div className="flex items-start justify-between gap-4">
+            <AlertDialog.Title className="text-lg font-semibold text-foreground">
+              {t("Switch workspace?")}
+            </AlertDialog.Title>
+            <AlertDialog.Cancel
+              disabled={confirming}
+              aria-label={t("Close")}
+              className="-me-2 -mt-1 flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+            >
+              <X className="size-4" />
+            </AlertDialog.Cancel>
+          </div>
           <AlertDialog.Description className="mt-2 text-sm text-muted-foreground">
             {t("The page will reload to show the data of")}{" "}
             <span dir="auto" className="font-medium text-foreground">{pending?.name}</span>.

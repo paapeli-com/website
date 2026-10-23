@@ -384,6 +384,7 @@ export default function AccessApiKeys() {
                 <tr>
                   <td colSpan={8} className="px-3">
                     <EmptyState
+                      icon={KeyIcon}
                       title={t("No API keys yet")}
                       description={t("Create one to let an application call a Paapeli product.")}
                     />
@@ -735,12 +736,12 @@ function CreateKeyDialog({
     >
       <div className="flex flex-col gap-4">
         <div>
-          <Label>{t("Name")}</Label>
+          <Label required>{t("Name")}</Label>
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="customer-support-backend" />
         </div>
 
         <div>
-          <Label>{t("Expiration")}</Label>
+          <Label required>{t("Expiration")}</Label>
           <select
             value={expiry}
             onChange={(e) => setExpiry(e.target.value)}
@@ -755,7 +756,7 @@ function CreateKeyDialog({
         </div>
 
         <div>
-          <Label>{t("Product access")}</Label>
+          <Label required>{t("Product access")}</Label>
           <p className="mb-2 text-xs text-muted-foreground">{t("Choose at least one product, project and action.")}</p>
 
           <div className="flex flex-col gap-3">

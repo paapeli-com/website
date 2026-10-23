@@ -1,4 +1,4 @@
-import { Check, Cpu, Loader2, Plus } from "lucide-react";
+import { Check, Cpu, Loader2, Package, Plus } from "lucide-react";
 import { toast } from "@/shared/lib/toast";
 import { PRODUCTS } from "@paapeli/brand/config";
 import {
@@ -6,7 +6,7 @@ import {
   useSubscribeWorkspaceProductMutation,
 } from "@paapeli/api";
 import { useWorkspaceSelection } from "@/features/cloud-management/contexts/WorkspaceContext";
-import { Badge, Button, Card, EmptyState, NoData, NoDataValue, PageHeader, ProgressBar, SkeletonList, Table, Toggle } from "@/features/cloud-management/ui";
+import { Badge, Button, Card, EmptyState, NoData, NoDataValue, PageHeader, ProgressBar, SkeletonList, Table, Toggle, useComingSoon } from "@/features/cloud-management/ui";
 import { useShellT } from "@/shared/i18n/shell";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 
@@ -130,6 +130,10 @@ function ProductSubscriptions() {
 
 export default function Subscriptions() {
   const t = useShellT();
+  const soon = useComingSoon();
+  /* No billing backend yet, so no plan: until there is one, its controls
+     would act on nothing, and the card says so instead of offering them. */
+  const hasPlan = PLAN_FACTS.length > 0;
 
   return (
     /* data-uniform-type: the page is written in Tailwind steps and reads
@@ -142,8 +146,8 @@ export default function Subscriptions() {
         )}
         actions={
           <>
-            <Button variant="ghost">{t("Compare plans")}</Button>
-            <Button>{t("Add subscription")}</Button>
+            <Button variant="ghost" onClick={() => soon("Compare plans")}>{t("Compare plans")}</Button>
+            <Button onClick={() => soon("Add subscription")}>{t("Add subscription")}</Button>
           </>
         }
       />
@@ -163,13 +167,21 @@ export default function Subscriptions() {
                 </div>
                 <p className="text-[13px] text-muted-foreground"><NoDataValue /></p>
               </div>
-              <div className="flex gap-2">
-                <Button variant="ghost">{t("Change plan")}</Button>
-                <Button variant="danger">{t("Cancel")}</Button>
-              </div>
+              {hasPlan && (
+                <div className="flex gap-2">
+                  <Button variant="ghost" onClick={() => soon("Change plan")}>{t("Change plan")}</Button>
+                  <Button variant="danger" onClick={() => soon("Cancel")}>{t("Cancel")}</Button>
+                </div>
+              )}
             </div>
 
-            {PLAN_FACTS.length === 0 && <NoData />}
+            {!hasPlan && (
+              <EmptyState
+                icon={Package}
+                title={t("No plan yet")}
+                description={t("Plans, entitlements and add-ons appear here once billing is available for your account.")}
+              />
+            )}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {PLAN_FACTS.map(([l, v]) => (
                 <div key={l} className="rounded-xl bg-muted/40 px-3.5 py-3">
@@ -179,6 +191,7 @@ export default function Subscriptions() {
               ))}
             </div>
 
+            {hasPlan && (
             <div className="flex flex-col gap-3">
               <h3 className="text-[13px] font-semibold text-foreground">{t("Plan entitlements")}</h3>
               {ENTITLEMENTS.length === 0 && <NoData />}
@@ -192,6 +205,7 @@ export default function Subscriptions() {
                 </div>
               ))}
             </div>
+            )}
           </Card>
 
           <Table
@@ -199,10 +213,11 @@ export default function Subscriptions() {
             head={
               <>
                 <h2 className="text-sm font-bold text-foreground">{t("Add-ons")}</h2>
-                <Button variant="ghost">{t("Add add-on")}</Button>
+                {hasPlan && <Button variant="ghost" onClick={() => soon("Add add-on")}>{t("Add add-on")}</Button>}
               </>
             }
             rows={ADDONS}
+            empty={{ icon: Package, title: t("No add-ons yet") }}
           />
         </div>
 
@@ -223,15 +238,15 @@ export default function Subscriptions() {
             <h2 className="mb-1 text-sm font-bold text-foreground">{t("Renewal settings")}</h2>
             <div className="flex items-center justify-between gap-3 py-2.5">
               <span className="text-[13.5px] text-muted-foreground">{t("Auto-renew subscription")}</span>
-              <Toggle checked />
+              <Toggle checked onChange={() => soon("Renewal settings")} />
             </div>
             <div className="flex items-center justify-between gap-3 py-2.5">
               <span className="text-[13.5px] text-muted-foreground">{t("Notify 30 days before renewal")}</span>
-              <Toggle checked />
+              <Toggle checked onChange={() => soon("Renewal settings")} />
             </div>
             <div className="flex items-center justify-between gap-3 py-2.5">
               <span className="text-[13.5px] text-muted-foreground">{t("Allow overage beyond plan")}</span>
-              <Toggle checked={false} />
+              <Toggle checked={false} onChange={() => soon("Renewal settings")} />
             </div>
           </Card>
 
@@ -241,7 +256,7 @@ export default function Subscriptions() {
               {t("Enterprise adds unlimited assets, dedicated ingestion and a 99.95% SLA.")}
             </p>
             <div>
-              <Button>{t("Talk to sales")}</Button>
+              <Button onClick={() => soon("Talk to sales")}>{t("Talk to sales")}</Button>
             </div>
           </Card>
         </div>

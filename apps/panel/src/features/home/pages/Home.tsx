@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { workOrderService } from "@paapeli/api";
 import {
@@ -40,6 +40,8 @@ import {
 import { Card, IconTile, Pill, PillSkeleton, SectionLabel, Tag } from "@/features/home/ui";
 import { WaitlistDialog } from "@/features/home/WaitlistDialog";
 import { TopoBackdrop } from "@/shared/components/TopoBackdrop";
+import { AI_INFERENCE_BASE } from "@/shell/nav/aiInferenceNav";
+import { HOME_CATEGORY_PATHS } from "@/shell/nav/homeNav";
 
 /* The account's front door: every product on the account in one place, plus
    what needs looking at right now. Reached at /Home, and where signing in
@@ -78,7 +80,7 @@ const isUnacknowledged = (a: WorkspaceAlarmItem) => needsAttention(a.status);
 const isCritical = (a: WorkspaceAlarmItem) => a.severity?.toUpperCase() === "CRITICAL";
 
 
-type Waiting = { title: string; tag: string; description: string; icon: LucideIcon; pills: string[] };
+type Waiting = { title: string; tag: string; description: string; icon: LucideIcon; pills: string[]; path?: string };
 
 /* AI Infra: announced, not shipped. No route, no endpoint, so the cards
    describe the product and their action is inert until there is one. */
@@ -89,6 +91,8 @@ const AI_INFRA: Waiting[] = [
     icon: Server,
     description: "Serve open models behind a managed endpoint. Pay per token, autoscaled.",
     pills: ["OpenAI-compatible API"],
+    /* Open in the sidebar already, so open here too rather than a waitlist. */
+    path: AI_INFERENCE_BASE,
   },
   {
     title: "AI Agent Maker",
@@ -105,7 +109,12 @@ const PLATFORM: { title: string; description: string; icon: LucideIcon; to?: str
   { title: "Members", description: "Invite teammates and manage roles", icon: Users, to: `${solutionPath(FACTORY)}/members` },
 ];
 
-export default function Home() {
+/** A family of products, shown on its own page (see HOME_CATEGORY_PATHS). */
+export type HomeCategory = "aiot" | "ai";
+
+const CATEGORY_NAME: Record<HomeCategory, string> = { aiot: "AIoT", ai: "AI Infra" };
+
+export default function Home({ category }: { category?: HomeCategory } = {}) {
   const navigate = useNavigate();
   const t = useShellT();
   const lang = useAppLanguage();
@@ -221,17 +230,30 @@ export default function Home() {
       <TopoBackdrop anchor="container" />
 
       <div className="relative z-[1]">
-        <header className="flex flex-col gap-1.5">
-          <h1 className="text-2xl font-bold leading-tight text-foreground">{greeting}</h1>
-          <p className="text-sm text-muted-foreground">
-            {t("Pick a product to continue, or activate a new one. Everything on this account lives here.")}
-          </p>
-        </header>
+        {category ? (
+          <header className="flex flex-col gap-1.5">
+            <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Link to="/Home" className="hover:text-foreground">{t("Home")}</Link>
+              <ChevronRight className="size-3.5 rtl:rotate-180" aria-hidden />
+              <span className="font-medium text-primary">{t(CATEGORY_NAME[category])}</span>
+            </nav>
+            <h1 className="text-2xl font-bold leading-tight text-foreground">{t(CATEGORY_NAME[category])}</h1>
+            <p className="text-sm text-muted-foreground">{t("Every product in this family.")}</p>
+          </header>
+        ) : (
+          <header className="flex flex-col gap-1.5">
+            <h1 className="text-2xl font-bold leading-tight text-foreground">{greeting}</h1>
+            <p className="text-sm text-muted-foreground">
+              {t("Pick a product to continue, or activate a new one. Everything on this account lives here.")}
+            </p>
+          </header>
+        )}
 
-        <div className="mt-7 grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className={cn("mt-7 grid grid-cols-1 items-start gap-6", !category && "xl:grid-cols-[minmax(0,1fr)_320px]")}>
           <div className="flex flex-col gap-6">
+            {(!category || category === "aiot") && (
             <section className="flex flex-col gap-2.5">
-              <SectionLabel>AIoT</SectionLabel>
+              <SectionLabel to={category ? undefined : HOME_CATEGORY_PATHS.aiot}>AIoT</SectionLabel>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <ProductCard
                   icon={Box}
@@ -239,6 +261,7 @@ export default function Home() {
                   description={t("Assets, alarms, work orders and OTA for production lines.")}
                   action={t("Open")}
                   onAction={() => navigate(`${solutionPath(FACTORY)}/`)}
+                  opens
                   pending={subscriptionsUnknown || (hasFactory && (factoryDevices.isPending || factoryLocations.isPending))}
                   pills={[
                     { text: `${n(factoryAssets)} ${t("assets")}` },
@@ -259,6 +282,7 @@ export default function Home() {
                   description={t("Live fleet positions, geofences and trip history.")}
                   action={t("Open")}
                   onAction={() => navigate(`${solutionPath(TRACKING)}/`)}
+                  opens
                   pending={subscriptionsUnknown || (hasTracking && trackingDevices.isPending)}
                   pills={[
                     { text: `${n(trackerCount)} ${t("trackers")}` },
@@ -271,9 +295,11 @@ export default function Home() {
                 />
               </div>
             </section>
+            )}
 
+            {(!category || category === "ai") && (
             <section className="flex flex-col gap-2.5">
-              <SectionLabel>{t("AI Infra")}</SectionLabel>
+              <SectionLabel to={category ? undefined : HOME_CATEGORY_PATHS.ai}>{t("AI Infra")}</SectionLabel>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {AI_INFRA.map((product, i) => (
                   <ProductCard
@@ -285,8 +311,9 @@ export default function Home() {
                        out: solid brand edge vs. a dashed outline. */
                     variant={i === 0 ? "featured" : "planned"}
                     description={t(product.description)}
-                    action={t("Join waitlist")}
-                    onAction={() => setWaitlistFor(product.title)}
+                    action={product.path ? t("Open") : t("Join waitlist")}
+                    onAction={() => (product.path ? navigate(product.path) : setWaitlistFor(product.title))}
+                    opens={!!product.path}
                     pills={product.pills.map((text, pi) => ({
                       text: t(text),
                       tone: i === 0 && pi === 0 ? ("brand" as const) : ("gray" as const),
@@ -295,7 +322,9 @@ export default function Home() {
                 ))}
               </div>
             </section>
+            )}
 
+            {!category && (
             <section className="flex flex-col gap-2.5">
               <SectionLabel>{t("Platform")}</SectionLabel>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -317,8 +346,10 @@ export default function Home() {
                 ))}
               </div>
             </section>
+            )}
           </div>
 
+          {!category && (
           <aside className="flex flex-col gap-4">
             <Card className="flex flex-col gap-3">
               <h2 className="text-sm font-bold text-foreground">{t("Recently visited")}</h2>
@@ -418,6 +449,7 @@ export default function Home() {
               <UsageRow label={t("Inference tokens")} value={t("Not active")} />
             </Card>
           </aside>
+          )}
         </div>
       </div>
 
@@ -455,6 +487,7 @@ function ProductCard({
   pending,
   action,
   onAction,
+  opens = false,
   variant = "default",
 }: {
   icon: LucideIcon;
@@ -465,6 +498,8 @@ function ProductCard({
   pending?: boolean;
   action: string;
   onAction?: () => void;
+  /** The action opens the product, so its icon and name open it too. */
+  opens?: boolean;
   variant?: "default" | "featured" | "planned";
 }) {
   const shown = pills.filter(Boolean) as { text: string; tone?: "gray" | "brand" | "bad" }[];
@@ -479,10 +514,22 @@ function ProductCard({
       )}
     >
       <div className="flex items-start gap-3.5">
-        <IconTile icon={icon} />
+        {opens && onAction ? (
+          <button type="button" onClick={onAction} aria-label={title} className="shrink-0 rounded-xl">
+            <IconTile icon={icon} />
+          </button>
+        ) : (
+          <IconTile icon={icon} />
+        )}
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-base font-semibold text-foreground">{title}</h3>
+            {opens && onAction ? (
+              <button type="button" onClick={onAction} className="text-start text-base font-semibold text-foreground hover:text-primary">
+                <h3>{title}</h3>
+              </button>
+            ) : (
+              <h3 className="text-base font-semibold text-foreground">{title}</h3>
+            )}
             {tag && <Tag tone={variant === "featured" ? "brand" : "gray"}>{tag}</Tag>}
           </div>
           <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>

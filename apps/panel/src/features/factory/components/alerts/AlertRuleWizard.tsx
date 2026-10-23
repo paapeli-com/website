@@ -19,8 +19,9 @@ import { Badge } from "@/features/factory/components/ui/badge";
 import { Checkbox } from "@/features/factory/components/ui/checkbox";
 import { Textarea } from "@/features/factory/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/features/factory/components/ui/sheet";
-import { Plus, Trash2, ChevronLeft, ChevronRight, DatabaseZap } from "lucide-react";
+import { Check, Plus, Trash2, ChevronLeft, ChevronRight, DatabaseZap } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { FieldLabel } from "@/features/factory/components/FieldLabel";
 import type { AlertRuleWizardStep, ConditionOperator, AlertSeverity, RuleType, LogicOperator } from "@/features/factory/types/alerts";
 import type { TranslationKey } from "@/features/factory/i18n/translations";
 import { useChannelsStore, useEscalationsStore } from "@/features/factory/hooks/useAlertStore";
@@ -290,6 +291,12 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
   const { items: escalationPolicies } = useEscalationsStore();
   const { items: notificationChannels } = useChannelsStore();
   const [currentStep, setCurrentStep] = useState(0);
+  /* Steps the user has been on. A step lights as done only once it has been
+     visited and left complete, not because a later step was opened. */
+  const [visited, setVisited] = useState<Set<number>>(() => new Set([0]));
+  useEffect(() => {
+    setVisited((prev) => (prev.has(currentStep) ? prev : new Set(prev).add(currentStep)));
+  }, [currentStep]);
 
   /* A template picked on the Rules tab arrives as ?template=. It fills in the
      tag and the comparison and nothing else: the device and the threshold are
@@ -492,6 +499,18 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
   const handleCreateRef = useRef(handleCreate);
   handleCreateRef.current = handleCreate;
 
+  /* What "done" means per step. Scope needs a name and a device, conditions
+     need every row valid; the rest have a default or are optional, so being
+     visited is enough. */
+  const stepComplete = (i: number) => {
+    if (i === 0) return !!ruleName.trim() && (!!editRule || selectedDevices.length > 0);
+    if (i === 1) {
+      const conditions = conditionGroups.flatMap(g => g.conditions);
+      return conditions.length > 0 && conditions.every(conditionValid);
+    }
+    return true;
+  };
+
   const isLastStep = currentStep === STEPS.length - 1;
   useEffect(() => {
     if (!hideActions || !onActionsChange) return;
@@ -546,7 +565,9 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
             back to whichever step is short. The number and the label are one
             button, so the whole thing is a target and reachable by keyboard. */}
         <nav className="flex items-center gap-1 mt-2 mb-4 overflow-x-auto pb-1" aria-label={t("alertCreateRule")}>
-          {STEPS.map((_, i) => (
+          {STEPS.map((_, i) => {
+            const done = i !== currentStep && visited.has(i) && stepComplete(i);
+            return (
             <div key={i} className="flex items-center gap-1">
               <button
                 type="button"
@@ -556,9 +577,9 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
               >
                 <span className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-medium shrink-0 ${
                   i === currentStep ? 'bg-primary text-primary-foreground' :
-                  i < currentStep ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+                  done ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
                 }`}>
-                  {i + 1}
+                  {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
                 </span>
                 <span className={`text-xs whitespace-nowrap hidden sm:inline ${i === currentStep ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
                   {stepLabels[i]}
@@ -566,7 +587,8 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
               </button>
               {i < STEPS.length - 1 && <div className="w-4 h-px bg-border shrink-0" />}
             </div>
-          ))}
+            );
+          })}
         </nav>
 
         {/* Step Content */}
@@ -575,15 +597,15 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
           {currentStep === 0 && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>{t("alertRuleName")}</Label>
+                <FieldLabel required className="mb-0">{t("alertRuleName")}</FieldLabel>
                 <Input value={ruleName} onChange={e => setRuleName(e.target.value)} placeholder={t("alertEnterRuleName")} />
               </div>
               <div className="space-y-2">
-                <Label>{t("alertRuleDescription")}</Label>
+                <FieldLabel optional className="mb-0">{t("alertRuleDescription")}</FieldLabel>
                 <Textarea value={ruleDescription} onChange={e => setRuleDescription(e.target.value)} placeholder={t("alertEnterRuleDescription")} rows={2} />
               </div>
               <div className="space-y-2">
-                <Label>{t("alertRuleType")}</Label>
+                <FieldLabel required className="mb-0">{t("alertRuleType")}</FieldLabel>
                 <Select value={ruleType} onValueChange={v => setRuleType(v as RuleType)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -600,7 +622,7 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
               </div>
               {editRule ? (
               <div className="space-y-2">
-                <Label>{t("alertScopeDevices")}</Label>
+                <FieldLabel required className="mb-0">{t("alertScopeDevices")}</FieldLabel>
                 <div className="flex items-center gap-2 border rounded-md p-2 bg-muted/30">
                   <Checkbox checked disabled />
                   <span className="text-sm">{devices.find(d => d.id === editRule.deviceId)?.name ?? editRule.deviceId}</span>
@@ -609,10 +631,15 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
               </div>
               ) : (
               <div className="space-y-2">
-                <Label>{t("alertScopeDevices")}</Label>
-                <div className="space-y-1 max-h-32 overflow-y-auto border rounded-md p-2">
+                <FieldLabel required className="mb-0">{t("alertScopeDevices")}</FieldLabel>
+                <div className="space-y-1 max-h-48 overflow-y-auto border rounded-md p-2">
                   {devicesLoading && <span className="text-sm text-muted-foreground">{tt("loading")}</span>}
-                  {!devicesLoading && devices.length === 0 && <EmptyState message={tt("alertNoDevicesYet")} />}
+                  {!devicesLoading && devices.length === 0 && (
+                    <EmptyState
+                      message={tt("alertNoDevicesYet")}
+                      action={{ label: t("addDevice"), onClick: () => navigate(localizedPath("/devices/new", language)) }}
+                    />
+                  )}
                   {devices.map(dev => {
                     const id = dev.id;
                     return (
@@ -753,7 +780,7 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
           {/* Step 3: Severity */}
           {currentStep === 2 && (
             <div className="space-y-4">
-              <Label>{t("alertSelectSeverity")}</Label>
+              <FieldLabel required className="mb-0">{t("alertSelectSeverity")}</FieldLabel>
               <div className="grid grid-cols-2 gap-3">
                 {(['critical', 'high', 'medium', 'low'] as AlertSeverity[]).map(sev => (
                   <button

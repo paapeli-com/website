@@ -6,6 +6,7 @@ import { useGateways } from "@/features/factory/hooks/useGateways";
 import { Button } from "@/features/factory/components/ui/button";
 import { Input } from "@/features/factory/components/ui/input";
 import { Label } from "@/features/factory/components/ui/label";
+import { FieldLabel, OptionalNote } from "@/features/factory/components/FieldLabel";
 import { Textarea } from "@/features/factory/components/ui/textarea";
 import { Switch } from "@/features/factory/components/ui/switch";
 import { Card } from "@/features/factory/components/ui/card";
@@ -82,7 +83,7 @@ const SectionCard = ({
       <div className="flex items-center gap-2.5">
         <StepBadge n={step} />
         <h3 className="text-base font-semibold text-foreground">{title}</h3>
-        {optional && <span className="text-sm text-muted-foreground">(Optional)</span>}
+        {optional && <OptionalNote />}
       </div>
       {right}
     </div>
@@ -90,25 +91,6 @@ const SectionCard = ({
   </Card>
 );
 
-const FieldLabel = ({
-  children,
-  required,
-  hint,
-  htmlFor,
-}: {
-  children: React.ReactNode;
-  required?: boolean;
-  hint?: boolean;
-  htmlFor?: string;
-}) => (
-  <Label
-    htmlFor={htmlFor}
-    className="text-sm font-medium text-foreground inline-flex items-center gap-1.5 mb-1.5"
-  >
-    {children}
-    {required && <span className="text-destructive">*</span>}
-  </Label>
-);
 
 const ToggleCard = ({
   icon: Icon,
@@ -243,7 +225,7 @@ const GatewayForm = () => {
         <SectionCard step={1} title={t("gatewayTypeSection")}>
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5">
             <div>
-              <FieldLabel>{t("gatewayTypeSection")}</FieldLabel>
+              <FieldLabel required>{t("gatewayTypeSection")}</FieldLabel>
               <Select
                 value={gatewayType}
                 onValueChange={(v) => { setGatewayType(v); if (v !== "templates") setSelectedTemplate(""); }}
@@ -282,7 +264,7 @@ const GatewayForm = () => {
         <SectionCard step={2} title={t("basicInformation")} right={<span className="text-xs text-muted-foreground hidden sm:inline">{t("onlyNameRequiredHint")}</span>}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <FieldLabel required hint htmlFor="gw-name">{t("name")}</FieldLabel>
+              <FieldLabel required htmlFor="gw-name">{t("name")}</FieldLabel>
               <Input
                 id="gw-name"
                 value={name}
@@ -293,7 +275,7 @@ const GatewayForm = () => {
               />
             </div>
             <div>
-              <FieldLabel hint>{t("location")}</FieldLabel>
+              <FieldLabel optional>{t("location")}</FieldLabel>
               <Select value={location} onValueChange={setLocation}>
                 <SelectTrigger className="h-11">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -328,7 +310,7 @@ const GatewayForm = () => {
             <CollapsibleContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
                 <div>
-                  <FieldLabel hint>{t("tagsLabel")}</FieldLabel>
+                  <FieldLabel optional>{t("tagsLabel")}</FieldLabel>
                   <div className="min-h-11 rounded-md border border-input bg-background px-2 py-1.5 flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring focus-within:border-transparent">
                     {tagList.map((tag) => (
                       <span key={tag} className="inline-flex items-center gap-1 rounded bg-primary/10 text-primary text-xs px-2 py-1">
@@ -366,17 +348,17 @@ const GatewayForm = () => {
                   <p className="text-xs text-muted-foreground mt-1.5">{t("pressEnterTags")}</p>
                 </div>
                 <div>
-                  <FieldLabel hint>{t("descriptionLabel")}</FieldLabel>
+                  <FieldLabel optional>{t("descriptionLabel")}</FieldLabel>
                   <Textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder={t("enterDescriptionOptional")}
+                    placeholder={t("enterDescription")}
                     rows={3}
                   />
                 </div>
               </div>
               <div className="mt-5 pt-5 border-t border-border">
-                <FieldLabel hint>{t("shareWithUsers")}</FieldLabel>
+                <FieldLabel optional>{t("shareWithUsers")}</FieldLabel>
                 <ShareWithUsers value={sharedUsers} onChange={setSharedUsers} subject="gateway" />
               </div>
             </CollapsibleContent>

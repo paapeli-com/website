@@ -9,9 +9,11 @@ import { menuRowBase, menuRowDanger, menuRowIdle, menuRowSelected } from "@/shel
 import { useShellT } from "@/shared/i18n/shell";
 import { useDisplayName } from "@/shared/hooks/useDisplayName";
 import { useWorkspaceSwitch } from "@/shared/components/WorkspaceSwitchDialog";
+import { CreateWorkspaceDialog } from "@/shared/components/CreateWorkspaceDialog";
 
 export function AccountMenu() {
   const [open, setOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const t = useShellT();
@@ -110,11 +112,11 @@ export function AccountMenu() {
           <div className="px-2 py-1">
             <button
               onClick={() => {
-                // Both rows land on Cloud Management's Workspaces page: it lists
-                // the workspaces and holds the create form (see its "Create new
-                // workspace" panel).
-                navigate("/CloudManagement/workspaces");
+                // A dialog over the current page, not a trip to the page that
+                // manages workspaces. Deferred a tick, as switching is: the
+                // menu is still closing.
                 close();
+                setTimeout(() => setCreating(true), 0);
               }}
               className={cn(menuRowBase, menuRowIdle)}
             >
@@ -163,6 +165,12 @@ export function AccountMenu() {
         </div>
       )}
       {workspaceSwitch.dialog}
+      <CreateWorkspaceDialog
+        open={creating}
+        onOpenChange={setCreating}
+        // Offer to move into the new workspace, the same ask as any switch.
+        onCreated={(ws) => workspaceSwitch.requestSwitch(ws.id, ws.name, activeWorkspaceId)}
+      />
     </div>
   );
 }

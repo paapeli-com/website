@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FileText, Mail, Palette, Upload } from "lucide-react";
+import { toast } from "@/shared/lib/toast";
 import { LanguageProvider, useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { Input } from "@/features/factory/components/ui/input";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/features/factory/components/ui/table";
@@ -41,11 +42,30 @@ const SWATCHES = ["#FF7900", "#1E3A8A", "#00A97A", "#C70036", "#101828"];
    data, so the list is real. */
 const VARIABLES = ["{{name}}", "{{workspace}}", "{{code}}", "{{device}}", "{{link}}"];
 
-/** Label, field and hint — the shape every input on this page takes. */
-function FormField({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+/** Label, field and hint — the shape every input on this page takes. A
+    required field carries an asterisk and an optional one says so beside the
+    label, as every form in the panel does. */
+function FormField({
+  label,
+  hint,
+  required,
+  optional,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  required?: boolean;
+  optional?: boolean;
+  children: ReactNode;
+}) {
+  const tr = useTr();
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium text-foreground">{label}</span>
+      <span className="text-sm font-medium text-foreground">
+        {label}
+        {required && <span className="ms-1 text-destructive" aria-hidden>*</span>}
+        {optional && <span className="ms-1.5 font-normal text-muted-foreground">({tr("optional")})</span>}
+      </span>
       {children}
       {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
     </div>
@@ -57,10 +77,12 @@ function EmptyRow({ colSpan, icon: Icon, title, description }: { colSpan: number
   return (
     <TableRow className="hover:bg-transparent">
       <TableCell colSpan={colSpan}>
-        <div className="flex flex-col items-center gap-1.5 py-10 text-center">
-          <Icon className="size-6 text-muted-foreground/40" />
+        <div className="flex flex-col items-center gap-2 py-10 text-center">
+          <span className="flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <Icon className="size-5" />
+          </span>
           <span className="text-sm font-semibold text-foreground">{title}</span>
-          <span className="max-w-sm text-xs text-muted-foreground">{description}</span>
+          <span className="max-w-sm whitespace-normal text-[13px] text-muted-foreground">{description}</span>
         </div>
       </TableCell>
     </TableRow>
@@ -91,14 +113,16 @@ function WhiteLabelPage() {
         description={subtitle}
         actions={
           <>
-            {/* Disabled rather than absent: the design's actions stay visible
-                so the page reads as finished, but neither can save while
-                there is nothing behind them. */}
-            <Button variant="ghost" disabled title={tr("comingSoon")}>
+            {/* Nothing stores a brand yet, so both answer "Coming soon" as
+                the panel's other unbuilt controls do, rather than sitting
+                disabled with no word on why. */}
+            <Button variant="ghost" onClick={() => toast.info(tr("sendTest"), { description: tr("comingSoonDesc") })}>
               <Mail className="size-4" />
               {tr("sendTest")}
             </Button>
-            <Button disabled title={tr("comingSoon")}>{tr("saveChanges")}</Button>
+            <Button onClick={() => toast.info(tr("saveChanges"), { description: tr("comingSoonDesc") })}>
+              {tr("saveChanges")}
+            </Button>
           </>
         }
       />
@@ -122,18 +146,64 @@ function AppearanceTab() {
   const tr = useTr();
   const [colour, setColour] = useState(SWATCHES[0]);
   const [name, setName] = useState("");
+  /* The chosen logo, as an object URL for the preview. It stays in this tab
+     until saving a brand exists. */
+  const [logo, setLogo] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  useEffect(() => () => { if (logo) URL.revokeObjectURL(logo); }, [logo]);
+
+  const pickLogo = (file: File | undefined) => {
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error(tr("logoTooLarge"));
+      return;
+    }
+    setLogo(URL.createObjectURL(file));
+  };
 
   return (
     <div className="grid items-start gap-8 lg:grid-cols-2">
       <div className="flex flex-col gap-6">
-        <FormField label={tr("panelLogo")}>
-          <div className="flex h-28 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-border bg-muted/30 transition-colors hover:border-primary/40">
-            <Upload className="size-5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">{tr("logoHint")}</span>
-          </div>
+        <FormField label={tr("panelLogo")} optional>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/png,image/jpeg,image/svg+xml,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              pickLogo(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+          {logo ? (
+            <div className="flex h-28 items-center gap-4 rounded-xl border border-border bg-muted/30 px-4">
+              <img src={logo} alt="" className="max-h-20 max-w-[160px] object-contain" />
+              <span className="flex-1" />
+              <Button variant="ghost" className="h-8 px-3 text-xs" onClick={() => fileRef.current?.click()}>
+                {tr("replaceLogo")}
+              </Button>
+              <Button variant="danger" className="h-8 px-3 text-xs" onClick={() => setLogo(null)}>
+                {tr("removeLogo")}
+              </Button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                pickLogo(e.dataTransfer.files?.[0]);
+              }}
+              className="flex h-28 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-border bg-muted/30 transition-colors hover:border-primary/40"
+            >
+              <Upload className="size-5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">{tr("logoHint")}</span>
+            </button>
+          )}
         </FormField>
 
-        <FormField label={tr("primaryColour")}>
+        <FormField label={tr("primaryColour")} required>
           <div className="flex flex-wrap gap-2.5">
             {SWATCHES.map((hex) => (
               <button
@@ -151,7 +221,7 @@ function AppearanceTab() {
           </div>
         </FormField>
 
-        <FormField label={tr("productName")} hint={tr("productNameHint")}>
+        <FormField label={tr("productName")} hint={tr("productNameHint")} optional>
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("productNamePh")} />
         </FormField>
       </div>
@@ -163,7 +233,11 @@ function AppearanceTab() {
         <span className="text-sm font-medium text-foreground">{tr("preview")}</span>
         <div className="overflow-hidden rounded-xl border border-border bg-muted/30">
           <div className="flex h-14 items-center gap-2.5 border-b border-border bg-card px-4">
-            <span className="size-6 shrink-0 rounded-lg" style={{ background: colour }} />
+            {logo ? (
+              <img src={logo} alt="" className="h-6 max-w-[96px] shrink-0 object-contain" />
+            ) : (
+              <span className="size-6 shrink-0 rounded-lg" style={{ background: colour }} />
+            )}
             <span className="truncate text-base font-bold" style={{ color: colour }}>
               {name || "Paapeli"}
             </span>
@@ -200,10 +274,10 @@ function DomainTab() {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-5 sm:grid-cols-2 lg:max-w-3xl">
-        <FormField label={tr("panelDomain")} hint={tr("panelDomainHint")}>
+        <FormField label={tr("panelDomain")} hint={tr("panelDomainHint")} required>
           <Input value={panelDomain} onChange={(e) => setPanelDomain(e.target.value)} placeholder="panel.example.com" dir="ltr" />
         </FormField>
-        <FormField label={tr("mailDomain")} hint={tr("mailDomainHint")}>
+        <FormField label={tr("mailDomain")} hint={tr("mailDomainHint")} optional>
           <Input value={mailDomain} onChange={(e) => setMailDomain(e.target.value)} placeholder="mail.example.com" dir="ltr" />
         </FormField>
       </div>
@@ -269,16 +343,16 @@ function MessagesTab() {
   return (
     <div className="grid items-start gap-8 lg:grid-cols-2">
       <div className="flex flex-col gap-5">
-        <FormField label={tr("smsSender")} hint={tr("smsSenderHint")}>
+        <FormField label={tr("smsSender")} hint={tr("smsSenderHint")} optional>
           <Input value={sms} onChange={(e) => setSms(e.target.value)} maxLength={11} dir="ltr" />
         </FormField>
-        <FormField label={tr("emailFrom")} hint={tr("emailFromHint")}>
+        <FormField label={tr("emailFrom")} hint={tr("emailFromHint")} optional>
           <Input value={from} onChange={(e) => setFrom(e.target.value)} />
         </FormField>
-        <FormField label={tr("replyTo")} hint={tr("replyToHint")}>
+        <FormField label={tr("replyTo")} hint={tr("replyToHint")} optional>
           <Input value={replyTo} onChange={(e) => setReplyTo(e.target.value)} placeholder="support@example.com" dir="ltr" />
         </FormField>
-        <FormField label={tr("supportLink")} hint={tr("supportLinkHint")}>
+        <FormField label={tr("supportLink")} hint={tr("supportLinkHint")} optional>
           <Input value={support} onChange={(e) => setSupport(e.target.value)} placeholder="https://example.com/support" dir="ltr" />
         </FormField>
 

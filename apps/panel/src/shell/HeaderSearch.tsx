@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Box, ClipboardList, LayoutDashboard, Loader2, MapPin, Search, type LucideIcon } from "lucide-react";
+import { Bell, Box, ClipboardList, History, LayoutDashboard, Loader2, MapPin, Search, X, type LucideIcon } from "lucide-react";
 import { useListWorkspaceProductsQuery, useSearchProductsQueries, type SearchHit, type SearchHitType } from "@paapeli/api";
 import { PRODUCTS, solutionPath } from "@paapeli/brand/config";
 import { useActiveWorkspaceId } from "@paapeli/brand/workspace";
@@ -13,6 +13,29 @@ import { useShellT } from "@/shared/i18n/shell";
 
 const MIN_QUERY = 2;
 const DEBOUNCE_MS = 250;
+
+/* Recent searches: what was typed before a result was picked, newest first.
+   A per-browser convenience, so localStorage, and every access guarded: it
+   can throw in a private window and the search must work without it. */
+const RECENT_KEY = "paapeli_recent_searches";
+const RECENT_MAX = 5;
+
+function readRecent(): string[] {
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(RECENT_KEY) ?? "[]");
+    return Array.isArray(parsed) ? parsed.filter((q): q is string => typeof q === "string").slice(0, RECENT_MAX) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeRecent(list: string[]) {
+  try {
+    window.localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+  } catch {
+    /* Not kept this time; nothing else depends on it. */
+  }
+}
 
 /** Every solution with an API scope, in the product switcher's order. */
 const SOLUTIONS = PRODUCTS.flatMap((p) => p.solutions ?? []).filter((s) => !!s.productKey);
@@ -51,6 +74,7 @@ export function HeaderSearch() {
   const [debounced, setDebounced] = useState("");
   const [focused, setFocused] = useState(false);
   const [active, setActive] = useState(0);
+  const [recent, setRecent] = useState(readRecent);
   const t = useShellT();
   const navigate = useNavigate();
   const workspaceId = useActiveWorkspaceId() ?? "";
@@ -92,10 +116,23 @@ export function HeaderSearch() {
   const failed = results.length > 0 && results.every((r) => r.isError);
   const tooShort = query.trim().length < MIN_QUERY;
   const open = focused && query.trim().length > 0;
+  const showRecent = focused && query.trim().length === 0 && recent.length > 0;
+
+  const remember = (q: string) => {
+    const next = [q, ...recent.filter((r) => r.toLowerCase() !== q.toLowerCase())].slice(0, RECENT_MAX);
+    setRecent(next);
+    writeRecent(next);
+  };
+  const forget = (q: string) => {
+    const next = recent.filter((r) => r !== q);
+    setRecent(next);
+    writeRecent(next);
+  };
 
   useEffect(() => setActive(0), [debounced]);
 
   const pick = (row: Row) => {
+    if (query.trim().length >= MIN_QUERY) remember(query.trim());
     navigate(row.path);
     setFocused(false);
     setQuery("");
@@ -130,10 +167,54 @@ export function HeaderSearch() {
         onKeyDown={onKeyDown}
         placeholder={t("Search")}
         role="combobox"
-        aria-expanded={open}
+        aria-expanded={open || showRecent}
         aria-controls="header-search-results"
         className="h-10 w-full rounded-xl border border-border bg-card text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary ltr:pl-9 ltr:pr-9 rtl:pr-9 rtl:pl-9"
       />
+
+      {showRecent && (
+        <div
+          id="header-search-results"
+          role="listbox"
+          className="absolute z-50 mt-2 w-[420px] max-w-[calc(100vw-1.5rem)] rounded-2xl border border-border bg-popover py-2 shadow-lg ltr:left-0 rtl:right-0"
+        >
+          <div className="flex items-center justify-between px-4 pb-1 pt-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t("Recent searches")}</span>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => { setRecent([]); writeRecent([]); }}
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              {t("Clear")}
+            </button>
+          </div>
+          {recent.map((q) => (
+            <div key={q} className="group flex items-center hover:bg-muted">
+              <button
+                type="button"
+                role="option"
+                aria-selected={false}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setQuery(q)}
+                className="flex min-w-0 flex-1 items-center gap-3 px-4 py-2 text-start"
+              >
+                <History className="size-4 shrink-0 text-muted-foreground" />
+                <span className="truncate text-sm text-foreground" dir="auto">{q}</span>
+              </button>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => forget(q)}
+                aria-label={t("Remove")}
+                className="me-2 flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-background hover:text-foreground group-hover:opacity-100"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {open && (
         <div

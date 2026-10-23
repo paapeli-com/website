@@ -59,3 +59,38 @@ export function resolveNavEntry(pathname: string): NavEntry | null {
   }
   return best;
 }
+
+/** One step of a page's breadcrumb: the product, a group, the page itself. */
+export interface NavCrumb {
+  /** English source string — the shell's table translates it. */
+  title: string;
+  /** Where the step leads; absent for a group, which is not a page. */
+  path?: string;
+}
+
+/* The product pages the sidebar names directly, each with the trail down to
+   it: "Smart Factory › Assets › Devices". Only those pages: a detail or form
+   page draws its own breadcrumb, which knows the record it is showing. */
+const TRAILS: { path: string; crumbs: NavCrumb[] }[] = [factoryNav, trackNav].flatMap((section) => {
+  const home = section.items.find((i) => i.path)?.path;
+  const out: { path: string; crumbs: NavCrumb[] }[] = [];
+  const walk = (items: NavItem[], parents: NavCrumb[]) => {
+    for (const item of items) {
+      if (item.path && !item.comingSoon) {
+        out.push({ path: item.path, crumbs: [{ title: section.title, path: home }, ...parents, { title: item.title }] });
+      }
+      if (item.children) walk(item.children, [...parents, { title: item.title }]);
+    }
+  };
+  walk(section.items, []);
+  return out;
+});
+
+/* Smart Factory can carry the language in its URLs (/AIoT/SmartFactory/fa/devices). */
+const withoutLanguage = (path: string) => path.replace(/^(\/aiot\/[^/]+)\/(en|fa|ar)(?=\/|$)/, "$1");
+
+/** The breadcrumb for a page the sidebar names, or null for any other page. */
+export function navTrail(pathname: string): NavCrumb[] | null {
+  const target = withoutLanguage(normalise(pathname));
+  return TRAILS.find((t) => normalise(t.path) === target)?.crumbs ?? null;
+}

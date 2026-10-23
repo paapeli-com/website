@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { Badge, Button, NoDataValue, PageHeader, Stat, Table } from "@/features/cloud-management/ui";
+import { FileText } from "lucide-react";
+import { Badge, Button, NoDataValue, PageHeader, Stat, Table, useComingSoon } from "@/features/cloud-management/ui";
 import { useShellT } from "@/shared/i18n/shell";
 import { useAppLanguage } from "@/shared/i18n/appLanguage";
 import { CURRENCIES, currencyName, useBillingCurrency } from "@/shared/lib/billingCurrency";
@@ -22,6 +23,7 @@ const SUMMARY = ["Open balance", "Current period", "Paid this year", "Credit not
 export default function Billing() {
   const navigate = useNavigate();
   const t = useShellT();
+  const soon = useComingSoon();
   const language = useAppLanguage();
   const { currency, setCurrency } = useBillingCurrency();
 
@@ -34,8 +36,8 @@ export default function Billing() {
         description={t("Invoices, credit notes and the billing profile.")}
         actions={
           <>
-            <Button variant="ghost">{t("Export CSV")}</Button>
-            <Button>{t("Pay open balance")}</Button>
+            <Button variant="ghost" onClick={() => soon("Export CSV")}>{t("Export CSV")}</Button>
+            <Button onClick={() => soon("Pay open balance")}>{t("Pay open balance")}</Button>
           </>
         }
       />
@@ -80,6 +82,11 @@ export default function Billing() {
       <Table
         columns={[t("Invoice"), t("Issued"), t("Period"), t("Amount"), t("Status"), t("Method"), ""]}
         head={<h2 className="text-sm font-bold text-foreground">{t("Invoices")}</h2>}
+        empty={{
+          icon: FileText,
+          title: t("No invoices yet"),
+          description: t("Your invoices appear here once your first billing period closes."),
+        }}
         rows={INVOICES.map((inv) => [
           inv.id,
           inv.issued,
@@ -92,10 +99,9 @@ export default function Billing() {
           <button
             key="v"
             type="button"
-            // Route-relative to the Routes root (see RemoteApp.tsx) — this
-            // page matches "/billing" exactly, so the child route needs its
-            // full path, not just the invoice id.
-            onClick={() => navigate(`billing/${inv.id}`)}
+            // Absolute: a relative path resolves against this page's own
+            // route (/CloudManagement/billing/billing/…), not the area's root.
+            onClick={() => navigate(`/CloudManagement/billing/${inv.id}`)}
             className="text-[12.5px] font-semibold text-primary hover:underline"
           >
             {t("View")}

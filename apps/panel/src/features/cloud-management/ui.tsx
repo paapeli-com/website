@@ -1,5 +1,6 @@
 import { useId, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from "react";
-import { Loader2, type LucideIcon } from "lucide-react";
+import { Inbox, Loader2, type LucideIcon } from "lucide-react";
+import { toast } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
 import { useShellT } from "@/shared/i18n/shell";
 
@@ -45,8 +46,18 @@ export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
   );
 }
 
-export function Label({ children }: { children: ReactNode }) {
-  return <label className="mb-1.5 block text-sm font-medium text-foreground">{children}</label>;
+/* Required fields carry a red asterisk and optional ones say "(Optional)"
+   beside the label, never in the placeholder: the one convention every form
+   in the panel follows (see Create Dashboard). */
+export function Label({ children, required, optional }: { children: ReactNode; required?: boolean; optional?: boolean }) {
+  const t = useShellT();
+  return (
+    <label className="mb-1.5 block text-sm font-medium text-foreground">
+      {children}
+      {required && <span className="ms-1 text-destructive" aria-hidden>*</span>}
+      {optional && <span className="ms-1.5 font-normal text-muted-foreground">({t("Optional")})</span>}
+    </label>
+  );
 }
 
 export function Badge({ children, tone = "gray" }: { children: ReactNode; tone?: "ok" | "info" | "warn" | "bad" | "gray" | "brand" }) {
@@ -134,10 +145,33 @@ export function SkeletonList({
   );
 }
 
-export function NoData({ className }: { className?: string }) {
+/* What an empty list, table or chart shows: an icon, a title and, where
+   there is something to say about it, why it is empty and what fills it. The
+   same block everywhere in Cloud Management, so an empty page reads as empty
+   on purpose rather than as one that failed to load. */
+export function NoData({
+  className,
+  icon: Icon = Inbox,
+  title,
+  description,
+  action,
+}: {
+  className?: string;
+  icon?: LucideIcon;
+  title?: ReactNode;
+  description?: ReactNode;
+  action?: ReactNode;
+}) {
   const t = useShellT();
   return (
-    <p className={cn("py-8 text-center text-sm text-muted-foreground", className)}>{t("Nothing here yet.")}</p>
+    <div className={cn("flex flex-col items-center gap-2 py-10 text-center", className)}>
+      <span className="flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <Icon className="size-5" />
+      </span>
+      <p className="text-sm font-semibold text-foreground">{title ?? t("Nothing here yet.")}</p>
+      {description && <p className="max-w-sm whitespace-normal text-[13px] text-muted-foreground">{description}</p>}
+      {action && <div className="mt-2">{action}</div>}
+    </div>
   );
 }
 
@@ -147,13 +181,29 @@ export function NoDataValue({ className }: { className?: string }) {
   return <span className={cn("text-sm font-normal text-muted-foreground", className)}>—</span>;
 }
 
-export function EmptyState({ title, description }: { title: ReactNode; description?: string }) {
+export function EmptyState({
+  title,
+  description,
+  icon,
+  action,
+}: {
+  title: ReactNode;
+  description?: ReactNode;
+  icon?: LucideIcon;
+  action?: ReactNode;
+}) {
   return (
-    <div className="flex flex-col items-center gap-1 rounded-2xl border border-dashed border-border py-12 text-center">
-      <p className="text-sm font-semibold text-foreground">{title}</p>
-      {description && <p className="max-w-sm text-sm text-muted-foreground">{description}</p>}
+    <div className="rounded-2xl border border-dashed border-border">
+      <NoData icon={icon} title={title} description={description} action={action} className="py-12" />
     </div>
   );
+}
+
+/** "Coming soon" for a control whose feature isn't built yet: it answers
+    the click, the way the rest of the panel's unbuilt controls do. */
+export function useComingSoon() {
+  const t = useShellT();
+  return (title: string) => toast.info(t(title), { description: t("Coming soon.") });
 }
 
 export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {
@@ -169,7 +219,20 @@ export function PageHeader({ title, description, actions }: { title: string; des
 }
 
 /** Card-wrapped data table, optionally with a header row (title + actions). */
-export function Table({ columns, rows, head, className }: { columns: ReactNode[]; rows: ReactNode[][]; head?: ReactNode; className?: string }) {
+export function Table({
+  columns,
+  rows,
+  head,
+  className,
+  empty,
+}: {
+  columns: ReactNode[];
+  rows: ReactNode[][];
+  head?: ReactNode;
+  className?: string;
+  /** What an empty table says; a plain "Nothing here yet." without it. */
+  empty?: { title?: ReactNode; description?: ReactNode; icon?: LucideIcon; action?: ReactNode };
+}) {
   return (
     <Card className={cn("flex flex-col overflow-hidden p-0", className)}>
       {head && <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3.5">{head}</div>}
@@ -188,7 +251,7 @@ export function Table({ columns, rows, head, className }: { columns: ReactNode[]
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-4">
-                  <NoData />
+                  <NoData {...empty} />
                 </td>
               </tr>
             ) : (

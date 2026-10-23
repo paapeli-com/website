@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { isAuthenticated, goToLogin } from "@paapeli/brand/session";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/features/factory/store/authStore";
+import { PageBreadcrumb } from "@/shell/PageBreadcrumb";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -20,5 +21,11 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     goToLogin();
     return null;
   }
-  return <div className="p-4 lg:p-6">{children}</div>;
+  return (
+    <div className="p-4 lg:p-6">
+      {/* "Smart Factory › Location" above every page the sidebar names. */}
+      <PageBreadcrumb />
+      {children}
+    </div>
+  );
 };

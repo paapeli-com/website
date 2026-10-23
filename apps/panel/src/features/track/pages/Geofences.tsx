@@ -34,6 +34,7 @@ import { PageSkeleton } from "@/shared/components/PageSkeleton";
 import { usePageLoad } from "@/shared/hooks/usePageLoad";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 import { cn } from "@/shared/lib/utils";
+import { PageBreadcrumb } from "@/shell/PageBreadcrumb";
 
 /* Safe Zones, backed by the device zone API: each zone-capable tracker has at
  * most one zone — a circle, rectangle or polygon — drawn by clicking the map.
@@ -181,6 +182,7 @@ export default function Geofences() {
 
   return (
     <div className="mx-auto max-w-6xl p-4 lg:p-6">
+      <PageBreadcrumb />
       <div className="mb-5">
         <h1 className="text-xl font-bold">{t("geofences")}</h1>
         <p className="text-sm text-muted-foreground">{t("safeZonesDesc")}</p>

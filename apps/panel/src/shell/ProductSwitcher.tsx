@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Check, ChevronDown, Factory, House, LayoutGrid, MapPin, Server, Sparkles } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Factory, LayoutGrid, MapPin, Server, Sparkles } from "lucide-react";
 import { PRODUCTS, solutionPath } from "@paapeli/brand/config";
 import { AI_INFERENCE_BASE } from "@/shell/nav/aiInferenceNav";
+import { HOME_CATEGORY_PATHS } from "@/shell/nav/homeNav";
 import { cn } from "@/shared/lib/utils";
 import { menuRowIdle, menuRowSelected } from "@/shell/menuRow";
 import { useShellT } from "@/shared/i18n/shell";
@@ -14,15 +15,14 @@ import { useShellT } from "@/shared/i18n/shell";
  * the same kind of thing: a short list of destinations picked from a header
  * popover. One hover state for both rather than two that nearly match.
  *
- * Home sits above the products behind its own divider: it is the account, not
- * a product. AIoT and AI Infra are divided the same way, so the two families
- * read as two families rather than one long list.
+ * Home is not a row: it is the account, not a product, and the header's logo
+ * already leads there from every page. AIoT and AI Infra are divided from
+ * each other, so the two families read as two families rather than one long
+ * list, and each family's heading opens that family's page under Home.
  *
  * The active solution is derived from the URL — the shell owns routing for
  * every product — and switching is a client-side navigate(), no page reload.
  */
-
-const HOME_PATH = "/Home";
 
 type Row = {
   id: string;
@@ -121,10 +121,6 @@ export function ProductSwitcher() {
             {t("Switch Product")}
           </div>
 
-          <MenuRow icon={House} label={t("Home")} active={onHome} onSelect={() => go(HOME_PATH)} />
-
-          <div className="my-2 border-t border-border" />
-
           {PRODUCTS.map((product, index) => {
             const solutions = product.solutions ?? [];
             const announcements = product.id === "ai" ? AI_INFRA_ROWS : [];
@@ -134,10 +130,22 @@ export function ProductSwitcher() {
               <div key={product.id}>
                 {index > 0 && <div className="my-2 border-t border-border" />}
 
-                <div className="flex items-center gap-2.5 px-2 py-1.5">
-                  <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
-                  <span className="text-sm font-semibold text-foreground">{t(product.name)}</span>
-                </div>
+                {HOME_CATEGORY_PATHS[product.id] ? (
+                  <button
+                    type="button"
+                    onClick={() => go(HOME_CATEGORY_PATHS[product.id])}
+                    className="group flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-start transition-colors hover:bg-muted"
+                  >
+                    <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
+                    <span className="flex-1 text-sm font-semibold text-foreground">{t(product.name)}</span>
+                    <ChevronRight className="size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 rtl:rotate-180" />
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2.5 px-2 py-1.5">
+                    <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
+                    <span className="text-sm font-semibold text-foreground">{t(product.name)}</span>
+                  </div>
+                )}
 
                 <div className="space-y-0.5">
                   {solutions.map((s) => (

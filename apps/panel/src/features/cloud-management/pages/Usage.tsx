@@ -1,4 +1,5 @@
-import { Badge, Button, Card, NoData, PageHeader, ProgressBar, Table, Toggle } from "@/features/cloud-management/ui";
+import { BarChart3, Gauge } from "lucide-react";
+import { Badge, Button, Card, NoData, PageHeader, ProgressBar, Table, Toggle, useComingSoon } from "@/features/cloud-management/ui";
 import { useShellT } from "@/shared/i18n/shell";
 
 /* @paapeli/api has no usage/metering module yet.
@@ -16,6 +17,7 @@ const ALERTS = ["At 80% of quota", "At 100% of quota", "On any overage charge", 
 
 export default function Usage() {
   const t = useShellT();
+  const soon = useComingSoon();
 
   return (
     /* data-uniform-type: the page is written in Tailwind steps and reads at
@@ -26,13 +28,21 @@ export default function Usage() {
         description={t("Consumption against plan limits for the current billing period.")}
         actions={
           <>
-            <Button variant="ghost">{t("Period: This month")}</Button>
-            <Button>{t("Request quota increase")}</Button>
+            <Button variant="ghost" onClick={() => soon("Period: This month")}>{t("Period: This month")}</Button>
+            <Button onClick={() => soon("Request quota increase")}>{t("Request quota increase")}</Button>
           </>
         }
       />
 
-      {METERS.length === 0 && <Card><NoData /></Card>}
+      {METERS.length === 0 && (
+        <Card>
+          <NoData
+            icon={Gauge}
+            title={t("No usage yet")}
+            description={t("Usage against your plan limits shows here once your devices start sending data.")}
+          />
+        </Card>
+      )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {METERS.map((m) => (
           <Card key={m.label} className="flex flex-col gap-2.5 p-4">
@@ -53,7 +63,7 @@ export default function Usage() {
           <Badge tone="gray">{t("Messages")}</Badge>
         </div>
         <div className="flex h-40 items-center justify-center">
-          <NoData />
+          <NoData icon={BarChart3} title={t("No messages yet")} />
         </div>
       </Card>
 
@@ -67,6 +77,7 @@ export default function Usage() {
             </>
           }
           rows={USAGE_BY_RESOURCE}
+          empty={{ icon: Gauge, title: t("No usage yet") }}
         />
 
         <Card className="flex flex-col">
@@ -78,7 +89,7 @@ export default function Usage() {
             <div key={label} className="flex items-center justify-between gap-3 py-2.5">
               <span className="text-[13.5px] text-muted-foreground">{t(label)}</span>
               {/* The weekly digest is the one that is off by default. */}
-              <Toggle checked={i < 3} />
+              <Toggle checked={i < 3} onChange={() => soon("Quota alerts")} />
             </div>
           ))}
         </Card>

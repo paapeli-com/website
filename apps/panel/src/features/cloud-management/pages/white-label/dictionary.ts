@@ -27,6 +27,11 @@ export const D: Record<string, Record<Lang, string>> = {
   sendTest: { en: "Send test", ar: "إرسال اختبار", fa: "ارسال تست" },
   saveChanges: { en: "Save changes", ar: "حفظ التغييرات", fa: "ذخیرهٔ تغییرات" },
   comingSoon: { en: "Coming soon", ar: "قريبًا", fa: "به‌زودی" },
+  comingSoonDesc: { en: "Coming soon.", ar: "قريبًا.", fa: "به‌زودی." },
+  optional: { en: "Optional", ar: "اختياري", fa: "اختیاری" },
+  replaceLogo: { en: "Replace", ar: "استبدال", fa: "جایگزینی" },
+  removeLogo: { en: "Remove", ar: "إزالة", fa: "حذف" },
+  logoTooLarge: { en: "The logo must be 2 MB or smaller.", ar: "يجب ألا يتجاوز حجم الشعار ٢ ميغابايت.", fa: "حجم لوگو باید حداکثر ۲ مگابایت باشد." },
   backendNote: {
     en: "White label has no endpoint yet, so nothing on this page is stored and the tables report no data. The layout is settled; each field is wired the moment the API lands.",
     ar: "العلامة التجارية الخاصة لا تملك خدمة بعد، لذلك لا يُحفظ أي شيء في هذه الصفحة وتعرض الجداول لا توجد بيانات. التصميم نهائي، وسيُربط كل حقل فور توفر الواجهة البرمجية.",

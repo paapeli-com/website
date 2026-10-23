@@ -1,11 +1,10 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Boxes, ChevronRight, Plus } from "lucide-react";
+import { Boxes, ChevronRight, Plus, SearchX, Smartphone } from "lucide-react";
 import { useLanguage } from "@/features/track/i18n/LanguageContext";
 import { useTrackers } from "@/features/track/lib/useTrackers";
 import { StatusPill } from "@/features/track/components/DeviceBits";
 import { Button } from "@/features/track/components/ui/button";
-import { NoData } from "@/features/track/components/NoData";
 import {
   DevicesToolbar,
   SortKey,
@@ -19,6 +18,7 @@ import { usePageLoad } from "@/shared/hooks/usePageLoad";
 import { cn } from "@/shared/lib/utils";
 import { trackPath } from "@/features/track/lib/trackPath";
 import { TrackerAvatar, trackerIconOf } from "@/features/track/lib/trackerIcons";
+import { PageBreadcrumb } from "@/shell/PageBreadcrumb";
 
 export default function Devices() {
   const { trackers, total, load, noWorkspace, isFetching, refetch } = useTrackers();
@@ -83,6 +83,7 @@ export default function Devices() {
 
   return (
     <div className="mx-auto max-w-6xl p-4 lg:p-6">
+      <PageBreadcrumb />
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold">{t("devices")}</h1>
@@ -130,7 +131,16 @@ export default function Devices() {
               <span className="text-xs text-muted-foreground">({num(list.length)})</span>
             </button>
 
-            {isOpen("root") && groups.length === 0 && <NoData size="sm" />}
+            {isOpen("root") && groups.length === 0 && (
+              <DevicesEmpty
+                filtered={trackers.length > 0}
+                onAdd={() => navigate(trackPath("/devices/new"))}
+                onClear={() => {
+                  clearFilters();
+                  setSearch("");
+                }}
+              />
+            )}
 
             {isOpen("root") &&
               groups.map((g) => (
@@ -178,7 +188,14 @@ export default function Devices() {
               <span className="w-8" />
             </div>
             {list.length === 0 ? (
-              <NoData />
+              <DevicesEmpty
+                filtered={trackers.length > 0}
+                onAdd={() => navigate(trackPath("/devices/new"))}
+                onClear={() => {
+                  clearFilters();
+                  setSearch("");
+                }}
+              />
             ) : (
               list.map((d) => (
                 <button
@@ -205,6 +222,35 @@ export default function Devices() {
               ))
             )}
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* An empty device list says which kind of empty it is: nothing added yet,
+   with the way to add the first one, or nothing left after the filters,
+   with the way back. */
+function DevicesEmpty({ filtered, onAdd, onClear }: { filtered: boolean; onAdd: () => void; onClear: () => void }) {
+  const { t } = useLanguage();
+  const Icon = filtered ? SearchX : Smartphone;
+  return (
+    <div className="flex flex-col items-center gap-2 px-4 py-12 text-center">
+      <span className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <Icon className="size-5" />
+      </span>
+      <p className="text-sm font-semibold text-foreground">{filtered ? t("noDevicesMatch") : t("noDevicesYet")}</p>
+      {!filtered && <p className="max-w-sm text-[13px] text-muted-foreground">{t("noDevicesYetDesc")}</p>}
+      <div className="mt-2">
+        {filtered ? (
+          <Button size="sm" variant="outline" onClick={onClear}>
+            {t("clearFilters")}
+          </Button>
+        ) : (
+          <Button size="sm" onClick={onAdd}>
+            <Plus className="size-4" />
+            {t("addDevice")}
+          </Button>
         )}
       </div>
     </div>

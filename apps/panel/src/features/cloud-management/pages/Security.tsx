@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { toast } from "@/shared/lib/toast";
-import { Button, Card, NoDataValue, PageHeader, SettingRow, Tabs } from "@/features/cloud-management/ui";
+import { Bell, ScrollText } from "lucide-react";
+import { Button, Card, EmptyState, NoDataValue, PageHeader, SettingRow, Tabs, useComingSoon } from "@/features/cloud-management/ui";
 import { useShellT } from "@/shared/i18n/shell";
 import { localizeDigits, useAppLanguage } from "@/shared/i18n/appLanguage";
 import { currencyName, useBillingCurrency } from "@/shared/lib/billingCurrency";
@@ -35,6 +35,7 @@ const TABS = ["General", "Security", "Notifications", "Data & retention", "Audit
 
 export default function Security() {
   const t = useShellT();
+  const soon = useComingSoon();
   const language = useAppLanguage();
   const { currency } = useBillingCurrency();
   const [tab, setTab] = useState("Security");
@@ -54,8 +55,8 @@ export default function Security() {
         description={t("Account-wide preferences, authentication policy and data controls.")}
         actions={
           <>
-            <Button variant="ghost">{t("Download account data")}</Button>
-            <Button onClick={() => toast.info(t("Save changes"), { description: t("Coming soon.") })}>
+            <Button variant="ghost" onClick={() => soon("Download account data")}>{t("Download account data")}</Button>
+            <Button onClick={() => soon("Save changes")}>
               {t("Save changes")}
             </Button>
           </>
@@ -64,11 +65,20 @@ export default function Security() {
 
       <Tabs items={labelled} value={t(tab)} onChange={(v) => setTab(tabFor(v))} />
 
-      {tab !== "Security" && tab !== "General" && tab !== "Data & retention" ? (
-        <p className="text-sm text-muted-foreground">{t("This tab isn't part of the design preview yet.")}</p>
+      {/* Each tab shows its own cards: General the account's preferences,
+          Security sign-in and access, Data & retention the data controls.
+          The two without a design yet say "Coming soon" like the rest of the
+          panel's unbuilt pages. */}
+      {tab === "Notifications" || tab === "Audit log" ? (
+        <EmptyState
+          icon={tab === "Notifications" ? Bell : ScrollText}
+          title={t("Coming soon")}
+          description={t("This part of the settings isn't available yet.")}
+        />
       ) : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="flex flex-col gap-6">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+          {tab === "Security" && (
+          <>
             <Card className="flex flex-col p-4">
               <h2 className="px-1 pb-1 text-sm font-bold text-foreground">{t("Authentication")}</h2>
               {/* Each member turns two-factor on for their own account (Account
@@ -127,9 +137,10 @@ export default function Security() {
                 control={<NoDataValue />}
               />
             </Card>
-          </div>
+          </>
+          )}
 
-          <div className="flex flex-col gap-6">
+          {tab === "General" && (
             <Card className="flex flex-col p-4">
               <h2 className="px-1 pb-1 text-sm font-bold text-foreground">{t("Account preferences")}</h2>
               <SettingRow
@@ -157,7 +168,10 @@ export default function Security() {
                 }
               />
             </Card>
+          )}
 
+          {tab === "Data & retention" && (
+          <>
             <Card className="flex flex-col p-4">
               <h2 className="px-1 pb-1 text-sm font-bold text-foreground">{t("Data & retention")}</h2>
               <SettingRow
@@ -184,9 +198,10 @@ export default function Security() {
                   {t("Cancels all subscriptions and permanently deletes data after 30 days.")}
                 </p>
               </div>
-              <Button variant="danger">{t("Close account")}</Button>
+              <Button variant="danger" onClick={() => soon("Close account")}>{t("Close account")}</Button>
             </Card>
-          </div>
+          </>
+          )}
         </div>
       )}
     </div>

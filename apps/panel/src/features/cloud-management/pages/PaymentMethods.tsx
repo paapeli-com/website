@@ -1,5 +1,5 @@
-import { MoreHorizontal } from "lucide-react";
-import { Badge, Button, Card, NoData, NoDataValue, PageHeader, Table, Toggle } from "@/features/cloud-management/ui";
+import { CreditCard, MoreHorizontal, Receipt } from "lucide-react";
+import { Badge, Button, Card, NoData, NoDataValue, PageHeader, Table, Toggle, useComingSoon } from "@/features/cloud-management/ui";
 import { cn } from "@/shared/lib/utils";
 import { useShellT } from "@/shared/i18n/shell";
 
@@ -47,6 +47,7 @@ function PaymentCard({ brand, last4, expiry, primary }: { brand: string; last4: 
 
 export default function PaymentMethods() {
   const t = useShellT();
+  const soon = useComingSoon();
 
   return (
     /* data-uniform-type: the page is written in Tailwind steps and reads at
@@ -57,8 +58,8 @@ export default function PaymentMethods() {
         description={t("Cards, bank accounts and prepaid balance.")}
         actions={
           <>
-            <Button variant="ghost">{t("Top up wallet")}</Button>
-            <Button>{t("Add payment method")}</Button>
+            <Button variant="ghost" onClick={() => soon("Top up wallet")}>{t("Top up wallet")}</Button>
+            <Button onClick={() => soon("Add payment method")}>{t("Add payment method")}</Button>
           </>
         }
       />
@@ -72,7 +73,15 @@ export default function PaymentMethods() {
             <p className="text-xs text-muted-foreground">
               {t("Payments are in Toman through the TAP gateway for now.")}
             </p>
-            {CARDS.length === 0 && <Card><NoData /></Card>}
+            {CARDS.length === 0 && (
+              <Card>
+                <NoData
+                  icon={CreditCard}
+                  title={t("No payment methods yet")}
+                  description={t("Add a card or bank account to pay invoices and top up your wallet.")}
+                />
+              </Card>
+            )}
             {CARDS.map((c) => (
               <PaymentCard key={c.last4} {...c} />
             ))}
@@ -83,7 +92,7 @@ export default function PaymentMethods() {
             head={
               <>
                 <h2 className="text-sm font-bold text-foreground">{t("Payment history")}</h2>
-                <Button variant="ghost">{t("Export")}</Button>
+                <Button variant="ghost" onClick={() => soon("Export")}>{t("Export")}</Button>
               </>
             }
             rows={PAYMENT_HISTORY.map(([date, desc, method, amount, status]) => [
@@ -95,6 +104,7 @@ export default function PaymentMethods() {
                 {t(status)}
               </Badge>,
             ])}
+            empty={{ icon: Receipt, title: t("No payments yet") }}
           />
         </div>
 
@@ -103,8 +113,8 @@ export default function PaymentMethods() {
             <h2 className="text-sm font-bold text-foreground">{t("Wallet balance")}</h2>
             <span className="text-2xl font-bold text-foreground"><NoDataValue /></span>
             <div className="flex gap-2">
-              <Button>{t("Top up")}</Button>
-              <Button variant="ghost">{t("Auto top-up")}</Button>
+              <Button onClick={() => soon("Top up")}>{t("Top up")}</Button>
+              <Button variant="ghost" onClick={() => soon("Auto top-up")}>{t("Auto top-up")}</Button>
             </div>
           </Card>
 
@@ -114,7 +124,7 @@ export default function PaymentMethods() {
               <div key={label} className="flex items-center justify-between gap-3 py-2.5">
                 <span className="text-[13.5px] text-muted-foreground">{t(label)}</span>
                 {/* Retrying a failed payment is the one that is off by default. */}
-                <Toggle checked={i < 3} />
+                <Toggle checked={i < 3} onChange={() => soon("Payment settings")} />
               </div>
             ))}
           </Card>

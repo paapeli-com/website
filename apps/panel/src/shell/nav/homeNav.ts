@@ -40,4 +40,12 @@ const footerItems: NavItem[] = [
   { title: "Cloud Management", icon: Cloud, path: "/CloudManagement" },
 ];
 
+/* Each product family's own page under Home: the same cards, one family only.
+   Keyed by @paapeli/brand/config's PRODUCTS ids, which the switcher's family
+   headings are drawn from. */
+export const HOME_CATEGORY_PATHS: Record<string, string> = {
+  aiot: "/Home/aiot",
+  ai: "/Home/ai-infra",
+};
+
 export const homeNav: NavSection = { title: "Home", icon: House, items, footerItems };

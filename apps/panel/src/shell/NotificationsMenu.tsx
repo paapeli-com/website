@@ -282,8 +282,10 @@ export function NotificationsMenu() {
           setOpen((o) => !o);
           reportVirtualDevices();
         }}
-        className={`relative ${iconBtn}`}
+        // Lit while open, so the bell reads as the menu it belongs to.
+        className={cn("relative", iconBtn, open && "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary")}
         aria-label={t("Notifications")}
+        aria-expanded={open}
       >
         <Bell className="h-5 w-5" />
         {hasUnread && <span className="absolute right-2 top-2 size-2 rounded-full bg-destructive" aria-hidden />}
@@ -298,13 +300,13 @@ export function NotificationsMenu() {
             </button>
           </div>
 
-          <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border px-4 pb-3">
+          <div className="flex flex-wrap items-center gap-1 whitespace-nowrap border-b border-border px-4 pb-3">
             {TABS.map((item) => (
               <button
                 key={item.key}
                 onClick={() => setTab(item.key)}
                 className={cn(
-                  "rounded-full px-3 py-1 text-sm font-medium transition-colors",
+                  "rounded-full px-2.5 py-1 text-sm font-medium transition-colors",
                   tab === item.key ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
                 )}
               >

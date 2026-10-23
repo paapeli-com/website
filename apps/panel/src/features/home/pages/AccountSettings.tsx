@@ -312,13 +312,15 @@ export default function AccountSettings() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 rounded-xl bg-emerald-500/10 px-3.5 py-2.5">
-            <span className="size-2 shrink-0 rounded-full bg-emerald-600" />
+          {/* Neutral, with only the dot in status green: in a green-accented
+              panel a green card read as one more brand-coloured control. */}
+          <div className="flex items-center gap-2.5 rounded-xl border border-border bg-muted/50 px-3.5 py-2.5">
+            <span className="size-2 shrink-0 rounded-full bg-emerald-500 ring-4 ring-emerald-500/15" />
             <div>
-              <div className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+              <div className="text-sm font-semibold text-foreground">
                 {t("Account active")}
               </div>
-              <div className="text-xs text-emerald-700/80 dark:text-emerald-400/80">
+              <div className="text-xs text-muted-foreground">
                 {t("Verified and in good standing")}
               </div>
             </div>

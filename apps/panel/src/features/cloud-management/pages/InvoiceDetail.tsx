@@ -25,7 +25,7 @@ export default function InvoiceDetail() {
     <div className="flex flex-col gap-6 p-6">
       <button
         type="button"
-        onClick={() => navigate("billing")}
+        onClick={() => navigate("/CloudManagement/billing")}
         className="flex w-fit items-center gap-1.5 text-[13px] font-medium text-muted-foreground hover:text-foreground"
       >
         <ChevronLeft className="size-4" />

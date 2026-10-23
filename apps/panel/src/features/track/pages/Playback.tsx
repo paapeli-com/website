@@ -15,6 +15,7 @@ import { LoadFailed } from "@/shared/components/LoadFailed";
 import { PageSkeleton } from "@/shared/components/PageSkeleton";
 import { usePageLoad } from "@/shared/hooks/usePageLoad";
 import { cn } from "@/shared/lib/utils";
+import { PageBreadcrumb } from "@/shell/PageBreadcrumb";
 
 /* Replays where a tracker has been, from its telemetry history
    (GET /timeseries/.../history/{deviceId}) — the same source as the Live Map's
@@ -104,6 +105,7 @@ export default function Playback() {
 
   return (
     <div className="mx-auto max-w-6xl p-4 lg:p-6">
+      <PageBreadcrumb />
       {header}
 
       {/* Device chips */}

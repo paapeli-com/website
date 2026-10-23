@@ -10,7 +10,7 @@ export type WorkspaceMembershipStatus =
 
 export type WorkspaceRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
 
-export type WorkspaceStatus = 'ACTIVE' | 'SUSPENDED';
+export type WorkspaceStatus = 'ACTIVE' | 'SUSPENDED' | 'DELETED';
 
 export type WorkspaceProductStatus = 'PROVISIONING' | 'ACTIVE' | 'FAILED' | 'SUSPENDED';
 
@@ -94,6 +94,21 @@ export const workspacesService = {
         const { data } = await napiHttpHandler.post<WorkspaceResponse>(
             '/api/v1/aiot/workspaces',
             req,
+        );
+        return data;
+    },
+    /** Owner only. */
+    async renameWorkspace(workspaceId: string, req: WorkspaceRequest): Promise<WorkspaceResponse> {
+        const { data } = await napiHttpHandler.put<WorkspaceResponse>(
+            `/api/v1/aiot/workspaces/${workspaceId}`,
+            req,
+        );
+        return data;
+    },
+    /** Owner only. The workspace stops being listed or reachable; its data is kept. */
+    async deleteWorkspace(workspaceId: string): Promise<WorkspaceResponse> {
+        const { data } = await napiHttpHandler.del<WorkspaceResponse>(
+            `/api/v1/aiot/workspaces/${workspaceId}`,
         );
         return data;
     },

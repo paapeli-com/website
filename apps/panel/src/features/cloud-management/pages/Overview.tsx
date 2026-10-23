@@ -78,16 +78,16 @@ export default function Overview() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <IconTile icon={Package} title={t("Subscriptions & plans")} cta={t("Manage subscriptions")} onClick={() => navigate("subscriptions")}>
+        <IconTile icon={Package} title={t("Subscriptions & Plans")} cta={t("Manage Subscriptions")} onClick={() => navigate("/CloudManagement/subscriptions")}>
           {t("Plan tier, seats, renewal date and add-ons for each subscription.")}
         </IconTile>
-        <IconTile icon={FileText} title={t("Billing & invoices")} cta={t("View invoices")} onClick={() => navigate("billing")}>
+        <IconTile icon={FileText} title={t("Billing & Invoices")} cta={t("View Invoices")} onClick={() => navigate("/CloudManagement/billing")}>
           {t("Download invoices, see payment status and set the billing profile.")}
         </IconTile>
-        <IconTile icon={Gauge} title={t("Usage & quotas")} cta={t("View usage")} onClick={() => navigate("usage")}>
+        <IconTile icon={Gauge} title={t("Usage & Quotas")} cta={t("View Usage")} onClick={() => navigate("/CloudManagement/usage")}>
           {t("Track messages, storage and API calls against your plan limits.")}
         </IconTile>
-        <IconTile icon={Users} title={t("Organisation & access")} cta={t("Manage access")} onClick={() => navigate("organisation")}>
+        <IconTile icon={Users} title={t("Organisation & Access")} cta={t("Manage Access")} onClick={() => navigate("/CloudManagement/members")}>
           {t("Members, roles, API keys and single sign-on for your tenant.")}
         </IconTile>
       </div>
@@ -100,7 +100,7 @@ export default function Overview() {
               <h2 className="text-sm font-bold text-foreground">{t("Recent invoices")}</h2>
               <button
                 type="button"
-                onClick={() => navigate("billing")}
+                onClick={() => navigate("/CloudManagement/billing")}
                 className="text-[13px] font-semibold text-primary hover:underline"
               >
                 {t("See all")}

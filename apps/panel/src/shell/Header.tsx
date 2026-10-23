@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Menu, Moon, Sun } from "lucide-react";
 import paapeliLogo from "@paapeli/brand/logo.svg";
 import paapeliLogoDark from "@paapeli/brand/logo-dark.svg";
@@ -26,11 +27,13 @@ export function Header({ onMenu }: { onMenu: () => void }) {
         <Menu className="h-5 w-5" />
       </button>
 
-      <div className="flex shrink-0 items-center gap-2">
+      {/* The way back to Home from anywhere: the product switcher no longer
+          carries a Home row. */}
+      <Link to="/Home" aria-label={t("Home")} className="flex shrink-0 items-center gap-2 rounded-lg">
         <img src={paapeliLogo} alt="Paapeli" className="block h-7 w-auto dark:hidden" />
         <img src={paapeliLogoDark} alt="Paapeli" className="hidden h-7 w-auto dark:block" />
         <span className="hidden text-lg font-bold leading-none text-primary sm:inline">{brand.appName}</span>
-      </div>
+      </Link>
 
       <HeaderSearch />
 

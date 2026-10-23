@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, RefreshCw, UserPlus } from "lucide-react";
-import { useListWorkspaceMembersQuery, type WorkspaceMember } from "@paapeli/api";
+import { Loader2, RefreshCw, SearchX, UserPlus } from "lucide-react";
+import { useListWorkspaceMembersQuery, useListWorkspaceProductsQuery, type WorkspaceMember } from "@paapeli/api";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/features/factory/components/ui/table";
 import { Button } from "@/features/factory/components/ui/button";
 import { ListToolbar, type FilterField, type SortOption, type ViewMode } from "@/features/factory/components/panel/ListToolbar";
@@ -19,9 +19,23 @@ const STATUS_KEY: Record<WorkspaceMember["status"], string> = {
 
 /* The roster, from GET /workspaces/{id}/members. Search goes to the server;
  * role and status filter the page that came back. The response carries no
- * product access, so that column reports no data rather than a guess, and the
- * product and joined filters have nothing to narrow by yet. One page of the
- * API's maximum (100) is read, which covers a workspace's team today. */
+ * product access, so that column reports no data rather than a guess. A
+ * workspace role reaches every product the workspace holds, so the product
+ * filter lists those products and narrows nobody out of one; joined filters
+ * on when the membership was created. One page of the API's maximum (100) is
+ * read, which covers a workspace's team today. */
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const JOINED_DAYS: Record<string, number> = { "7": 7, "30": 30, "90": 90 };
+
+const PRODUCT_LABEL: Record<string, string> = { smartFactory: "productSmartFactory", gpsTracking: "productGpsTracking" };
+
+const joinedMatches = (joined: string, createdAt: string) => {
+  if (joined === "any") return true;
+  const age = Date.now() - Date.parse(createdAt);
+  if (joined === "older") return age > 90 * DAY_MS;
+  return age <= JOINED_DAYS[joined] * DAY_MS;
+};
 export default function MembersTab({
   workspaceId,
   canInvite,
@@ -54,22 +68,42 @@ export default function MembersTab({
     100,
   );
 
+  const { data: products } = useListWorkspaceProductsQuery(workspaceId ?? "", !!workspaceId);
+  const productOptions = (products ?? [])
+    .filter((p) => p.status === "ACTIVE")
+    .map((p) => ({ value: p.productKey, label: PRODUCT_LABEL[p.productKey] ? tr(PRODUCT_LABEL[p.productKey]) : p.productKey }));
+
   const rows = useMemo(() => {
     const list = (data?.data ?? []).filter(
-      (m) => (role === "all" || m.role === role) && (status === "all" || m.status.toLowerCase() === status),
+      (m) =>
+        (role === "all" || m.role === role) &&
+        (status === "all" || m.status.toLowerCase() === status) &&
+        joinedMatches(joined, m.createdAt),
     );
     const name = (m: WorkspaceMember) => (m.displayName || m.email || "").toLowerCase();
     return [...list].sort((a, b) =>
       sort === "newest" ? Date.parse(b.createdAt) - Date.parse(a.createdAt) : name(a).localeCompare(name(b)),
     );
-  }, [data, role, status, sort]);
+  }, [data, role, status, joined, sort]);
 
   const all = { value: "all", label: tr("optAll") };
   const filterFields: FilterField[] = [
     { key: "status", label: tr("filterStatus"), value: status, onChange: setStatus, options: [all, { value: "active", label: tr("statusActive") }, { value: "invited", label: tr("statusInvited") }, { value: "suspended", label: tr("statusSuspended") }] },
     { key: "role", label: tr("colWorkspaceRole"), value: role, onChange: setRole, options: [all, { value: "OWNER", label: tr("roleOwner") }, { value: "ADMIN", label: tr("roleAdmin") }, { value: "MEMBER", label: tr("roleMember") }, { value: "VIEWER", label: tr("roleViewer") }] },
-    { key: "product", label: tr("filterProduct"), value: product, onChange: setProduct, options: [{ value: "all", label: tr("optAllProducts") }] },
-    { key: "joined", label: tr("filterJoined"), value: joined, onChange: setJoined, options: [{ value: "any", label: tr("optAnyTime") }] },
+    { key: "product", label: tr("filterProduct"), value: product, onChange: setProduct, options: [{ value: "all", label: tr("optAllProducts") }, ...productOptions] },
+    {
+      key: "joined",
+      label: tr("filterJoined"),
+      value: joined,
+      onChange: setJoined,
+      options: [
+        { value: "any", label: tr("optAnyTime") },
+        { value: "7", label: tr("optLast7") },
+        { value: "30", label: tr("optLast30") },
+        { value: "90", label: tr("optLast90") },
+        { value: "older", label: tr("optOlder90") },
+      ],
+    },
   ];
   const sortOptions: SortOption[] = [
     { key: "nameAsc", label: tr("sortNameAsc") },
@@ -77,6 +111,7 @@ export default function MembersTab({
   ];
   const activeFilterCount = [status, role, product].filter((v) => v !== "all").length + (joined !== "any" ? 1 : 0);
   const narrowed = activeFilterCount > 0 || query !== "";
+  const clearFilters = () => { setStatus("all"); setRole("all"); setProduct("all"); setJoined("any"); };
 
   const body = () => {
     if (!workspaceId) return <NoData className="py-10" />;
@@ -98,7 +133,18 @@ export default function MembersTab({
       );
     if (rows.length === 0)
       return narrowed ? (
-        <p className="py-10 text-center text-sm text-muted-foreground">{tr("noResults")}</p>
+        <NoData
+          icon={SearchX}
+          title={tr("noResults")}
+          description={tr("noMembersMatch")}
+          action={
+            activeFilterCount > 0 ? (
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                {tr("clearFilters")}
+              </Button>
+            ) : undefined
+          }
+        />
       ) : canInvite ? (
         <AddFirst icon={UserPlus} label={tr("inviteMember")} onAction={onInvite} />
       ) : (
@@ -118,7 +164,7 @@ export default function MembersTab({
         filter={{
           fields: filterFields,
           activeCount: activeFilterCount,
-          onClear: () => { setStatus("all"); setRole("all"); setProduct("all"); setJoined("any"); },
+          onClear: clearFilters,
         }}
         sort={{ options: sortOptions, value: sort, onChange: setSort }}
         actions={[{ key: "export", label: tr("actionExport"), comingSoon: true }]}

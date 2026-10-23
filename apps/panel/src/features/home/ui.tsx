@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 
@@ -12,8 +13,15 @@ export function Card({ children, className }: { children: ReactNode; className?:
 }
 
 /** The small-caps label above each band of product cards ("AIoT", "Platform"). */
-export function SectionLabel({ children }: { children: ReactNode }) {
-  return <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{children}</h2>;
+export function SectionLabel({ children, to }: { children: ReactNode; to?: string }) {
+  const className = "text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground";
+  if (!to) return <h2 className={className}>{children}</h2>;
+  // A family's label opens that family's own page.
+  return (
+    <h2 className={className}>
+      <Link to={to} className="hover:text-primary hover:underline">{children}</Link>
+    </h2>
+  );
 }
 
 export type PillTone = "gray" | "brand" | "bad";

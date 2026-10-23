@@ -298,6 +298,10 @@ const en = {
   failedToAddWorkspace: "Could not create the workspace.",
   create: "Create",
   solutions: "Solutions",
+  noDevicesYet: "No devices yet",
+  noDevicesYetDesc: "Add a tracker to see it on the live map, follow its trips and get its alerts.",
+  noDevicesMatch: "No device matches these filters.",
+  clearFilters: "Clear filters",
 };
 
 export type TranslationKey = keyof typeof en;
@@ -582,6 +586,10 @@ const fa: Record<TranslationKey, string> = {
   failedToAddWorkspace: "ایجاد فضای کاری ممکن نشد.",
   create: "ایجاد",
   solutions: "سولوشن‌ها",
+  noDevicesYet: "هنوز دستگاهی ندارید",
+  noDevicesYetDesc: "یک ردیاب اضافه کنید تا آن را روی نقشهٔ زنده ببینید، سفرهایش را دنبال کنید و هشدارهایش را دریافت کنید.",
+  noDevicesMatch: "هیچ دستگاهی با این فیلترها مطابقت ندارد.",
+  clearFilters: "پاک کردن فیلترها",
 };
 
 const ar: Record<TranslationKey, string> = {
@@ -864,6 +872,10 @@ const ar: Record<TranslationKey, string> = {
   failedToAddWorkspace: "تعذّر إنشاء مساحة العمل.",
   create: "إنشاء",
   solutions: "الحلول",
+  noDevicesYet: "لا توجد أجهزة بعد",
+  noDevicesYetDesc: "أضف جهاز تتبع لتراه على الخريطة المباشرة وتتابع رحلاته وتتلقى تنبيهاته.",
+  noDevicesMatch: "لا يوجد جهاز يطابق عوامل التصفية هذه.",
+  clearFilters: "مسح عوامل التصفية",
 };
 
 export const translations: Record<Language, Record<TranslationKey, string>> = { en, fa, ar };
