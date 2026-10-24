@@ -9,57 +9,57 @@ import {
   Eye,
   Filter,
   Key as KeyIcon,
-  MoreHorizontal,
+  Loader2,
   Plus,
   RefreshCw,
   Search,
+  Terminal,
   Trash2,
   X,
 } from "lucide-react";
-import { getCurrentUser } from "@paapeli/brand/session";
+import {
+  useCreateApiKeyMutation,
+  useListApiKeysQuery,
+  useListWorkspaceProductsQuery,
+  useRemoveApiKeyGrantMutation,
+  useRevokeApiKeysMutation,
+  type ApiKey,
+  type ApiKeyAccess,
+  type CreatedApiKey,
+} from "@paapeli/api";
 import { Badge, Button, Card, EmptyState, Input, Label, PageHeader } from "@/features/cloud-management/ui";
 import { useWorkspaceSelection } from "@/features/cloud-management/contexts/WorkspaceContext";
 import { formatDate, formatDateTime } from "@/shared/lib/formatDate";
+import { apiErrorMessage } from "@/shared/lib/apiError";
+import { PAAPELI_API_BASE_URL } from "@/shared/config";
 import { useAppLanguage } from "@/shared/i18n/appLanguage";
 import { useShellT } from "@/shared/i18n/shell";
 import { cn } from "@/shared/lib/utils";
-import {
-  createApiKey,
-  isLegacyKey,
-  removeGrant,
-  revokeApiKeys,
-  useApiKeys,
-  type ApiKey,
-  type ApiKeyGrant,
-} from "@/shared/lib/apiKeys";
-import { PRODUCT_REGISTRY, getProduct, productName } from "@/shared/lib/productRegistry";
 
-/* The one place application API keys live.
+/* The workspace's application API keys, issued and enforced by the gateway
+ * (/workspaces/{id}/api-keys).
  *
- * Every product that needs a key sends the user here rather than keeping a
- * list of its own. AI Inference's sidebar row is a shortcut into this page
- * with ?product=ai-inference&project=…&from=ai-inference, which is why this
- * page reads those parameters: the filters, the context banner and the "back"
- * link all come from the URL, so a refresh or a browser Back lands in the same
- * place it left.
+ * A key belongs to the active workspace and acts as the member who created
+ * it, narrowed to the products it was granted, each up to an access level:
+ * Read, Operate or Administer, the same three levels product access already
+ * has for a signed-in member. The gateway checks both on every call — the
+ * key's grant and the creator's own role — so a key can never do more than
+ * its creator could, and stops working when they leave the workspace.
+ *
+ * Keys reach the product endpoints only. Account, workspace and key
+ * management answer 403 to a key, whatever it was granted.
+ *
+ * The secret is shown once, in the dialog after creating; the gateway keeps
+ * only a hash of it.
  *
  * Device credentials are NOT here. Per-device MQTT tokens and certificates
- * have their own lifecycle behind @paapeli/api; a key on this page is an
- * application credential and revoking one must never take a fleet offline.
- *
- * BACKEND: there is no application-key service yet. shared/lib/apiKeys.ts is a
- * typed adapter over browser storage and says so at length; nothing issued
- * here authorises anything, and the secrets it shows are prefixed
- * pp_preview_. The screen is built against the shape the service will have.
- *
- * The toolbar deliberately matches the device list's: search on the leading
- * edge, then refresh, Filters, Sort, Actions. It is rebuilt from this
- * feature's own primitives rather than imported from the factory feature,
- * which would pull that product's chunk and its whole translation table into
- * Cloud Management for the sake of one row of buttons.
+ * have their own lifecycle; revoking an application key never takes a fleet
+ * offline.
  */
 
 type SortKey = "created" | "name" | "lastUsed" | "expires";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const EXPIRY_CHOICES = [
   { value: "30", labelKey: "30 days" },
@@ -68,17 +68,58 @@ const EXPIRY_CHOICES = [
   { value: "never", labelKey: "No expiration" },
 ];
 
+/* The product's own name for a productKey the gateway reports. */
+const PRODUCT_NAMES: Record<string, string> = {
+  smartFactory: "Smart Factory",
+  gpsTracking: "GPS Tracking",
+};
+const productName = (key: string) => PRODUCT_NAMES[key] ?? key;
+
+const ACCESS_LEVELS: { value: ApiKeyAccess; label: string; description: string }[] = [
+  { value: "READ", label: "Read", description: "Read devices, telemetry, alarms and the rest of the product's data." },
+  { value: "OPERATE", label: "Operate", description: "Also create and change devices, send commands and act on alarms." },
+  { value: "ADMINISTER", label: "Administer", description: "Also delete and configure, as a product admin can." },
+];
+
+/* The highest level each workspace role can hand to a key — no more than the
+   role itself reaches in a product, which the gateway enforces too. */
+const ROLE_CEILING: Record<string, ApiKeyAccess> = {
+  OWNER: "ADMINISTER",
+  ADMIN: "ADMINISTER",
+  MEMBER: "OPERATE",
+  VIEWER: "READ",
+};
+const LEVEL_ORDER: ApiKeyAccess[] = ["READ", "OPERATE", "ADMINISTER"];
+const withinCeiling = (level: ApiKeyAccess, role?: string) =>
+  LEVEL_ORDER.indexOf(level) <= LEVEL_ORDER.indexOf(ROLE_CEILING[role ?? ""] ?? "READ");
+
+const time = (iso: string | null) => (iso ? Date.parse(iso) : null);
+
+/* The call every example on this page shows: one product's devices. */
+const exampleCall = (secret: string, workspaceId: string, productKey: string) =>
+  `curl -H "Authorization: Bearer ${secret}" \\\n  "${PAAPELI_API_BASE_URL}/api/v1/aiot/devices/${workspaceId}/${productKey}/tenant?page=0&size=25"`;
+
 export default function AccessApiKeys() {
   const t = useShellT();
   const language = useAppLanguage();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const { selected: workspace } = useWorkspaceSelection();
-  const { keys, refresh } = useApiKeys();
+  const workspaceId = workspace?.workspaceId ?? "";
+
+  const keysQuery = useListApiKeysQuery(workspaceId);
+  const keys = useMemo(() => keysQuery.data ?? [], [keysQuery.data]);
+  const { data: workspaceProducts } = useListWorkspaceProductsQuery(workspaceId, !!workspaceId);
+  /* What a key can be granted: the products this workspace actually holds. */
+  const grantable = useMemo(
+    () => (workspaceProducts ?? []).filter((p) => p.status === "ACTIVE").map((p) => p.productKey),
+    [workspaceProducts],
+  );
+  const revokeKeys = useRevokeApiKeysMutation(workspaceId);
+  const removeGrant = useRemoveApiKeyGrantMutation(workspaceId);
 
   /* Context comes from the URL, not from state: refresh and Back keep it. */
   const productFilter = params.get("product") ?? "all";
-  const projectFilter = params.get("project") ?? "all";
   const from = params.get("from");
   const wantsCreate = params.get("create") === "1";
 
@@ -89,12 +130,12 @@ export default function AccessApiKeys() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
-  const [created, setCreated] = useState<{ key: ApiKey; secret: string } | null>(null);
-  const [detail, setDetail] = useState<ApiKey | null>(null);
+  const [created, setCreated] = useState<CreatedApiKey | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [revoking, setRevoking] = useState<ApiKey[] | null>(null);
+  const detail = keys.find((k) => k.id === detailId) ?? null;
 
   /* Arriving with ?create=1 opens the same dialog every other entry point
      opens; the flag is then dropped so a refresh does not reopen it. */
@@ -116,47 +157,41 @@ export default function AccessApiKeys() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const rows = keys.filter((k) => {
-      if (productFilter !== "all" && !k.grants.some((g) => g.productId === productFilter)) return false;
-      if (projectFilter !== "all") {
-        const relevant = productFilter === "all" ? k.grants : k.grants.filter((g) => g.productId === productFilter);
-        if (!relevant.some((g) => g.projectIds.includes(projectFilter))) return false;
-      }
+      if (productFilter !== "all" && !k.grants.some((g) => g.productKey === productFilter)) return false;
       if (statusFilter !== "all" && k.status !== statusFilter) return false;
+      const expires = time(k.expiresAt);
       if (expiryFilter === "expiring") {
-        const soon = Date.now() + 30 * 24 * 60 * 60 * 1000;
-        if (!k.expiresAt || k.expiresAt > soon || k.status !== "active") return false;
+        if (!expires || expires > Date.now() + 30 * DAY_MS || k.status !== "ACTIVE") return false;
       }
-      if (expiryFilter === "never" && k.expiresAt !== null) return false;
+      if (expiryFilter === "never" && expires !== null) return false;
       if (!q) return true;
       /* Name, prefix and product names — never a secret, because none is
-         stored to search. */
+         kept to search. */
       return (
         k.name.toLowerCase().includes(q) ||
         k.prefix.toLowerCase().includes(q) ||
-        k.grants.some((g) => productName(g.productId).toLowerCase().includes(q))
+        k.grants.some((g) => productName(g.productKey).toLowerCase().includes(q))
       );
     });
 
     const sorted = [...rows];
     if (sortKey === "name") sorted.sort((a, b) => a.name.localeCompare(b.name));
-    if (sortKey === "lastUsed") sorted.sort((a, b) => (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0));
-    if (sortKey === "expires") sorted.sort((a, b) => (a.expiresAt ?? Infinity) - (b.expiresAt ?? Infinity));
+    if (sortKey === "lastUsed") sorted.sort((a, b) => (time(b.lastUsedAt) ?? 0) - (time(a.lastUsedAt) ?? 0));
+    if (sortKey === "expires") sorted.sort((a, b) => (time(a.expiresAt) ?? Infinity) - (time(b.expiresAt) ?? Infinity));
     return sorted;
-  }, [keys, query, productFilter, projectFilter, statusFilter, expiryFilter, sortKey]);
+  }, [keys, query, productFilter, statusFilter, expiryFilter, sortKey]);
 
   const selectedKeys = keys.filter((k) => selectedIds.has(k.id));
-  const revocable = selectedKeys.filter((k) => k.status === "active");
+  const revocable = selectedKeys.filter((k) => k.status === "ACTIVE");
 
   const activeChips = [
-    productFilter !== "all" && { key: "product", label: `${t("Products")}: ${productName(productFilter)}` },
-    projectFilter !== "all" && { key: "project", label: `${t("Project")}: ${projectFilter}` },
-    statusFilter !== "all" && { key: "status", label: `${t("Status")}: ${t(statusFilter)}` },
+    productFilter !== "all" && { key: "product", label: `${t("Products")}: ${t(productName(productFilter))}` },
+    statusFilter !== "all" && { key: "status", label: `${t("Status")}: ${t(statusFilter.toLowerCase())}` },
     expiryFilter !== "all" && { key: "expiry", label: t("Expiration") },
   ].filter(Boolean) as { key: string; label: string }[];
 
   const clearChip = (key: string) => {
     if (key === "product") setParam("product", null);
-    if (key === "project") setParam("project", null);
     if (key === "status") setStatusFilter("all");
     if (key === "expiry") setExpiryFilter("all");
   };
@@ -170,15 +205,28 @@ export default function AccessApiKeys() {
     setExpiryFilter("all");
   };
 
+  const confirmRevoke = (toRevoke: ApiKey[]) =>
+    revokeKeys.mutate(
+      toRevoke.map((k) => k.id),
+      {
+        onSuccess: () => {
+          setSelectedIds(new Set());
+          setRevoking(null);
+          toast.success(t("Key revoked."));
+        },
+        onError: (error) => toast.error(apiErrorMessage(error, t("Could not revoke the key."))),
+      },
+    );
+
   return (
     /* data-uniform-type: the page is written in Tailwind steps and reads at
        those steps in every language, like Dashboards and the device list. */
     <div data-uniform-type className="flex flex-col gap-6 p-6">
       <PageHeader
         title={t("Access & API keys")}
-        description={t("One key can reach several Paapeli products. They all live here.")}
+        description={t("Keys let your own software call the Paapeli APIs of this workspace's products.")}
         actions={
-          <Button onClick={() => setCreateOpen(true)}>
+          <Button onClick={() => setCreateOpen(true)} disabled={!workspaceId}>
             <Plus className="size-4" />
             {t("Create API key")}
           </Button>
@@ -186,11 +234,10 @@ export default function AccessApiKeys() {
       />
 
       {/* Opened from a product: say so, and offer both ways out. */}
-      {from && (
+      {from === "ai-inference" && (
         <Card className="flex flex-wrap items-center justify-between gap-3 border-primary/30 bg-primary/[0.04] py-3">
           <span className="text-[13.5px] text-foreground">
-            {t("Opened from")} <span className="font-semibold">{productName(from)}</span>
-            {projectFilter !== "all" && ` · ${projectFilter}`}
+            {t("AI Inference keys are not available yet. Keys here reach Smart Factory and GPS Tracking.")}
           </span>
           <span className="flex flex-wrap gap-2">
             <Button variant="ghost" onClick={clearAll}>
@@ -203,6 +250,8 @@ export default function AccessApiKeys() {
           </span>
         </Card>
       )}
+
+      <UsageCard workspaceId={workspaceId} productKey={grantable[0] ?? "smartFactory"} />
 
       <Card className="flex flex-col gap-4 p-4">
         {/* Search leading, then refresh, Filters, Sort, Actions — the order
@@ -223,13 +272,9 @@ export default function AccessApiKeys() {
               variant="ghost"
               className="size-10 px-0"
               aria-label={t("Refresh")}
-              onClick={() => {
-                setRefreshing(true);
-                refresh();
-                window.setTimeout(() => setRefreshing(false), 400);
-              }}
+              onClick={() => void keysQuery.refetch()}
             >
-              <RefreshCw className={cn("size-4", refreshing && "animate-spin")} />
+              <RefreshCw className={cn("size-4", keysQuery.isFetching && "animate-spin")} />
             </Button>
 
             <Popover open={filtersOpen} onOpenChange={setFiltersOpen} label={t("Filters")} icon={Filter} count={activeChips.length}>
@@ -239,16 +284,7 @@ export default function AccessApiKeys() {
                 onChange={(v) => setParam("product", v === "all" ? null : v)}
                 options={[
                   { value: "all", label: t("All products") },
-                  ...PRODUCT_REGISTRY.map((p) => ({ value: p.id, label: p.name })),
-                ]}
-              />
-              <FilterField
-                label={t("Project")}
-                value={projectFilter}
-                onChange={(v) => setParam("project", v === "all" ? null : v)}
-                options={[
-                  { value: "all", label: t("All projects") },
-                  ...(getProduct(productFilter)?.projects ?? []).map((p) => ({ value: p.id, label: p.name })),
+                  ...grantable.map((p) => ({ value: p, label: t(productName(p)) })),
                 ]}
               />
               <FilterField
@@ -257,9 +293,9 @@ export default function AccessApiKeys() {
                 onChange={setStatusFilter}
                 options={[
                   { value: "all", label: t("All statuses") },
-                  { value: "active", label: t("active") },
-                  { value: "expired", label: t("expired") },
-                  { value: "revoked", label: t("revoked") },
+                  { value: "ACTIVE", label: t("active") },
+                  { value: "EXPIRED", label: t("expired") },
+                  { value: "REVOKED", label: t("revoked") },
                 ]}
               />
               <FilterField
@@ -380,13 +416,37 @@ export default function AccessApiKeys() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {keysQuery.isLoading ? (
+                <tr>
+                  <td colSpan={8} className="px-3 py-10 text-center">
+                    <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
+                  </td>
+                </tr>
+              ) : keysQuery.isError ? (
+                <tr>
+                  <td colSpan={8} className="px-3 py-10 text-center">
+                    <p className="text-sm text-destructive">{apiErrorMessage(keysQuery.error, t("Could not load the keys."))}</p>
+                    <Button variant="ghost" className="mt-3" onClick={() => void keysQuery.refetch()}>
+                      <RefreshCw className="size-4" />
+                      {t("Retry")}
+                    </Button>
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-3">
                     <EmptyState
                       icon={KeyIcon}
-                      title={t("No API keys yet")}
-                      description={t("Create one to let an application call a Paapeli product.")}
+                      title={keys.length === 0 ? t("No API keys yet") : t("No key matches these filters.")}
+                      description={keys.length === 0 ? t("Create one to let an application call a Paapeli product.") : undefined}
+                      action={
+                        keys.length === 0 ? (
+                          <Button onClick={() => setCreateOpen(true)} disabled={!workspaceId}>
+                            <Plus className="size-4" />
+                            {t("Create API key")}
+                          </Button>
+                        ) : undefined
+                      }
                     />
                   </td>
                 </tr>
@@ -399,11 +459,12 @@ export default function AccessApiKeys() {
                     onToggle={() =>
                       setSelectedIds((prev) => {
                         const next = new Set(prev);
-                        next.has(k.id) ? next.delete(k.id) : next.add(k.id);
+                        if (next.has(k.id)) next.delete(k.id);
+                        else next.add(k.id);
                         return next;
                       })
                     }
-                    onView={() => setDetail(k)}
+                    onView={() => setDetailId(k.id)}
                     onRevoke={() => setRevoking([k])}
                   />
                 ))
@@ -417,48 +478,47 @@ export default function AccessApiKeys() {
 
       {createOpen && (
         <CreateKeyDialog
-          defaultProductId={productFilter !== "all" ? productFilter : undefined}
-          defaultProjectId={projectFilter !== "all" ? projectFilter : undefined}
-          workspaceId={workspace?.workspaceId ?? null}
+          workspaceId={workspaceId}
+          role={workspace?.role}
+          products={grantable}
+          defaultProductKey={productFilter !== "all" ? productFilter : undefined}
           onClose={() => setCreateOpen(false)}
           onCreated={(result) => {
             setCreateOpen(false);
             setCreated(result);
-            refresh();
           }}
         />
       )}
 
-      {created && <SecretOnceDialog created={created} onClose={() => setCreated(null)} />}
+      {created && <SecretOnceDialog created={created} workspaceId={workspaceId} onClose={() => setCreated(null)} />}
 
       {detail && (
         <KeyDetailDialog
           apiKey={detail}
-          onClose={() => setDetail(null)}
+          removing={removeGrant.isPending}
+          onClose={() => setDetailId(null)}
           onRevoke={() => {
             setRevoking([detail]);
-            setDetail(null);
+            setDetailId(null);
           }}
-          onRemoveGrant={(productId) => {
-            removeGrant(detail.id, productId);
-            refresh();
-            toast.success(t("Product access removed."));
-            setDetail(null);
-          }}
+          onRemoveGrant={(productKey) =>
+            removeGrant.mutate(
+              { apiKeyId: detail.id, productKey },
+              {
+                onSuccess: () => toast.success(t("Product access removed.")),
+                onError: (error) => toast.error(apiErrorMessage(error, t("Could not remove the access."))),
+              },
+            )
+          }
         />
       )}
 
       {revoking && (
         <RevokeDialog
           keys={revoking}
+          pending={revokeKeys.isPending}
           onCancel={() => setRevoking(null)}
-          onConfirm={() => {
-            revokeApiKeys(revoking.map((k) => k.id));
-            refresh();
-            setSelectedIds(new Set());
-            setRevoking(null);
-            toast.success(t("Key revoked."));
-          }}
+          onConfirm={() => confirmRevoke(revoking)}
         />
       )}
     </div>
@@ -477,10 +537,10 @@ export default function AccessApiKeys() {
     onView: () => void;
     onRevoke: () => void;
   }) {
-    const shownProducts = apiKey.grants.slice(0, 2);
-    const extra = apiKey.grants.length - shownProducts.length;
-    const soon =
-      apiKey.status === "active" && apiKey.expiresAt !== null && apiKey.expiresAt < Date.now() + 30 * 24 * 60 * 60 * 1000;
+    const shown = apiKey.grants.slice(0, 2);
+    const extra = apiKey.grants.length - shown.length;
+    const expires = time(apiKey.expiresAt);
+    const soon = apiKey.status === "ACTIVE" && expires !== null && expires < Date.now() + 30 * DAY_MS;
 
     return (
       <tr className="border-b border-border/60 last:border-0">
@@ -499,14 +559,13 @@ export default function AccessApiKeys() {
           </span>
         </td>
         <td className="px-3 py-3">
-          {isLegacyKey(apiKey) ? (
-            /* No product metadata is not "every product". */
-            <Badge tone="gray">{t("Unclassified")}</Badge>
+          {apiKey.grants.length === 0 ? (
+            <span className="text-muted-foreground">—</span>
           ) : (
             <span className="flex flex-wrap gap-1">
-              {shownProducts.map((g) => (
-                <Badge key={g.productId} tone="brand">
-                  {productName(g.productId)}
+              {shown.map((g) => (
+                <Badge key={g.productKey} tone="brand">
+                  {t(productName(g.productKey))}
                 </Badge>
               ))}
               {extra > 0 && (
@@ -518,15 +577,11 @@ export default function AccessApiKeys() {
           )}
         </td>
         <td className="px-3 py-3 text-muted-foreground">
-          {isLegacyKey(apiKey)
-            ? t("Legacy key · permissions not mapped")
-            : apiKey.grants
-                .map((g) => `${g.projectIds.join(", ")} · ${g.actions.length} ${t("actions")}`)
-                .join(" / ")}
+          {apiKey.grants.map((g) => t(ACCESS_LEVELS.find((l) => l.value === g.access)?.label ?? g.access)).join(" / ") || "—"}
         </td>
         <td className="px-3 py-3">
-          <Badge tone={apiKey.status === "active" ? "ok" : apiKey.status === "expired" ? "warn" : "bad"}>
-            {t(apiKey.status)}
+          <Badge tone={apiKey.status === "ACTIVE" ? "ok" : apiKey.status === "EXPIRED" ? "warn" : "bad"}>
+            {t(apiKey.status.toLowerCase())}
           </Badge>
         </td>
         <td className="px-3 py-3 text-muted-foreground">
@@ -541,17 +596,18 @@ export default function AccessApiKeys() {
         </td>
         <td className="px-3 py-3">
           <span className="flex items-center justify-end gap-1">
-            <Button variant="ghost" className="size-9 px-0" onClick={onView} aria-label={t("View")}>
+            <Button variant="ghost" className="size-9 px-0" onClick={onView} aria-label={t("View")} title={t("View")}>
               <Eye className="size-4" />
             </Button>
             <Button
               variant="ghost"
-              className="size-9 px-0"
+              className="size-9 px-0 text-destructive hover:text-destructive"
               onClick={onRevoke}
-              disabled={apiKey.status !== "active"}
+              disabled={apiKey.status !== "ACTIVE"}
               aria-label={t("Revoke")}
+              title={t("Revoke")}
             >
-              <MoreHorizontal className="size-4" />
+              <Trash2 className="size-4" />
             </Button>
           </span>
         </td>
@@ -563,6 +619,58 @@ export default function AccessApiKeys() {
 /* ------------------------------------------------------------------ */
 /* Small pieces this page needs and the feature's ui.tsx doesn't have. */
 /* ------------------------------------------------------------------ */
+
+/** How to call the APIs with a key: the header, an example, and the reference. */
+function UsageCard({ workspaceId, productKey }: { workspaceId: string; productKey: string }) {
+  const t = useShellT();
+  const example = exampleCall("pp_live_…", workspaceId || "{workspaceId}", productKey);
+  return (
+    <Card className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <Terminal className="size-4 text-primary" />
+        <h2 className="text-sm font-bold text-foreground">{t("Calling the API with a key")}</h2>
+      </div>
+      <p className="text-[13px] text-muted-foreground">
+        {t("Send the key in the Authorization header as a bearer token, or in an X-API-Key header. A key works on the product endpoints of this workspace only.")}
+      </p>
+      <CodeBlock code={example} />
+      <p className="text-[13px] text-muted-foreground">
+        {t("Every endpoint is described in the API reference:")}{" "}
+        <a
+          href={`${PAAPELI_API_BASE_URL}/swagger-ui.html`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-primary hover:underline"
+          dir="ltr"
+        >
+          {PAAPELI_API_BASE_URL}/swagger-ui.html
+        </a>
+      </p>
+    </Card>
+  );
+}
+
+function CodeBlock({ code }: { code: string }) {
+  const t = useShellT();
+  return (
+    <div className="relative">
+      <pre className="overflow-x-auto rounded-xl border border-border bg-muted/40 p-3 pe-12 font-mono text-xs leading-relaxed text-foreground" dir="ltr">
+        {code}
+      </pre>
+      <button
+        type="button"
+        onClick={() => {
+          void navigator.clipboard.writeText(code);
+          toast.success(t("Copied"));
+        }}
+        aria-label={t("Copy")}
+        className="absolute end-2 top-2 rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+      >
+        <Copy className="size-4" />
+      </button>
+    </div>
+  );
+}
 
 function Popover({
   open,
@@ -642,7 +750,7 @@ function Modal({ title, onClose, children, footer }: { title: string; onClose: (
       <div role="dialog" aria-modal="true" aria-label={title} className="relative flex max-h-[90vh] w-full max-w-lg flex-col rounded-2xl border border-border bg-card shadow-lg">
         <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
           <h2 className="text-base font-bold text-foreground">{title}</h2>
-          <button type="button" onClick={onClose} className="rounded-lg p-1 text-muted-foreground hover:bg-muted">
+          <button type="button" onClick={onClose} className="rounded-lg p-1 text-muted-foreground hover:bg-muted" aria-label="Close">
             <X className="size-4" />
           </button>
         </div>
@@ -654,67 +762,50 @@ function Modal({ title, onClose, children, footer }: { title: string; onClose: (
 }
 
 function CreateKeyDialog({
-  defaultProductId,
-  defaultProjectId,
   workspaceId,
+  role,
+  products,
+  defaultProductKey,
   onClose,
   onCreated,
 }: {
-  defaultProductId?: string;
-  defaultProjectId?: string;
-  workspaceId: string | null;
+  workspaceId: string;
+  role?: string;
+  products: string[];
+  defaultProductKey?: string;
   onClose: () => void;
-  onCreated: (result: { key: ApiKey; secret: string }) => void;
+  onCreated: (result: CreatedApiKey) => void;
 }) {
   const t = useShellT();
+  const createKey = useCreateApiKeyMutation(workspaceId);
   const [name, setName] = useState("");
-  const [expiry, setExpiry] = useState("30");
-  /* Nothing is granted until it is chosen. A new product, or a new model in an
-     existing one, never inherits access from a key created before it. */
-  const [grants, setGrants] = useState<Record<string, ApiKeyGrant>>(() =>
-    defaultProductId
-      ? {
-          [defaultProductId]: {
-            productId: defaultProductId,
-            projectIds: defaultProjectId ? [defaultProjectId] : [],
-            actions: [],
-            resourceIds: [],
-          },
-        }
-      : {},
+  const [expiry, setExpiry] = useState("90");
+  /* Nothing is granted until it is chosen, and each product starts at Read:
+     the least a key can do there. */
+  const [grants, setGrants] = useState<Record<string, ApiKeyAccess>>(() =>
+    defaultProductKey && products.includes(defaultProductKey) ? { [defaultProductKey]: "READ" } : {},
   );
 
-  const toggleProduct = (productId: string) =>
+  const toggleProduct = (productKey: string) =>
     setGrants((prev) => {
       const next = { ...prev };
-      if (next[productId]) delete next[productId];
-      else next[productId] = { productId, projectIds: [], actions: [], resourceIds: [] };
+      if (next[productKey]) delete next[productKey];
+      else next[productKey] = "READ";
       return next;
     });
 
-  const patch = (productId: string, change: Partial<ApiKeyGrant>) =>
-    setGrants((prev) => ({ ...prev, [productId]: { ...prev[productId], ...change } }));
-
-  const toggleIn = (list: string[], value: string) =>
-    list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
-
-  const chosen = Object.values(grants);
-  const valid =
-    name.trim().length > 0 &&
-    chosen.length > 0 &&
-    chosen.every((g) => g.projectIds.length > 0 && g.actions.length > 0);
+  const chosen = Object.entries(grants);
+  const valid = name.trim().length > 0 && chosen.length > 0;
 
   const submit = () => {
-    if (!valid) return;
-    const expiresAt = expiry === "never" ? null : Date.now() + Number(expiry) * 24 * 60 * 60 * 1000;
-    onCreated(
-      createApiKey({
-        name,
-        workspaceId,
-        createdBy: getCurrentUser()?.email ?? "",
-        expiresAt,
-        grants: chosen,
-      }),
+    if (!valid || createKey.isPending) return;
+    const expiresAt = expiry === "never" ? null : new Date(Date.now() + Number(expiry) * DAY_MS).toISOString();
+    createKey.mutate(
+      { name: name.trim(), expiresAt, grants: chosen.map(([productKey, access]) => ({ productKey, access })) },
+      {
+        onSuccess: onCreated,
+        onError: (error) => toast.error(apiErrorMessage(error, t("Could not create the key."))),
+      },
     );
   };
 
@@ -727,17 +818,23 @@ function CreateKeyDialog({
           <Button variant="ghost" onClick={onClose}>
             {t("Cancel")}
           </Button>
-          <Button onClick={submit} disabled={!valid}>
-            <KeyIcon className="size-4" />
+          <Button onClick={submit} disabled={!valid || createKey.isPending}>
+            {createKey.isPending ? <Loader2 className="size-4 animate-spin" /> : <KeyIcon className="size-4" />}
             {t("Create key")}
           </Button>
         </>
       }
     >
-      <div className="flex flex-col gap-4">
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+      >
         <div>
           <Label required>{t("Name")}</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="customer-support-backend" />
+          <Input value={name} maxLength={120} onChange={(e) => setName(e.target.value)} placeholder="customer-support-backend" />
         </div>
 
         <div>
@@ -757,143 +854,104 @@ function CreateKeyDialog({
 
         <div>
           <Label required>{t("Product access")}</Label>
-          <p className="mb-2 text-xs text-muted-foreground">{t("Choose at least one product, project and action.")}</p>
+          <p className="mb-2 text-xs text-muted-foreground">
+            {t("Choose at least one product and what the key may do there. It never does more than your own role allows.")}
+          </p>
 
-          <div className="flex flex-col gap-3">
-            {PRODUCT_REGISTRY.filter((p) => p.enabled).map((product) => {
-              const grant = grants[product.id];
-              const resources = grant ? product.resources() : [];
-              return (
-                <div key={product.id} className={cn("rounded-xl border p-3", grant ? "border-primary/40" : "border-border")}>
-                  <label className="flex items-center gap-2.5">
-                    <input
-                      type="checkbox"
-                      className="size-4 accent-primary"
-                      checked={!!grant}
-                      onChange={() => toggleProduct(product.id)}
-                    />
-                    <span className="text-sm font-medium text-foreground">{product.name}</span>
-                  </label>
+          {products.length === 0 ? (
+            <p className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+              {t("This workspace has no active product yet. Open Smart Factory or GPS Tracking once to set it up.")}
+            </p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {products.map((productKey) => {
+                const access = grants[productKey];
+                return (
+                  <div key={productKey} className={cn("rounded-xl border p-3", access ? "border-primary/40" : "border-border")}>
+                    <label className="flex items-center gap-2.5">
+                      <input
+                        type="checkbox"
+                        className="size-4 accent-primary"
+                        checked={!!access}
+                        onChange={() => toggleProduct(productKey)}
+                      />
+                      <span className="text-sm font-medium text-foreground">{t(productName(productKey))}</span>
+                    </label>
 
-                  {grant && (
-                    <div className="mt-3 flex flex-col gap-3 ps-6">
-                      <div>
-                        <span className="mb-1 block text-xs font-medium text-muted-foreground">{t("Project")}</span>
-                        <div className="flex flex-wrap gap-2">
-                          {product.projects.map((p) => (
-                            <button
-                              key={p.id}
-                              type="button"
-                              onClick={() => patch(product.id, { projectIds: toggleIn(grant.projectIds, p.id) })}
-                              className={cn(
-                                "rounded-lg px-2.5 py-1 text-xs",
-                                grant.projectIds.includes(p.id)
-                                  ? "bg-primary/10 font-medium text-primary"
-                                  : "bg-muted text-muted-foreground",
-                              )}
-                            >
-                              {p.name}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <span className="mb-1 block text-xs font-medium text-muted-foreground">{t("Actions")}</span>
-                        <div className="flex flex-wrap gap-2">
-                          {product.actions.map((a) => (
-                            <button
-                              key={a.id}
-                              type="button"
-                              onClick={() => patch(product.id, { actions: toggleIn(grant.actions, a.id) })}
-                              className={cn(
-                                "rounded-lg px-2.5 py-1 text-xs",
-                                grant.actions.includes(a.id)
-                                  ? "bg-primary/10 font-medium text-primary"
-                                  : "bg-muted text-muted-foreground",
-                              )}
-                            >
-                              {a.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {resources.length > 0 && (
-                        <div>
-                          <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                            {product.resourceLabel ?? t("Resources")}
-                          </span>
-                          <div className="flex flex-wrap gap-2">
-                            {resources.map((r) => (
+                    {access && (
+                      <div className="mt-3 flex flex-col gap-2 ps-6">
+                        <div className="inline-flex w-fit rounded-xl bg-muted p-1">
+                          {ACCESS_LEVELS.map((level) => {
+                            const allowed = withinCeiling(level.value, role);
+                            return (
                               <button
-                                key={r.id}
+                                key={level.value}
                                 type="button"
-                                onClick={() => patch(product.id, { resourceIds: toggleIn(grant.resourceIds, r.id) })}
+                                disabled={!allowed}
+                                title={allowed ? undefined : t("Your role cannot grant this level.")}
+                                onClick={() => setGrants((prev) => ({ ...prev, [productKey]: level.value }))}
                                 className={cn(
-                                  "rounded-lg px-2.5 py-1 text-xs",
-                                  grant.resourceIds.includes(r.id)
-                                    ? "bg-primary/10 font-medium text-primary"
-                                    : "bg-muted text-muted-foreground",
+                                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+                                  access === level.value
+                                    ? "bg-card text-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground",
                                 )}
                               >
-                                {r.label}
+                                {t(level.label)}
                               </button>
-                            ))}
-                          </div>
-                          <p className="mt-1.5 text-xs text-muted-foreground">
-                            {t("New models require an explicit permission update.")}
-                          </p>
+                            );
+                          })}
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                        <p className="text-xs text-muted-foreground">
+                          {t(ACCESS_LEVELS.find((l) => l.value === access)!.description)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <p className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
-          {t("The secret will be shown only once. Your project's budget and rate limits apply to this key.")}
+          {t("The secret will be shown only once. Store it somewhere safe, like a secrets manager.")}
         </p>
-      </div>
+      </form>
     </Modal>
   );
 }
 
-function SecretOnceDialog({ created, onClose }: { created: { key: ApiKey; secret: string }; onClose: () => void }) {
+function SecretOnceDialog({
+  created,
+  workspaceId,
+  onClose,
+}: {
+  created: CreatedApiKey;
+  workspaceId: string;
+  onClose: () => void;
+}) {
   const t = useShellT();
+  const firstProduct = created.key.grants[0]?.productKey ?? "smartFactory";
   return (
-    <Modal
-      title={t("API key created")}
-      onClose={onClose}
-      footer={<Button onClick={onClose}>{t("Done")}</Button>}
-    >
+    <Modal title={t("API key created")} onClose={onClose} footer={<Button onClick={onClose}>{t("Done")}</Button>}>
       <p className="text-[13.5px] text-muted-foreground">{t("Copy it now. It is not shown again.")}</p>
-      <div className="mt-3 flex items-center gap-2">
-        <code className="flex-1 overflow-x-auto rounded-xl border border-border bg-background px-3 py-2.5 font-mono text-xs" dir="ltr">
-          {created.secret}
-        </code>
-        <Button
-          variant="ghost"
-          onClick={() => {
-            void navigator.clipboard.writeText(created.secret);
-            toast.success(t("Copied"));
-          }}
-        >
-          <Copy className="size-4" />
-        </Button>
+      <div className="mt-3">
+        <CodeBlock code={created.secret} />
       </div>
       <div className="mt-4 text-[13.5px]">
         <p className="font-medium text-foreground">{created.key.name}</p>
         <p className="mt-1 flex flex-wrap gap-1">
           {created.key.grants.map((g) => (
-            <Badge key={g.productId} tone="brand">
-              {productName(g.productId)}
+            <Badge key={g.productKey} tone="brand">
+              {t(productName(g.productKey))} · {t(ACCESS_LEVELS.find((l) => l.value === g.access)?.label ?? g.access)}
             </Badge>
           ))}
         </p>
+      </div>
+      <p className="mt-4 text-xs font-medium text-muted-foreground">{t("Try it")}</p>
+      <div className="mt-1.5">
+        <CodeBlock code={exampleCall(created.secret, workspaceId, firstProduct)} />
       </div>
     </Modal>
   );
@@ -901,17 +959,20 @@ function SecretOnceDialog({ created, onClose }: { created: { key: ApiKey; secret
 
 function KeyDetailDialog({
   apiKey,
+  removing,
   onClose,
   onRevoke,
   onRemoveGrant,
 }: {
   apiKey: ApiKey;
+  removing: boolean;
   onClose: () => void;
   onRevoke: () => void;
-  onRemoveGrant: (productId: string) => void;
+  onRemoveGrant: (productKey: string) => void;
 }) {
   const t = useShellT();
   const language = useAppLanguage();
+  const active = apiKey.status === "ACTIVE";
 
   return (
     <Modal
@@ -922,7 +983,7 @@ function KeyDetailDialog({
           <Button variant="ghost" onClick={onClose}>
             {t("Close")}
           </Button>
-          <Button variant="danger" onClick={onRevoke} disabled={apiKey.status !== "active"}>
+          <Button variant="danger" onClick={onRevoke} disabled={!active}>
             <Trash2 className="size-4" />
             {t("Revoke")}
           </Button>
@@ -931,43 +992,44 @@ function KeyDetailDialog({
     >
       <div className="text-[13.5px]">
         <Row label={t("Key")} value={<code className="font-mono text-xs" dir="ltr">{apiKey.prefix}</code>} />
-        <Row label={t("Status")} value={<Badge tone={apiKey.status === "active" ? "ok" : "bad"}>{t(apiKey.status)}</Badge>} />
+        <Row
+          label={t("Status")}
+          value={
+            <Badge tone={active ? "ok" : apiKey.status === "EXPIRED" ? "warn" : "bad"}>{t(apiKey.status.toLowerCase())}</Badge>
+          }
+        />
         <Row label={t("Created")} value={formatDateTime(apiKey.createdAt, language)} />
-        <Row label={t("Created by")} value={apiKey.createdBy || "—"} />
+        <Row label={t("Created by")} value={apiKey.createdByEmail || "—"} />
         <Row label={t("Last used")} value={apiKey.lastUsedAt ? formatDateTime(apiKey.lastUsedAt, language) : t("Never used")} />
         <Row label={t("Expiration")} value={apiKey.expiresAt ? formatDate(apiKey.expiresAt, language) : t("No expiration")} />
+        {apiKey.revokedAt && <Row label={t("Revoked")} value={formatDateTime(apiKey.revokedAt, language)} />}
       </div>
 
       <h3 className="mt-4 text-sm font-bold text-foreground">{t("Product access")}</h3>
-      {isLegacyKey(apiKey) ? (
+      {apiKey.grants.length === 0 ? (
         <p className="mt-2 rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
-          {t("This key predates product grants. Its permissions are unchanged and have not been mapped.")}
+          {t("This key has no product access left, so it cannot call anything.")}
         </p>
       ) : (
         <div className="mt-2 flex flex-col gap-2">
           {apiKey.grants.map((g) => (
-            <div key={g.productId} className="rounded-xl border border-border p-3">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-foreground">{productName(g.productId)}</span>
-                {/* Removing one product's access is not revoking the key. */}
+            <div key={g.productKey} className="flex items-center justify-between gap-2 rounded-xl border border-border p-3">
+              <span>
+                <span className="block text-sm font-medium text-foreground">{t(productName(g.productKey))}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {t(ACCESS_LEVELS.find((l) => l.value === g.access)?.label ?? g.access)}
+                </span>
+              </span>
+              {/* Removing one product's access is not revoking the key. */}
+              {active && (
                 <button
                   type="button"
-                  onClick={() => onRemoveGrant(g.productId)}
-                  className="text-xs font-semibold text-destructive hover:underline"
+                  disabled={removing}
+                  onClick={() => onRemoveGrant(g.productKey)}
+                  className="text-xs font-semibold text-destructive hover:underline disabled:opacity-50"
                 >
                   {t("Remove access")}
                 </button>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {t("Project")}: {g.projectIds.join(", ") || "—"}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {t("Actions")}: {g.actions.join(", ") || "—"}
-              </p>
-              {g.resourceIds.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {t("Resources")}: {g.resourceIds.join(", ")}
-                </p>
               )}
             </div>
           ))}
@@ -986,11 +1048,21 @@ function KeyDetailDialog({
   }
 }
 
-function RevokeDialog({ keys, onCancel, onConfirm }: { keys: ApiKey[]; onCancel: () => void; onConfirm: () => void }) {
+function RevokeDialog({
+  keys,
+  pending,
+  onCancel,
+  onConfirm,
+}: {
+  keys: ApiKey[];
+  pending: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
   const t = useShellT();
   /* Naming every product a revoke reaches, because a multi-product key going
      away takes more than the product the user happens to be looking at. */
-  const products = Array.from(new Set(keys.flatMap((k) => k.grants.map((g) => g.productId))));
+  const products = Array.from(new Set(keys.flatMap((k) => k.grants.map((g) => g.productKey))));
 
   return (
     <Modal
@@ -1001,7 +1073,8 @@ function RevokeDialog({ keys, onCancel, onConfirm }: { keys: ApiKey[]; onCancel:
           <Button variant="ghost" onClick={onCancel}>
             {t("Cancel")}
           </Button>
-          <Button variant="danger" onClick={onConfirm}>
+          <Button variant="danger" onClick={onConfirm} disabled={pending}>
+            {pending && <Loader2 className="size-4 animate-spin" />}
             {t("Revoke")}
           </Button>
         </>
@@ -1026,7 +1099,7 @@ function RevokeDialog({ keys, onCancel, onConfirm }: { keys: ApiKey[]; onCancel:
           <div className="mt-1 flex flex-wrap gap-1">
             {products.map((p) => (
               <Badge key={p} tone="bad">
-                {productName(p)}
+                {t(productName(p))}
               </Badge>
             ))}
           </div>
