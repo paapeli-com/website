@@ -5,13 +5,13 @@ import Image from "next/image";
 import { ArrowRight, ChevronRight } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
-import { INOTEX_2026_POST, blogPostHref } from "@/lib/blog-link";
+import { BRICS_2026_POST, blogPostHref } from "@/lib/blog-link";
 import { PANEL_URL } from "@/lib/panel";
 import { HOW_IT_WORKS_ID, glideToSection } from "@/lib/scroll-to-section";
 
 /* ------------------------------------------------------------------ */
 /* Hero section: full-bleed network photo, centred copy on top. The    */
-/* announcement pill links to the INOTEX 2026 blog post, and           */
+/* announcement pill links to the BRICS 2026 final blog post, and      */
 /* "Learn More" glides down to the product video.                      */
 /* ------------------------------------------------------------------ */
 
@@ -27,8 +27,8 @@ const COPY: Record<
   }
 > = {
   en: {
-    badge: "INOTEX 2026",
-    announcement: "Meet Paapeli at INOTEX 2026",
+    badge: "BRICS 2026",
+    announcement: "Paapeli in the international final in Russia",
     title: "Build, Connect, and Manage IoT Infrastructure Intelligently",
     description:
       "Paapeli is an AI-powered cloud IoT (AIoT) that helps you connect devices, collect insights, and control your infrastructure from anywhere.",
@@ -36,8 +36,8 @@ const COPY: Record<
     secondary: "Learn More",
   },
   fa: {
-    badge: "اینوتکس ۲۰۲۶",
-    announcement: "پاپلی را در اینوتکس ۲۰۲۶ از نزدیک ببینید",
+    badge: "بریکس ۲۰۲۶",
+    announcement: "پاپلی در فینال بین‌المللی روسیه",
     title: "ساخت، اتصال و مدیریت هوشمند زیرساخت‌های اینترنت اشیا",
     description:
       "با پلتفرم ابری AIoT پاپلی، دستگاه‌ها و تجهیزات خود را به یک پلتفرم ابری متصل کنید، داده‌های عملیاتی را به بینش تبدیل کنید و همه‌چیز را با کمک هوش مصنوعی، یکپارچه پایش و کنترل کنید.",
@@ -45,8 +45,8 @@ const COPY: Record<
     secondary: "بیشتر بدانید",
   },
   ar: {
-    badge: "إينوتكس 2026",
-    announcement: "التقِ ببابيلي في إينوتكس 2026",
+    badge: "بريكس 2026",
+    announcement: "بابيلي في النهائي الدولي في روسيا",
     title: "اربط كل جهاز، وحوّل كل بيانات إلى قرار",
     description:
       "مع منصة بابيلي السحابية AIoT، اربط أجهزتك ومعداتك بمنصة سحابية واحدة، وحوّل البيانات التشغيلية إلى رؤى، وراقب كل شيء وتحكم فيه بمساعدة الذكاء الاصطناعي.",
@@ -126,7 +126,7 @@ export const HeroSection = () => {
           <a
             ref={pillRef}
             style={{ marginInlineStart: pillOffset }}
-            href={blogPostHref(language, INOTEX_2026_POST)}
+            href={blogPostHref(language, BRICS_2026_POST)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 py-1 pl-1 pr-2 backdrop-blur-sm transition-colors hover:bg-white/20 rtl:pl-2 rtl:pr-1"

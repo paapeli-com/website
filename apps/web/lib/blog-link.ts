@@ -47,5 +47,5 @@ export const blogHref = (language: string) => docsHref(language, "/blog");
 export const blogPostHref = (language: string, slug: string) =>
   docsHref(language, `/blog/${slug}`);
 
-/** The INOTEX 2026 announcement post, linked from the landing hero. */
-export const INOTEX_2026_POST = "paapeli-at-inotex-2026";
+/** The BRICS 2026 international final post, linked from the landing hero. */
+export const BRICS_2026_POST = "paapeli-brics-2026-final-yekaterinburg";

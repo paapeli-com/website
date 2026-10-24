@@ -72,7 +72,7 @@ const COPY: Record<string, Copy> = {
     },
     articles: [
       { title: "From Dashboards to Decisions: How Agentic AI Is Changing Industrial IoT", description: "Industrial IoT has made operations visible. Agentic AI could make them responsive, turning live equipment data into recommendations, workflows, and governed action." },
-      { title: "Paapeli at INOTEX 2026 — Booth 665", description: "Paapeli is taking part in INOTEX 2026, one of the country’s specialist events for innovation and technology, from 2 to 5 September at Pardis Technology Park." },
+      { title: "Paapeli at INOTEX 2026, Booth 665", description: "Paapeli is taking part in INOTEX 2026, one of the country’s specialist events for innovation and technology, from 2 to 5 September at Pardis Technology Park." },
       { title: "The AIoT Revolution in the Oil and Gas Industry", description: "Integrating the Internet of Things with Artificial Intelligence has created a new path for technological transformation in critical sectors, especially oil and gas." },
     ],
   },
@@ -104,7 +104,7 @@ const COPY: Record<string, Copy> = {
     },
     articles: [
       { title: "من لوحات المعلومات إلى القرارات: كيف يغيّر الذكاء الاصطناعي الوكيل إنترنت الأشياء الصناعي", description: "جعل إنترنت الأشياء الصناعي العمليات مرئية، ويمكن للذكاء الاصطناعي الوكيل أن يجعلها أكثر استجابة عبر تحويل بيانات المعدات الحية إلى توصيات وسير عمل وإجراءات منضبطة" },
-      { title: "بابِلي في معرض إينوتكس 2026 — الجناح 665", description: "تشارك بابِلي في معرض إينوتكس 2026، أحد أبرز الفعاليات المتخصصة في الابتكار والتكنولوجيا، من 2 إلى 5 سبتمبر في مجمع بارديس التكنولوجي" },
+      { title: "بابِلي في معرض إينوتكس 2026، الجناح 665", description: "تشارك بابِلي في معرض إينوتكس 2026، أحد أبرز الفعاليات المتخصصة في الابتكار والتكنولوجيا، من 2 إلى 5 سبتمبر في مجمع بارديس التكنولوجي" },
       { title: "ثورة AIoT في صناعة النفط والغاز", description: "دمج إنترنت الأشياء مع الذكاء الاصطناعي يقدّم مسارًا جديدًا لتطوير الصناعات الحيوية، وخاصة قطاع النفط والغاز" },
     ],
   },
