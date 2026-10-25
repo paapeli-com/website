@@ -88,16 +88,17 @@ type Waiting = { title: string; tag: string; description: string; icon: LucideIc
 const AI_INFRA: Waiting[] = [
   {
     title: "AI Inference",
-    tag: "New",
+    /* Open on staging only; production waits for the launch. */
+    tag: SHOW_UNRELEASED_PRODUCTS ? "New" : "Coming soon",
     icon: Server,
     description: "Serve open models behind a managed endpoint. Pay per token, autoscaled.",
     pills: ["OpenAI-compatible API"],
     /* Open in the sidebar already, so open here too rather than a waitlist. */
-    path: AI_INFERENCE_BASE,
+    path: SHOW_UNRELEASED_PRODUCTS ? AI_INFERENCE_BASE : undefined,
   },
   {
     title: "AI Agent Maker",
-    tag: "Phase 2",
+    tag: SHOW_UNRELEASED_PRODUCTS ? "Phase 2" : "Coming soon",
     icon: Sparkles,
     description: "Build tool-using agents on your own data and connect them to Paapeli products.",
     pills: ["Visual flow builder", "Runs on AI Inference"],
@@ -207,7 +208,7 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
   const [waitlistFor, setWaitlistFor] = useState<string | null>(null);
   const activeWorkspaceName = workspaces?.find((w) => w.workspaceId === workspaceId)?.workspaceName;
 
-  const productOf = (key: string) => (key === trackingKey ? t("GPS Tracking") : t("Smart Factory"));
+  const productOf = (key: string) => (key === trackingKey ? t("Fleet Management") : t("Smart Factory"));
   const attention = alarmKeys
     .flatMap((key) => alarmsOf(key).filter(isUnacknowledged).map((alarm) => ({ alarm, key })))
     .sort((a, b) => new Date(b.alarm.createdAt).getTime() - new Date(a.alarm.createdAt).getTime());
@@ -279,7 +280,7 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
                 />
                 <ProductCard
                   icon={MapPin}
-                  title={t("GPS Tracking")}
+                  title={t("Fleet Management")}
                   description={t("Live fleet positions, geofences and trip history.")}
                   action={t("Open")}
                   onAction={() => navigate(`${solutionPath(TRACKING)}/`)}
@@ -298,8 +299,7 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
             </section>
             )}
 
-            {/* Staging only: neither AI Infra product has launched. */}
-            {SHOW_UNRELEASED_PRODUCTS && (!category || category === "ai") && (
+            {(!category || category === "ai") && (
             <section className="flex flex-col gap-2.5">
               <SectionLabel to={category ? undefined : HOME_CATEGORY_PATHS.ai}>{t("AI Infra")}</SectionLabel>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -448,7 +448,7 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
                   meters stay empty instead of being filled in from guesswork. */}
               <UsageRow label={t("Devices")} value={deviceTotalKnown ? n(deviceTotal) : "—"} />
               <UsageRow label={t("Data ingest")} value="—" />
-              {SHOW_UNRELEASED_PRODUCTS && <UsageRow label={t("Inference tokens")} value={t("Not active")} />}
+              <UsageRow label={t("Inference tokens")} value={t("Not active")} />
             </Card>
           </aside>
           )}

@@ -11,7 +11,7 @@ import { useAppLanguage, type AppLanguage } from "./appLanguage";
 const fa: Record<string, string> = {
   // Products, solutions and nav sections
   "Smart Factory": "کارخانه هوشمند",
-  "GPS Tracking": "ردیابی GPS",
+  "Fleet Management": "مدیریت ناوگان",
   "Cloud Management": "مدیریت ابری",
   "Cloud management": "مدیریت ابری",
   Overview: "نمای کلی",
@@ -211,7 +211,7 @@ const fa: Record<string, string> = {
   PROVISIONING: "در حال آماده‌سازی",
   FAILED: "ناموفق",
   smartFactory: "کارخانه هوشمند",
-  gpsTracking: "ردیابی GPS",
+  gpsTracking: "مدیریت ناوگان",
 
   // Subscriptions (Cloud Management)
   "Product subscriptions are live. Plan, entitlements, add-ons and renewal have no billing backend yet.":
@@ -669,7 +669,7 @@ const fa: Record<string, string> = {
   "Subscriptions & Plans": "اشتراک‌ها و طرح‌ها",
   "Organisation & Access": "سازمان و دسترسی",
   // Application API keys
-  "AI Inference keys are not available yet. Keys here reach Smart Factory and GPS Tracking.": "کلید برای AI Inference هنوز در دسترس نیست. کلیدهای اینجا به کارخانه هوشمند و ردیابی GPS دسترسی دارند.",
+  "AI Inference keys are not available yet. Keys here reach Smart Factory and Fleet Management.": "کلید برای AI Inference هنوز در دسترس نیست. کلیدهای اینجا به کارخانه هوشمند و مدیریت ناوگان دسترسی دارند.",
   "Administer": "مدیریت کامل",
   "Also create and change devices, send commands and act on alarms.": "علاوه بر آن، ساخت و تغییر دستگاه‌ها، ارسال فرمان و رسیدگی به هشدارها.",
   "Also delete and configure, as a product admin can.": "علاوه بر آن، حذف و پیکربندی، مانند مدیر محصول.",
@@ -689,7 +689,7 @@ const fa: Record<string, string> = {
   "Send the key in the Authorization header as a bearer token, or in an X-API-Key header. A key works on the product endpoints of this workspace only.": "کلید را در هدر Authorization به‌صورت Bearer یا در هدر X-API-Key بفرستید. هر کلید فقط روی endpointهای محصولات همین فضای کاری کار می‌کند.",
   "The secret will be shown only once. Store it somewhere safe, like a secrets manager.": "کلید محرمانه فقط یک بار نمایش داده می‌شود. آن را در جای امنی مانند یک secrets manager نگه دارید.",
   "This key has no product access left, so it cannot call anything.": "این کلید دیگر به هیچ محصولی دسترسی ندارد و نمی‌تواند چیزی را فراخوانی کند.",
-  "This workspace has no active product yet. Open Smart Factory or GPS Tracking once to set it up.": "این فضای کاری هنوز محصول فعالی ندارد. یک بار کارخانه هوشمند یا ردیابی GPS را باز کنید تا راه‌اندازی شود.",
+  "This workspace has no active product yet. Open Smart Factory or Fleet Management once to set it up.": "این فضای کاری هنوز محصول فعالی ندارد. یک بار کارخانه هوشمند یا مدیریت ناوگان را باز کنید تا راه‌اندازی شود.",
   "Try it": "امتحان کنید",
   "Your role cannot grant this level.": "نقش شما اجازهٔ دادن این سطح را ندارد.",
 };
@@ -697,7 +697,7 @@ const fa: Record<string, string> = {
 const ar: Record<string, string> = {
   // Products, solutions and nav sections
   "Smart Factory": "المصنع الذكي",
-  "GPS Tracking": "تتبع GPS",
+  "Fleet Management": "إدارة الأسطول",
   "Cloud Management": "الإدارة السحابية",
   "Cloud management": "الإدارة السحابية",
   Overview: "نظرة عامة",
@@ -897,7 +897,7 @@ const ar: Record<string, string> = {
   PROVISIONING: "قيد التجهيز",
   FAILED: "فشل",
   smartFactory: "المصنع الذكي",
-  gpsTracking: "تتبع GPS",
+  gpsTracking: "إدارة الأسطول",
 
   // Subscriptions (Cloud Management)
   "Product subscriptions are live. Plan, entitlements, add-ons and renewal have no billing backend yet.":
@@ -1355,7 +1355,7 @@ const ar: Record<string, string> = {
   "Subscriptions & Plans": "الاشتراكات والخطط",
   "Organisation & Access": "المؤسسة والوصول",
   // Application API keys
-  "AI Inference keys are not available yet. Keys here reach Smart Factory and GPS Tracking.": "مفاتيح AI Inference غير متاحة بعد. المفاتيح هنا تصل إلى المصنع الذكي وتتبع GPS.",
+  "AI Inference keys are not available yet. Keys here reach Smart Factory and Fleet Management.": "مفاتيح AI Inference غير متاحة بعد. المفاتيح هنا تصل إلى المصنع الذكي وإدارة الأسطول.",
   "Administer": "إدارة كاملة",
   "Also create and change devices, send commands and act on alarms.": "وأيضًا إنشاء الأجهزة وتعديلها وإرسال الأوامر ومعالجة الإنذارات.",
   "Also delete and configure, as a product admin can.": "وأيضًا الحذف والإعداد، كما يفعل مسؤول المنتج.",
@@ -1375,7 +1375,7 @@ const ar: Record<string, string> = {
   "Send the key in the Authorization header as a bearer token, or in an X-API-Key header. A key works on the product endpoints of this workspace only.": "أرسل المفتاح في ترويسة Authorization كرمز Bearer، أو في ترويسة X-API-Key. يعمل المفتاح على نقاط نهاية منتجات مساحة العمل هذه فقط.",
   "The secret will be shown only once. Store it somewhere safe, like a secrets manager.": "سيُعرض السر مرة واحدة فقط. احفظه في مكان آمن، مثل مدير الأسرار.",
   "This key has no product access left, so it cannot call anything.": "لم يعد لهذا المفتاح وصول إلى أي منتج، لذا لا يمكنه استدعاء شيء.",
-  "This workspace has no active product yet. Open Smart Factory or GPS Tracking once to set it up.": "لا تملك مساحة العمل هذه منتجًا نشطًا بعد. افتح المصنع الذكي أو تتبع GPS مرة واحدة لإعداده.",
+  "This workspace has no active product yet. Open Smart Factory or Fleet Management once to set it up.": "لا تملك مساحة العمل هذه منتجًا نشطًا بعد. افتح المصنع الذكي أو إدارة الأسطول مرة واحدة لإعداده.",
   "Try it": "جرّبه",
   "Your role cannot grant this level.": "لا يسمح دورك بمنح هذا المستوى.",
 };

@@ -26,4 +26,4 @@ const footerItems = [
   { title: "Cloud Management", icon: Cloud, path: "/CloudManagement" },
 ];
 
-export const trackNav: NavSection = { title: "GPS Tracking", icon: MapPin, items, footerItems };
+export const trackNav: NavSection = { title: "Fleet Management", icon: MapPin, items, footerItems };

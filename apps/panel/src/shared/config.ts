@@ -54,6 +54,6 @@ const stage = import.meta.env.PAAPELI_STAGE?.trim().toLowerCase();
 export const IS_STAGING = stage ? stage === "staging" : import.meta.env.DEV;
 
 /* Products that are built but not launched: AI Inference and AI Agent Maker
-   today. They stay in the code and on staging, and drop out of production's
-   switcher, sidebar, Home and routes until this flips for them. */
+   today. Staging opens them; production lists them as "Coming soon" with no
+   way in, and has no route to AI Inference, until this flips for them. */
 export const SHOW_UNRELEASED_PRODUCTS = IS_STAGING;

@@ -72,7 +72,7 @@ export const PRODUCT_REGISTRY: ProductDefinition[] = [
   },
   {
     id: "gps-tracking",
-    name: "GPS Tracking",
+    name: "Fleet Management",
     enabled: true,
     projects: [{ id: "default", name: "Workspace" }],
     actions: [

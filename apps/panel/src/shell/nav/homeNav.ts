@@ -15,28 +15,27 @@ import type { NavItem, NavSection } from "./types";
  * AI Agent Maker has nowhere to go yet, so it is a "coming soon" row rather
  * than a link that lands on nothing.
  *
- * AI Infra as a whole is unreleased, so the family is staging only. */
+ * AI Inference is open on staging only; production lists it as coming soon
+ * too, until it launches. */
 const items: NavItem[] = [
   {
     title: "AIoT",
     icon: Cpu,
     children: [
       { title: "Smart Factory", icon: Factory, path: solutionPath("SmartFactory") },
-      { title: "GPS Tracking", icon: MapPin, path: solutionPath("GPSTracking") },
+      { title: "Fleet Management", icon: MapPin, path: solutionPath("GPSTracking") },
     ],
   },
-  ...(SHOW_UNRELEASED_PRODUCTS
-    ? [
-        {
-          title: "AI Infra",
-          icon: Server,
-          children: [
-            { title: "AI Inference (MaaS)", icon: Server, path: AI_INFERENCE_BASE },
-            { title: "AI Agent Maker", icon: Bot, comingSoon: true },
-          ],
-        },
-      ]
-    : []),
+  {
+    title: "AI Infra",
+    icon: Server,
+    children: [
+      SHOW_UNRELEASED_PRODUCTS
+        ? { title: "AI Inference (MaaS)", icon: Server, path: AI_INFERENCE_BASE }
+        : { title: "AI Inference (MaaS)", icon: Server, comingSoon: true },
+      { title: "AI Agent Maker", icon: Bot, comingSoon: true },
+    ],
+  },
 ];
 
 /* The same three rows every product pins to the bottom, so the block does not

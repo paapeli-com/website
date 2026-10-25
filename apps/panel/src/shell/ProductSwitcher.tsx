@@ -49,14 +49,17 @@ const SOLUTION_TAGS: Record<string, string> = {
 };
 
 /* AI Infra's rows, for the same reason: neither can be subscribed to, and
-   only one of them can be opened. Both are unreleased, so production gets an
-   empty list and the AI Infra family drops out of the menu with it. */
+   only one of them can be opened. Neither has launched, so production lists
+   both as inert "Coming soon" rows; only staging can open AI Inference. */
 const AI_INFRA_ROWS: Row[] = SHOW_UNRELEASED_PRODUCTS
   ? [
       { id: "AIInference", name: "AI Inference (MaaS)", icon: Server, tag: "Alpha", path: AI_INFERENCE_BASE },
       { id: "AIAgentMaker", name: "AI Agent Maker", icon: Sparkles, tag: "Soon" },
     ]
-  : [];
+  : [
+      { id: "AIInference", name: "AI Inference (MaaS)", icon: Server, tag: "Coming soon" },
+      { id: "AIAgentMaker", name: "AI Agent Maker", icon: Sparkles, tag: "Coming soon" },
+    ];
 
 export function ProductSwitcher() {
   const [open, setOpen] = useState(false);

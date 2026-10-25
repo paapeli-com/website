@@ -67,7 +67,14 @@ function ComingSoonLeaf({ item, collapsed }: RowProps) {
       className={cn(rowBase, rowShape(collapsed), "text-foreground/50 hover:bg-muted hover:text-foreground/70")}
     >
       <Icon className="h-4 w-4 shrink-0" />
-      {!collapsed && <span className="flex-1 truncate text-start">{t(title)}</span>}
+      {!collapsed && (
+        <>
+          <span className="flex-1 truncate text-start">{t(title)}</span>
+          <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+            {t("Coming soon")}
+          </span>
+        </>
+      )}
     </button>
   );
 }

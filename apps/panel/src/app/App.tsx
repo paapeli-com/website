@@ -91,7 +91,7 @@ export default function App() {
               />
               <Route
                 path="AIoT/GPSTracking/*"
-                element={<Feature name="GPS Tracking" productKey={productKeyFor("GPSTracking")} routes={trackRoutes} />}
+                element={<Feature name="Fleet Management" productKey={productKeyFor("GPSTracking")} routes={trackRoutes} />}
               />
               {/* AI Infra's first product. No productKey: it is not an
                   AIoT workspace product, so there is no subscription to

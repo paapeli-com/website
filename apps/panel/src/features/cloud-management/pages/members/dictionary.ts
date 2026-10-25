@@ -39,7 +39,7 @@ export const D: Record<string, Record<Lang, string>> = {
   optLast90: { en: "Last 90 days", ar: "آخر ٩٠ يومًا", fa: "۹۰ روز گذشته" },
   optOlder90: { en: "More than 90 days ago", ar: "قبل أكثر من ٩٠ يومًا", fa: "بیش از ۹۰ روز پیش" },
   productSmartFactory: { en: "Smart Factory", ar: "المصنع الذكي", fa: "کارخانه هوشمند" },
-  productGpsTracking: { en: "GPS Tracking", ar: "تتبع GPS", fa: "ردیابی GPS" },
+  productGpsTracking: { en: "Fleet Management", ar: "إدارة الأسطول", fa: "مدیریت ناوگان" },
   sortNameAsc: { en: "Name A–Z", ar: "الاسم أ–ي", fa: "نام، الف تا ی" },
   sortNewest: { en: "Newest first", ar: "الأحدث أولاً", fa: "جدیدترین" },
   actionExport: { en: "Export CSV", ar: "تصدير CSV", fa: "خروجی CSV" },

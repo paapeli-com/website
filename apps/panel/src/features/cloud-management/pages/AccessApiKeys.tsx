@@ -71,7 +71,7 @@ const EXPIRY_CHOICES = [
 /* The product's own name for a productKey the gateway reports. */
 const PRODUCT_NAMES: Record<string, string> = {
   smartFactory: "Smart Factory",
-  gpsTracking: "GPS Tracking",
+  gpsTracking: "Fleet Management",
 };
 const productName = (key: string) => PRODUCT_NAMES[key] ?? key;
 
@@ -237,7 +237,7 @@ export default function AccessApiKeys() {
       {from === "ai-inference" && (
         <Card className="flex flex-wrap items-center justify-between gap-3 border-primary/30 bg-primary/[0.04] py-3">
           <span className="text-[13.5px] text-foreground">
-            {t("AI Inference keys are not available yet. Keys here reach Smart Factory and GPS Tracking.")}
+            {t("AI Inference keys are not available yet. Keys here reach Smart Factory and Fleet Management.")}
           </span>
           <span className="flex flex-wrap gap-2">
             <Button variant="ghost" onClick={clearAll}>
@@ -860,7 +860,7 @@ function CreateKeyDialog({
 
           {products.length === 0 ? (
             <p className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
-              {t("This workspace has no active product yet. Open Smart Factory or GPS Tracking once to set it up.")}
+              {t("This workspace has no active product yet. Open Smart Factory or Fleet Management once to set it up.")}
             </p>
           ) : (
             <div className="flex flex-col gap-3">

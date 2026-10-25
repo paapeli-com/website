@@ -1,7 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import Home from "./pages/Home";
 import AccountSettings from "./pages/AccountSettings";
-import { SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
 
 /* Home — the account's front door at /Home, mounted by the shell like any
    other feature (see src/app/features.ts for the chunk boundary). It has no
@@ -19,9 +18,7 @@ export default function HomeRoutes() {
       {/* Each product family's page: the header switcher's family headings
           and Home's section labels open these. */}
       <Route path="/aiot" element={<Home category="aiot" />} />
-      {/* AI Infra is staging only; on production /Home/ai-infra falls to
-          the catch-all below and lands on /Home. */}
-      {SHOW_UNRELEASED_PRODUCTS && <Route path="/ai-infra" element={<Home category="ai" />} />}
+      <Route path="/ai-infra" element={<Home category="ai" />} />
       {/* Nothing else sits below /Home; anything deeper is a stale link. */}
       <Route path="*" element={<Navigate to="/Home" replace />} />
     </Routes>
