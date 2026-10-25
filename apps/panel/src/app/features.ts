@@ -20,3 +20,4 @@ export const cloudManagementRoutes = lazy(() => import("@/features/cloud-managem
 /* Not a feature of the signed-in panel: the page a share link opens. */
 export const sharedDashboardPage = lazy(() => import("@/features/factory/pages/SharedDashboard"));
 export const aiInferenceRoutes = lazy(() => import("@/features/ai-inference/routes"));
+export const cloudServerRoutes = lazy(() => import("@/features/cloud-server/routes"));

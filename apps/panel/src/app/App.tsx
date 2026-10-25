@@ -14,6 +14,7 @@ import { Feature } from "./Feature";
 import {
   aiInferenceRoutes,
   cloudManagementRoutes,
+  cloudServerRoutes,
   factoryRoutes,
   homeRoutes,
   sharedDashboardPage as SharedDashboardPage,
@@ -102,6 +103,14 @@ export default function App() {
                 <Route
                   path="AIInfra/AIInference/*"
                   element={<Feature name="AI Inference" routes={aiInferenceRoutes} />}
+                />
+              )}
+              {/* IaaS's first product. Staging only, like AI Inference, and
+                  no productKey for the same reason. */}
+              {SHOW_UNRELEASED_PRODUCTS && (
+                <Route
+                  path="IaaS/CloudServer/*"
+                  element={<Feature name="Cloud Server" routes={cloudServerRoutes} />}
                 />
               )}
 

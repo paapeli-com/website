@@ -13,6 +13,7 @@ import { factoryNav } from "@/shell/nav/factoryNav";
 import { trackNav } from "@/shell/nav/trackNav";
 import { cloudManagementNav } from "@/shell/nav/cloudManagementNav";
 import { AI_INFERENCE_BASE, aiInferenceNav } from "@/shell/nav/aiInferenceNav";
+import { CLOUD_SERVER_BASE, cloudServerNav } from "@/shell/nav/cloudServerNav";
 import { homeNav } from "@/shell/nav/homeNav";
 
 /* Persistent shell: header on top, [sidebar | content] below. The sidebar's
@@ -75,9 +76,11 @@ export function Layout() {
       ? cloudManagementNav
       : location.pathname.startsWith(AI_INFERENCE_BASE)
         ? aiInferenceNav
-        : location.pathname.startsWith(solutionPath("GPSTracking"))
-          ? trackNav
-          : factoryNav;
+        : location.pathname.startsWith(CLOUD_SERVER_BASE)
+          ? cloudServerNav
+          : location.pathname.startsWith(solutionPath("GPSTracking"))
+            ? trackNav
+            : factoryNav;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">

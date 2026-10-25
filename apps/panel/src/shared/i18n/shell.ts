@@ -692,6 +692,22 @@ const fa: Record<string, string> = {
   "This workspace has no active product yet. Open Smart Factory or Fleet Management once to set it up.": "این فضای کاری هنوز محصول فعالی ندارد. یک بار کارخانه هوشمند یا مدیریت ناوگان را باز کنید تا راه‌اندازی شود.",
   "Try it": "امتحان کنید",
   "Your role cannot grant this level.": "نقش شما اجازهٔ دادن این سطح را ندارد.",
+  // IaaS: Cloud Server
+  "Cloud Server": "سرور ابری",
+  Compute: "پردازش ابری",
+  "GPU Servers": "سرورهای GPU",
+  "Images & Operating Systems": "ایمیج‌ها و سیستم‌عامل‌ها",
+  Networking: "شبکه و ارتباطات",
+  "Private Networks (VPC)": "شبکه‌های خصوصی (VPC)",
+  "Public IPs": "IPهای عمومی",
+  "Floating IPs": "IPهای شناور (Floating IP)",
+  Storage: "ذخیره‌سازی",
+  "Cloud Disks (Block Storage)": "دیسک‌های ابری (Block Storage)",
+  Snapshots: "اسنپ‌شات‌ها",
+  "Firewall (Security Groups)": "فایروال (Security Groups)",
+  "SSH Keys": "کلیدهای SSH",
+  Monitoring: "مانیتورینگ",
+  "Resource Monitoring": "مانیتورینگ منابع",
 };
 
 const ar: Record<string, string> = {
@@ -1378,6 +1394,22 @@ const ar: Record<string, string> = {
   "This workspace has no active product yet. Open Smart Factory or Fleet Management once to set it up.": "لا تملك مساحة العمل هذه منتجًا نشطًا بعد. افتح المصنع الذكي أو إدارة الأسطول مرة واحدة لإعداده.",
   "Try it": "جرّبه",
   "Your role cannot grant this level.": "لا يسمح دورك بمنح هذا المستوى.",
+  // IaaS: Cloud Server
+  "Cloud Server": "الخادم السحابي",
+  Compute: "الحوسبة السحابية",
+  "GPU Servers": "خوادم GPU",
+  "Images & Operating Systems": "الصور وأنظمة التشغيل",
+  Networking: "الشبكات والاتصالات",
+  "Private Networks (VPC)": "الشبكات الخاصة (VPC)",
+  "Public IPs": "عناوين IP العامة",
+  "Floating IPs": "عناوين IP العائمة (Floating IP)",
+  Storage: "التخزين",
+  "Cloud Disks (Block Storage)": "الأقراص السحابية (Block Storage)",
+  Snapshots: "اللقطات",
+  "Firewall (Security Groups)": "جدار الحماية (Security Groups)",
+  "SSH Keys": "مفاتيح SSH",
+  Monitoring: "المراقبة",
+  "Resource Monitoring": "مراقبة الموارد",
 };
 
 const dictionaries: Record<AppLanguage, Record<string, string>> = { en: {}, fa, ar };

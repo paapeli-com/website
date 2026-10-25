@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Check, ChevronDown, ChevronRight, Factory, LayoutGrid, MapPin, Server, Sparkles } from "lucide-react";
-import { PRODUCTS, solutionPath } from "@paapeli/brand/config";
+import { Check, ChevronDown, ChevronRight, Factory, LayoutGrid, MapPin, Microchip, Server, Sparkles } from "lucide-react";
+import { PRODUCTS, solutionPath, type Product } from "@paapeli/brand/config";
 import { AI_INFERENCE_BASE } from "@/shell/nav/aiInferenceNav";
+import { CLOUD_SERVER_BASE, CLOUD_SERVER_GPU_PATH } from "@/shell/nav/cloudServerNav";
 import { HOME_CATEGORY_PATHS } from "@/shell/nav/homeNav";
 import { SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
 import { cn } from "@/shared/lib/utils";
@@ -55,11 +56,21 @@ const AI_INFRA_ROWS: Row[] = SHOW_UNRELEASED_PRODUCTS
   ? [
       { id: "AIInference", name: "AI Inference (MaaS)", icon: Server, tag: "Alpha", path: AI_INFERENCE_BASE },
       { id: "AIAgentMaker", name: "AI Agent Maker", icon: Sparkles, tag: "Soon" },
+      /* Not a product of AI Infra's: a door into Cloud Server's GPU page, for
+         whoever looks for GPUs here first. */
+      { id: "GPUServers", name: "GPU Servers", icon: Microchip, path: CLOUD_SERVER_GPU_PATH },
     ]
   : [
       { id: "AIInference", name: "AI Inference (MaaS)", icon: Server, tag: "Coming soon" },
       { id: "AIAgentMaker", name: "AI Agent Maker", icon: Sparkles, tag: "Coming soon" },
     ];
+
+/* IaaS, staging only. A family of the switcher's own rather than an entry in
+   @paapeli/brand/config's PRODUCTS: that list also feeds Subscriptions, Members
+   and the search, and none of them should hear about IaaS before it launches. */
+const IAAS_FAMILY: Product = { id: "iaas", name: "IaaS" };
+const IAAS_ROWS: Row[] = [{ id: "CloudServer", name: "Cloud Server", icon: Server, tag: "Alpha", path: CLOUD_SERVER_BASE }];
+const FAMILIES: Product[] = SHOW_UNRELEASED_PRODUCTS ? [...PRODUCTS, IAAS_FAMILY] : PRODUCTS;
 
 export function ProductSwitcher() {
   const [open, setOpen] = useState(false);
@@ -82,6 +93,7 @@ export function ProductSwitcher() {
   const path = location.pathname.toLowerCase();
   const onHome = path.startsWith("/home");
   const onAiInference = SHOW_UNRELEASED_PRODUCTS && path.startsWith(AI_INFERENCE_BASE.toLowerCase());
+  const onCloudServer = SHOW_UNRELEASED_PRODUCTS && path.startsWith(CLOUD_SERVER_BASE.toLowerCase());
 
   const allSolutions = PRODUCTS.flatMap((p) => p.solutions ?? []);
   const activeSolution = allSolutions.find((s) => location.pathname.startsWith(solutionPath(s.id)))?.id;
@@ -93,7 +105,11 @@ export function ProductSwitcher() {
   const activeSolutionName =
     activeProduct.solutions?.find((s) => s.id === activeSolution)?.name ?? activeProduct.name;
 
-  const triggerLabel = onHome ? t("Home") : onAiInference ? t("AI Inference (MaaS)") : t(activeSolutionName);
+  const triggerLabel = onHome ? t("Home") : onAiInference
+      ? t("AI Inference (MaaS)")
+      : onCloudServer
+        ? t("Cloud Server")
+        : t(activeSolutionName);
 
   const go = (to: string) => {
     setOpen(false);
@@ -128,9 +144,9 @@ export function ProductSwitcher() {
             {t("Switch Product")}
           </div>
 
-          {PRODUCTS.map((product, index) => {
+          {FAMILIES.map((product, index) => {
             const solutions = product.solutions ?? [];
-            const announcements = product.id === "ai" ? AI_INFRA_ROWS : [];
+            const announcements = product.id === "ai" ? AI_INFRA_ROWS : product.id === "iaas" ? IAAS_ROWS : [];
             if (solutions.length === 0 && announcements.length === 0) return null;
 
             return (
@@ -161,7 +177,7 @@ export function ProductSwitcher() {
                       icon={SOLUTION_ICONS[s.id] ?? LayoutGrid}
                       label={t(s.name)}
                       tag={SOLUTION_TAGS[s.id]}
-                      active={s.id === activeSolution && !onHome && !onAiInference}
+                      active={s.id === activeSolution && !onHome && !onAiInference && !onCloudServer}
                       disabled={s.disabled}
                       onSelect={() => selectSolution(s.id, s.disabled)}
                     />
@@ -173,7 +189,7 @@ export function ProductSwitcher() {
                       icon={row.icon}
                       label={t(row.name)}
                       tag={row.tag}
-                      active={!!row.path && row.path === AI_INFERENCE_BASE && onAiInference}
+                      active={!!row.path && path.startsWith(row.path.toLowerCase())}
                       onSelect={row.path ? () => go(row.path!) : undefined}
                     />
                   ))}

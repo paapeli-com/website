@@ -1,6 +1,7 @@
-import { Bot, Cloud, Code2, Cpu, Factory, House, MapPin, Server, Users } from "lucide-react";
+import { Bot, Cloud, Code2, Cpu, Factory, HardDrive, House, MapPin, Microchip, Server, Users } from "lucide-react";
 import { solutionPath } from "@paapeli/brand/config";
 import { AI_INFERENCE_BASE } from "./aiInferenceNav";
+import { CLOUD_SERVER_BASE, CLOUD_SERVER_GPU_PATH } from "./cloudServerNav";
 import { SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
 import type { NavItem, NavSection } from "./types";
 
@@ -34,8 +35,14 @@ const items: NavItem[] = [
         ? { title: "AI Inference (MaaS)", icon: Server, path: AI_INFERENCE_BASE }
         : { title: "AI Inference (MaaS)", icon: Server, comingSoon: true },
       { title: "AI Agent Maker", icon: Bot, comingSoon: true },
+      /* Cloud Server's GPU page, reachable from here too. Staging only. */
+      ...(SHOW_UNRELEASED_PRODUCTS ? [{ title: "GPU Servers", icon: Microchip, path: CLOUD_SERVER_GPU_PATH }] : []),
     ],
   },
+  /* IaaS: staging only, so production's list is unchanged. */
+  ...(SHOW_UNRELEASED_PRODUCTS
+    ? [{ title: "IaaS", icon: HardDrive, children: [{ title: "Cloud Server", icon: Server, path: CLOUD_SERVER_BASE }] }]
+    : []),
 ];
 
 /* The same three rows every product pins to the bottom, so the block does not
