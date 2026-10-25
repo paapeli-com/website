@@ -21,6 +21,10 @@ ENV PAAPELI_API_BASE_URL=$PAAPELI_API_BASE_URL
 # is safe here — config.ts falls back to OpenStreetMap tiles.
 ARG PAAPELI_MAPIR_API_KEY=
 ENV PAAPELI_MAPIR_API_KEY=$PAAPELI_MAPIR_API_KEY
+# staging | production. Production hides the products not launched yet; it is
+# also the default, so a build that forgets the arg cannot leak them.
+ARG PAAPELI_STAGE=production
+ENV PAAPELI_STAGE=$PAAPELI_STAGE
 # ONE Vite build. This used to be five independent builds whose outputs were
 # stitched together at runtime via Module Federation; features are now
 # build-time lazy chunks of this single build (see apps/panel/vite.config.ts).

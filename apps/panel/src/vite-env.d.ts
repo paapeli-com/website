@@ -5,6 +5,7 @@
 interface ImportMetaEnv {
   readonly PAAPELI_API_BASE_URL?: string;
   readonly PAAPELI_MAPIR_API_KEY?: string;
+  readonly PAAPELI_STAGE?: string;
 }
 
 interface ImportMeta {

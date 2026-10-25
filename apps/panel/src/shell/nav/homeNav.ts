@@ -1,6 +1,7 @@
 import { Bot, Cloud, Code2, Cpu, Factory, House, MapPin, Server, Users } from "lucide-react";
 import { solutionPath } from "@paapeli/brand/config";
 import { AI_INFERENCE_BASE } from "./aiInferenceNav";
+import { SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
 import type { NavItem, NavSection } from "./types";
 
 /* Home's sidebar is the product list and nothing else.
@@ -12,7 +13,9 @@ import type { NavItem, NavSection } from "./types";
  * page itself are for, and repeating it here would say it twice.
  *
  * AI Agent Maker has nowhere to go yet, so it is a "coming soon" row rather
- * than a link that lands on nothing. */
+ * than a link that lands on nothing.
+ *
+ * AI Infra as a whole is unreleased, so the family is staging only. */
 const items: NavItem[] = [
   {
     title: "AIoT",
@@ -22,14 +25,18 @@ const items: NavItem[] = [
       { title: "GPS Tracking", icon: MapPin, path: solutionPath("GPSTracking") },
     ],
   },
-  {
-    title: "AI Infra",
-    icon: Server,
-    children: [
-      { title: "AI Inference (MaaS)", icon: Server, path: AI_INFERENCE_BASE },
-      { title: "AI Agent Maker", icon: Bot, comingSoon: true },
-    ],
-  },
+  ...(SHOW_UNRELEASED_PRODUCTS
+    ? [
+        {
+          title: "AI Infra",
+          icon: Server,
+          children: [
+            { title: "AI Inference (MaaS)", icon: Server, path: AI_INFERENCE_BASE },
+            { title: "AI Agent Maker", icon: Bot, comingSoon: true },
+          ],
+        },
+      ]
+    : []),
 ];
 
 /* The same three rows every product pins to the bottom, so the block does not

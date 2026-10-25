@@ -4,6 +4,7 @@ import { Check, ChevronDown, ChevronRight, Factory, LayoutGrid, MapPin, Server, 
 import { PRODUCTS, solutionPath } from "@paapeli/brand/config";
 import { AI_INFERENCE_BASE } from "@/shell/nav/aiInferenceNav";
 import { HOME_CATEGORY_PATHS } from "@/shell/nav/homeNav";
+import { SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
 import { cn } from "@/shared/lib/utils";
 import { menuRowIdle, menuRowSelected } from "@/shell/menuRow";
 import { useShellT } from "@/shared/i18n/shell";
@@ -48,11 +49,14 @@ const SOLUTION_TAGS: Record<string, string> = {
 };
 
 /* AI Infra's rows, for the same reason: neither can be subscribed to, and
-   only one of them can be opened. */
-const AI_INFRA_ROWS: Row[] = [
-  { id: "AIInference", name: "AI Inference (MaaS)", icon: Server, tag: "Alpha", path: AI_INFERENCE_BASE },
-  { id: "AIAgentMaker", name: "AI Agent Maker", icon: Sparkles, tag: "Soon" },
-];
+   only one of them can be opened. Both are unreleased, so production gets an
+   empty list and the AI Infra family drops out of the menu with it. */
+const AI_INFRA_ROWS: Row[] = SHOW_UNRELEASED_PRODUCTS
+  ? [
+      { id: "AIInference", name: "AI Inference (MaaS)", icon: Server, tag: "Alpha", path: AI_INFERENCE_BASE },
+      { id: "AIAgentMaker", name: "AI Agent Maker", icon: Sparkles, tag: "Soon" },
+    ]
+  : [];
 
 export function ProductSwitcher() {
   const [open, setOpen] = useState(false);
@@ -74,7 +78,7 @@ export function ProductSwitcher() {
      same page as /Home. */
   const path = location.pathname.toLowerCase();
   const onHome = path.startsWith("/home");
-  const onAiInference = path.startsWith(AI_INFERENCE_BASE.toLowerCase());
+  const onAiInference = SHOW_UNRELEASED_PRODUCTS && path.startsWith(AI_INFERENCE_BASE.toLowerCase());
 
   const allSolutions = PRODUCTS.flatMap((p) => p.solutions ?? []);
   const activeSolution = allSolutions.find((s) => location.pathname.startsWith(solutionPath(s.id)))?.id;

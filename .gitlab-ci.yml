@@ -53,6 +53,10 @@ default:
       if [ -n "$PAAPELI_MAPIR_API_KEY" ]; then
         BUILD_ARGS="$BUILD_ARGS --build-arg PAAPELI_MAPIR_API_KEY=$PAAPELI_MAPIR_API_KEY"
       fi
+      # staging or production: decides which unreleased products the panel shows.
+      if [ -n "$PAAPELI_STAGE" ]; then
+        BUILD_ARGS="$BUILD_ARGS --build-arg PAAPELI_STAGE=$PAAPELI_STAGE"
+      fi
       docker build --platform "$DOCKER_PLATFORM" $BUILD_ARGS -f "ci/docker/${APP}/Dockerfile" -t "${IMAGE}:${TAG}" .
       docker push "${IMAGE}:${TAG}"
   after_script:
@@ -92,13 +96,18 @@ build-panel:
   #
   # These two rules cover exactly the pipelines the workflow: block allows, so
   # one of them always matches.
+  #
+  # PAAPELI_STAGE rides the same split: products not launched yet (AI Inference,
+  # AI Agent Maker) show on staging and stay out of the production panel.
   rules:
     - if: '$CI_COMMIT_TAG'
       variables:
         PAAPELI_API_BASE_URL: https://api.paapeli.com
+        PAAPELI_STAGE: production
     - if: '$CI_COMMIT_BRANCH == "dev"'
       variables:
         PAAPELI_API_BASE_URL: https://api.paapeli.me
+        PAAPELI_STAGE: staging
 
 .deploy:
   stage: deploy

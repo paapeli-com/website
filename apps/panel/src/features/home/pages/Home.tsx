@@ -42,6 +42,7 @@ import { WaitlistDialog } from "@/features/home/WaitlistDialog";
 import { TopoBackdrop } from "@/shared/components/TopoBackdrop";
 import { AI_INFERENCE_BASE } from "@/shell/nav/aiInferenceNav";
 import { HOME_CATEGORY_PATHS } from "@/shell/nav/homeNav";
+import { SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
 
 /* The account's front door: every product on the account in one place, plus
    what needs looking at right now. Reached at /Home, and where signing in
@@ -297,7 +298,8 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
             </section>
             )}
 
-            {(!category || category === "ai") && (
+            {/* Staging only: neither AI Infra product has launched. */}
+            {SHOW_UNRELEASED_PRODUCTS && (!category || category === "ai") && (
             <section className="flex flex-col gap-2.5">
               <SectionLabel to={category ? undefined : HOME_CATEGORY_PATHS.ai}>{t("AI Infra")}</SectionLabel>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -446,7 +448,7 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
                   meters stay empty instead of being filled in from guesswork. */}
               <UsageRow label={t("Devices")} value={deviceTotalKnown ? n(deviceTotal) : "—"} />
               <UsageRow label={t("Data ingest")} value="—" />
-              <UsageRow label={t("Inference tokens")} value={t("Not active")} />
+              {SHOW_UNRELEASED_PRODUCTS && <UsageRow label={t("Inference tokens")} value={t("Not active")} />}
             </Card>
           </aside>
           )}

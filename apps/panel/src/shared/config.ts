@@ -40,3 +40,20 @@ export const GOOGLE_CLIENT_ID =
    it is visible to anyone using the panel — restrict it by domain in the
    Map.ir panel. Unset or blank falls back to OpenStreetMap tiles. */
 export const MAPIR_API_KEY = import.meta.env.PAAPELI_MAPIR_API_KEY?.trim() || "";
+
+/* Which platform this bundle was built for, from PAAPELI_STAGE: "staging" for
+   panel.paapeli.me (the dev branch), "production" for panel.paapeli.com (a
+   release tag). Set per pipeline in .gitlab-ci.yml and inlined at build time
+   like the values above.
+
+   Unset means production for a build and staging for `pnpm dev`, so a build
+   that forgets the flag hides the unreleased products instead of shipping
+   them. */
+const stage = import.meta.env.PAAPELI_STAGE?.trim().toLowerCase();
+
+export const IS_STAGING = stage ? stage === "staging" : import.meta.env.DEV;
+
+/* Products that are built but not launched: AI Inference and AI Agent Maker
+   today. They stay in the code and on staging, and drop out of production's
+   switcher, sidebar, Home and routes until this flips for them. */
+export const SHOW_UNRELEASED_PRODUCTS = IS_STAGING;

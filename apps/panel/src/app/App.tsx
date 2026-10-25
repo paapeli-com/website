@@ -8,7 +8,7 @@ import { solutionPath, productKeyFor } from "@paapeli/brand/config";
 import { BrandProvider } from "@/shell/BrandProvider";
 import { Layout } from "@/shell/Layout";
 import { RequireAuth } from "@/shell/RequireAuth";
-import { PAAPELI_API_BASE_URL } from "@/shared/config";
+import { PAAPELI_API_BASE_URL, SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
 import { isRTLLanguage, useAppLanguage } from "@/shared/i18n/appLanguage";
 import { Feature } from "./Feature";
 import {
@@ -95,11 +95,15 @@ export default function App() {
               />
               {/* AI Infra's first product. No productKey: it is not an
                   AIoT workspace product, so there is no subscription to
-                  confirm before it can render. */}
-              <Route
-                path="AIInfra/AIInference/*"
-                element={<Feature name="AI Inference" routes={aiInferenceRoutes} />}
-              />
+                  confirm before it can render. Staging only until it
+                  launches; on production the path falls through to the
+                  catch-all like any unknown link. */}
+              {SHOW_UNRELEASED_PRODUCTS && (
+                <Route
+                  path="AIInfra/AIInference/*"
+                  element={<Feature name="AI Inference" routes={aiInferenceRoutes} />}
+                />
+              )}
 
               {/* Independent of any AIoT product/solution — workspace/account
                   administration, reached from a product's sidebar footer. */}
