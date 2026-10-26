@@ -510,7 +510,9 @@ export default function CreateServer() {
                               <TableCell>
                                 {n(p.diskGb)} {t("GB")}
                               </TableCell>
-                              <TableCell>{n(p.trafficTb)} TB</TableCell>
+                              <TableCell>
+                                {n(p.trafficTb)} {t("TB")}
+                              </TableCell>
                               <TableCell className="text-end font-medium">{format(p.monthly[currency])}</TableCell>
                             </TableRow>
                           );
@@ -553,7 +555,10 @@ export default function CreateServer() {
                               )}
                             >
                               <span aria-hidden className="h-1.5 w-px bg-border" />
-                              {gb >= 1000 ? `${n(gb / 1000)} TB` : `${n(gb)} GB`}
+                              {/* The unit in the page's language, as everywhere
+                                  else here: a Latin "GB" beside Persian digits
+                                  lands on the wrong side of the number. */}
+                              {gb >= 1000 ? `${n(gb / 1000)} ${t("TB")}` : `${n(gb)} ${t("GB")}`}
                             </button>
                           ))}
                         </div>

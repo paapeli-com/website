@@ -92,6 +92,7 @@ const fa: Record<string, string> = {
   "Disk {n}": "دیسک {n}",
   Size: "اندازه",
   GB: "گیگابایت",
+  TB: "ترابایت",
   "All disks are SSD.": "همهٔ دیسک‌ها SSD هستند.",
 
   // Network
@@ -294,6 +295,7 @@ const ar: Record<string, string> = {
   "Disk {n}": "القرص {n}",
   Size: "الحجم",
   GB: "غيغابايت",
+  TB: "تيرابايت",
   "All disks are SSD.": "جميع الأقراص من نوع SSD.",
 
   // Network
