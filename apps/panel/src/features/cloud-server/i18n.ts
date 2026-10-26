@@ -42,6 +42,7 @@ const fa: Record<string, string> = {
   Back: "قبلی",
   Next: "بعدی",
   "Create server": "ساخت سرور",
+  "Quick create server": "ساخت سریع سرور",
 
   // Basics
   "Server name": "نام سرور",
@@ -243,6 +244,7 @@ const ar: Record<string, string> = {
   Back: "السابق",
   Next: "التالي",
   "Create server": "إنشاء الخادم",
+  "Quick create server": "إنشاء سريع للخادم",
 
   // Basics
   "Server name": "اسم الخادم",

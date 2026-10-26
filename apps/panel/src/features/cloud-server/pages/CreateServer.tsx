@@ -372,6 +372,7 @@ export default function CreateServer() {
                             <div className="mt-4" onClick={(e) => e.stopPropagation()}>
                               <p className="mb-1.5 text-xs font-medium text-foreground">{t("Availability zone")}</p>
                               <Select
+                                dir="ltr"
                                 value={selected ? zone : r.zones[0]}
                                 onValueChange={(v) => {
                                   setRegionId(r.id);
@@ -416,6 +417,7 @@ export default function CreateServer() {
                       </div>
                       <div className="mt-3" onClick={(e) => e.stopPropagation()}>
                         <Select
+                          dir="ltr"
                           value={versions[img.id]}
                           onValueChange={(v) => {
                             setVersions((prev) => ({ ...prev, [img.id]: v }));
@@ -463,7 +465,12 @@ export default function CreateServer() {
                 {/* The device list's table treatment, so a list reads the same
                     in every product. One plan is chosen, so a radio rather than
                     the device list's checkboxes. */}
-                <RadioGroup value={planId} onValueChange={(v) => choosePlan(PLANS.find((p) => p.id === v)!)} className="mt-4 block">
+                <RadioGroup
+                  dir={isRTL ? "rtl" : "ltr"}
+                  value={planId}
+                  onValueChange={(v) => choosePlan(PLANS.find((p) => p.id === v)!)}
+                  className="mt-4 block"
+                >
                   <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs">
                     <Table>
                       <TableHeader>
@@ -795,7 +802,7 @@ export default function CreateServer() {
                     <div>
                       <FieldLabel required>{t("SSH key")}</FieldLabel>
                       <div className="flex flex-wrap items-center gap-3">
-                        <Select value={sshKeyId} onValueChange={setSshKeyId}>
+                        <Select dir="ltr" value={sshKeyId} onValueChange={setSshKeyId}>
                           <SelectTrigger
                             className={cn("w-full sm:w-72", showErrors && !accessOk && "border-destructive")}
                             aria-invalid={showErrors && !accessOk}
@@ -823,7 +830,7 @@ export default function CreateServer() {
                     <FieldLabel required>{t("Firewall")}</FieldLabel>
                     <p className="mb-2 text-xs text-muted-foreground">{t("Controls which traffic can reach the server.")}</p>
                     <div className="flex flex-wrap items-center gap-3">
-                      <Select value={firewallId} onValueChange={setFirewallId}>
+                      <Select dir="ltr" value={firewallId} onValueChange={setFirewallId}>
                         <SelectTrigger className="w-full sm:w-72">
                           <SelectValue />
                         </SelectTrigger>
@@ -962,7 +969,7 @@ export default function CreateServer() {
             {/* Create from any step: every step starts from a working default,
                 and a short one sends you back to it. */}
             <Button onClick={create} className="mt-4 w-full bg-primary text-primary-foreground hover:bg-primary/90">
-              {t("Create server")}
+              {t("Quick create server")}
             </Button>
             <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-muted-foreground">
               <Checkbox
