@@ -20,6 +20,7 @@ import {
   ServerCog,
   ShieldCheck,
   Trash2,
+  Waypoints,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/features/factory/components/ui/button";
@@ -69,6 +70,7 @@ import {
 } from "../lib/quickCreate";
 import { OsLogo } from "../lib/osLogos";
 import { addServer, sampleAddresses, useServers } from "../lib/serverStore";
+import { attachIp, useReservedIps } from "../lib/ipStore";
 import { hostStatus, useClusters, useHosts, type HostRecord } from "../lib/hostStore";
 import { CountryFlag, CountryOutline } from "../lib/regionArt";
 import {
@@ -81,6 +83,7 @@ import {
   BACKUP_RATE,
   adminUser,
   DISK_GB_MONTHLY,
+  EXTRA_IP_MONTHLY,
   FIREWALLS,
   FLOATING_IPS,
   HOURS_PER_MONTH,
@@ -243,6 +246,11 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
 
   const [ipv6, setIpv6] = useState(saved?.ipv6 ?? true);
   const [floatingIpId, setFloatingIpId] = useState("none");
+  /* An additional public IP: none, a new one, or one of the account's
+     reserved IPs in this region that is not attached yet. */
+  const [extraIp, setExtraIp] = useState<string>("none");
+  const reservedFree = useReservedIps().filter((i) => !i.attachedTo && i.region === region.city);
+  const extraReserved = reservedFree.find((i) => i.id === extraIp);
 
   /* A generated password is the default: it needs nothing from someone who
      has no SSH key yet, and is shown once the server is ready. */
@@ -275,7 +283,9 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
   const extraGb = extraDisks.reduce((sum, d) => sum + d.sizeGb, 0);
   const roundMoney = (raw: number) => (currency === "TOMAN" ? Math.round(raw / 1000) * 1000 : Math.round(raw * 100) / 100);
   const serverMonthly =
-    (onHost ? 0 : plan.monthly[currency]) + (bootGb - plan.diskGb + extraGb) * DISK_GB_MONTHLY[currency];
+    (onHost ? 0 : plan.monthly[currency]) +
+    (bootGb - plan.diskGb + extraGb) * DISK_GB_MONTHLY[currency] +
+    (extraIp === "new" ? EXTRA_IP_MONTHLY[currency] : 0);
   /* Backup is a share of what it protects: the server and every disk. */
   const backupMonthly = roundMoney(serverMonthly * BACKUP_RATE);
   const monthly = useMemo(
@@ -339,6 +349,13 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
     }
     const id = `srv-${Date.now().toString(36)}`;
     const addresses = sampleAddresses(id);
+    const extraIps =
+      extraIp === "new"
+        ? [{ address: sampleAddresses(`${id}-extra`).ipv4 }]
+        : extraReserved
+          ? [{ address: extraReserved.address, reservedId: extraReserved.id }]
+          : [];
+    if (extraReserved) attachIp(extraReserved.id, id, name);
     /* Into the server list straight away, as a server being created. */
     addServer({
       id,
@@ -357,6 +374,11 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
       zone,
       ipv4: addresses.ipv4,
       ipv6: ipv6 ? addresses.ipv6 : undefined,
+      extraIps,
+      disks: [
+        { label: "Boot disk", sizeGb: bootGb, path: devicePath(0, image.family) },
+        ...extraDisks.map((d, i) => ({ label: "Additional disk", sizeGb: d.sizeGb, path: devicePath(i + 1, image.family) })),
+      ],
       powerOn,
       createdAt: Date.now(),
     });
@@ -864,6 +886,35 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                     description={t("Assign a public IPv6 address as well.")}
                     control={<Switch checked={ipv6} onCheckedChange={setIpv6} aria-label={t("IPv6")} />}
                   />
+                  <SettingRow
+                    icon={Plus}
+                    title={t("Additional public IP")}
+                    description={t("A second public IPv4, besides the one every server gets.")}
+                  >
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      <Select value={extraIp} onValueChange={setExtraIp}>
+                        <SelectTrigger className="h-9 w-full sm:w-72">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">{t("None")}</SelectItem>
+                          <SelectItem value="new">
+                            {t("New IP")} · +{format(EXTRA_IP_MONTHLY[currency])} {t("/ month")}
+                          </SelectItem>
+                          {reservedFree.map((ip) => (
+                            <SelectItem key={ip.id} value={ip.id}>
+                              <span dir="ltr">{ip.address}</span> · {t("Reserved")}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {reservedFree.length === 0 && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {t("IPs you reserve under Public IPs can be attached here too.")}
+                      </p>
+                    )}
+                  </SettingRow>
                   <SettingRow icon={Repeat} title={t("Floating IP")} description={t("A static address you can move between servers.")}>
                     <div className="mt-3 flex flex-wrap items-center gap-3">
                       <Select value={floatingIpId} onValueChange={setFloatingIpId}>
@@ -890,6 +941,25 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                         {t("No floating IP yet. Create one under Floating IPs, then attach it here or later.")}
                       </p>
                     )}
+                  </SettingRow>
+                  {/* Private networks get their own pages later; the row is
+                      here so the step has its final shape. */}
+                  <SettingRow
+                    icon={Waypoints}
+                    title={t("Private network")}
+                    description={t("An address on a private network, for traffic between your servers.")}
+                  >
+                    <div className="mt-3">
+                      <Select value="none" disabled>
+                        <SelectTrigger className="h-9 w-full sm:w-64">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">{t("None")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">{t("Private networks are coming soon.")}</p>
                   </SettingRow>
                 </div>
               </StepSection>
@@ -1025,6 +1095,10 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                   <ReviewBlock title={t("Network")} onEdit={() => setStep(4)}>
                     <ReviewLine label={t("Public IPv4")} value={t("Included")} />
                     <ReviewLine label={t("IPv6")} value={ipv6 ? t("Enabled") : t("Off")} />
+                    <ReviewLine
+                      label={t("Additional public IP")}
+                      value={extraIp === "new" ? t("New IP") : extraReserved ? <span dir="ltr">{extraReserved.address}</span> : t("None")}
+                    />
                     <ReviewLine label={t("Floating IP")} value={t("None")} />
                   </ReviewBlock>
                   <ReviewBlock title={t("Security")} onEdit={() => setStep(SECURITY_STEP)}>
@@ -1095,7 +1169,11 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
               <SummaryLine icon={HardDrive} label={t("Boot disk")} value={`${n(bootGb)} ${t("GB")}`} />
               {extraGb > 0 && <SummaryLine icon={HardDrive} label={t("Additional disk")} value={`${n(extraGb)} ${t("GB")}`} />}
               <SummaryLine icon={ArchiveRestore} label={t("Backup")} value={backup ? t("Daily") : t("Off")} />
-              <SummaryLine icon={Globe} label={t("Network")} value={ipv6 ? "IPv4 · IPv6" : "IPv4"} />
+              <SummaryLine
+                icon={Globe}
+                label={t("Network")}
+                value={`${ipv6 ? "IPv4 · IPv6" : "IPv4"}${extraIp !== "none" ? " · +1 IPv4" : ""}`}
+              />
               <SummaryLine
                 icon={KeyRound}
                 label={t("Access")}

@@ -13,7 +13,9 @@ import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { toast } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
 import { useT } from "./i18n";
-import { setDesired, type AutoScaleGroup, type GroupHealth } from "./lib/autoscaleStore";
+import { setDesired, updateGroup, type AutoScaleGroup, type GroupHealth } from "./lib/autoscaleStore";
+import { PLANS } from "./lib/catalog";
+import { useBillingCurrency } from "@/shared/lib/billingCurrency";
 
 /* Pieces the Auto Scale list and the group page share. */
 
@@ -76,47 +78,133 @@ export function Stepper({
   );
 }
 
-/** Change the group's desired capacity by hand, within its min and max. */
+/** Change the group's desired capacity by hand, within its min and max, in
+    two steps: pick the number, then confirm what it adds or removes and what
+    that does to the monthly cost. */
 export function CapacityDialog({ group, onClose }: { group: AutoScaleGroup | null; onClose: () => void }) {
   const t = useT();
   const { t: ft, formatNumber } = useLanguage();
   const fx = ft as (k: string) => string;
+  const { currency, format } = useBillingCurrency();
   const [value, setValue] = useState(0);
-  useEffect(() => setValue(group?.desired ?? 0), [group]);
+  const [confirming, setConfirming] = useState(false);
+  useEffect(() => {
+    setValue(group?.desired ?? 0);
+    setConfirming(false);
+  }, [group]);
 
+  const delta = group ? value - group.desired : 0;
+  const perInstance = group ? (PLANS.find((p) => p.id === group.planId)?.monthly[currency] ?? 0) : 0;
+
+  return (
+    <Dialog open={!!group} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent data-uniform-type className="sm:max-w-[440px]">
+        {group && !confirming && (
+          <>
+            <DialogHeader>
+              <DialogTitle>{t("Change capacity")}</DialogTitle>
+              <DialogDescription>
+                {t("Between {min} and {max} instances. Automatic rules carry on from the new number.", {
+                  min: formatNumber(group.min),
+                  max: formatNumber(group.max),
+                })}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center justify-between gap-4 py-2">
+              <span className="text-sm text-foreground">{t("Desired capacity")}</span>
+              <Stepper value={value} min={group.min} max={group.max} onChange={setValue} label={t("Desired capacity")} />
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={onClose}>
+                {fx("cancel")}
+              </Button>
+              <Button disabled={delta === 0} onClick={() => setConfirming(true)}>
+                {t("Continue")}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+        {group && confirming && (
+          <>
+            <DialogHeader>
+              <DialogTitle>
+                {delta > 0
+                  ? t("Add {n} instances?", { n: formatNumber(delta) })
+                  : t("Remove {n} instances?", { n: formatNumber(-delta) })}
+              </DialogTitle>
+              <DialogDescription>
+                {delta > 0
+                  ? t("{n} new instances will be created from the group's template.", { n: formatNumber(delta) })
+                  : t("{n} instances will be deleted, newest first, with their disks.", { n: formatNumber(-delta) })}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1.5 rounded-lg border border-border px-3.5 py-3 text-sm">
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">{t("Instances")}</span>
+                <span className="font-medium tabular-nums text-foreground">
+                  {formatNumber(group.desired)} → {formatNumber(value)}
+                </span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">{t("Monthly cost")}</span>
+                <span className={cn("font-medium", delta > 0 ? "text-foreground" : "text-emerald-700 dark:text-emerald-400")}>
+                  {delta > 0 ? "+" : "−"}
+                  {format(Math.abs(delta) * perInstance)}
+                </span>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setConfirming(false)}>
+                {t("Back")}
+              </Button>
+              <Button
+                variant={delta > 0 ? "default" : "destructive"}
+                onClick={() => {
+                  setDesired(group.id, value);
+                  toast.success(t("Capacity set to {n}", { n: formatNumber(value) }));
+                  onClose();
+                }}
+              >
+                {delta > 0 ? t("Yes, add {n}", { n: formatNumber(delta) }) : t("Yes, remove {n}", { n: formatNumber(-delta) })}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Pause or resume automatic scaling, after saying what that means. */
+export function PauseDialog({ group, onClose }: { group: AutoScaleGroup | null; onClose: () => void }) {
+  const t = useT();
+  const { t: ft } = useLanguage();
+  const fx = ft as (k: string) => string;
+  const pausing = !!group && !group.paused;
   return (
     <Dialog open={!!group} onOpenChange={(open) => !open && onClose()}>
       <DialogContent data-uniform-type className="sm:max-w-[420px]">
         <DialogHeader>
-          <DialogTitle>{t("Change capacity")}</DialogTitle>
+          <DialogTitle>{pausing ? t("Pause scaling?") : t("Resume scaling?")}</DialogTitle>
           <DialogDescription>
-            {group &&
-              t("Between {min} and {max} instances. Automatic rules carry on from the new number.", {
-                min: formatNumber(group.min),
-                max: formatNumber(group.max),
-              })}
+            {pausing
+              ? t("The group keeps its current instances and stops adding or removing them by its rules, until you resume. Failed instances are still replaced.")
+              : t("The group goes back to adding and removing instances by its rules.")}
           </DialogDescription>
         </DialogHeader>
-        {group && (
-          <div className="flex items-center justify-between gap-4 py-2">
-            <span className="text-sm text-foreground">{t("Desired capacity")}</span>
-            <Stepper value={value} min={group.min} max={group.max} onChange={setValue} label={t("Desired capacity")} />
-          </div>
-        )}
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>
             {fx("cancel")}
           </Button>
           <Button
-            disabled={!group || value === group.desired}
             onClick={() => {
               if (!group) return;
-              setDesired(group.id, value);
-              toast.success(t("Capacity set to {n}", { n: formatNumber(value) }));
+              updateGroup(group.id, { paused: pausing }, pausing ? "Scaling paused" : "Scaling resumed");
+              toast.success(pausing ? t("Scaling paused") : t("Scaling resumed"));
               onClose();
             }}
           >
-            {t("Apply")}
+            {pausing ? t("Pause scaling") : t("Resume scaling")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Camera,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
   CircleStop,
@@ -67,6 +68,7 @@ import {
 } from "../lib/serverStore";
 import { CREATE_GPU_SERVER_PATH, CREATE_SERVER_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText, groupPath } from "../ui";
 import { groupInstances, useGroups } from "../lib/autoscaleStore";
+import { detachFrom } from "../lib/ipStore";
 import { useShellT } from "@/shared/i18n/shell";
 
 /* The server list: Smart Factory's device list, piece for piece.
@@ -714,38 +716,121 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
         </CardContent>
       </Card>
 
-      {/* The device list's delete confirmation. */}
-      <Dialog open={!!deleteIds} onOpenChange={(open) => !open && setDeleteIds(null)}>
-        <DialogContent data-uniform-type className="sm:max-w-[425px]">
-          <DialogHeader className={isRTL ? "text-right" : ""}>
-            <DialogTitle className={isRTL ? "text-right" : ""}>{t("Delete servers?")}</DialogTitle>
-            <DialogDescription className={isRTL ? "text-right" : ""}>
-              {t("{n} servers and their disks will be deleted. This cannot be undone.", {
-                n: formatNumber(deleteIds?.length ?? 0),
-              })}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-4 flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setDeleteIds(null)}>
-              {fx("cancel")}
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                removeServers(deleteIds ?? []);
-                setSelected((prev) => prev.filter((id) => !deleteIds?.includes(id)));
-                toast.success(t("Servers deleted"));
-                setDeleteIds(null);
-              }}
-            >
-              {fx("delete")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Delete, listing what goes with each server: its addresses and
+          disks. A reserved IP is not among them; it goes back to Public IPs. */}
+      <DeleteServersDialog
+        servers={servers.filter((sv) => deleteIds?.includes(sv.id))}
+        onClose={() => setDeleteIds(null)}
+        onDeleted={(ids) => {
+          detachFrom(ids);
+          removeServers(ids);
+          setSelected((prev) => prev.filter((id) => !ids.includes(id)));
+          toast.success(t("Servers deleted"));
+          setDeleteIds(null);
+        }}
+      />
 
       <RenameDialog server={renaming} onClose={() => setRenaming(null)} />
     </div>
+  );
+}
+
+/** The delete confirmation: per server, the addresses and disks deleted with
+    it, any reserved IP that stays, and a tick before Delete is offered. */
+function DeleteServersDialog({
+  servers,
+  onClose,
+  onDeleted,
+}: {
+  servers: ServerRecord[];
+  onClose: () => void;
+  onDeleted: (ids: string[]) => void;
+}) {
+  const t = useT();
+  const { t: ft, isRTL, formatNumber } = useLanguage();
+  const fx = ft as (k: string) => string;
+  const [agreed, setAgreed] = useState(false);
+  const open = servers.length > 0;
+  useEffect(() => setAgreed(false), [open]);
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent data-uniform-type className="sm:max-w-[520px]">
+        <DialogHeader className={isRTL ? "text-right" : ""}>
+          <DialogTitle className={isRTL ? "text-right" : ""}>
+            {servers.length === 1 ? t("Delete {name}?", { name: servers[0].name }) : t("Delete servers?")}
+          </DialogTitle>
+          <DialogDescription className={isRTL ? "text-right" : ""}>
+            {t("These are deleted with the servers. This cannot be undone.")}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="max-h-[50vh] space-y-3 overflow-y-auto">
+          {servers.map((sv) => {
+            const released = [sv.ipv4, ...(sv.ipv6 ? [sv.ipv6] : []), ...(sv.extraIps ?? []).filter((i) => !i.reservedId).map((i) => i.address)];
+            const kept = (sv.extraIps ?? []).filter((i) => i.reservedId);
+            const disks = sv.disks ?? [{ label: "Boot disk", sizeGb: sv.diskGb, path: "" }];
+            return (
+              <div key={sv.id} className="rounded-lg border border-border p-3 text-sm">
+                <p className="mb-2 font-semibold text-foreground" dir="ltr">
+                  {sv.name}
+                </p>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">{t("Public IPs")}</p>
+                <ul className="mb-2 space-y-0.5">
+                  {released.map((ip) => (
+                    <li key={ip} className="flex items-center gap-2 text-destructive">
+                      <Trash2 className="size-3 shrink-0" />
+                      <code dir="ltr" className="font-mono text-xs">
+                        {ip}
+                      </code>
+                    </li>
+                  ))}
+                  {kept.map((ip) => (
+                    <li key={ip.address} className="flex items-center gap-2 text-muted-foreground">
+                      <CheckCircle2 className="size-3 shrink-0 text-emerald-600" />
+                      <code dir="ltr" className="font-mono text-xs">
+                        {ip.address}
+                      </code>
+                      <span className="text-xs">{t("reserved, stays under Public IPs")}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">{t("Disks")}</p>
+                <ul className="space-y-0.5">
+                  {disks.map((d, i) => (
+                    <li key={i} className="flex items-center gap-2 text-destructive">
+                      <Trash2 className="size-3 shrink-0" />
+                      <span className="text-xs">
+                        {t(d.label)} · {formatNumber(d.sizeGb)} {t("GB")}
+                      </span>
+                      {d.path && (
+                        <code dir="ltr" className="font-mono text-[11px] text-muted-foreground">
+                          {d.path}
+                        </code>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+
+        <label className="flex cursor-pointer items-start gap-2 text-sm text-foreground">
+          <Checkbox checked={agreed} onCheckedChange={(c) => setAgreed(c === true)} className="mt-0.5" />
+          <span>{t("I understand these addresses and disks will be deleted.")}</span>
+        </label>
+
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" onClick={onClose}>
+            {fx("cancel")}
+          </Button>
+          <Button variant="destructive" disabled={!agreed} onClick={() => onDeleted(servers.map((sv) => sv.id))}>
+            {fx("delete")}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -35,7 +35,7 @@ import {
   type ScalingMode,
 } from "../lib/autoscaleStore";
 import { AUTOSCALE_PATH, CREATE_AUTOSCALE_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText, groupPath } from "../ui";
-import { CapacityDialog, HealthBadge } from "../autoscaleUi";
+import { CapacityDialog, HealthBadge, PauseDialog } from "../autoscaleUi";
 
 /* Auto Scale: the account's groups of cloud servers that grow and shrink.
  *
@@ -73,6 +73,7 @@ export default function AutoScaleGroups() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [deleteIds, setDeleteIds] = useState<string[] | null>(null);
   const [capacityFor, setCapacityFor] = useState<AutoScaleGroup | null>(null);
+  const [pauseFor, setPauseFor] = useState<AutoScaleGroup | null>(null);
 
   const modeLabel = (g: AutoScaleGroup) => (g.mode === "manual" ? t("Manual") : g.paused ? t("Paused") : t("Automatic"));
 
@@ -426,10 +427,7 @@ export default function AutoScaleGroups() {
                                 </DropdownMenuItem>
                                 {g.mode === "automatic" && (
                                   <DropdownMenuItem
-                                    onClick={() => {
-                                      updateGroup(g.id, { paused: !g.paused }, g.paused ? "Scaling resumed" : "Scaling paused");
-                                      toast.success(g.paused ? t("Scaling resumed") : t("Scaling paused"));
-                                    }}
+                                    onClick={() => setPauseFor(g)}
                                   >
                                     {g.paused ? <Play className="me-2 h-4 w-4" /> : <Pause className="me-2 h-4 w-4" />}
                                     {g.paused ? t("Resume scaling") : t("Pause scaling")}
@@ -520,6 +518,7 @@ export default function AutoScaleGroups() {
       </Dialog>
 
       <CapacityDialog group={capacityFor} onClose={() => setCapacityFor(null)} />
+      <PauseDialog group={pauseFor} onClose={() => setPauseFor(null)} />
     </div>
   );
 }

@@ -70,7 +70,7 @@ import {
 } from "../lib/autoscaleStore";
 import { AUTOSCALE_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText } from "../ui";
 import { Note, OptionCard, SettingRow } from "../wizard";
-import { CapacityDialog, HealthBadge, StatCard, Stepper } from "../autoscaleUi";
+import { CapacityDialog, HealthBadge, PauseDialog, StatCard, Stepper } from "../autoscaleUi";
 import { RulesEditor, newScheduledRule } from "./CreateAutoScale";
 import { HealthSettings, SmsNotify, withDefaultCheck } from "../autoscaleHealthNotify";
 import { getCurrentUserId } from "@paapeli/brand/session";
@@ -126,6 +126,7 @@ function GroupPage({ group: g }: { group: AutoScaleGroup }) {
 
   const [tab, setTab] = useState("overview");
   const [capacityOpen, setCapacityOpen] = useState(false);
+  const [pauseOpen, setPauseOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const modeText = g.mode === "manual" ? t("Manual") : g.paused ? t("Paused") : t("Automatic");
@@ -180,12 +181,7 @@ function GroupPage({ group: g }: { group: AutoScaleGroup }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align={isRTL ? "start" : "end"} className="z-[100] w-48 bg-background">
               {g.mode === "automatic" && (
-                <DropdownMenuItem
-                  onClick={() => {
-                    updateGroup(g.id, { paused: !g.paused }, g.paused ? "Scaling resumed" : "Scaling paused");
-                    toast.success(g.paused ? t("Scaling resumed") : t("Scaling paused"));
-                  }}
-                >
+                <DropdownMenuItem onClick={() => setPauseOpen(true)}>
                   {g.paused ? <Play className="me-2 h-4 w-4" /> : <Pause className="me-2 h-4 w-4" />}
                   {g.paused ? t("Resume scaling") : t("Pause scaling")}
                 </DropdownMenuItem>
@@ -244,6 +240,7 @@ function GroupPage({ group: g }: { group: AutoScaleGroup }) {
       </Tabs>
 
       <CapacityDialog group={capacityOpen ? g : null} onClose={() => setCapacityOpen(false)} />
+      <PauseDialog group={pauseOpen ? g : null} onClose={() => setPauseOpen(false)} />
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent data-uniform-type className="sm:max-w-[425px]">
           <DialogHeader className={isRTL ? "text-right" : ""}>
@@ -446,10 +443,14 @@ function InstancesTab({ g, now }: { g: AutoScaleGroup; now: number }) {
   const shown = instances.filter((i) => !search || i.name.includes(search.toLowerCase()) || i.publicIp.includes(search));
   const canRemove = g.desired > g.min;
 
-  const remove = (count: number) => {
-    setDesired(g.id, g.desired - count);
+  /* How many are about to be removed, waiting for a yes. */
+  const [pendingRemove, setPendingRemove] = useState(0);
+  const remove = (count: number) => setPendingRemove(Math.min(count, g.desired - g.min));
+  const confirmRemove = () => {
+    setDesired(g.id, g.desired - pendingRemove);
     setSelected([]);
-    toast.success(t("Capacity set to {n}", { n: formatNumber(Math.max(g.min, g.desired - count)) }));
+    toast.success(t("Capacity set to {n}", { n: formatNumber(g.desired - pendingRemove) }));
+    setPendingRemove(0);
   };
   const copy = (v: string) =>
     void navigator.clipboard?.writeText(v).then(
@@ -612,6 +613,27 @@ function InstancesTab({ g, now }: { g: AutoScaleGroup; now: number }) {
           </TableBody>
         </Table>
       </div>
+      <Dialog open={pendingRemove > 0} onOpenChange={(o) => !o && setPendingRemove(0)}>
+        <DialogContent data-uniform-type className="sm:max-w-[420px]">
+          <DialogHeader className={isRTL ? "text-right" : ""}>
+            <DialogTitle className={isRTL ? "text-right" : ""}>{t("Remove {n} instances?", { n: formatNumber(pendingRemove) })}</DialogTitle>
+            <DialogDescription className={isRTL ? "text-right" : ""}>
+              {t("The desired capacity goes from {from} to {to}; the instances are deleted with their disks.", {
+                from: formatNumber(g.desired),
+                to: formatNumber(g.desired - pendingRemove),
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2 flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setPendingRemove(0)}>
+              {fx("cancel")}
+            </Button>
+            <Button variant="destructive" onClick={confirmRemove}>
+              {t("Yes, remove {n}", { n: formatNumber(pendingRemove) })}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       {!canRemove && (
         <p className="mt-3 text-xs text-muted-foreground">
           {t("The group is at its minimum of {n}; lower the minimum under Scaling rules to remove more.", { n: formatNumber(g.min) })}

@@ -24,6 +24,11 @@ export interface ServerRecord {
       by its group: never stored here, derived from the group. */
   groupId?: string;
   groupName?: string;
+  /** Public addresses beyond the primary: a new one made with the server,
+      or a reserved one attached to it (reservedId), which outlives it. */
+  extraIps?: { address: string; reservedId?: string }[];
+  /** The server's disks, boot first, with where each shows inside it. */
+  disks?: { label: string; sizeGb: number; path: string }[];
   name: string;
   imageId: string;
   /** "Ubuntu 24.04 LTS" */

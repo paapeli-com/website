@@ -189,6 +189,9 @@ export const HOST_PERIODS: { months: 1 | 6 | 12; discount: number }[] = [
   { months: 12, discount: 0.2 },
 ];
 
+/** An additional public IPv4 made with a server, a month. */
+export const EXTRA_IP_MONTHLY: Money = { TOMAN: 150_000, USD: 3, QAR: 11 };
+
 /** Keeping a custom image, per GB a month. */
 export const IMAGE_GB_MONTHLY: Money = { TOMAN: 2_000, USD: 0.03, QAR: 0.11 };
 
