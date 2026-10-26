@@ -33,10 +33,13 @@ const p = (path: string) => `${CLOUD_SERVER_BASE}${path}`;
 /** The GPU servers page. AI Infra links here too: same machines, other door. */
 export const CLOUD_SERVER_GPU_PATH = p("/gpu-servers");
 
+/* Every group starts open: the console is five short lists, and opening
+   each one to find a page cost more than seeing them all. */
 const items = [
   {
     title: "Compute",
     icon: Cpu,
+    defaultOpen: true,
     children: [
       { title: "Cloud Server", icon: Server, path: p("/servers") },
       { title: "GPU Servers", icon: Microchip, path: CLOUD_SERVER_GPU_PATH },
@@ -46,8 +49,9 @@ const items = [
   {
     title: "Networking",
     icon: Network,
+    defaultOpen: true,
     children: [
-      { title: "Private Networks (VPC)", icon: Waypoints, path: p("/vpc") },
+      { title: "Private Networks", icon: Waypoints, path: p("/vpc") },
       { title: "Public IPs", icon: Globe, path: p("/public-ips") },
       { title: "Floating IPs", icon: MapPin, path: p("/floating-ips") },
     ],
@@ -55,22 +59,25 @@ const items = [
   {
     title: "Storage",
     icon: HardDrive,
+    defaultOpen: true,
     children: [
-      { title: "Cloud Disks (Block Storage)", icon: HardDrive, path: p("/volumes") },
+      { title: "Cloud Disks", icon: HardDrive, path: p("/volumes") },
       { title: "Snapshots", icon: Camera, path: p("/snapshots") },
     ],
   },
   {
     title: "Security",
     icon: ShieldCheck,
+    defaultOpen: true,
     children: [
-      { title: "Firewall (Security Groups)", icon: ShieldCheck, path: p("/security-groups") },
+      { title: "Firewall", icon: ShieldCheck, path: p("/security-groups") },
       { title: "SSH Keys", icon: KeyRound, path: p("/ssh-keys") },
     ],
   },
   {
     title: "Monitoring",
     icon: Activity,
+    defaultOpen: true,
     children: [{ title: "Resource Monitoring", icon: Activity, path: p("/monitoring") }],
   },
 ];

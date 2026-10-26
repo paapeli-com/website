@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "@/shared/lib/toast";
 import { ChevronRight } from "lucide-react";
@@ -50,6 +50,31 @@ const activeNavPath = (pathname: string, items: NavItem[]) => {
    and only for keyboard focus, so a click leaves nothing behind. `outline-none`
    is Tailwind's transparent outline rather than `outline: none`, so it still
    resolves to a visible one under forced colours. */
+/* A row's label, cut with an ellipsis when it runs past the sidebar, and
+   then, only then, carrying the whole text as its hover tooltip. Measured
+   rather than guessed from a character count: the same name is a different
+   width in every language, and a label that already reads in full should not
+   pop a tooltip repeating what is on screen. Re-measured on resize, since
+   the sidebar's width and the web font both settle after first paint. */
+function NavLabel({ text, className }: { text: string; className?: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [truncated, setTruncated] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setTruncated(el.scrollWidth > el.clientWidth + 1);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [text]);
+  return (
+    <span ref={ref} title={truncated ? text : undefined} className={cn("min-w-0 truncate", className)}>
+      {text}
+    </span>
+  );
+}
+
 const rowFocus = "outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
 const rowBase = `flex items-center gap-3 text-[13px] transition-colors ${rowFocus}`;
 /* Square tile on the rail; a full-width padded row otherwise. */
@@ -69,7 +94,7 @@ function ComingSoonLeaf({ item, collapsed }: RowProps) {
       <Icon className="h-4 w-4 shrink-0" />
       {!collapsed && (
         <>
-          <span className="flex-1 truncate text-start">{t(title)}</span>
+          <NavLabel text={t(title)} className="flex-1 text-start" />
           <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
             {t("Coming soon")}
           </span>
@@ -100,7 +125,7 @@ function Leaf({ item, onNavigate, collapsed, activePath }: RowProps) {
         )}
       >
         <Icon className="h-4 w-4 shrink-0" />
-        {!collapsed && <span className="flex-1 truncate text-start">{t(title)}</span>}
+        {!collapsed && <NavLabel text={t(title)} className="flex-1 text-start" />}
       </a>
     );
   }
@@ -142,7 +167,7 @@ function Leaf({ item, onNavigate, collapsed, activePath }: RowProps) {
             />
           )}
           <Icon className={cn("h-4 w-4 shrink-0", isActive && "text-primary")} />
-          {!collapsed && <span className="flex-1 truncate text-start">{t(title)}</span>}
+          {!collapsed && <NavLabel text={t(title)} className="flex-1 text-start" />}
           {/* Marks a row that leaves this nav for another product's; it points
               the way the text runs, so it flips in RTL like the group's. */}
           {!collapsed && chevron && <ChevronRight className="size-3.5 shrink-0 text-muted-foreground rtl:rotate-180" />}
@@ -158,7 +183,7 @@ function Leaf({ item, onNavigate, collapsed, activePath }: RowProps) {
 function Group({ item, onNavigate, collapsed, onExpand, activePath }: RowProps & { onExpand?: () => void }) {
   const location = useLocation();
   const isGroupActive = item.children!.some((c) => c.path && location.pathname.startsWith(c.path));
-  const [open, setOpen] = useState(isGroupActive);
+  const [open, setOpen] = useState(isGroupActive || !!item.defaultOpen);
   const Icon = item.icon;
   const t = useShellT();
 
@@ -171,7 +196,7 @@ function Group({ item, onNavigate, collapsed, onExpand, activePath }: RowProps &
         <Icon className="h-4 w-4 shrink-0" />
         {!collapsed && (
           <>
-            <span className="flex-1 truncate text-start">{t(item.title)}</span>
+            <NavLabel text={t(item.title)} className="flex-1 text-start" />
             <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
               {t("Coming Soon")}
             </span>
@@ -198,7 +223,7 @@ function Group({ item, onNavigate, collapsed, onExpand, activePath }: RowProps &
         <Icon className="h-4 w-4 shrink-0" />
         {!collapsed && (
           <>
-            <span className={cn("flex-1 truncate text-start", open && "font-bold")}>{t(item.title)}</span>
+            <NavLabel text={t(item.title)} className={cn("flex-1 text-start", open && "font-bold")} />
             <ChevronRight
               className={cn(
                 "size-3.5 shrink-0 text-muted-foreground transition-transform",
@@ -253,7 +278,7 @@ export function SidebarContent({ section, onNavigate, collapsed, onExpand }: Sid
           )}
         >
           <SectionIcon className="size-4 shrink-0 text-primary" />
-          {!collapsed && <span className="truncate">{t(section.title)}</span>}
+          {!collapsed && <NavLabel text={t(section.title)} />}
         </div>
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-4">

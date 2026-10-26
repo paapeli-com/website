@@ -14,6 +14,9 @@ export interface NavItem {
    * a "Coming Soon" badge instead of a chevron and don't expand.
    */
   comingSoon?: boolean;
+  /** A group that starts open, rather than only when one of its rows is the
+      current page. */
+  defaultOpen?: boolean;
   /** Trailing chevron on a leaf — signals it navigates into another area's own nav (e.g. a product). */
   chevron?: boolean;
   /**
