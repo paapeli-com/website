@@ -186,7 +186,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
   const [visited, setVisited] = useState<Set<number>>(() => new Set([0]));
   const [showErrors, setShowErrors] = useState(false);
 
-  const [name, setName] = useState("server-01");
+  const [name, setName] = useState(isGpu ? "gpu-server-01" : "server-01");
   const [regionId, setRegionId] = useState(
     REGIONS.some((r) => r.id === saved?.regionId) ? saved!.regionId : REGIONS[0].id,
   );
@@ -361,7 +361,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
       <CreateHeader
         gpu={isGpu}
         title={isGpu ? t("Create GPU server") : undefined}
-        description={isGpu ? t("A virtual machine with a dedicated NVIDIA GPU.") : t("Set up a virtual machine in a few steps.")}
+        description={isGpu ? t("A virtual machine with a dedicated GPU") : t("Set up a virtual machine in a few steps.")}
       />
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -661,14 +661,23 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                         />
                         {/* Each mark sets the size it names. */}
                         <div className="relative mt-2 h-6">
-                          {sliderMarks(plan.diskGb).map((gb) => (
+                          {sliderMarks(plan.diskGb).map((gb, i, marks) => {
+                            const pos = toSlider(gb, plan.diskGb) / SLIDER_STEPS;
+                            /* A mark at either end hangs inward from its point
+                               rather than centring on it, so its label stays
+                               inside the card. */
+                            const edge = pos <= 0.02 ? "start" : pos >= 0.98 ? "end" : "middle";
+                            return (
                             <button
                               key={gb}
                               type="button"
                               onClick={() => setBoot(gb)}
-                              style={{ insetInlineStart: `${(toSlider(gb, plan.diskGb) / SLIDER_STEPS) * 100}%` }}
+                              style={{ insetInlineStart: `${pos * 100}%` }}
                               className={cn(
-                                "absolute top-0 flex -translate-x-1/2 flex-col items-center gap-0.5 whitespace-nowrap text-[11px] transition-colors rtl:translate-x-1/2",
+                                "absolute top-0 flex flex-col gap-0.5 whitespace-nowrap text-[11px] transition-colors",
+                                edge === "start" && "items-start",
+                                edge === "middle" && "-translate-x-1/2 items-center rtl:translate-x-1/2",
+                                edge === "end" && "-translate-x-full items-end rtl:translate-x-full",
                                 bootGb === gb ? "font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
                               )}
                             >
@@ -678,7 +687,8 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                                   lands on the wrong side of the number. */}
                               {gb >= 1000 ? `${n(gb / 1000)} ${t("TB")}` : `${n(gb)} ${t("GB")}`}
                             </button>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -881,7 +891,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                       </Select>
                       {FLOATING_IPS.length === 0 && (
                         <Button variant="outline" size="sm" onClick={() => navigate(`${CLOUD_SERVER_BASE}/floating-ips`)}>
-                          {t("Go to Floating IPs")}
+                          {t("Create a floating IP")}
                         </Button>
                       )}
                     </div>

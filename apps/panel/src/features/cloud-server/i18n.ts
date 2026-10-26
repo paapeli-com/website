@@ -107,7 +107,7 @@ const fa: Record<string, string> = {
   "A static address you can move between servers.": "آدرسی ثابت که می‌توانید بین سرورها جابه‌جا کنید.",
   "No floating IP yet. Create one under Floating IPs, then attach it here or later.":
     "هنوز آی‌پی شناوری ندارید. از بخش آی‌پی شناور یکی بسازید و اینجا یا بعداً متصلش کنید.",
-  "Go to Floating IPs": "رفتن به آی‌پی شناور",
+  "Create a floating IP": "ساخت یک آی‌پی شناور",
   None: "هیچ‌کدام",
 
   // Security
@@ -266,7 +266,7 @@ const fa: Record<string, string> = {
   // GPU servers
   "GPU Servers": "سرورهای GPU",
   "Create GPU server": "ساخت سرور GPU",
-  "A virtual machine with a dedicated NVIDIA GPU.": "یک ماشین مجازی با GPU اختصاصی انویدیا.",
+  "A virtual machine with a dedicated GPU": "یک ماشین مجازی با GPU اختصاصی",
   "Need a GPU?": "به GPU نیاز دارید؟",
   "GPU servers have their own section, with the GPU models, their availability and the drivers.":
     "سرورهای GPU بخش جداگانه‌ی خودشان را دارند، با مدل‌های GPU، موجودی و درایورها.",
@@ -426,7 +426,7 @@ const ar: Record<string, string> = {
   "A static address you can move between servers.": "عنوان ثابت يمكنك نقله بين الخوادم.",
   "No floating IP yet. Create one under Floating IPs, then attach it here or later.":
     "لا يوجد عنوان IP عائم بعد. أنشئ واحدًا من قسم عناوين IP العائمة ثم اربطه هنا أو لاحقًا.",
-  "Go to Floating IPs": "الانتقال إلى عناوين IP العائمة",
+  "Create a floating IP": "إنشاء عنوان IP عائم",
   None: "لا شيء",
 
   // Security
@@ -585,7 +585,7 @@ const ar: Record<string, string> = {
   // GPU servers
   "GPU Servers": "خوادم GPU",
   "Create GPU server": "إنشاء خادم GPU",
-  "A virtual machine with a dedicated NVIDIA GPU.": "جهاز افتراضي مع GPU مخصص من NVIDIA.",
+  "A virtual machine with a dedicated GPU": "جهاز افتراضي مع GPU مخصص",
   "Need a GPU?": "هل تحتاج إلى GPU؟",
   "GPU servers have their own section, with the GPU models, their availability and the drivers.":
     "لخوادم GPU قسم خاص بها، مع طرازات GPU وتوفرها وبرامج التشغيل.",
