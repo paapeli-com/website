@@ -39,14 +39,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/features/factory/components/ui/dialog";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/features/factory/components/ui/breadcrumb";
 import { FieldLabel } from "@/features/factory/components/FieldLabel";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { localizeDigits, useAppLanguage } from "@/shared/i18n/appLanguage";
@@ -55,6 +47,7 @@ import { toast } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
 import { CLOUD_SERVER_BASE } from "@/shell/nav/cloudServerNav";
 import { useT } from "../i18n";
+import { CreateFooter, CreateHeader, CreatePage, NEW_SERVER_PATH, SERVERS_PATH } from "../ui";
 import {
   ADDITIONAL_DISK_MAX_GB,
   BOOT_DISK_MAX_GB,
@@ -124,7 +117,7 @@ export default function CreateServer() {
   const language = useAppLanguage();
   const n = (v: number | string) => localizeDigits(language, v);
   const { currency, format } = useBillingCurrency();
-  const goToServers = () => navigate(`${CLOUD_SERVER_BASE}/servers`);
+  const goToServers = () => navigate(SERVERS_PATH);
 
   // ---- Form state -------------------------------------------------------
   const [step, setStep] = useState(0);
@@ -218,39 +211,19 @@ export default function CreateServer() {
 
   // ---- Render ---------------------------------------------------------------
   return (
-    <div className="p-4 lg:p-6">
-      <Breadcrumb className="mb-3">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink onClick={goToServers} className="cursor-pointer">
-              {t("Cloud Server")}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{t("Create cloud server")}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <div className="mb-5">
-        <h1 className="text-xl font-bold text-foreground">{t("Create cloud server")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("Set up a virtual machine in a few steps. Every step starts from a working default.")}
-        </p>
-      </div>
+    <CreatePage>
+      <CreateHeader description={t("Set up a virtual machine in a few steps. Every step starts from a working default.")} />
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0">
-          <StepBar
-            current={step}
-            labels={STEPS.map((s) => t(s))}
-            done={(i) => i !== step && visited.has(i) && stepOk(i)}
-            invalid={(i) => showErrors && !stepOk(i)}
-            onSelect={setStep}
-          />
-
-          <Card className="mt-4 p-5">
+          <Card className="p-4">
+            <StepBar
+              current={step}
+              labels={STEPS.map((s) => t(s))}
+              done={(i) => i !== step && visited.has(i) && stepOk(i)}
+              invalid={(i) => showErrors && !stepOk(i)}
+              onSelect={setStep}
+            />
             {step === 0 && (
               <StepSection icon={Server} title={t("Basics")}>
                 <div className="space-y-5">
@@ -312,7 +285,6 @@ export default function CreateServer() {
                     </div>
                   </div>
 
-                  <Note>{t("One region and one availability zone are available for now. More are on the way.")}</Note>
                   <Note>
                     {t("Every step already has a default that works. You can go straight to Review and create the server.")}
                   </Note>
@@ -831,24 +803,13 @@ export default function CreateServer() {
         </aside>
       </div>
 
-      {/* The footer every Smart Factory form ends on (see AlertRuleForm):
-          sticky, so the actions are in the same place on every step. */}
-      <div className="sticky bottom-0 z-20 -mx-4 mt-6 border-t border-border bg-background/95 px-4 py-3 backdrop-blur lg:-mx-6 lg:px-6">
-        <div className={cn("flex items-center justify-end gap-3", isRTL && "flex-row-reverse")}>
-          <Button variant="ghost" onClick={goToServers} className="min-w-[100px]">
-            {t("Cancel")}
-          </Button>
-          <Button variant="outline" onClick={() => setStep((s) => s - 1)} disabled={step === 0} className="min-w-[100px]">
-            {t("Back")}
-          </Button>
-          <Button
-            onClick={isLast ? create : () => setStep((s) => s + 1)}
-            className="min-w-[140px] bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            {isLast ? t("Create server") : t("Next")}
-          </Button>
-        </div>
-      </div>
+      <CreateFooter
+        cancel={{ label: t("Cancel"), onClick: goToServers }}
+        /* On the first step, Back returns to the choice of one machine or an
+           Auto Scale group. */
+        back={{ label: t("Back"), onClick: () => (step === 0 ? navigate(NEW_SERVER_PATH) : setStep((s) => s - 1)) }}
+        primary={{ label: isLast ? t("Create server") : t("Next"), onClick: isLast ? create : () => setStep((s) => s + 1) }}
+      />
 
       <AddKeyDialog
         open={keyDialogOpen}
@@ -858,13 +819,15 @@ export default function CreateServer() {
           setSshKeyId(key.id);
         }}
       />
-    </div>
+    </CreatePage>
   );
 }
 
 // ---- Pieces ------------------------------------------------------------------
 
-/** Numbered steps; any step can be opened, as in the alert rule wizard. */
+/** The alert rule wizard's step indicator, mark for mark: small numbered
+    dots with the label beside them and a short rule between. Any step can be
+    opened. A step left short after a Create attempt is marked red. */
 function StepBar({
   current,
   labels,
@@ -880,50 +843,46 @@ function StepBar({
 }) {
   const language = useAppLanguage();
   return (
-    <nav className="overflow-x-auto pb-1">
-      <ol className="flex min-w-[560px] items-start">
-        {labels.map((label, i) => {
-          const isCurrent = i === current;
-          const isDone = done(i);
-          const isBad = invalid(i);
-          return (
-            <li key={label} className="flex flex-1 items-start last:flex-none">
-              <button
-                type="button"
-                onClick={() => onSelect(i)}
-                aria-current={isCurrent ? "step" : undefined}
-                className="group flex flex-col items-center gap-1.5 rounded-lg px-1 outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+    <nav className="mb-5 mt-1 flex items-center gap-1 overflow-x-auto pb-1">
+      {labels.map((label, i) => {
+        const isCurrent = i === current;
+        const isDone = done(i);
+        const isBad = invalid(i);
+        return (
+          <div key={label} className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => onSelect(i)}
+              aria-current={isCurrent ? "step" : undefined}
+              className="flex cursor-pointer items-center gap-1 rounded-full outline-none transition-opacity hover:opacity-75 focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              <span
+                className={cn(
+                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium",
+                  isBad
+                    ? "bg-destructive/10 text-destructive"
+                    : isCurrent
+                      ? "bg-primary text-primary-foreground"
+                      : isDone
+                        ? "bg-primary/20 text-primary"
+                        : "bg-muted text-muted-foreground",
+                )}
               >
-                <span
-                  className={cn(
-                    "flex size-7 items-center justify-center rounded-full text-xs font-semibold transition-colors",
-                    isBad
-                      ? "bg-destructive/10 text-destructive ring-1 ring-destructive/40"
-                      : isCurrent
-                        ? "bg-primary text-primary-foreground"
-                        : isDone
-                          ? "bg-primary/15 text-primary"
-                          : "bg-muted text-muted-foreground group-hover:bg-muted/70",
-                  )}
-                >
-                  {isDone && !isBad ? <Check className="size-3.5" /> : localizeDigits(language, i + 1)}
-                </span>
-                <span
-                  className={cn(
-                    "whitespace-nowrap text-xs",
-                    isCurrent ? "font-semibold text-foreground" : isBad ? "text-destructive" : "text-muted-foreground",
-                  )}
-                >
-                  {label}
-                </span>
-              </button>
-              {i < labels.length - 1 && (
-                <span aria-hidden className={cn("mx-1 mt-3.5 h-px flex-1", isDone ? "bg-primary/40" : "bg-border")} />
-              )}
-            </li>
-          );
-        })}
-      </ol>
+                {isDone && !isBad ? <Check className="h-3.5 w-3.5" /> : localizeDigits(language, i + 1)}
+              </span>
+              <span
+                className={cn(
+                  "hidden whitespace-nowrap text-xs sm:inline",
+                  isBad ? "text-destructive" : isCurrent ? "font-medium text-foreground" : "text-muted-foreground",
+                )}
+              >
+                {label}
+              </span>
+            </button>
+            {i < labels.length - 1 && <div className="h-px w-4 shrink-0 bg-border" />}
+          </div>
+        );
+      })}
     </nav>
   );
 }

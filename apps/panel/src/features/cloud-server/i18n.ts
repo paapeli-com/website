@@ -15,6 +15,17 @@ const fa: Record<string, string> = {
     "یک ماشین مجازی را در چند گام بسازید. هر گام با یک پیش‌فرض آماده شروع می‌شود.",
   "Sample data · Not a live service": "داده‌های نمونه · سرویس هنوز فعال نیست",
 
+  // Choose type
+  "Choose how you want to create your cloud workload.": "روش ساخت سرور ابری را انتخاب کنید.",
+  "Single virtual machine": "یک ماشین مجازی",
+  "One server with its own configuration.": "یک سرور با تنظیمات دلخواه خودتان.",
+  "Auto Scale group": "گروه مقیاس‌پذیری خودکار",
+  "A managed group of servers that grows and shrinks with load.":
+    "گروهی مدیریت‌شده از سرورها که با تغییر بار بزرگ و کوچک می‌شود.",
+  "You can also create Auto Scale groups later from the Auto Scale section.":
+    "گروه مقیاس‌پذیری خودکار را بعداً هم می‌توانید از بخش مقیاس‌پذیری خودکار بسازید.",
+  Continue: "ادامه",
+
   // Steps
   Basics: "اطلاعات پایه",
   Image: "ایمیج",
@@ -37,8 +48,6 @@ const fa: Record<string, string> = {
     "از ۳ تا ۶۳ حرف کوچک انگلیسی، عدد یا خط تیره استفاده کنید و با حرف شروع کنید.",
   Region: "منطقه",
   "Availability zone": "ناحیهٔ دسترس‌پذیری",
-  "One region and one availability zone are available for now. More are on the way.":
-    "فعلاً یک منطقه و یک ناحیهٔ دسترس‌پذیری در دسترس است. موارد بیشتر به‌زودی اضافه می‌شود.",
   "Every step already has a default that works. You can go straight to Review and create the server.":
     "همهٔ گام‌ها از قبل یک پیش‌فرض آماده دارند. می‌توانید مستقیم به بازبینی بروید و سرور را بسازید.",
 
@@ -149,6 +158,17 @@ const ar: Record<string, string> = {
     "أنشئ جهازًا افتراضيًا في خطوات قليلة. تبدأ كل خطوة بإعداد افتراضي جاهز.",
   "Sample data · Not a live service": "بيانات تجريبية · الخدمة غير مفعّلة بعد",
 
+  // Choose type
+  "Choose how you want to create your cloud workload.": "اختر طريقة إنشاء الخادم السحابي.",
+  "Single virtual machine": "جهاز افتراضي واحد",
+  "One server with its own configuration.": "خادم واحد بإعداداته الخاصة.",
+  "Auto Scale group": "مجموعة التوسع التلقائي",
+  "A managed group of servers that grows and shrinks with load.":
+    "مجموعة مُدارة من الخوادم تكبر وتصغر مع الحمل.",
+  "You can also create Auto Scale groups later from the Auto Scale section.":
+    "يمكنك أيضًا إنشاء مجموعات التوسع التلقائي لاحقًا من قسم التوسع التلقائي.",
+  Continue: "متابعة",
+
   // Steps
   Basics: "الأساسيات",
   Image: "الصورة",
@@ -171,8 +191,6 @@ const ar: Record<string, string> = {
     "استخدم من ٣ إلى ٦٣ حرفًا إنجليزيًا صغيرًا أو رقمًا أو شرطة، على أن يبدأ بحرف.",
   Region: "المنطقة",
   "Availability zone": "منطقة التوفر",
-  "One region and one availability zone are available for now. More are on the way.":
-    "تتوفر حاليًا منطقة واحدة ومنطقة توفر واحدة. المزيد قريبًا.",
   "Every step already has a default that works. You can go straight to Review and create the server.":
     "لكل خطوة إعداد افتراضي جاهز. يمكنك الانتقال مباشرة إلى المراجعة وإنشاء الخادم.",
 

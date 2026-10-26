@@ -8,6 +8,7 @@ import { useShellT } from "@/shared/i18n/shell";
 import { CLOUD_SERVER_BASE, CLOUD_SERVER_PAGES } from "@/shell/nav/cloudServerNav";
 import { useT } from "./i18n";
 import CreateServer from "./pages/CreateServer";
+import ChooseServerType from "./pages/ChooseServerType";
 
 /* Cloud Server, IaaS's first product, mounted at /IaaS/CloudServer/*.
  *
@@ -34,7 +35,7 @@ function ServersPage() {
   const navigate = useNavigate();
   return (
     <Page title="Cloud Server">
-      <Button onClick={() => navigate(`${CLOUD_SERVER_BASE}/servers/create`)}>
+      <Button onClick={() => navigate(`${CLOUD_SERVER_BASE}/servers/new`)}>
         <Plus className="me-1.5 size-4" />
         {t("Create cloud server")}
       </Button>
@@ -51,6 +52,7 @@ export default function CloudServerRoutes() {
         <div data-uniform-type dir={isRTL ? "rtl" : "ltr"} className="min-h-full">
           <Routes>
             <Route path="/servers" element={<ServersPage />} />
+            <Route path="/servers/new" element={<ChooseServerType />} />
             <Route path="/servers/create" element={<CreateServer />} />
             {CLOUD_SERVER_PAGES.filter(([segment]) => segment !== "servers").map(([segment, title]) => (
               <Route key={segment} path={`/${segment}`} element={<Page title={title} />} />
