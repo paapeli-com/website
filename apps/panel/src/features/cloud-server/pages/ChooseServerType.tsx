@@ -52,9 +52,17 @@ export default function ChooseServerType() {
             />
           </div>
 
-          {/* Only for the group: it says where else a group can be made. */}
-          {kind === "group" && (
-          <div className="mt-4 flex items-start gap-2.5 rounded-lg bg-muted/50 px-3.5 py-2.5 text-xs text-muted-foreground">
+          {/* Only for the group: it says where else a group can be made. Its
+              space is kept when it is hidden, so the cards above, which
+              stretch to fill the column, keep their size as the choice
+              changes. */}
+          <div
+            aria-hidden={kind !== "group"}
+            className={cn(
+              "mt-4 flex items-start gap-2.5 rounded-lg bg-muted/50 px-3.5 py-2.5 text-xs text-muted-foreground",
+              kind !== "group" && "invisible",
+            )}
+          >
             <Info className="mt-px size-4 shrink-0" />
             {/* One sentence with the link inside it, split where {link} falls,
                 since the link sits in a different place in each language. */}
@@ -62,6 +70,7 @@ export default function ChooseServerType() {
               {noteBefore}
               <button
                 type="button"
+                tabIndex={kind === "group" ? 0 : -1}
                 onClick={() => navigate(AUTO_SCALE_PATH)}
                 className="font-medium text-foreground underline-offset-2 hover:underline"
               >
@@ -70,7 +79,6 @@ export default function ChooseServerType() {
               {noteAfter}
             </span>
           </div>
-          )}
         </div>
 
         {/* The wizard's price and summary column, empty until the server is
