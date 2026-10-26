@@ -184,32 +184,14 @@ export default function Servers() {
     <CreateMenu
       onSingle={() => navigate(CREATE_SERVER_PATH)}
       onGroup={() => navigate(AUTO_SCALE_PATH)}
-      isRTL={isRTL}
+      align={isRTL ? "start" : "end"}
     />
   );
 
-  // ---- Empty: no servers at all ----------------------------------------------
-  if (servers.length === 0) {
-    return (
-      <div data-uniform-type className="p-4 lg:p-6">
-        <PageHeader title={t("Cloud Server")} />
-        <Card>
-          <CardContent className="flex flex-col items-center px-6 py-16 text-center">
-            <span className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
-              <Server className="size-7" />
-            </span>
-            <h2 className="mt-5 text-lg font-semibold text-foreground">{t("No servers yet")}</h2>
-            <p className="mt-1 max-w-md text-sm text-muted-foreground">
-              {t("Create a virtual machine that runs Linux, from one of the ready images.")}
-            </p>
-            <div className="mt-6">{createMenu}</div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   // ---- The list ---------------------------------------------------------------
+  /* With no servers at all the page keeps its header, cards, toolbar and
+     columns, as the gateway list does, and the empty state takes the place of
+     the rows. */
   const filterFields: FilterField[] = [
     {
       key: "status",
@@ -375,7 +357,29 @@ export default function Servers() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.length === 0 ? (
+                {servers.length === 0 ? (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={9}>
+                      <div className="flex flex-col items-center px-6 py-14 text-center">
+                        <span className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                          <Server className="size-7" />
+                        </span>
+                        <h2 className="mt-5 text-lg font-semibold text-foreground">{t("No servers yet")}</h2>
+                        <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                          {t("Create a virtual machine from one of the ready Linux or Windows images.")}
+                        </p>
+                        {/* Centred under its own button. */}
+                        <div className="mt-6">
+                          <CreateMenu
+                            onSingle={() => navigate(CREATE_SERVER_PATH)}
+                            onGroup={() => navigate(AUTO_SCALE_PATH)}
+                            align="center"
+                          />
+                        </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : filtered.length === 0 ? (
                   <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={9}>
                       <p className="py-12 text-center text-muted-foreground">{t("No servers match these filters.")}</p>
@@ -615,7 +619,15 @@ export default function Servers() {
 }
 
 /** Create, with the two ways to make a server, as on the empty page. */
-function CreateMenu({ onSingle, onGroup, isRTL }: { onSingle: () => void; onGroup: () => void; isRTL: boolean }) {
+function CreateMenu({
+  onSingle,
+  onGroup,
+  align,
+}: {
+  onSingle: () => void;
+  onGroup: () => void;
+  align: "start" | "center" | "end";
+}) {
   const t = useT();
   return (
     <DropdownMenu>
@@ -626,7 +638,7 @@ function CreateMenu({ onSingle, onGroup, isRTL }: { onSingle: () => void; onGrou
           <ChevronDown className="h-4 w-4 opacity-80" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align={isRTL ? "start" : "end"} className="w-64">
+      <DropdownMenuContent align={align} className="w-64">
         <DropdownMenuItem onClick={onSingle} className="items-start gap-2.5 py-2">
           <Server className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <span>

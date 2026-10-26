@@ -55,6 +55,8 @@ export interface CreatedServer {
   spec: string;
   ipv6: boolean;
   ipv4Address: string;
+  /** root on Linux, Administrator on Windows. */
+  username: string;
   ipv6Address: string;
   access: "ssh" | "password";
   sshKeyName?: string;

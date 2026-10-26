@@ -186,7 +186,7 @@ function Created({ server }: { server: CreatedServer }) {
                     )}
                   </TableCell>
                   <TableCell>
-                    <CopyValue value="root" onCopy={copy} />
+                    <CopyValue value={server.username ?? "root"} onCopy={copy} />
                   </TableCell>
                   <TableCell>
                     {server.access === "password" && server.password ? (

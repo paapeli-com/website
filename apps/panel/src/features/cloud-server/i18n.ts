@@ -215,8 +215,8 @@ const fa: Record<string, string> = {
   servers: "سرور",
   "Total servers": "کل سرورها",
   "No servers yet": "هنوز سروری ندارید",
-  "Create a virtual machine that runs Linux, from one of the ready images.":
-    "یک ماشین مجازی لینوکسی را از روی یکی از ایمیج‌های آماده بسازید.",
+  "Create a virtual machine from one of the ready Linux or Windows images.":
+    "یک ماشین مجازی را از روی یکی از ایمیج‌های آماده‌ی لینوکس یا ویندوز بسازید.",
   "One server you configure yourself.": "یک سرور با تنظیمات خودتان.",
   "Servers that grow and shrink with load.": "سرورهایی که با تغییر بار بزرگ و کوچک می‌شوند.",
   "Search by name, IP or image": "جست‌وجو با نام، IP یا ایمیج",
@@ -451,8 +451,8 @@ const ar: Record<string, string> = {
   servers: "خوادم",
   "Total servers": "إجمالي الخوادم",
   "No servers yet": "لا توجد خوادم بعد",
-  "Create a virtual machine that runs Linux, from one of the ready images.":
-    "أنشئ جهازًا افتراضيًا بنظام لينكس من إحدى الصور الجاهزة.",
+  "Create a virtual machine from one of the ready Linux or Windows images.":
+    "أنشئ جهازًا افتراضيًا من إحدى صور لينكس أو ويندوز الجاهزة.",
   "One server you configure yourself.": "خادم واحد بإعداداتك.",
   "Servers that grow and shrink with load.": "خوادم تكبر وتصغر مع الحمل.",
   "Search by name, IP or image": "ابحث بالاسم أو IP أو الصورة",

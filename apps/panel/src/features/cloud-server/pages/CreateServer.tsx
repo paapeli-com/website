@@ -58,6 +58,7 @@ import {
   DEFAULT_IMAGE,
   DEFAULT_PLAN_ID,
   BACKUP_RATE,
+  adminUser,
   DISK_GB_MONTHLY,
   FIREWALLS,
   FLOATING_IPS,
@@ -113,10 +114,10 @@ function generatePassword() {
 
 let diskSeq = 0;
 
-/** Where a disk shows up inside the server: sda is the boot disk, then sdb,
-    sdc and on. Every image offered today is Linux; a Windows image would
-    read C:, D: and so on instead. */
-const devicePath = (index: number) => `/dev/sd${String.fromCharCode(97 + index)}`;
+/** Where a disk shows up inside the server. On Linux the boot disk is sda,
+    then sdb, sdc and on; on Windows it is drive C:, then D:, E: and on. */
+const devicePath = (index: number, family: "linux" | "windows") =>
+  family === "windows" ? `${String.fromCharCode(67 + index)}:` : `/dev/sd${String.fromCharCode(97 + index)}`;
 
 /* The boot disk slider runs on a log scale: from 25 GB to 1 TB, a linear one
    puts 50, 100 and 200 GB in the first sliver of the track. On a log scale
@@ -294,6 +295,7 @@ export default function CreateServer() {
       spec: `${plan.vcpu} vCPU · ${plan.ramGb} GB RAM`,
       ipv6,
       ipv4Address: addresses.ipv4,
+      username: adminUser(image.family),
       ipv6Address: addresses.ipv6,
       access,
       sshKeyName: access === "ssh" ? keys.find((k) => k.id === sshKeyId)?.name : undefined,
@@ -649,7 +651,7 @@ export default function CreateServer() {
                             </TableCell>
                             <TableCell>
                               <code dir="ltr" className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
-                                {devicePath(0)}
+                                {devicePath(0, image.family)}
                               </code>
                             </TableCell>
                             <TableCell />
@@ -687,7 +689,7 @@ export default function CreateServer() {
                               </TableCell>
                               <TableCell>
                                 <code dir="ltr" className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
-                                  {devicePath(i + 1)}
+                                  {devicePath(i + 1, image.family)}
                                 </code>
                               </TableCell>
                               <TableCell>

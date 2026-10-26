@@ -35,17 +35,24 @@ export interface OsImage {
   versions: string[];
   /** The distribution's own colour, for its monogram tile. */
   color: string;
+  /** Decides how disks are named inside the server and who signs in. */
+  family: "linux" | "windows";
 }
 
 export const IMAGES: OsImage[] = [
-  { id: "ubuntu", name: "Ubuntu", versions: ["24.04 LTS", "22.04 LTS"], color: "#E95420" },
-  { id: "debian", name: "Debian", versions: ["13", "12"], color: "#D70A53" },
-  { id: "almalinux", name: "AlmaLinux", versions: ["10", "9"], color: "#0F4266" },
-  { id: "rocky", name: "Rocky Linux", versions: ["10", "9"], color: "#10B981" },
-  { id: "centos", name: "CentOS Stream", versions: ["10", "9"], color: "#932279" },
-  { id: "fedora", name: "Fedora", versions: ["43", "42"], color: "#294172" },
-  { id: "opensuse", name: "openSUSE Leap", versions: ["16.0", "15.6"], color: "#73BA25" },
+  { id: "ubuntu", name: "Ubuntu", versions: ["24.04 LTS", "22.04 LTS"], color: "#E95420", family: "linux" },
+  { id: "debian", name: "Debian", versions: ["13", "12"], color: "#D70A53", family: "linux" },
+  { id: "almalinux", name: "AlmaLinux", versions: ["10", "9"], color: "#0F4266", family: "linux" },
+  { id: "rocky", name: "Rocky Linux", versions: ["10", "9"], color: "#10B981", family: "linux" },
+  { id: "centos", name: "CentOS Stream", versions: ["10", "9"], color: "#932279", family: "linux" },
+  { id: "fedora", name: "Fedora", versions: ["43", "42"], color: "#294172", family: "linux" },
+  { id: "opensuse", name: "openSUSE Leap", versions: ["16.0", "15.6"], color: "#73BA25", family: "linux" },
+  { id: "windows-server", name: "Windows Server", versions: ["2026"], color: "#0078D4", family: "windows" },
+  { id: "windows-11", name: "Windows 11", versions: ["Pro"], color: "#0078D4", family: "windows" },
 ];
+
+/** The account a new server is signed in with. */
+export const adminUser = (family: OsImage["family"]) => (family === "windows" ? "Administrator" : "root");
 
 export const DEFAULT_IMAGE = { imageId: "ubuntu", version: "24.04 LTS" };
 
