@@ -49,6 +49,14 @@ const fa: Record<string, string> = {
   "Use 3 to 63 lowercase letters, digits or hyphens, starting with a letter.":
     "از ۳ تا ۶۳ حرف کوچک انگلیسی، عدد یا خط تیره استفاده کنید و با حرف شروع کنید.",
   Region: "منطقه",
+  "Region and availability zone": "منطقه و ناحیهٔ دسترس‌پذیری",
+  "Choose where your server will be located.": "محل قرار گرفتن سرور را انتخاب کنید.",
+  Iran: "ایران",
+  Tehran: "تهران",
+  "Low latency in Iran": "تأخیر کم در ایران",
+  Default: "پیش‌فرض",
+  "A server stays in the region it is created in; the region cannot be changed later.":
+    "سرور در همان منطقه‌ای که ساخته می‌شود می‌ماند و منطقه بعداً قابل تغییر نیست.",
   "Availability zone": "ناحیهٔ دسترس‌پذیری",
 
   // Image
@@ -242,6 +250,14 @@ const ar: Record<string, string> = {
   "Use 3 to 63 lowercase letters, digits or hyphens, starting with a letter.":
     "استخدم من ٣ إلى ٦٣ حرفًا إنجليزيًا صغيرًا أو رقمًا أو شرطة، على أن يبدأ بحرف.",
   Region: "المنطقة",
+  "Region and availability zone": "المنطقة ومنطقة التوفر",
+  "Choose where your server will be located.": "اختر مكان خادمك.",
+  Iran: "إيران",
+  Tehran: "طهران",
+  "Low latency in Iran": "زمن استجابة منخفض في إيران",
+  Default: "افتراضي",
+  "A server stays in the region it is created in; the region cannot be changed later.":
+    "يبقى الخادم في المنطقة التي أُنشئ فيها، ولا يمكن تغيير المنطقة لاحقًا.",
   "Availability zone": "منطقة التوفر",
 
   // Image

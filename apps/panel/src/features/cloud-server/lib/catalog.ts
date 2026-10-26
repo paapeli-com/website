@@ -15,11 +15,19 @@ export type Money = Record<CurrencyCode, number>;
 
 export interface Region {
   id: string;
-  name: string;
+  /** ISO country code, for the card's outline and flag. */
+  country: string;
+  /** English names; the page translates them. */
+  countryName: string;
+  city: string;
+  /** What the region is good for, as short tags. */
+  tags: string[];
   zones: string[];
 }
 
-export const REGIONS: Region[] = [{ id: "thr-1", name: "Tehran-1", zones: ["AZ-1"] }];
+export const REGIONS: Region[] = [
+  { id: "thr-1", country: "IR", countryName: "Iran", city: "Tehran", tags: ["Low latency in Iran"], zones: ["AZ-1"] },
+];
 
 export interface OsImage {
   id: string;

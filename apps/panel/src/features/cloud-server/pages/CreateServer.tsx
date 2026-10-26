@@ -49,6 +49,7 @@ import { useT } from "../i18n";
 import { CreateFooter, CreateHeader, CreatePage, NEW_SERVER_PATH, SERVERS_PATH, SERVER_CREATED_PATH } from "../ui";
 import { clearQuickCreate, loadQuickCreate, saveQuickCreate, type CreatedServer } from "../lib/quickCreate";
 import { OsLogo } from "../lib/osLogos";
+import { CountryFlag, CountryOutline } from "../lib/regionArt";
 import {
   ADDITIONAL_DISK_MAX_GB,
   BOOT_DISK_MAX_GB,
@@ -320,43 +321,83 @@ export default function CreateServer() {
                     </p>
                   </div>
 
-                  <div className="grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <FieldLabel required>{t("Region")}</FieldLabel>
-                      <Select
-                        value={regionId}
-                        onValueChange={(v) => {
-                          setRegionId(v);
-                          setZone(REGIONS.find((r) => r.id === v)!.zones[0]);
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {REGIONS.map((r) => (
-                            <SelectItem key={r.id} value={r.id}>
-                              {r.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  {/* Region and zone: a card per region, with the zone picked
+                      inside the card it belongs to. One region for now; the
+                      grid takes more as they open. */}
+                  <div className="border-t border-border pt-5">
+                    <div className="mb-4 flex items-center gap-3">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                        <MapPin className="size-[18px]" />
+                      </span>
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground">{t("Region and availability zone")}</h3>
+                        <p className="text-xs text-muted-foreground">{t("Choose where your server will be located.")}</p>
+                      </div>
                     </div>
-                    <div>
-                      <FieldLabel required>{t("Availability zone")}</FieldLabel>
-                      <Select value={zone} onValueChange={setZone}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {region.zones.map((z) => (
-                            <SelectItem key={z} value={z}>
-                              {z}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+
+                    <div role="radiogroup" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                      {REGIONS.map((r) => {
+                        const selected = r.id === regionId;
+                        return (
+                          <OptionCard
+                            key={r.id}
+                            selected={selected}
+                            onSelect={() => {
+                              if (r.id === regionId) return;
+                              setRegionId(r.id);
+                              setZone(r.zones[0]);
+                            }}
+                          >
+                            <div className="relative">
+                              <CountryOutline
+                                country={r.country}
+                                className={cn(
+                                  "pointer-events-none absolute -top-1 start-0 h-16 w-20",
+                                  selected ? "text-primary/15" : "text-muted",
+                                )}
+                              />
+                              <div className="relative ps-24">
+                                <CountryFlag country={r.country} className="h-3.5 w-6 rounded-[2px]" />
+                                <p className="mt-1.5 text-base font-semibold text-foreground">{t(r.countryName)}</p>
+                                <p className="text-xs text-muted-foreground">{t(r.city)}</p>
+                                <div className="mt-2 flex flex-wrap gap-1.5">
+                                  {r.tags.map((tag) => (
+                                    <Pill key={tag} tone="ok">
+                                      {t(tag)}
+                                    </Pill>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="mt-4" onClick={(e) => e.stopPropagation()}>
+                              <p className="mb-1.5 text-xs font-medium text-foreground">{t("Availability zone")}</p>
+                              <Select
+                                value={selected ? zone : r.zones[0]}
+                                onValueChange={(v) => {
+                                  setRegionId(r.id);
+                                  setZone(v);
+                                }}
+                              >
+                                <SelectTrigger className="h-9" dir="ltr">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {r.zones.map((z, i) => (
+                                    <SelectItem key={z} value={z}>
+                                      {i === 0 ? `${z} (${t("Default")})` : z}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </OptionCard>
+                        );
+                      })}
                     </div>
+
+                    <Note className="mt-4">
+                      {t("A server stays in the region it is created in; the region cannot be changed later.")}
+                    </Note>
                   </div>
 
                 </div>
@@ -830,7 +871,7 @@ export default function CreateServer() {
                 <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
                   <ReviewBlock title={t("Basics")} onEdit={() => setStep(0)}>
                     <ReviewLine label={t("Server name")} value={<span dir="ltr">{name}</span>} />
-                    <ReviewLine label={t("Region")} value={`${region.name} · ${zone}`} />
+                    <ReviewLine label={t("Region")} value={`${t(region.city)} · ${zone}`} />
                   </ReviewBlock>
                   <ReviewBlock title={t("Image")} onEdit={() => setStep(1)}>
                     <ReviewLine label={t("Operating system")} value={<span dir="ltr">{`${image.name} ${versions[image.id]}`}</span>} />
@@ -880,7 +921,7 @@ export default function CreateServer() {
             <div className="mt-4 border-t border-border pt-4">
               <p className="mb-2 text-sm font-semibold text-foreground">{t("Summary")}</p>
               <SummaryLine icon={Server} label={t("Server name")} value={<span dir="ltr">{name || "-"}</span>} />
-              <SummaryLine icon={MapPin} label={t("Region")} value={`${region.name} · ${zone}`} />
+              <SummaryLine icon={MapPin} label={t("Region")} value={`${t(region.city)} · ${zone}`} />
               <SummaryLine
                 icon={Disc}
                 label={t("Image")}
