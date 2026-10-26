@@ -69,6 +69,7 @@ import {
 import { CREATE_GPU_SERVER_PATH, CREATE_SERVER_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText, groupPath } from "../ui";
 import { groupInstances, useGroups } from "../lib/autoscaleStore";
 import { detachFrom } from "../lib/ipStore";
+import { releaseFromServers, useFloatingIps } from "../lib/floatingStore";
 import { useShellT } from "@/shared/i18n/shell";
 
 /* The server list: Smart Factory's device list, piece for piece.
@@ -729,6 +730,7 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
         onClose={() => setDeleteIds(null)}
         onDeleted={(ids) => {
           detachFrom(ids);
+          releaseFromServers(ids);
           removeServers(ids);
           setSelected((prev) => prev.filter((id) => !ids.includes(id)));
           toast.success(t("Servers deleted"));
@@ -756,6 +758,7 @@ function DeleteServersDialog({
   const { t: ft, isRTL, formatNumber } = useLanguage();
   const fx = ft as (k: string) => string;
   const [agreed, setAgreed] = useState(false);
+  const floatingIps = useFloatingIps();
   const open = servers.length > 0;
   useEffect(() => setAgreed(false), [open]);
 
@@ -776,7 +779,10 @@ function DeleteServersDialog({
         <div className="max-h-[45vh] divide-y divide-border overflow-y-auto rounded-lg border border-border">
           {servers.map((sv) => {
             const released = [sv.ipv4, ...(sv.ipv6 ? [sv.ipv6] : []), ...(sv.extraIps ?? []).filter((i) => !i.reservedId).map((i) => i.address)];
-            const kept = (sv.extraIps ?? []).filter((i) => i.reservedId);
+            const kept = [
+              ...(sv.extraIps ?? []).filter((i) => i.reservedId),
+              ...floatingIps.filter((f) => f.attachedTo?.serverId === sv.id).map((f) => ({ address: f.address })),
+            ];
             const disks = sv.disks ?? [{ label: "Boot disk", sizeGb: sv.diskGb, path: "" }];
             return (
               <div key={sv.id} className="space-y-1 px-3 py-2.5 text-xs">

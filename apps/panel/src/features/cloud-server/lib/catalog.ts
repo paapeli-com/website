@@ -189,6 +189,9 @@ export const HOST_PERIODS: { months: 1 | 6 | 12; discount: number }[] = [
   { months: 12, discount: 0.2 },
 ];
 
+/** A floating IP a month, its router's public address included. */
+export const FLOATING_IP_MONTHLY: Money = { TOMAN: 300_000, USD: 6, QAR: 22 };
+
 /** An additional public IPv4 made with a server, a month. */
 export const EXTRA_IP_MONTHLY: Money = { TOMAN: 150_000, USD: 3, QAR: 11 };
 

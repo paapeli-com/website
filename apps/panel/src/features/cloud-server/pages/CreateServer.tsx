@@ -71,6 +71,7 @@ import {
 import { OsLogo } from "../lib/osLogos";
 import { addServer, sampleAddresses, useServers } from "../lib/serverStore";
 import { attachIp, useReservedIps } from "../lib/ipStore";
+import { associateFloating, useFloatingIps } from "../lib/floatingStore";
 import { hostStatus, useClusters, useHosts, type HostRecord } from "../lib/hostStore";
 import { CountryFlag, CountryOutline } from "../lib/regionArt";
 import {
@@ -246,6 +247,8 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
 
   const [ipv6, setIpv6] = useState(saved?.ipv6 ?? true);
   const [floatingIpId, setFloatingIpId] = useState("none");
+  const floatingFree = useFloatingIps().filter((i) => !i.attachedTo && i.region === region.city);
+  const floating = floatingFree.find((i) => i.id === floatingIpId);
   /* An additional public IP: none, a new one, or one of the account's
      reserved IPs in this region that is not attached yet. */
   const [extraIp, setExtraIp] = useState<string>("none");
@@ -356,6 +359,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
           ? [{ address: extraReserved.address, reservedId: extraReserved.id }]
           : [];
     if (extraReserved) attachIp(extraReserved.id, id, name);
+    if (floating) associateFloating(floating.id, id, name);
     /* Into the server list straight away, as a server being created. */
     addServer({
       id,
@@ -874,47 +878,47 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
             {step === 4 && (
               <StepSection icon={Globe} title={t("Network")}>
                 <div className="space-y-3">
+                  {/* IPv4, with a second address beneath it if wanted: one box
+                      for the server's public IPv4, not two. */}
                   <SettingRow
                     icon={Globe}
                     title={t("Public IPv4")}
                     description={t("A fixed public IPv4 address is assigned to every server.")}
                     control={<Pill>{t("Included")}</Pill>}
-                  />
+                  >
+                    <div className="mt-3 border-t border-border pt-3">
+                      <p className="text-sm font-medium text-foreground">{t("Additional public IP")}</p>
+                      <div className="mt-2 flex flex-wrap items-center gap-3">
+                        <Select value={extraIp} onValueChange={setExtraIp}>
+                          <SelectTrigger className="h-9 w-full sm:w-72">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">{t("None")}</SelectItem>
+                            <SelectItem value="new">
+                              {t("New IP")} · +{format(EXTRA_IP_MONTHLY[currency])} {t("/ month")}
+                            </SelectItem>
+                            {reservedFree.map((ip) => (
+                              <SelectItem key={ip.id} value={ip.id}>
+                                <span dir="ltr">{ip.address}</span> · {t("Reserved")}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {reservedFree.length === 0 && (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {t("IPs you reserve under Public IPs can be attached here too.")}
+                        </p>
+                      )}
+                    </div>
+                  </SettingRow>
                   <SettingRow
                     icon={Globe}
                     title={t("IPv6")}
                     description={t("Assign a public IPv6 address as well.")}
                     control={<Switch checked={ipv6} onCheckedChange={setIpv6} aria-label={t("IPv6")} />}
                   />
-                  <SettingRow
-                    icon={Plus}
-                    title={t("Additional public IP")}
-                    description={t("A second public IPv4, besides the one every server gets.")}
-                  >
-                    <div className="mt-3 flex flex-wrap items-center gap-3">
-                      <Select value={extraIp} onValueChange={setExtraIp}>
-                        <SelectTrigger className="h-9 w-full sm:w-72">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">{t("None")}</SelectItem>
-                          <SelectItem value="new">
-                            {t("New IP")} · +{format(EXTRA_IP_MONTHLY[currency])} {t("/ month")}
-                          </SelectItem>
-                          {reservedFree.map((ip) => (
-                            <SelectItem key={ip.id} value={ip.id}>
-                              <span dir="ltr">{ip.address}</span> · {t("Reserved")}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {reservedFree.length === 0 && (
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        {t("IPs you reserve under Public IPs can be attached here too.")}
-                      </p>
-                    )}
-                  </SettingRow>
                   <SettingRow icon={Repeat} title={t("Floating IP")} description={t("A static address you can move between servers.")}>
                     <div className="mt-3 flex flex-wrap items-center gap-3">
                       <Select value={floatingIpId} onValueChange={setFloatingIpId}>
@@ -923,20 +927,21 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">{t("None")}</SelectItem>
-                          {FLOATING_IPS.map((ip) => (
+                          {floatingFree.map((ip) => (
                             <SelectItem key={ip.id} value={ip.id}>
-                              {ip.address}
+                              <span dir="ltr">{ip.address}</span>
+                              {ip.description ? ` · ${ip.description}` : ""}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      {FLOATING_IPS.length === 0 && (
+                      {floatingFree.length === 0 && (
                         <Button variant="outline" size="sm" onClick={() => navigate(`${CLOUD_SERVER_BASE}/floating-ips`)}>
                           {t("Create a floating IP")}
                         </Button>
                       )}
                     </div>
-                    {FLOATING_IPS.length === 0 && (
+                    {floatingFree.length === 0 && (
                       <p className="mt-2 text-xs text-muted-foreground">
                         {t("No floating IP yet. Create one under Floating IPs, then attach it here or later.")}
                       </p>
@@ -1099,7 +1104,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                       label={t("Additional public IP")}
                       value={extraIp === "new" ? t("New IP") : extraReserved ? <span dir="ltr">{extraReserved.address}</span> : t("None")}
                     />
-                    <ReviewLine label={t("Floating IP")} value={t("None")} />
+                    <ReviewLine label={t("Floating IP")} value={floating ? <span dir="ltr">{floating.address}</span> : t("None")} />
                   </ReviewBlock>
                   <ReviewBlock title={t("Security")} onEdit={() => setStep(SECURITY_STEP)}>
                     <ReviewLine

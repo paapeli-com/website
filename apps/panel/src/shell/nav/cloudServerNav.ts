@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Split,
   Users,
+  Waypoints,
 } from "lucide-react";
 import type { NavSection } from "./types";
 
@@ -58,6 +59,7 @@ const items = [
     children: [
       { title: "Public IPs", icon: Globe, path: p("/public-ips") },
       { title: "Floating IPs", icon: MapPin, path: p("/floating-ips") },
+      { title: "Private Networks", icon: Waypoints, path: p("/vpc") },
       { title: "Load Balancer", icon: Split, path: p("/load-balancers") },
     ],
   },

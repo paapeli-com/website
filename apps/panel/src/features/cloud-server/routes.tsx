@@ -12,6 +12,7 @@ import AutoScaleGroup from "./pages/AutoScaleGroup";
 import ServerCreated from "./pages/ServerCreated";
 import Images from "./pages/Images";
 import PublicIps from "./pages/PublicIps";
+import FloatingIps from "./pages/FloatingIps";
 import DedicatedServers from "./pages/DedicatedServers";
 import CreateDedicated from "./pages/CreateDedicated";
 import UploadImage from "./pages/UploadImage";
@@ -57,9 +58,12 @@ export default function CloudServerRoutes() {
             <Route path="/dedicated-servers" element={<DedicatedServers />} />
             <Route path="/dedicated-servers/create" element={<CreateDedicated />} />
             <Route path="/public-ips" element={<PublicIps />} />
+            <Route path="/floating-ips" element={<FloatingIps />} />
             <Route path="/images" element={<Images />} />
             <Route path="/images/upload" element={<UploadImage />} />
-            {CLOUD_SERVER_PAGES.filter(([segment]) => !["servers", "gpu-servers", "images", "dedicated-servers", "auto-scale", "public-ips"].includes(segment)).map(([segment, title]) => (
+            {CLOUD_SERVER_PAGES.filter(
+              ([segment]) => !["servers", "gpu-servers", "images", "dedicated-servers", "auto-scale", "public-ips", "floating-ips"].includes(segment),
+            ).map(([segment, title]) => (
               <Route key={segment} path={`/${segment}`} element={<Page title={title} />} />
             ))}
             <Route path="*" element={<Navigate to={`${CLOUD_SERVER_BASE}/servers`} replace />} />
