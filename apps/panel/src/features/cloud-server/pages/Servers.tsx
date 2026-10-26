@@ -1,0 +1,728 @@
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Camera,
+  ChevronDown,
+  ChevronUp,
+  CircleStop,
+  Copy,
+  Download,
+  Eye,
+  Info,
+  Layers,
+  Loader2,
+  MoreHorizontal,
+  Pencil,
+  Play,
+  Plus,
+  Power,
+  Server,
+  SquareTerminal,
+  Tag,
+  Trash2,
+} from "lucide-react";
+import { PageHeader } from "@/features/factory/components/PageHeader";
+import { SmartPagination } from "@/features/factory/components/SmartPagination";
+import { KpiSection } from "@/features/factory/components/panel/KpiSection";
+import { ListToolbar, type ActionItem, type FilterField, type SortOption } from "@/features/factory/components/panel/ListToolbar";
+import { Button } from "@/features/factory/components/ui/button";
+import { Card, CardContent } from "@/features/factory/components/ui/card";
+import { Checkbox } from "@/features/factory/components/ui/checkbox";
+import { Input } from "@/features/factory/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/features/factory/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/features/factory/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/features/factory/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/features/factory/components/ui/dialog";
+import { useLanguage } from "@/features/factory/contexts/LanguageContext";
+import { formatDateTime } from "@/shared/lib/formatDate";
+import { toast } from "@/shared/lib/toast";
+import { cn } from "@/shared/lib/utils";
+import { CLOUD_SERVER_BASE } from "@/shell/nav/cloudServerNav";
+import { useT } from "../i18n";
+import { OsLogo } from "../lib/osLogos";
+import { IMAGES } from "../lib/catalog";
+import {
+  removeServers,
+  serverStatus,
+  updateServer,
+  useServers,
+  type ServerRecord,
+  type ServerStatus,
+} from "../lib/serverStore";
+import { CREATE_SERVER_PATH } from "../ui";
+
+/* The server list: Smart Factory's device list, piece for piece.
+ *
+ * Same page header with its count, the same KPI cards that filter the table,
+ * the shared list toolbar (search, refresh, filters, sort, bulk actions) with
+ * no view switcher, the device table's treatment with row selection and an
+ * expandable row, the same row actions at the end, the same delete
+ * confirmation and the same pagination. What differs is only what a server
+ * has that a device does not.
+ *
+ * With no servers at all, the page is an empty state whose Create button
+ * offers the two ways to make one.
+ */
+
+const AUTO_SCALE_PATH = `${CLOUD_SERVER_BASE}/auto-scale`;
+
+type SortKey = "created" | "nameAsc" | "nameDesc" | "status";
+
+export default function Servers() {
+  const t = useT();
+  const { t: ft, isRTL, language, formatNumber } = useLanguage();
+  const fx = ft as (k: string) => string;
+  const navigate = useNavigate();
+  const servers = useServers();
+
+  /* Re-read the clock while anything is being created, so its status turns
+     over without a refresh. */
+  const [now, setNow] = useState(Date.now());
+  const anyCreating = servers.some((s) => serverStatus(s, now) === "creating");
+  useEffect(() => {
+    if (!anyCreating) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [anyCreating]);
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | ServerStatus>("all");
+  const [imageFilter, setImageFilter] = useState("all");
+  const [sortKey, setSortKey] = useState<SortKey>("created");
+  const [sortDirection, setSortDirection] = useState<"desc" | "asc">("desc");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [expanded, setExpanded] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [deleteIds, setDeleteIds] = useState<string[] | null>(null);
+  const [renaming, setRenaming] = useState<ServerRecord | null>(null);
+
+  const statusLabel: Record<ServerStatus, string> = {
+    creating: t("Creating"),
+    running: t("Running"),
+    stopped: t("Powered off"),
+  };
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return servers
+      .filter((s) => {
+        const status = serverStatus(s, now);
+        return (
+          (!q || s.name.toLowerCase().includes(q) || s.ipv4.includes(q) || s.image.toLowerCase().includes(q)) &&
+          (statusFilter === "all" || status === statusFilter) &&
+          (imageFilter === "all" || s.imageId === imageFilter)
+        );
+      })
+      .sort((a, b) => {
+        switch (sortKey) {
+          case "nameAsc":
+            return a.name.localeCompare(b.name);
+          case "nameDesc":
+            return b.name.localeCompare(a.name);
+          case "status":
+            return serverStatus(a, now).localeCompare(serverStatus(b, now));
+          default:
+            return sortDirection === "desc" ? b.createdAt - a.createdAt : a.createdAt - b.createdAt;
+        }
+      });
+  }, [servers, search, statusFilter, imageFilter, sortKey, sortDirection, now]);
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const pageRows = filtered.slice(startIndex, endIndex);
+
+  const copy = (value: string) =>
+    void navigator.clipboard?.writeText(value).then(
+      () => toast.success(t("Copied")),
+      () => toast.error(t("Could not copy")),
+    );
+  const comingSoon = () => toast.info(fx("comingSoon"));
+
+  const setPower = (ids: string[], on: boolean) => {
+    ids.forEach((id) => updateServer(id, { powerOn: on }));
+    toast.success(on ? t("Powering on") : t("Powering off"));
+  };
+
+  const exportCsv = () => {
+    const header = ["name", "status", "image", "region", "zone", "ipv4", "plan", "created"];
+    const rows = filtered.map((s) => [
+      s.name,
+      serverStatus(s, now),
+      s.image,
+      s.region,
+      s.zone,
+      s.ipv4,
+      s.planId.toUpperCase(),
+      new Date(s.createdAt).toISOString(),
+    ]);
+    const csv = [header, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `servers-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const createMenu = (
+    <CreateMenu
+      onSingle={() => navigate(CREATE_SERVER_PATH)}
+      onGroup={() => navigate(AUTO_SCALE_PATH)}
+      isRTL={isRTL}
+    />
+  );
+
+  // ---- Empty: no servers at all ----------------------------------------------
+  if (servers.length === 0) {
+    return (
+      <div data-uniform-type className="p-4 lg:p-6">
+        <PageHeader title={t("Cloud Server")} />
+        <Card>
+          <CardContent className="flex flex-col items-center px-6 py-16 text-center">
+            <span className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <Server className="size-7" />
+            </span>
+            <h2 className="mt-5 text-lg font-semibold text-foreground">{t("No servers yet")}</h2>
+            <p className="mt-1 max-w-md text-sm text-muted-foreground">
+              {t("Create a virtual machine that runs Linux, from one of the ready images.")}
+            </p>
+            <div className="mt-6">{createMenu}</div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // ---- The list ---------------------------------------------------------------
+  const filterFields: FilterField[] = [
+    {
+      key: "status",
+      label: fx("status"),
+      value: statusFilter,
+      onChange: (v) => {
+        setStatusFilter(v as "all" | ServerStatus);
+        setCurrentPage(1);
+      },
+      options: [
+        { value: "all", label: fx("all") },
+        ...(["running", "stopped", "creating"] as ServerStatus[]).map((s) => ({ value: s, label: statusLabel[s] })),
+      ],
+    },
+    {
+      key: "image",
+      label: t("Operating system"),
+      value: imageFilter,
+      onChange: (v) => {
+        setImageFilter(v);
+        setCurrentPage(1);
+      },
+      options: [
+        { value: "all", label: fx("all") },
+        ...IMAGES.filter((i) => servers.some((s) => s.imageId === i.id)).map((i) => ({ value: i.id, label: i.name })),
+      ],
+    },
+  ];
+
+  const sortOptions: SortOption[] = [
+    { key: "nameAsc", label: fx("sortNameAsc") },
+    { key: "nameDesc", label: fx("sortNameDesc") },
+    { key: "created", label: t("Newest first") },
+    { key: "status", label: fx("sortStatus") },
+  ];
+
+  const actionItems: ActionItem[] = [
+    { key: "export", label: fx("export"), icon: Download, onSelect: exportCsv },
+    { key: "on", label: t("Power on"), icon: Play, onSelect: () => setPower(selected, true) },
+    { key: "off", label: t("Power off"), icon: CircleStop, onSelect: () => setPower(selected, false) },
+    { key: "delete", label: fx("delete"), icon: Trash2, destructive: true, onSelect: () => setDeleteIds(selected) },
+  ];
+
+  const counts = {
+    all: servers.length,
+    running: servers.filter((s) => serverStatus(s, now) === "running").length,
+    stopped: servers.filter((s) => serverStatus(s, now) === "stopped").length,
+    creating: servers.filter((s) => serverStatus(s, now) === "creating").length,
+  };
+  const kpis: { key: "all" | ServerStatus; label: string; icon: typeof Server; accent: string; bg: string }[] = [
+    { key: "all", label: t("Total servers"), icon: Server, accent: "text-primary", bg: "from-primary/10 to-transparent" },
+    { key: "running", label: t("Running"), icon: Play, accent: "text-emerald-500", bg: "from-emerald-50 to-transparent dark:from-emerald-500/10" },
+    { key: "stopped", label: t("Powered off"), icon: CircleStop, accent: "text-muted-foreground", bg: "from-muted/40 to-transparent" },
+    { key: "creating", label: t("Creating"), icon: Loader2, accent: "text-sky-500", bg: "from-sky-50 to-transparent dark:from-sky-500/10" },
+  ];
+
+  const allOnPageSelected = pageRows.length > 0 && pageRows.every((s) => selected.includes(s.id));
+
+  return (
+    <div data-uniform-type className="space-y-4 p-4 lg:p-6">
+      <PageHeader title={t("Cloud Server")} count={servers.length} countLabel={t("servers")} actions={createMenu} />
+
+      <KpiSection storageKey="cloud-servers" className="mb-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {kpis.map((k) => {
+            const Icon = k.icon;
+            const isActive = statusFilter === k.key;
+            return (
+              <button
+                key={k.key}
+                type="button"
+                onClick={() => {
+                  setStatusFilter(k.key);
+                  setCurrentPage(1);
+                }}
+                className={cn(
+                  "relative rounded-lg border bg-card bg-gradient-to-br px-3 py-2.5 text-start transition-all hover:shadow-sm",
+                  k.bg,
+                  isActive ? "border-primary shadow-sm ring-2 ring-primary/20" : "border-border",
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-xs font-medium text-muted-foreground">{k.label}</span>
+                  <Icon className={cn("h-3.5 w-3.5 shrink-0", k.accent)} />
+                </div>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-xl font-bold leading-none text-foreground">{formatNumber(counts[k.key])}</span>
+                  <span className="text-[11px] text-muted-foreground">{t("servers")}</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </KpiSection>
+
+      <Card>
+        <CardContent className="pt-6">
+          <ListToolbar
+            search={{
+              value: search,
+              onChange: (v) => {
+                setSearch(v);
+                setCurrentPage(1);
+              },
+              placeholder: t("Search by name, IP or image"),
+            }}
+            onRefresh={() => {
+              setIsRefreshing(true);
+              setNow(Date.now());
+              window.setTimeout(() => setIsRefreshing(false), 400);
+            }}
+            isRefreshing={isRefreshing}
+            filter={{
+              fields: filterFields,
+              activeCount: [statusFilter, imageFilter].filter((v) => v !== "all").length,
+              onClear: () => {
+                setStatusFilter("all");
+                setImageFilter("all");
+                setCurrentPage(1);
+              },
+            }}
+            sort={{ options: sortOptions, value: sortKey, onChange: (k) => setSortKey(k as SortKey) }}
+            actions={actionItems}
+            selectionCount={selected.length}
+          />
+
+          {/* The device list's table: same frame, header and row sizes. */}
+          <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead className="w-[44px] text-center">
+                    <div className="flex justify-center">
+                      <Checkbox
+                        checked={allOnPageSelected}
+                        onCheckedChange={(c) =>
+                          setSelected(c ? Array.from(new Set([...selected, ...pageRows.map((s) => s.id)])) : selected.filter((id) => !pageRows.some((s) => s.id === id)))
+                        }
+                        aria-label={t("Select all")}
+                      />
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-[36px]" />
+                  <TableHead>{t("Name")}</TableHead>
+                  <TableHead>{fx("status")}</TableHead>
+                  <TableHead>{t("Region / zone")}</TableHead>
+                  <TableHead>{t("IP address")}</TableHead>
+                  <TableHead>{t("Plan")}</TableHead>
+                  <TableHead>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSortKey("created");
+                        setSortDirection((d) => (d === "desc" ? "asc" : "desc"));
+                      }}
+                      className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
+                    >
+                      {t("Created")}
+                      {sortDirection === "desc" ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
+                    </button>
+                  </TableHead>
+                  <TableHead className="text-end">{fx("actions")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 ? (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={9}>
+                      <p className="py-12 text-center text-muted-foreground">{t("No servers match these filters.")}</p>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  pageRows.map((s) => {
+                    const status = serverStatus(s, now);
+                    const isExpanded = expanded.includes(s.id);
+                    const image = IMAGES.find((i) => i.id === s.imageId);
+                    const toggle = () =>
+                      setExpanded((prev) => (prev.includes(s.id) ? prev.filter((k) => k !== s.id) : [...prev, s.id]));
+                    return (
+                      <Fragment key={s.id}>
+                        <TableRow className="cursor-pointer border-b hover:bg-muted/30" onClick={toggle}>
+                          <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex justify-center">
+                              <Checkbox
+                                checked={selected.includes(s.id)}
+                                onCheckedChange={(c) =>
+                                  setSelected((prev) => (c ? [...prev, s.id] : prev.filter((id) => id !== s.id)))
+                                }
+                                aria-label={s.name}
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {isExpanded ? (
+                              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {image ? (
+                                <OsLogo
+                                  id={image.id}
+                                  name={image.name}
+                                  color={image.color}
+                                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs font-bold [&_svg]:size-4"
+                                />
+                              ) : (
+                                <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary">
+                                  <Server className="h-4 w-4" />
+                                </span>
+                              )}
+                              <div className="min-w-0">
+                                <div className="font-medium text-foreground" dir="ltr">
+                                  {s.name}
+                                </div>
+                                <div className="truncate text-xs text-muted-foreground" dir="ltr">
+                                  {s.image}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <StatusCell status={status} label={statusLabel[status]} />
+                          </TableCell>
+                          <TableCell>
+                            <span dir="ltr">
+                              {t(s.region)} / {s.zone}
+                            </span>
+                          </TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            {status === "creating" ? (
+                              <span className="text-muted-foreground">-</span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1">
+                                <code dir="ltr" className="font-mono text-xs text-foreground">
+                                  {s.ipv4}
+                                </code>
+                                <button
+                                  type="button"
+                                  onClick={() => copy(s.ipv4)}
+                                  aria-label={t("Copy")}
+                                  title={t("Copy")}
+                                  className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                >
+                                  <Copy className="size-3.5" />
+                                </button>
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium" dir="ltr">
+                              {s.planId.toUpperCase()}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("{cpu} vCPU · {ram} GB RAM", { cpu: formatNumber(s.vcpu), ram: formatNumber(s.ramGb) })}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {formatDateTime(s.createdAt, language)}
+                          </TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={comingSoon}>
+                                <Eye className="h-3.5 w-3.5" /> {fx("view")}
+                              </Button>
+                              <RowIcon label={t("Console")} onClick={comingSoon} disabled={status === "creating"}>
+                                <SquareTerminal className="h-4 w-4" />
+                              </RowIcon>
+                              <RowIcon
+                                label={s.powerOn ? t("Power off") : t("Power on")}
+                                onClick={() => setPower([s.id], !s.powerOn)}
+                                disabled={status === "creating"}
+                              >
+                                <Power className={cn("h-4 w-4", status === "running" && "text-emerald-600")} />
+                              </RowIcon>
+                              <DropdownMenu modal={false}>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" aria-label={fx("actions")}>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align={isRTL ? "start" : "end"} className="z-[100] w-48 bg-background">
+                                  <DropdownMenuItem onClick={comingSoon}>
+                                    <Info className="me-2 h-4 w-4" />
+                                    {t("Server details")}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setRenaming(s)}>
+                                    <Pencil className="me-2 h-4 w-4" />
+                                    {fx("rename")}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => navigate(`${CLOUD_SERVER_BASE}/snapshots`)}>
+                                    <Camera className="me-2 h-4 w-4" />
+                                    {t("Create snapshot")}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={comingSoon}>
+                                    <Tag className="me-2 h-4 w-4" />
+                                    {t("Add tag")}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => setDeleteIds([s.id])}
+                                  >
+                                    <Trash2 className="me-2 h-4 w-4" />
+                                    {t("Delete server")}
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        {isExpanded && (
+                          <TableRow className="bg-muted/20 hover:bg-muted/20">
+                            <TableCell colSpan={9} className="p-4">
+                              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                <ExpandField label={t("Server ID")} value={s.id} ltr />
+                                <ExpandField label={t("Operating system")} value={s.image} ltr />
+                                <ExpandField label={t("Disk")} value={`${formatNumber(s.diskGb)} ${t("GB")}`} />
+                                <ExpandField label={t("IPv6 address")} value={s.ipv6 ?? "-"} ltr />
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </Fragment>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Pagination: the device list's, as is. */}
+          {filtered.length > itemsPerPage && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-4 pt-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">{fx("rowsPerPage")}</span>
+                <Select
+                  value={itemsPerPage.toString()}
+                  onValueChange={(v) => {
+                    setItemsPerPage(Number(v));
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-[72px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent position="popper" className="min-w-[70px]" sideOffset={4}>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="ms-3 text-sm text-muted-foreground">
+                  {formatNumber(startIndex + 1)}-{formatNumber(Math.min(endIndex, filtered.length))} {fx("of")}{" "}
+                  {formatNumber(filtered.length)}
+                </span>
+              </div>
+              <SmartPagination
+                currentPage={currentPage}
+                totalPages={Math.max(totalPages, 1)}
+                onChange={(p) => p >= 1 && p <= totalPages && setCurrentPage(p)}
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* The device list's delete confirmation. */}
+      <Dialog open={!!deleteIds} onOpenChange={(open) => !open && setDeleteIds(null)}>
+        <DialogContent data-uniform-type className="sm:max-w-[425px]">
+          <DialogHeader className={isRTL ? "text-right" : ""}>
+            <DialogTitle className={isRTL ? "text-right" : ""}>{t("Delete servers?")}</DialogTitle>
+            <DialogDescription className={isRTL ? "text-right" : ""}>
+              {t("{n} servers and their disks will be deleted. This cannot be undone.", {
+                n: formatNumber(deleteIds?.length ?? 0),
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setDeleteIds(null)}>
+              {fx("cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                removeServers(deleteIds ?? []);
+                setSelected((prev) => prev.filter((id) => !deleteIds?.includes(id)));
+                toast.success(t("Servers deleted"));
+                setDeleteIds(null);
+              }}
+            >
+              {fx("delete")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <RenameDialog server={renaming} onClose={() => setRenaming(null)} />
+    </div>
+  );
+}
+
+/** Create, with the two ways to make a server, as on the empty page. */
+function CreateMenu({ onSingle, onGroup, isRTL }: { onSingle: () => void; onGroup: () => void; isRTL: boolean }) {
+  const t = useT();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button className="h-10 gap-2 rounded-md bg-primary px-5 text-primary-foreground hover:bg-primary/90">
+          <Plus className="h-4 w-4" />
+          {t("Create server")}
+          <ChevronDown className="h-4 w-4 opacity-80" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align={isRTL ? "start" : "end"} className="w-64">
+        <DropdownMenuItem onClick={onSingle} className="items-start gap-2.5 py-2">
+          <Server className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <span>
+            <span className="block font-medium">{t("Single virtual machine")}</span>
+            <span className="block text-xs text-muted-foreground">{t("One server you configure yourself.")}</span>
+          </span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onGroup} className="items-start gap-2.5 py-2">
+          <Layers className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <span>
+            <span className="block font-medium">{t("Auto Scale group")}</span>
+            <span className="block text-xs text-muted-foreground">{t("Servers that grow and shrink with load.")}</span>
+          </span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function StatusCell({ status, label }: { status: ServerStatus; label: string }) {
+  if (status === "creating") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-md bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-700 dark:text-sky-400">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        {label}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 text-sm">
+      <span className={cn("h-2 w-2 rounded-full", status === "running" ? "bg-emerald-500" : "bg-muted-foreground/50")} />
+      {label}
+    </span>
+  );
+}
+
+function RowIcon({
+  label,
+  onClick,
+  disabled,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={onClick} disabled={disabled} aria-label={label} title={label}>
+      {children}
+    </Button>
+  );
+}
+
+function ExpandField({ label, value, ltr }: { label: string; value: string; ltr?: boolean }) {
+  return (
+    <div className="rounded-lg border bg-background px-4 py-3">
+      <div className="mb-1 text-xs text-muted-foreground">{label}</div>
+      <div className="truncate text-sm font-medium text-foreground" dir={ltr ? "ltr" : undefined}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function RenameDialog({ server, onClose }: { server: ServerRecord | null; onClose: () => void }) {
+  const t = useT();
+  const { t: ft } = useLanguage();
+  const fx = ft as (k: string) => string;
+  const [name, setName] = useState("");
+  useEffect(() => setName(server?.name ?? ""), [server]);
+  const ok = /^[a-z][a-z0-9-]{1,61}[a-z0-9]$/.test(name);
+
+  return (
+    <Dialog open={!!server} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent data-uniform-type className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>{t("Rename server")}</DialogTitle>
+          <DialogDescription>{t("Lowercase letters, digits and hyphens; 3 to 63 characters.")}</DialogDescription>
+        </DialogHeader>
+        <Input dir="ltr" value={name} onChange={(e) => setName(e.target.value.toLowerCase())} />
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            {fx("cancel")}
+          </Button>
+          <Button
+            disabled={!ok}
+            onClick={() => {
+              if (server) updateServer(server.id, { name });
+              onClose();
+            }}
+          >
+            {fx("save")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

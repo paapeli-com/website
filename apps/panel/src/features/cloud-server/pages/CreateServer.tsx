@@ -49,6 +49,7 @@ import { useT } from "../i18n";
 import { CreateFooter, CreateHeader, CreatePage, NEW_SERVER_PATH, SERVERS_PATH, SERVER_CREATED_PATH } from "../ui";
 import { clearQuickCreate, loadQuickCreate, saveQuickCreate, type CreatedServer } from "../lib/quickCreate";
 import { OsLogo } from "../lib/osLogos";
+import { addServer, sampleAddresses } from "../lib/serverStore";
 import { CountryFlag, CountryOutline } from "../lib/regionArt";
 import {
   ADDITIONAL_DISK_MAX_GB,
@@ -268,11 +269,32 @@ export default function CreateServer() {
     } else {
       clearQuickCreate();
     }
+    const id = `srv-${Date.now().toString(36)}`;
+    const addresses = sampleAddresses(id);
+    /* Into the server list straight away, as a server being created. */
+    addServer({
+      id,
+      name,
+      imageId,
+      image: `${image.name} ${versions[imageId]}`,
+      planId: plan.id,
+      vcpu: plan.vcpu,
+      ramGb: plan.ramGb,
+      diskGb: bootGb + extraGb,
+      region: region.city,
+      zone,
+      ipv4: addresses.ipv4,
+      ipv6: ipv6 ? addresses.ipv6 : undefined,
+      powerOn,
+      createdAt: Date.now(),
+    });
     const created: CreatedServer = {
       name,
       image: `${image.name} ${versions[imageId]}`,
       spec: `${plan.vcpu} vCPU · ${plan.ramGb} GB RAM`,
       ipv6,
+      ipv4Address: addresses.ipv4,
+      ipv6Address: addresses.ipv6,
       access,
       sshKeyName: access === "ssh" ? keys.find((k) => k.id === sshKeyId)?.name : undefined,
       password: access === "password" ? generatePassword() : undefined,

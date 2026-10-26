@@ -210,6 +210,37 @@ const fa: Record<string, string> = {
   "Spread traffic across several servers.": "پخش ترافیک بین چند سرور.",
   "Resource Monitoring": "مانیتورینگ منابع",
   "CPU, memory, disk and network over time.": "مصرف پردازنده، حافظه، دیسک و شبکه در طول زمان.",
+
+  // Server list
+  servers: "سرور",
+  "Total servers": "کل سرورها",
+  "No servers yet": "هنوز سروری ندارید",
+  "Create a virtual machine that runs Linux, from one of the ready images.":
+    "یک ماشین مجازی لینوکسی را از روی یکی از ایمیج‌های آماده بسازید.",
+  "One server you configure yourself.": "یک سرور با تنظیمات خودتان.",
+  "Servers that grow and shrink with load.": "سرورهایی که با تغییر بار بزرگ و کوچک می‌شوند.",
+  "Search by name, IP or image": "جست‌وجو با نام، IP یا ایمیج",
+  "Select all": "انتخاب همه",
+  Name: "نام",
+  "Region / zone": "منطقه / ناحیه",
+  "IP address": "آدرس IP",
+  Created: "تاریخ ساخت",
+  "Newest first": "جدیدترین",
+  "No servers match these filters.": "سروری با این فیلترها پیدا نشد.",
+  Console: "کنسول",
+  "Power on": "روشن کردن",
+  "Power off": "خاموش کردن",
+  "Powering on": "در حال روشن شدن",
+  "Powering off": "در حال خاموش شدن",
+  "Create snapshot": "ایجاد اسنپ‌شات",
+  "Add tag": "افزودن برچسب",
+  "Delete server": "حذف سرور",
+  "Server ID": "شناسهٔ سرور",
+  "Rename server": "تغییر نام سرور",
+  "Delete servers?": "سرورها حذف شوند؟",
+  "{n} servers and their disks will be deleted. This cannot be undone.":
+    "{n} سرور به همراه دیسک‌هایشان حذف می‌شوند. این کار برگشت‌پذیر نیست.",
+  "Servers deleted": "سرورها حذف شدند",
 };
 
 const ar: Record<string, string> = {
@@ -415,6 +446,37 @@ const ar: Record<string, string> = {
   "Spread traffic across several servers.": "توزيع حركة البيانات على عدة خوادم.",
   "Resource Monitoring": "مراقبة الموارد",
   "CPU, memory, disk and network over time.": "استهلاك المعالج والذاكرة والقرص والشبكة عبر الوقت.",
+
+  // Server list
+  servers: "خوادم",
+  "Total servers": "إجمالي الخوادم",
+  "No servers yet": "لا توجد خوادم بعد",
+  "Create a virtual machine that runs Linux, from one of the ready images.":
+    "أنشئ جهازًا افتراضيًا بنظام لينكس من إحدى الصور الجاهزة.",
+  "One server you configure yourself.": "خادم واحد بإعداداتك.",
+  "Servers that grow and shrink with load.": "خوادم تكبر وتصغر مع الحمل.",
+  "Search by name, IP or image": "ابحث بالاسم أو IP أو الصورة",
+  "Select all": "تحديد الكل",
+  Name: "الاسم",
+  "Region / zone": "المنطقة / منطقة التوفر",
+  "IP address": "عنوان IP",
+  Created: "تاريخ الإنشاء",
+  "Newest first": "الأحدث أولًا",
+  "No servers match these filters.": "لا توجد خوادم تطابق هذه المرشحات.",
+  Console: "وحدة التحكم",
+  "Power on": "تشغيل",
+  "Power off": "إيقاف",
+  "Powering on": "جارٍ التشغيل",
+  "Powering off": "جارٍ الإيقاف",
+  "Create snapshot": "إنشاء لقطة",
+  "Add tag": "إضافة وسم",
+  "Delete server": "حذف الخادم",
+  "Server ID": "معرّف الخادم",
+  "Rename server": "إعادة تسمية الخادم",
+  "Delete servers?": "حذف الخوادم؟",
+  "{n} servers and their disks will be deleted. This cannot be undone.":
+    "سيتم حذف {n} من الخوادم مع أقراصها. لا يمكن التراجع عن ذلك.",
+  "Servers deleted": "تم حذف الخوادم",
 };
 
 const dictionaries: Record<AppLanguage, Record<string, string>> = { en: {}, fa, ar };

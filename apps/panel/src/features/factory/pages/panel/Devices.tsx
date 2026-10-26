@@ -208,7 +208,6 @@ const Devices = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<'blank' | null>('blank');
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'details'>('list');
-  const [listView, setListView] = useState<'table' | 'grid' | 'compact' | 'board'>('table');
   const [protocolFilter, setProtocolFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [deviceTypeFilter, setDeviceTypeFilter] = useState<string>('all');
@@ -669,7 +668,6 @@ const Devices = () => {
 
                     <ListToolbar
                       search={{ value: searchQuery, onChange: (v) => { setSearchQuery(v); setCurrentPage(1); }, placeholder: t('searchInDevices') }}
-                      view={{ value: listView, onChange: setListView, available: ['table'] }}
                       onRefresh={() => fetchDevices(true)}
                       isRefreshing={isRefreshing}
                       filter={{ fields: filterFields, activeCount: activeFilterCount, onClear: () => { setStatusFilter('all'); setLocationFilter('all'); setDeviceTypeFilter('all'); setProtocolFilter('all'); setCurrentPage(1); } }}

@@ -98,9 +98,6 @@ function useArrived(ms: number) {
   return arrived;
 }
 
-/** A documentation-range address, so nothing here points at a real host. */
-const sampleIpv4 = (name: string) => `203.0.113.${(name.length * 37) % 200 + 20}`;
-const sampleIpv6 = (name: string) => `2001:db8:${(name.length * 131).toString(16)}::1`;
 
 export default function ServerCreated() {
   const location = useLocation();
@@ -176,13 +173,13 @@ function Created({ server }: { server: CreatedServer }) {
                   </TableCell>
                   <TableCell>
                     <Pending ready={ipv4}>
-                      <CopyValue value={sampleIpv4(server.name)} onCopy={copy} />
+                      <CopyValue value={server.ipv4Address} onCopy={copy} />
                     </Pending>
                   </TableCell>
                   <TableCell>
                     {server.ipv6 ? (
                       <Pending ready={ipv6}>
-                        <CopyValue value={sampleIpv6(server.name)} onCopy={copy} />
+                        <CopyValue value={server.ipv6Address} onCopy={copy} />
                       </Pending>
                     ) : (
                       <span className="text-muted-foreground">-</span>

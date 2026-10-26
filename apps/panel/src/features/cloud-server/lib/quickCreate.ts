@@ -54,6 +54,8 @@ export interface CreatedServer {
   image: string;
   spec: string;
   ipv6: boolean;
+  ipv4Address: string;
+  ipv6Address: string;
   access: "ssh" | "password";
   sshKeyName?: string;
   password?: string;

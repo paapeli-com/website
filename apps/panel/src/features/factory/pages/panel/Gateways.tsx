@@ -302,7 +302,6 @@ const Gateways = () => {
         <CardContent className="pt-6">
           <ListToolbar
             search={{ value: searchQuery, onChange: (v) => { setSearchQuery(v); setPage(1); }, placeholder: t("searchGatewaysPlaceholder") }}
-            view={{ value: "table", onChange: () => {}, available: ["table"] }}
             onRefresh={refresh}
             isRefreshing={isRefreshing}
             filter={{
