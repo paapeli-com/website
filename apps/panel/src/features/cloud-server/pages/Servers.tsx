@@ -196,24 +196,16 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
     URL.revokeObjectURL(url);
   };
 
-  /* GPU servers have one way in, so no menu: the button opens the wizard. */
-  const gpuCreate = (
+  /* One way in, so no menu: the button opens the wizard. Auto Scale groups
+     are made from their own section in the sidebar. */
+  const createMenu = (
     <Button
-      onClick={() => navigate(CREATE_GPU_SERVER_PATH)}
+      onClick={() => navigate(isGpu ? CREATE_GPU_SERVER_PATH : CREATE_SERVER_PATH)}
       className="h-10 gap-2 rounded-md bg-primary px-5 text-primary-foreground hover:bg-primary/90"
     >
       <Plus className="h-4 w-4" />
-      {t("Create GPU server")}
+      {isGpu ? t("Create GPU server") : t("Create server")}
     </Button>
-  );
-  const createMenu = isGpu ? (
-    gpuCreate
-  ) : (
-    <CreateMenu
-      onSingle={() => navigate(CREATE_SERVER_PATH)}
-      onGroup={() => navigate(AUTO_SCALE_PATH)}
-      align={isRTL ? "start" : "end"}
-    />
   );
 
   // ---- The list ---------------------------------------------------------------
@@ -446,15 +438,7 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
                         </p>
                         {/* Centred under its own button. */}
                         <div className="mt-6">
-                          {isGpu ? (
-                            gpuCreate
-                          ) : (
-                            <CreateMenu
-                              onSingle={() => navigate(CREATE_SERVER_PATH)}
-                              onGroup={() => navigate(AUTO_SCALE_PATH)}
-                              align="center"
-                            />
-                          )}
+                          {createMenu}
                         </div>
                       </div>
                     </TableCell>

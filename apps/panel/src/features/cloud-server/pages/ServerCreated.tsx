@@ -28,6 +28,7 @@ import { useT } from "../i18n";
 import type { CreatedServer } from "../lib/quickCreate";
 import {
   CREATE_GPU_SERVER_PATH,
+  CREATE_SERVER_PATH,
   CreateHeader,
   CreatePage,
   GPU_SERVERS_PATH,
@@ -274,7 +275,7 @@ function Created({ server }: { server: CreatedServer }) {
           )}
 
           <div className="mt-4 flex flex-wrap justify-end gap-3">
-            <Button variant="outline" onClick={() => navigate(isGpu ? CREATE_GPU_SERVER_PATH : NEW_SERVER_PATH)}>
+            <Button variant="outline" onClick={() => navigate(isGpu ? CREATE_GPU_SERVER_PATH : CREATE_SERVER_PATH)}>
               {t("Create another server")}
             </Button>
             <Button

@@ -1131,7 +1131,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
            Auto Scale group. */
         back={{
           label: t("Back"),
-          onClick: () => (step === 0 ? (isGpu ? goToServers() : navigate(NEW_SERVER_PATH)) : setStep((s) => s - 1)),
+          onClick: () => (step === 0 ? goToServers() : setStep((s) => s - 1)),
         }}
         primary={{ label: isLast ? t("Create server") : t("Next"), onClick: isLast ? create : () => setStep((s) => s + 1) }}
       />
