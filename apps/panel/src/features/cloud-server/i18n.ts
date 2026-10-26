@@ -11,9 +11,7 @@ const fa: Record<string, string> = {
   // Page
   "Cloud Server": "سرور ابری",
   "Create cloud server": "ساخت سرور ابری",
-  "Set up a virtual machine in a few steps. Every step starts from a working default.":
-    "یک ماشین مجازی را در چند گام بسازید. هر گام با یک پیش‌فرض آماده شروع می‌شود.",
-  "Sample data · Not a live service": "داده‌های نمونه · سرویس هنوز فعال نیست",
+  "Set up a virtual machine in a few steps.": "یک ماشین مجازی را در چند گام بسازید.",
 
   // Choose type
   "Choose how you want to create your cloud workload.": "روش ساخت سرور ابری را انتخاب کنید.",
@@ -29,11 +27,11 @@ const fa: Record<string, string> = {
   // Steps
   Basics: "اطلاعات پایه",
   Image: "ایمیج",
-  Plan: "پلن",
+  Plan: "اندازه منابع",
   Disk: "دیسک",
   Network: "شبکه",
   Security: "امنیت",
-  Review: "بازبینی",
+  "Review & create": "بازبینی و ساخت",
 
   // Footer
   Cancel: "انصراف",
@@ -48,8 +46,6 @@ const fa: Record<string, string> = {
     "از ۳ تا ۶۳ حرف کوچک انگلیسی، عدد یا خط تیره استفاده کنید و با حرف شروع کنید.",
   Region: "منطقه",
   "Availability zone": "ناحیهٔ دسترس‌پذیری",
-  "Every step already has a default that works. You can go straight to Review and create the server.":
-    "همهٔ گام‌ها از قبل یک پیش‌فرض آماده دارند. می‌توانید مستقیم به بازبینی بروید و سرور را بسازید.",
 
   // Image
   "Operating system": "سیستم‌عامل",
@@ -146,17 +142,55 @@ const fa: Record<string, string> = {
 
   // Result
   "{name} is being created.": "{name} در حال ساخت است.",
-  "Sample only: no server was created.": "فقط نمونه است و سروری ساخته نشد.",
   "Fix the highlighted field to continue.": "برای ادامه، فیلد مشخص‌شده را اصلاح کنید.",
+
+  // Wizard additions
+  "Keep these settings for quick create next time": "حفظ تنظیمات فعلی برای ساخت سریع در آینده",
+  "Generated automatically and shown once the server is ready.": "به‌صورت خودکار ساخته می‌شود و پس از آماده شدن سرور نمایش داده می‌شود.",
+  "More secure": "امن‌تر",
+  "Path in the server": "مسیر در سرور",
+  "Additional disk {n}": "دیسک اضافه {n}",
+
+  // Created
+  "The server is ready. Use the details below to connect to it.": "سرور آماده است. با اطلاعات زیر به آن وصل شوید.",
+  "The server is being created. Its addresses and access appear here as soon as they are ready.":
+    "سرور در حال ساخت است. آدرس‌ها و اطلاعات دسترسی به‌محض آماده شدن اینجا نمایش داده می‌شوند.",
+  "Server details": "جزئیات سرور",
+  Server: "سرور",
+  "IPv4 address": "آدرس IPv4",
+  "IPv6 address": "آدرس IPv6",
+  Username: "نام کاربری",
+  Copy: "کپی",
+  Copied: "کپی شد",
+  "Could not copy": "کپی انجام نشد",
+  "Keep the password somewhere safe. You can reset it later from the server's page.":
+    "رمز عبور را جای امنی نگه دارید. بعداً می‌توانید آن را از صفحهٔ سرور بازنشانی کنید.",
+  "Create another server": "ساخت سرور دیگر",
+  "Go to servers": "رفتن به سرورها",
+  Creating: "در حال ساخت",
+  Running: "در حال اجرا",
+  "Powered off": "خاموش",
+  "Set up more for your server": "امکانات بیشتر برای سرورتان",
+  "You can add these while the server is being created, or come back to them later.":
+    "این‌ها را می‌توانید همین حالا که سرور در حال ساخت است اضافه کنید یا بعداً سراغشان بیایید.",
+  "Cloud Disks": "دیسک ابری",
+  "More space for data, databases and backups.": "فضای بیشتر برای داده، پایگاه داده و پشتیبان.",
+  Snapshots: "اسنپ‌شات",
+  "A point-in-time copy to roll back to or clone from.": "یک نسخه از وضعیت فعلی، برای بازگشت یا ساخت سرور مشابه.",
+  "Choose exactly which traffic can reach the server.": "دقیقاً تعیین کنید چه ترافیکی به سرور برسد.",
+  "Floating IPs": "آی‌پی شناور",
+  "A fixed address you can move between servers.": "آدرسی ثابت که بین سرورها جابه‌جا می‌شود.",
+  "Load Balancer": "لود بالانسر",
+  "Spread traffic across several servers.": "پخش ترافیک بین چند سرور.",
+  "Resource Monitoring": "مانیتورینگ منابع",
+  "CPU, memory, disk and network over time.": "مصرف پردازنده، حافظه، دیسک و شبکه در طول زمان.",
 };
 
 const ar: Record<string, string> = {
   // Page
   "Cloud Server": "الخادم السحابي",
   "Create cloud server": "إنشاء خادم سحابي",
-  "Set up a virtual machine in a few steps. Every step starts from a working default.":
-    "أنشئ جهازًا افتراضيًا في خطوات قليلة. تبدأ كل خطوة بإعداد افتراضي جاهز.",
-  "Sample data · Not a live service": "بيانات تجريبية · الخدمة غير مفعّلة بعد",
+  "Set up a virtual machine in a few steps.": "أنشئ جهازًا افتراضيًا في خطوات قليلة.",
 
   // Choose type
   "Choose how you want to create your cloud workload.": "اختر طريقة إنشاء الخادم السحابي.",
@@ -176,7 +210,7 @@ const ar: Record<string, string> = {
   Disk: "القرص",
   Network: "الشبكة",
   Security: "الأمان",
-  Review: "المراجعة",
+  "Review & create": "المراجعة والإنشاء",
 
   // Footer
   Cancel: "إلغاء",
@@ -191,8 +225,6 @@ const ar: Record<string, string> = {
     "استخدم من ٣ إلى ٦٣ حرفًا إنجليزيًا صغيرًا أو رقمًا أو شرطة، على أن يبدأ بحرف.",
   Region: "المنطقة",
   "Availability zone": "منطقة التوفر",
-  "Every step already has a default that works. You can go straight to Review and create the server.":
-    "لكل خطوة إعداد افتراضي جاهز. يمكنك الانتقال مباشرة إلى المراجعة وإنشاء الخادم.",
 
   // Image
   "Operating system": "نظام التشغيل",
@@ -289,8 +321,48 @@ const ar: Record<string, string> = {
 
   // Result
   "{name} is being created.": "جارٍ إنشاء {name}.",
-  "Sample only: no server was created.": "عرض تجريبي فقط: لم يُنشأ أي خادم.",
   "Fix the highlighted field to continue.": "صحّح الحقل المحدد للمتابعة.",
+
+  // Wizard additions
+  "Keep these settings for quick create next time": "الاحتفاظ بالإعدادات الحالية للإنشاء السريع لاحقًا",
+  "Generated automatically and shown once the server is ready.": "تُولَّد تلقائيًا وتظهر عند جاهزية الخادم.",
+  "More secure": "أكثر أمانًا",
+  "Path in the server": "المسار داخل الخادم",
+  "Additional disk {n}": "قرص إضافي {n}",
+
+  // Created
+  "The server is ready. Use the details below to connect to it.": "الخادم جاهز. استخدم المعلومات أدناه للاتصال به.",
+  "The server is being created. Its addresses and access appear here as soon as they are ready.":
+    "جارٍ إنشاء الخادم. ستظهر العناوين وبيانات الوصول هنا فور جاهزيتها.",
+  "Server details": "تفاصيل الخادم",
+  Server: "الخادم",
+  "IPv4 address": "عنوان IPv4",
+  "IPv6 address": "عنوان IPv6",
+  Username: "اسم المستخدم",
+  Copy: "نسخ",
+  Copied: "تم النسخ",
+  "Could not copy": "تعذّر النسخ",
+  "Keep the password somewhere safe. You can reset it later from the server's page.":
+    "احفظ كلمة المرور في مكان آمن. يمكنك إعادة تعيينها لاحقًا من صفحة الخادم.",
+  "Create another server": "إنشاء خادم آخر",
+  "Go to servers": "الانتقال إلى الخوادم",
+  Creating: "قيد الإنشاء",
+  Running: "قيد التشغيل",
+  "Powered off": "متوقف",
+  "Set up more for your server": "المزيد لخادمك",
+  "You can add these while the server is being created, or come back to them later.":
+    "يمكنك إضافة هذه الآن أثناء إنشاء الخادم، أو العودة إليها لاحقًا.",
+  "Cloud Disks": "الأقراص السحابية",
+  "More space for data, databases and backups.": "مساحة إضافية للبيانات وقواعد البيانات والنسخ الاحتياطية.",
+  Snapshots: "اللقطات",
+  "A point-in-time copy to roll back to or clone from.": "نسخة من لحظة معينة للرجوع إليها أو الإنشاء منها.",
+  "Choose exactly which traffic can reach the server.": "حدّد بدقة حركة البيانات التي تصل إلى الخادم.",
+  "Floating IPs": "عناوين IP العائمة",
+  "A fixed address you can move between servers.": "عنوان ثابت يمكنك نقله بين الخوادم.",
+  "Load Balancer": "موازن الأحمال",
+  "Spread traffic across several servers.": "توزيع حركة البيانات على عدة خوادم.",
+  "Resource Monitoring": "مراقبة الموارد",
+  "CPU, memory, disk and network over time.": "استهلاك المعالج والذاكرة والقرص والشبكة عبر الوقت.",
 };
 
 const dictionaries: Record<AppLanguage, Record<string, string>> = { en: {}, fa, ar };

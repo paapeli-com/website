@@ -104,7 +104,7 @@ export const RolloutWizard = ({ open, onOpenChange, firmware, devices, onConfirm
             </div>
           ))}
         </div>
-        <div className="text-xs text-muted-foreground flex justify-between mb-4">
+        <div className={`${isRTL ? "text-sm" : "text-xs"} text-muted-foreground flex justify-between mb-4`}>
           <span>{t("otaStepStrategy")}</span>
           <span>{t("otaStepDevices")}</span>
           <span>{t("otaStepReview")}</span>

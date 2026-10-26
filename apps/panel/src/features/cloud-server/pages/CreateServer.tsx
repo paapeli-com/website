@@ -4,8 +4,6 @@ import {
   Check,
   Cpu,
   Disc,
-  Eye,
-  EyeOff,
   Globe,
   HardDrive,
   Info,
@@ -15,7 +13,6 @@ import {
   Microchip,
   Pencil,
   Plus,
-  RefreshCw,
   Repeat,
   Server,
   ShieldCheck,
@@ -27,6 +24,7 @@ import { Card } from "@/features/factory/components/ui/card";
 import { Input } from "@/features/factory/components/ui/input";
 import { Textarea } from "@/features/factory/components/ui/textarea";
 import { Switch } from "@/features/factory/components/ui/switch";
+import { Checkbox } from "@/features/factory/components/ui/checkbox";
 import { Slider } from "@/features/factory/components/ui/slider";
 import { RadioGroup, RadioGroupItem } from "@/features/factory/components/ui/radio-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/features/factory/components/ui/table";
@@ -47,7 +45,8 @@ import { toast } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
 import { CLOUD_SERVER_BASE } from "@/shell/nav/cloudServerNav";
 import { useT } from "../i18n";
-import { CreateFooter, CreateHeader, CreatePage, NEW_SERVER_PATH, SERVERS_PATH } from "../ui";
+import { CreateFooter, CreateHeader, CreatePage, NEW_SERVER_PATH, SERVERS_PATH, SERVER_CREATED_PATH } from "../ui";
+import { clearQuickCreate, loadQuickCreate, saveQuickCreate, type CreatedServer } from "../lib/quickCreate";
 import {
   ADDITIONAL_DISK_MAX_GB,
   BOOT_DISK_MAX_GB,
@@ -84,12 +83,11 @@ import {
  * Nothing is sent anywhere yet. See lib/catalog.ts.
  */
 
-const STEPS = ["Basics", "Image", "Plan", "Disk", "Network", "Security", "Review"] as const;
+const STEPS = ["Basics", "Image", "Plan", "Disk", "Network", "Security", "Review & create"] as const;
 const SECURITY_STEP = 5;
 const REVIEW_STEP = 6;
 
 const NAME_RE = /^[a-z][a-z0-9-]{1,61}[a-z0-9]$/;
-const isStrongPassword = (p: string) => p.length >= 12 && /[a-zA-Z]/.test(p) && /\d/.test(p);
 const looksLikePublicKey = (k: string) => /^(ssh-(ed25519|rsa|dss)|ecdsa-sha2-\S+|sk-\S+)\s+\S{20,}/.test(k.trim());
 
 const FAMILY_ICON: Record<PlanFamily, LucideIcon> = { shared: Cpu, dedicated: Server, gpu: Microchip };
@@ -110,6 +108,11 @@ function generatePassword() {
 
 let diskSeq = 0;
 
+/** Where a disk shows up inside the server: sda is the boot disk, then sdb,
+    sdc and on. Every image offered today is Linux; a Windows image would
+    read C:, D: and so on instead. */
+const devicePath = (index: number) => `/dev/sd${String.fromCharCode(97 + index)}`;
+
 export default function CreateServer() {
   const t = useT();
   const navigate = useNavigate();
@@ -120,41 +123,57 @@ export default function CreateServer() {
   const goToServers = () => navigate(SERVERS_PATH);
 
   // ---- Form state -------------------------------------------------------
+  /* Settings kept from an earlier create, when the user asked for that.
+     Anything that no longer exists in the catalogue falls back to its
+     default. */
+  const [saved] = useState(loadQuickCreate);
+  const [keepSettings, setKeepSettings] = useState(!!saved);
   const [step, setStep] = useState(0);
   const [visited, setVisited] = useState<Set<number>>(() => new Set([0]));
   const [showErrors, setShowErrors] = useState(false);
 
   const [name, setName] = useState("server-01");
-  const [regionId, setRegionId] = useState(REGIONS[0].id);
+  const [regionId, setRegionId] = useState(
+    REGIONS.some((r) => r.id === saved?.regionId) ? saved!.regionId : REGIONS[0].id,
+  );
   const region = REGIONS.find((r) => r.id === regionId) ?? REGIONS[0];
-  const [zone, setZone] = useState(region.zones[0]);
+  const [zone, setZone] = useState(region.zones.includes(saved?.zone ?? "") ? saved!.zone : region.zones[0]);
 
-  const [imageId, setImageId] = useState(DEFAULT_IMAGE.imageId);
+  const savedImage = IMAGES.find((i) => i.id === saved?.imageId && i.versions.includes(saved.version));
+  const startImage = savedImage ? { imageId: savedImage.id, version: saved!.version } : DEFAULT_IMAGE;
+  const [imageId, setImageId] = useState(startImage.imageId);
   const [versions, setVersions] = useState<Record<string, string>>(() =>
-    Object.fromEntries(IMAGES.map((i) => [i.id, i.id === DEFAULT_IMAGE.imageId ? DEFAULT_IMAGE.version : i.versions[0]])),
+    Object.fromEntries(IMAGES.map((i) => [i.id, i.id === startImage.imageId ? startImage.version : i.versions[0]])),
   );
   const image = IMAGES.find((i) => i.id === imageId) ?? IMAGES[0];
 
-  const [planId, setPlanId] = useState(DEFAULT_PLAN_ID);
+  const [planId, setPlanId] = useState(PLANS.some((p) => p.id === saved?.planId) ? saved!.planId : DEFAULT_PLAN_ID);
   const plan = PLANS.find((p) => p.id === planId) ?? PLANS[0];
   const [family, setFamily] = useState<PlanFamily>(plan.family);
 
-  const [bootGb, setBootGb] = useState(plan.diskGb);
-  const [bootDraft, setBootDraft] = useState(String(plan.diskGb));
-  const [extraDisks, setExtraDisks] = useState<{ id: number; sizeGb: number }[]>([]);
+  const startBoot = Math.min(BOOT_DISK_MAX_GB, Math.max(plan.diskGb, saved?.bootGb ?? plan.diskGb));
+  const [bootGb, setBootGb] = useState(startBoot);
+  const [bootDraft, setBootDraft] = useState(String(startBoot));
+  const [extraDisks, setExtraDisks] = useState<{ id: number; sizeGb: number }[]>(() =>
+    (saved?.extraDisks ?? []).slice(0, 8).map((sizeGb) => ({ id: ++diskSeq, sizeGb })),
+  );
 
-  const [ipv6, setIpv6] = useState(true);
+  const [ipv6, setIpv6] = useState(saved?.ipv6 ?? true);
   const [floatingIpId, setFloatingIpId] = useState("none");
 
-  const [access, setAccess] = useState<"ssh" | "password">("ssh");
+  /* A generated password is the default: it needs nothing from someone who
+     has no SSH key yet, and is shown once the server is ready. */
+  const [access, setAccess] = useState<"ssh" | "password">(saved?.access ?? "password");
   const [keys, setKeys] = useState<SshKey[]>(SSH_KEYS);
-  const [sshKeyId, setSshKeyId] = useState(SSH_KEYS[0]?.id ?? "");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [firewallId, setFirewallId] = useState(DEFAULT_FIREWALL_ID);
+  const [sshKeyId, setSshKeyId] = useState(
+    SSH_KEYS.some((k) => k.id === saved?.sshKeyId) ? saved!.sshKeyId! : (SSH_KEYS[0]?.id ?? ""),
+  );
+  const [firewallId, setFirewallId] = useState(
+    FIREWALLS.some((f) => f.id === saved?.firewallId) ? saved!.firewallId : DEFAULT_FIREWALL_ID,
+  );
   const [keyDialogOpen, setKeyDialogOpen] = useState(false);
 
-  const [powerOn, setPowerOn] = useState(true);
+  const [powerOn, setPowerOn] = useState(saved?.powerOn ?? true);
   const [script, setScript] = useState("");
 
   useEffect(() => {
@@ -163,7 +182,7 @@ export default function CreateServer() {
 
   // ---- Validation ---------------------------------------------------------
   const nameOk = NAME_RE.test(name);
-  const accessOk = access === "ssh" ? !!sshKeyId : isStrongPassword(password);
+  const accessOk = access === "password" || !!sshKeyId;
   const stepOk = (i: number) => (i === 0 ? nameOk : i === SECURITY_STEP ? accessOk : true);
 
   // ---- Price ----------------------------------------------------------------
@@ -203,8 +222,36 @@ export default function CreateServer() {
       toast.error(t("Fix the highlighted field to continue."));
       return;
     }
-    toast.success(t("{name} is being created.", { name }), { description: t("Sample only: no server was created.") });
-    goToServers();
+    if (keepSettings) {
+      saveQuickCreate({
+        regionId,
+        zone,
+        imageId,
+        version: versions[imageId],
+        planId,
+        bootGb,
+        extraDisks: extraDisks.map((d) => d.sizeGb),
+        ipv6,
+        access,
+        sshKeyId: access === "ssh" ? sshKeyId : undefined,
+        firewallId,
+        powerOn,
+      });
+    } else {
+      clearQuickCreate();
+    }
+    const created: CreatedServer = {
+      name,
+      image: `${image.name} ${versions[imageId]}`,
+      spec: `${plan.vcpu} vCPU · ${plan.ramGb} GB RAM`,
+      ipv6,
+      access,
+      sshKeyName: access === "ssh" ? keys.find((k) => k.id === sshKeyId)?.name : undefined,
+      password: access === "password" ? generatePassword() : undefined,
+      powerOn,
+    };
+    toast.success(t("{name} is being created.", { name }));
+    navigate(SERVER_CREATED_PATH, { state: created });
   };
 
   const isLast = step === REVIEW_STEP;
@@ -212,7 +259,7 @@ export default function CreateServer() {
   // ---- Render ---------------------------------------------------------------
   return (
     <CreatePage>
-      <CreateHeader description={t("Set up a virtual machine in a few steps. Every step starts from a working default.")} />
+      <CreateHeader description={t("Set up a virtual machine in a few steps.")} />
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0">
@@ -285,9 +332,6 @@ export default function CreateServer() {
                     </div>
                   </div>
 
-                  <Note>
-                    {t("Every step already has a default that works. You can go straight to Review and create the server.")}
-                  </Note>
                 </div>
               </StepSection>
             )}
@@ -410,7 +454,7 @@ export default function CreateServer() {
             )}
 
             {step === 3 && (
-              <StepSection icon={HardDrive} title={t("Disk")} description={t("All disks are SSD.")}>
+              <StepSection icon={HardDrive} title={t("Disk")}>
                 <div className="space-y-6">
                   <div>
                     <FieldLabel required>{t("Boot disk size")}</FieldLabel>
@@ -474,60 +518,97 @@ export default function CreateServer() {
                         </FieldLabel>
                         <p className="text-xs text-muted-foreground">{t("Extra SSD volumes for data, databases or backups.")}</p>
                       </div>
-                      {extraDisks.length > 0 && extraDisks.length < 8 && (
+                      {extraDisks.length < 8 && (
                         <Button variant="outline" size="sm" onClick={() => setExtraDisks((d) => [...d, { id: ++diskSeq, sizeGb: 100 }])}>
                           <Plus className="me-1.5 size-4" />
                           {t("Add disk")}
                         </Button>
                       )}
                     </div>
-                    {extraDisks.length === 0 ? (
-                      <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border px-4 py-6 text-center">
-                        <HardDrive className="size-5 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">{t("No additional disks")}</p>
-                        <Button variant="outline" size="sm" onClick={() => setExtraDisks([{ id: ++diskSeq, sizeGb: 100 }])}>
-                          <Plus className="me-1.5 size-4" />
-                          {t("Add disk")}
-                        </Button>
-                      </div>
-                    ) : (
-                      <ul className="space-y-2">
-                        {extraDisks.map((d, i) => (
-                          <li key={d.id} className="flex items-center gap-3 rounded-lg border border-border px-3 py-2">
-                            <HardDrive className="size-4 shrink-0 text-muted-foreground" />
-                            <span className="flex-1 text-sm font-medium text-foreground">{t("Disk {n}", { n: n(i + 1) })}</span>
-                            <Input
-                              type="number"
-                              dir="ltr"
-                              min={10}
-                              max={ADDITIONAL_DISK_MAX_GB}
-                              value={d.sizeGb}
-                              aria-label={t("Size")}
-                              onChange={(e) =>
-                                setExtraDisks((all) =>
-                                  all.map((x) =>
-                                    x.id === d.id
-                                      ? { ...x, sizeGb: Math.min(ADDITIONAL_DISK_MAX_GB, Math.max(10, Number(e.target.value) || 10)) }
-                                      : x,
-                                  ),
-                                )
-                              }
-                              className="h-9 w-24"
-                            />
-                            <span className="text-sm text-muted-foreground">{t("GB")}</span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-8 text-muted-foreground hover:text-destructive"
-                              aria-label={t("Remove disk")}
-                              onClick={() => setExtraDisks((all) => all.filter((x) => x.id !== d.id))}
-                            >
-                              <Trash2 className="size-4" />
-                            </Button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+
+                    {/* Every disk the server will have, the boot disk first, in
+                        the device list's table treatment. The path is where the
+                        disk appears inside the server. */}
+                    <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/40 hover:bg-muted/40">
+                            <TableHead>{t("Disk")}</TableHead>
+                            <TableHead>{t("Size")}</TableHead>
+                            <TableHead>{t("Path in the server")}</TableHead>
+                            <TableHead className="w-[52px]" aria-label={t("Remove disk")} />
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          <TableRow className="border-b hover:bg-muted/30">
+                            <TableCell>
+                              <span className="inline-flex items-center gap-2 font-medium text-foreground">
+                                <HardDrive className="size-4 text-muted-foreground" />
+                                {t("Boot disk")}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {n(bootGb)} {t("GB")}
+                            </TableCell>
+                            <TableCell>
+                              <code dir="ltr" className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
+                                {devicePath(0)}
+                              </code>
+                            </TableCell>
+                            <TableCell />
+                          </TableRow>
+                          {extraDisks.map((d, i) => (
+                            <TableRow key={d.id} className="border-b hover:bg-muted/30">
+                              <TableCell>
+                                <span className="inline-flex items-center gap-2 font-medium text-foreground">
+                                  <HardDrive className="size-4 text-muted-foreground" />
+                                  {t("Additional disk {n}", { n: n(i + 1) })}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    type="number"
+                                    dir="ltr"
+                                    min={10}
+                                    max={ADDITIONAL_DISK_MAX_GB}
+                                    value={d.sizeGb}
+                                    aria-label={t("Size")}
+                                    onChange={(e) =>
+                                      setExtraDisks((all) =>
+                                        all.map((x) =>
+                                          x.id === d.id
+                                            ? { ...x, sizeGb: Math.min(ADDITIONAL_DISK_MAX_GB, Math.max(10, Number(e.target.value) || 10)) }
+                                            : x,
+                                        ),
+                                      )
+                                    }
+                                    className="h-8 w-24"
+                                  />
+                                  <span className="text-muted-foreground">{t("GB")}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <code dir="ltr" className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
+                                  {devicePath(i + 1)}
+                                </code>
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-8 text-muted-foreground hover:text-destructive"
+                                  aria-label={t("Remove disk")}
+                                  onClick={() => setExtraDisks((all) => all.filter((x) => x.id !== d.id))}
+                                >
+                                  <Trash2 className="size-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
                 </div>
               </StepSection>
@@ -585,26 +666,27 @@ export default function CreateServer() {
                   <div>
                     <FieldLabel required>{t("Access method")}</FieldLabel>
                     <div role="radiogroup" className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                      <OptionCard selected={access === "ssh"} onSelect={() => setAccess("ssh")}>
-                        <div className="flex items-center gap-2.5">
-                          <KeyRound className={cn("size-4", access === "ssh" ? "text-primary" : "text-muted-foreground")} />
-                          <span className="text-sm font-semibold text-foreground">{t("SSH key")}</span>
-                          <Pill tone="ok">{t("Recommended")}</Pill>
-                        </div>
-                        <p className="mt-1 text-xs text-muted-foreground">{t("More secure, no password to leak.")}</p>
-                      </OptionCard>
                       <OptionCard selected={access === "password"} onSelect={() => setAccess("password")}>
                         <div className="flex items-center gap-2.5">
                           <Lock className={cn("size-4", access === "password" ? "text-primary" : "text-muted-foreground")} />
                           <span className="text-sm font-semibold text-foreground">{t("Password")}</span>
-                          <Pill>{t("Not recommended")}</Pill>
                         </div>
-                        <p className="mt-1 text-xs text-muted-foreground">{t("Less secure than an SSH key.")}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {t("Generated automatically and shown once the server is ready.")}
+                        </p>
+                      </OptionCard>
+                      <OptionCard selected={access === "ssh"} onSelect={() => setAccess("ssh")}>
+                        <div className="flex items-center gap-2.5">
+                          <KeyRound className={cn("size-4", access === "ssh" ? "text-primary" : "text-muted-foreground")} />
+                          <span className="text-sm font-semibold text-foreground">{t("SSH key")}</span>
+                          <Pill tone="ok">{t("More secure")}</Pill>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">{t("More secure, no password to leak.")}</p>
                       </OptionCard>
                     </div>
                   </div>
 
-                  {access === "ssh" ? (
+                  {access === "ssh" && (
                     <div>
                       <FieldLabel required>{t("SSH key")}</FieldLabel>
                       <div className="flex flex-wrap items-center gap-3">
@@ -629,49 +711,6 @@ export default function CreateServer() {
                         </Button>
                       </div>
                       {showErrors && !accessOk && <p className="mt-1.5 text-xs text-destructive">{t("Choose an SSH key.")}</p>}
-                    </div>
-                  ) : (
-                    <div>
-                      <FieldLabel required htmlFor="root-password">
-                        {t("Root password")}
-                      </FieldLabel>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <div className="relative w-full sm:w-72">
-                          <Input
-                            id="root-password"
-                            dir="ltr"
-                            type={showPassword ? "text" : "password"}
-                            autoComplete="new-password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            aria-invalid={showErrors && !accessOk}
-                            className={cn("pe-10", showErrors && !accessOk && "border-destructive")}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword((s) => !s)}
-                            aria-label={showPassword ? t("Hide password") : t("Show password")}
-                            className="absolute inset-y-0 end-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
-                          >
-                            {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                          </button>
-                        </div>
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setPassword(generatePassword());
-                            setShowPassword(true);
-                          }}
-                        >
-                          <RefreshCw className="me-1.5 size-4" />
-                          {t("Generate")}
-                        </Button>
-                      </div>
-                      <p className={cn("mt-1.5 text-xs", showErrors && !accessOk ? "text-destructive" : "text-muted-foreground")}>
-                        {showErrors && !accessOk
-                          ? t("Use at least 12 characters, with letters and digits.")
-                          : t("At least 12 characters, with letters and digits.")}
-                      </p>
                     </div>
                   )}
 
@@ -703,7 +742,7 @@ export default function CreateServer() {
             )}
 
             {step === 6 && (
-              <StepSection icon={Check} title={t("Review")}>
+              <StepSection icon={Check} title={t("Review & create")}>
                 <div className="space-y-3">
                   <SettingRow
                     icon={Server}
@@ -798,8 +837,21 @@ export default function CreateServer() {
                 value={<span dir="ltr">{FIREWALLS.find((f) => f.id === firewallId)?.name}</span>}
               />
             </div>
+
+            {/* Create from any step: every step starts from a working default,
+                and a short one sends you back to it. */}
+            <Button onClick={create} className="mt-4 w-full bg-primary text-primary-foreground hover:bg-primary/90">
+              {t("Create server")}
+            </Button>
+            <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-muted-foreground">
+              <Checkbox
+                checked={keepSettings}
+                onCheckedChange={(v) => setKeepSettings(v === true)}
+                className="mt-px"
+              />
+              <span>{t("Keep these settings for quick create next time")}</span>
+            </label>
           </Card>
-          <p className="mt-2 text-center text-[11px] text-muted-foreground/80">{t("Sample data · Not a live service")}</p>
         </aside>
       </div>
 
@@ -842,6 +894,7 @@ function StepBar({
   onSelect: (i: number) => void;
 }) {
   const language = useAppLanguage();
+  const { isRTL } = useLanguage();
   return (
     <nav className="mb-5 mt-1 flex items-center gap-1 overflow-x-auto pb-1">
       {labels.map((label, i) => {
@@ -872,7 +925,11 @@ function StepBar({
               </span>
               <span
                 className={cn(
-                  "hidden whitespace-nowrap text-xs sm:inline",
+                  /* A step larger in Persian and Arabic, whose script reads
+                     smaller at the same size; the alert rule wizard does the
+                     same. */
+                  "hidden whitespace-nowrap sm:inline",
+                  isRTL ? "text-sm" : "text-xs",
                   isBad ? "text-destructive" : isCurrent ? "font-medium text-foreground" : "text-muted-foreground",
                 )}
               >
@@ -900,7 +957,7 @@ function StepSection({
 }) {
   return (
     <section>
-      <div className="mb-5 flex items-start gap-3">
+      <div className="mb-5 flex items-center gap-3">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
           <Icon className="size-[18px]" />
         </span>

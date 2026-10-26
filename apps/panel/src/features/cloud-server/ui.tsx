@@ -24,9 +24,11 @@ import { useT } from "./i18n";
 export const SERVERS_PATH = `${CLOUD_SERVER_BASE}/servers`;
 export const NEW_SERVER_PATH = `${SERVERS_PATH}/new`;
 export const CREATE_SERVER_PATH = `${SERVERS_PATH}/create`;
+export const SERVER_CREATED_PATH = `${SERVERS_PATH}/created`;
 
-export function CreateHeader({ description }: { description: string }) {
+export function CreateHeader({ description, title }: { description: string; title?: string }) {
   const t = useT();
+  const heading = title ?? t("Create cloud server");
   const shellT = useShellT();
   const navigate = useNavigate();
   return (
@@ -48,13 +50,13 @@ export function CreateHeader({ description }: { description: string }) {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>{t("Create cloud server")}</BreadcrumbPage>
+            <BreadcrumbPage>{heading}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-foreground">{t("Create cloud server")}</h1>
+        <h1 className="text-2xl font-bold text-foreground">{heading}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{description}</p>
       </div>
     </>

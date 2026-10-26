@@ -9,6 +9,7 @@ import { CLOUD_SERVER_BASE, CLOUD_SERVER_PAGES } from "@/shell/nav/cloudServerNa
 import { useT } from "./i18n";
 import CreateServer from "./pages/CreateServer";
 import ChooseServerType from "./pages/ChooseServerType";
+import ServerCreated from "./pages/ServerCreated";
 
 /* Cloud Server, IaaS's first product, mounted at /IaaS/CloudServer/*.
  *
@@ -54,6 +55,7 @@ export default function CloudServerRoutes() {
             <Route path="/servers" element={<ServersPage />} />
             <Route path="/servers/new" element={<ChooseServerType />} />
             <Route path="/servers/create" element={<CreateServer />} />
+            <Route path="/servers/created" element={<ServerCreated />} />
             {CLOUD_SERVER_PAGES.filter(([segment]) => segment !== "servers").map(([segment, title]) => (
               <Route key={segment} path={`/${segment}`} element={<Page title={title} />} />
             ))}

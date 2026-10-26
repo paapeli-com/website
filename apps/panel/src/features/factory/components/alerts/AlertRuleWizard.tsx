@@ -581,7 +581,9 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
                 }`}>
                   {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
                 </span>
-                <span className={`text-xs whitespace-nowrap hidden sm:inline ${i === currentStep ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                {/* A step larger in Persian and Arabic, whose script reads
+                    smaller at the same size. */}
+                <span className={`${isRTL ? 'text-sm' : 'text-xs'} whitespace-nowrap hidden sm:inline ${i === currentStep ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
                   {stepLabels[i]}
                 </span>
               </button>
