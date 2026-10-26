@@ -890,7 +890,10 @@ export default function CreateServer() {
                   </ReviewBlock>
                   <ReviewBlock title={t("Plan")} onEdit={() => setStep(2)}>
                     <ReviewLine label={t("Plan")} value={<span dir="ltr">{plan.id.toUpperCase()}</span>} />
-                    <ReviewLine label={`${t("vCPU")} / ${t("RAM")}`} value={`${n(plan.vcpu)} / ${n(plan.ramGb)} ${t("GB")}`} />
+                    <ReviewLine
+                      label={t("Resources")}
+                      value={t("{cpu} vCPU · {ram} GB RAM", { cpu: n(plan.vcpu), ram: n(plan.ramGb) })}
+                    />
                     {plan.gpu && <ReviewLine label={t("GPU")} value={<span dir="ltr">{plan.gpu}</span>} />}
                   </ReviewBlock>
                   <ReviewBlock title={t("Disk")} onEdit={() => setStep(3)}>
@@ -952,7 +955,9 @@ export default function CreateServer() {
               <SummaryLine
                 icon={Cpu}
                 label={t("Plan")}
-                value={`${n(plan.vcpu)} ${t("vCPU")} · ${n(plan.ramGb)} ${t("GB")}`}
+                /* One translated phrase rather than pieces: a Latin "vCPU"
+                   between Persian digits scrambles their order. */
+                value={t("{cpu} vCPU · {ram} GB RAM", { cpu: n(plan.vcpu), ram: n(plan.ramGb) })}
               />
               {plan.gpu && <SummaryLine icon={Microchip} label={t("GPU")} value={<span dir="ltr">{plan.gpu}</span>} />}
               <SummaryLine icon={HardDrive} label={t("Boot disk")} value={`${n(bootGb)} ${t("GB")}`} />

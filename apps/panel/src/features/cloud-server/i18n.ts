@@ -93,6 +93,8 @@ const fa: Record<string, string> = {
   Size: "اندازه",
   GB: "گیگابایت",
   TB: "ترابایت",
+  "{cpu} vCPU · {ram} GB RAM": "{cpu} هسته · {ram} گیگابایت رم",
+  Resources: "منابع",
   "All disks are SSD.": "همهٔ دیسک‌ها SSD هستند.",
 
   // Network
@@ -296,6 +298,8 @@ const ar: Record<string, string> = {
   Size: "الحجم",
   GB: "غيغابايت",
   TB: "تيرابايت",
+  "{cpu} vCPU · {ram} GB RAM": "{cpu} نواة · {ram} غيغابايت ذاكرة",
+  Resources: "الموارد",
   "All disks are SSD.": "جميع الأقراص من نوع SSD.",
 
   // Network
