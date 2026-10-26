@@ -217,8 +217,8 @@ const fa: Record<string, string> = {
   "No servers yet": "هنوز سروری ندارید",
   "Create a virtual machine from one of the ready Linux or Windows images.":
     "یک ماشین مجازی را از روی یکی از ایمیج‌های آماده‌ی لینوکس یا ویندوز بسازید.",
-  "One server you configure yourself.": "یک سرور با تنظیمات خودتان.",
-  "Servers that grow and shrink with load.": "سرورهایی که با تغییر بار بزرگ و کوچک می‌شوند.",
+  "One server you configure yourself": "یک سرور با تنظیمات خودتان",
+  "Servers that grow and shrink with load": "سرورهایی که با تغییر بار بزرگ و کوچک می‌شوند",
   "Search by name, IP or image": "جست‌وجو با نام، IP یا ایمیج",
   "Select all": "انتخاب همه",
   Name: "نام",
@@ -453,8 +453,8 @@ const ar: Record<string, string> = {
   "No servers yet": "لا توجد خوادم بعد",
   "Create a virtual machine from one of the ready Linux or Windows images.":
     "أنشئ جهازًا افتراضيًا من إحدى صور لينكس أو ويندوز الجاهزة.",
-  "One server you configure yourself.": "خادم واحد بإعداداتك.",
-  "Servers that grow and shrink with load.": "خوادم تكبر وتصغر مع الحمل.",
+  "One server you configure yourself": "خادم واحد بإعداداتك",
+  "Servers that grow and shrink with load": "خوادم تكبر وتصغر مع الحمل",
   "Search by name, IP or image": "ابحث بالاسم أو IP أو الصورة",
   "Select all": "تحديد الكل",
   Name: "الاسم",

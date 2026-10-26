@@ -643,14 +643,14 @@ function CreateMenu({
           <Server className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <span>
             <span className="block font-medium">{t("Single virtual machine")}</span>
-            <span className="block text-xs text-muted-foreground">{t("One server you configure yourself.")}</span>
+            <span className="block text-xs text-muted-foreground">{t("One server you configure yourself")}</span>
           </span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onGroup} className="items-start gap-2.5 py-2">
           <Layers className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <span>
             <span className="block font-medium">{t("Auto Scale group")}</span>
-            <span className="block text-xs text-muted-foreground">{t("Servers that grow and shrink with load.")}</span>
+            <span className="block text-xs text-muted-foreground">{t("Servers that grow and shrink with load")}</span>
           </span>
         </DropdownMenuItem>
       </DropdownMenuContent>
