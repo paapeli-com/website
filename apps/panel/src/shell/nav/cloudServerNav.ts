@@ -13,6 +13,7 @@ import {
   Microchip,
   Network,
   Server,
+  ServerCog,
   ShieldCheck,
   Split,
   Users,
@@ -46,6 +47,7 @@ const items = [
       { title: "GPU Servers", icon: Microchip, path: CLOUD_SERVER_GPU_PATH },
       { title: "Images & Operating Systems", icon: Disc, path: p("/images") },
       { title: "Auto Scale", icon: Expand, path: p("/auto-scale") },
+      { title: "Dedicated Servers", icon: ServerCog, path: p("/dedicated-servers") },
     ],
   },
   {
