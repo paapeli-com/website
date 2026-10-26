@@ -5,6 +5,7 @@ import {
   Code2,
   Cpu,
   Disc,
+  Expand,
   Globe,
   HardDrive,
   KeyRound,
@@ -13,8 +14,8 @@ import {
   Network,
   Server,
   ShieldCheck,
+  Split,
   Users,
-  Waypoints,
 } from "lucide-react";
 import type { NavSection } from "./types";
 
@@ -44,6 +45,7 @@ const items = [
       { title: "Cloud Server", icon: Server, path: p("/servers") },
       { title: "GPU Servers", icon: Microchip, path: CLOUD_SERVER_GPU_PATH },
       { title: "Images & Operating Systems", icon: Disc, path: p("/images") },
+      { title: "Auto Scale", icon: Expand, path: p("/auto-scale") },
     ],
   },
   {
@@ -51,9 +53,9 @@ const items = [
     icon: Network,
     defaultOpen: true,
     children: [
-      { title: "Private Networks", icon: Waypoints, path: p("/vpc") },
       { title: "Public IPs", icon: Globe, path: p("/public-ips") },
       { title: "Floating IPs", icon: MapPin, path: p("/floating-ips") },
+      { title: "Load Balancer", icon: Split, path: p("/load-balancers") },
     ],
   },
   {
