@@ -699,6 +699,11 @@ const fa: Record<string, string> = {
   "Images & Operating Systems": "ایمیج‌ها و سیستم‌عامل‌ها",
   Networking: "شبکه و ارتباطات",
   "Auto Scale": "مقیاس‌پذیری خودکار",
+  "Virtual machines on Linux or Windows, with disks, networking and backups.":
+    "ماشین‌های مجازی لینوکس یا ویندوز، با دیسک، شبکه و بکاپ.",
+  "Virtual machines with a dedicated NVIDIA GPU, billed by the hour.":
+    "ماشین‌های مجازی با GPU اختصاصی انویدیا، با پرداخت ساعتی.",
+  "Linux and Windows": "لینوکس و ویندوز",
   "Dedicated Servers": "سرور اختصاصی",
   "Load Balancer": "لود بالانسر",
   "Public IPs": "IPهای عمومی",
@@ -1404,6 +1409,11 @@ const ar: Record<string, string> = {
   "Images & Operating Systems": "الصور وأنظمة التشغيل",
   Networking: "الشبكات والاتصالات",
   "Auto Scale": "التوسع التلقائي",
+  "Virtual machines on Linux or Windows, with disks, networking and backups.":
+    "أجهزة افتراضية بنظام لينكس أو ويندوز، مع الأقراص والشبكات والنسخ الاحتياطي.",
+  "Virtual machines with a dedicated NVIDIA GPU, billed by the hour.":
+    "أجهزة افتراضية مع GPU مخصص من NVIDIA، بالدفع بالساعة.",
+  "Linux and Windows": "لينكس وويندوز",
   "Dedicated Servers": "الخوادم المخصصة",
   "Load Balancer": "موازن الأحمال",
   "Public IPs": "عناوين IP العامة",

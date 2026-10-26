@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "@/shared/lib/toast";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
@@ -182,7 +182,10 @@ function Leaf({ item, onNavigate, collapsed, activePath }: RowProps) {
    doing nothing. */
 function Group({ item, onNavigate, collapsed, onExpand, activePath }: RowProps & { onExpand?: () => void }) {
   const location = useLocation();
-  const isGroupActive = item.children!.some((c) => c.path && location.pathname.startsWith(c.path));
+  const navigate = useNavigate();
+  const isGroupActive =
+    item.children!.some((c) => c.path && location.pathname.startsWith(c.path)) ||
+    (!!item.path && normalizePath(location.pathname) === normalizePath(item.path));
   const [open, setOpen] = useState(isGroupActive || !!item.defaultOpen);
   const Icon = item.icon;
   const t = useShellT();
@@ -206,6 +209,10 @@ function Group({ item, onNavigate, collapsed, onExpand, activePath }: RowProps &
     );
   }
 
+  /* A group with a page of its own (Home's product families) opens that page
+     as well as its rows. Clicked again while on its page, it closes. */
+  const onOwnPage = !!item.path && normalizePath(location.pathname) === normalizePath(item.path);
+
   return (
     <div>
       <button
@@ -213,12 +220,28 @@ function Group({ item, onNavigate, collapsed, onExpand, activePath }: RowProps &
           if (collapsed) {
             onExpand?.();
             setOpen(true);
+            if (item.path) navigate(item.path);
+            return;
+          }
+          if (item.path) {
+            if (open && onOwnPage) {
+              setOpen(false);
+              return;
+            }
+            setOpen(true);
+            navigate(item.path);
+            onNavigate?.();
             return;
           }
           setOpen((o) => !o);
         }}
         title={collapsed ? t(item.title) : undefined}
-        className={cn(rowBase, rowShape(collapsed), "text-foreground hover:bg-muted")}
+        aria-current={onOwnPage ? "page" : undefined}
+        className={cn(
+          rowBase,
+          rowShape(collapsed),
+          onOwnPage ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted",
+        )}
       >
         <Icon className="h-4 w-4 shrink-0" />
         {!collapsed && (

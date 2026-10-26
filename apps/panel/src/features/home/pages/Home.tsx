@@ -9,6 +9,7 @@ import {
   Cloud,
   Code2,
   MapPin,
+  Microchip,
   Server,
   Sparkles,
   TriangleAlert,
@@ -42,7 +43,8 @@ import { WaitlistDialog } from "@/features/home/WaitlistDialog";
 import { TopoBackdrop } from "@/shared/components/TopoBackdrop";
 import { AI_INFERENCE_BASE } from "@/shell/nav/aiInferenceNav";
 import { HOME_CATEGORY_PATHS } from "@/shell/nav/homeNav";
-import { SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
+import { SHOW_IAAS, SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
+import { CLOUD_SERVER_BASE, CLOUD_SERVER_GPU_PATH } from "@/shell/nav/cloudServerNav";
 
 /* The account's front door: every product on the account in one place, plus
    what needs looking at right now. Reached at /Home, and where signing in
@@ -112,9 +114,9 @@ const PLATFORM: { title: string; description: string; icon: LucideIcon; to?: str
 ];
 
 /** A family of products, shown on its own page (see HOME_CATEGORY_PATHS). */
-export type HomeCategory = "aiot" | "ai";
+export type HomeCategory = "aiot" | "ai" | "iaas";
 
-const CATEGORY_NAME: Record<HomeCategory, string> = { aiot: "AIoT", ai: "AI Infra" };
+const CATEGORY_NAME: Record<HomeCategory, string> = { aiot: "AIoT", ai: "AI Infra", iaas: "IaaS" };
 
 export default function Home({ category }: { category?: HomeCategory } = {}) {
   const navigate = useNavigate();
@@ -322,6 +324,35 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
                     }))}
                   />
                 ))}
+              </div>
+            </section>
+            )}
+
+            {/* IaaS: see SHOW_IAAS. Cloud Server, with its GPU servers. */}
+            {SHOW_IAAS && (!category || category === "iaas") && (
+            <section className="flex flex-col gap-2.5">
+              <SectionLabel to={category ? undefined : HOME_CATEGORY_PATHS.iaas}>IaaS</SectionLabel>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <ProductCard
+                  icon={Server}
+                  title={t("Cloud Server")}
+                  tag={t("Alpha")}
+                  description={t("Virtual machines on Linux or Windows, with disks, networking and backups.")}
+                  action={t("Open")}
+                  onAction={() => navigate(CLOUD_SERVER_BASE)}
+                  opens
+                  pills={[{ text: t("Linux and Windows") }, { text: t("Auto Scale") }]}
+                />
+                <ProductCard
+                  icon={Microchip}
+                  title={t("GPU Servers")}
+                  tag={t("Alpha")}
+                  description={t("Virtual machines with a dedicated NVIDIA GPU, billed by the hour.")}
+                  action={t("Open")}
+                  onAction={() => navigate(CLOUD_SERVER_GPU_PATH)}
+                  opens
+                  pills={[{ text: "RTX 4060 · 4080" }, { text: "A100 · V100" }]}
+                />
               </div>
             </section>
             )}

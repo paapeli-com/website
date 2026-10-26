@@ -19,6 +19,7 @@ export default function HomeRoutes() {
           and Home's section labels open these. */}
       <Route path="/aiot" element={<Home category="aiot" />} />
       <Route path="/ai-infra" element={<Home category="ai" />} />
+      <Route path="/iaas" element={<Home category="iaas" />} />
       {/* Nothing else sits below /Home; anything deeper is a stale link. */}
       <Route path="*" element={<Navigate to="/Home" replace />} />
     </Routes>

@@ -18,10 +18,17 @@ import type { NavItem, NavSection } from "./types";
  *
  * AI Inference is open on staging only; production lists it as coming soon
  * too, until it launches. */
+/* Each family's own page under Home. A family row in the sidebar opens it as
+   well as its products, as the header switcher's family headings do. */
+const AIOT_PATH = "/Home/aiot";
+const AI_INFRA_PATH = "/Home/ai-infra";
+const IAAS_PATH = "/Home/iaas";
+
 const items: NavItem[] = [
   {
     title: "AIoT",
     icon: Cpu,
+    path: AIOT_PATH,
     children: [
       { title: "Smart Factory", icon: Factory, path: solutionPath("SmartFactory") },
       { title: "Fleet Management", icon: MapPin, path: solutionPath("GPSTracking") },
@@ -30,6 +37,7 @@ const items: NavItem[] = [
   {
     title: "AI Infra",
     icon: Server,
+    path: AI_INFRA_PATH,
     children: [
       SHOW_UNRELEASED_PRODUCTS
         ? { title: "AI Inference (MaaS)", icon: Server, path: AI_INFERENCE_BASE }
@@ -41,7 +49,14 @@ const items: NavItem[] = [
   },
   /* IaaS: see SHOW_IAAS. */
   ...(SHOW_IAAS
-    ? [{ title: "IaaS", icon: HardDrive, children: [{ title: "Cloud Server", icon: Server, path: CLOUD_SERVER_BASE }] }]
+    ? [
+        {
+          title: "IaaS",
+          icon: HardDrive,
+          path: IAAS_PATH,
+          children: [{ title: "Cloud Server", icon: Server, path: CLOUD_SERVER_BASE }],
+        },
+      ]
     : []),
 ];
 
@@ -57,8 +72,9 @@ const footerItems: NavItem[] = [
    Keyed by @paapeli/brand/config's PRODUCTS ids, which the switcher's family
    headings are drawn from. */
 export const HOME_CATEGORY_PATHS: Record<string, string> = {
-  aiot: "/Home/aiot",
-  ai: "/Home/ai-infra",
+  aiot: AIOT_PATH,
+  ai: AI_INFRA_PATH,
+  ...(SHOW_IAAS ? { iaas: IAAS_PATH } : {}),
 };
 
 export const homeNav: NavSection = { title: "Home", icon: House, items, footerItems };
