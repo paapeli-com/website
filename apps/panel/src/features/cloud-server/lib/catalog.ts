@@ -125,6 +125,9 @@ export const PLANS: Plan[] = [
 export const DEFAULT_PLAN_ID = "s-2";
 export const DEFAULT_GPU_PLAN_ID = "g-4060";
 
+/** Keeping a custom image, per GB a month. */
+export const IMAGE_GB_MONTHLY: Money = { TOMAN: 2_000, USD: 0.03, QAR: 0.11 };
+
 /** Per extra GB of SSD a month, beyond what the plan includes. */
 export const DISK_GB_MONTHLY: Money = { TOMAN: 3_000, USD: 0.05, QAR: 0.18 };
 

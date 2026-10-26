@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/features/factory/components/ui/button";
 import {
@@ -29,6 +29,8 @@ export const SERVER_CREATED_PATH = `${SERVERS_PATH}/created`;
    mode. */
 export const GPU_SERVERS_PATH = CLOUD_SERVER_GPU_PATH;
 export const CREATE_GPU_SERVER_PATH = `${GPU_SERVERS_PATH}/create`;
+export const IMAGES_PATH = `${CLOUD_SERVER_BASE}/images`;
+export const UPLOAD_IMAGE_PATH = `${IMAGES_PATH}/upload`;
 
 export function CreateHeader({
   description,
@@ -74,6 +76,32 @@ export function CreateHeader({
         <p className="mt-1 text-sm text-muted-foreground">{description}</p>
       </div>
     </>
+  );
+}
+
+/** A list page's breadcrumb, the create pages' component: the sidebar group,
+    then the page, the last item being where you are. */
+export function PageBreadcrumb({ items }: { items: { label: string; path?: string }[] }) {
+  const navigate = useNavigate();
+  return (
+    <Breadcrumb className="mb-3">
+      <BreadcrumbList>
+        {items.map((item, i) => (
+          <Fragment key={item.label}>
+            {i > 0 && <BreadcrumbSeparator />}
+            <BreadcrumbItem>
+              {i === items.length - 1 || !item.path ? (
+                <BreadcrumbPage>{item.label}</BreadcrumbPage>
+              ) : (
+                <BreadcrumbLink onClick={() => navigate(item.path!)} className="cursor-pointer">
+                  {item.label}
+                </BreadcrumbLink>
+              )}
+            </BreadcrumbItem>
+          </Fragment>
+        ))}
+      </BreadcrumbList>
+    </Breadcrumb>
   );
 }
 

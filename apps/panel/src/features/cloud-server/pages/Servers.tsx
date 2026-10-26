@@ -63,7 +63,8 @@ import {
   type ServerRecord,
   type ServerStatus,
 } from "../lib/serverStore";
-import { CREATE_GPU_SERVER_PATH, CREATE_SERVER_PATH, TruncatedText } from "../ui";
+import { CREATE_GPU_SERVER_PATH, CREATE_SERVER_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText } from "../ui";
+import { useShellT } from "@/shared/i18n/shell";
 
 /* The server list: Smart Factory's device list, piece for piece.
  *
@@ -89,6 +90,7 @@ type SortKey = "created" | "nameAsc" | "nameDesc" | "status";
 export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) {
   const isGpu = kind === "gpu";
   const t = useT();
+  const shellT = useShellT();
   const { t: ft, isRTL, language, formatNumber } = useLanguage();
   const fx = ft as (k: string) => string;
   const navigate = useNavigate();
@@ -272,6 +274,12 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
 
   return (
     <div data-uniform-type className="space-y-4 p-4 lg:p-6">
+      <PageBreadcrumb
+        items={[
+          { label: shellT("Compute"), path: SERVERS_PATH },
+          { label: isGpu ? shellT("GPU Servers") : shellT("Cloud Server") },
+        ]}
+      />
       <PageHeader
         title={isGpu ? t("GPU Servers") : t("Cloud Server")}
         count={servers.length}

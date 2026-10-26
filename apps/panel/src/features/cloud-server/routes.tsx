@@ -8,6 +8,8 @@ import Servers from "./pages/Servers";
 import CreateServer from "./pages/CreateServer";
 import ChooseServerType from "./pages/ChooseServerType";
 import ServerCreated from "./pages/ServerCreated";
+import Images from "./pages/Images";
+import UploadImage from "./pages/UploadImage";
 
 /* Cloud Server, IaaS's first product, mounted at /IaaS/CloudServer/*.
  *
@@ -42,7 +44,9 @@ export default function CloudServerRoutes() {
             {/* GPU servers: the same list and wizard, in GPU mode. */}
             <Route path="/gpu-servers" element={<Servers key="gpu" kind="gpu" />} />
             <Route path="/gpu-servers/create" element={<CreateServer key="gpu" mode="gpu" />} />
-            {CLOUD_SERVER_PAGES.filter(([segment]) => segment !== "servers" && segment !== "gpu-servers").map(([segment, title]) => (
+            <Route path="/images" element={<Images />} />
+            <Route path="/images/upload" element={<UploadImage />} />
+            {CLOUD_SERVER_PAGES.filter(([segment]) => !["servers", "gpu-servers", "images"].includes(segment)).map(([segment, title]) => (
               <Route key={segment} path={`/${segment}`} element={<Page title={title} />} />
             ))}
             <Route path="*" element={<Navigate to={`${CLOUD_SERVER_BASE}/servers`} replace />} />
