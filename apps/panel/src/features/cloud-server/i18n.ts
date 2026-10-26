@@ -334,8 +334,8 @@ const fa: Record<string, string> = {
   "Create GPU server": "ساخت سرور GPU",
   "A virtual machine with a dedicated GPU": "یک ماشین مجازی با GPU اختصاصی",
   "Need a GPU?": "به GPU نیاز دارید؟",
-  "GPU servers have their own section, with the GPU models, their availability and the drivers.":
-    "سرورهای GPU بخش جداگانه‌ی خودشان را دارند، با مدل‌های GPU، موجودی و درایورها.",
+  "To create a server with a dedicated GPU, use GPU Servers.":
+    "برای ساخت سرور با GPU اختصاصی می‌توانید از بخش سرورهای GPU استفاده کنید.",
   "Create a GPU server": "ساخت سرور GPU",
   "GPU model": "مدل GPU",
   GPUs: "تعداد GPU",
@@ -719,8 +719,8 @@ const ar: Record<string, string> = {
   "Create GPU server": "إنشاء خادم GPU",
   "A virtual machine with a dedicated GPU": "جهاز افتراضي مع GPU مخصص",
   "Need a GPU?": "هل تحتاج إلى GPU؟",
-  "GPU servers have their own section, with the GPU models, their availability and the drivers.":
-    "لخوادم GPU قسم خاص بها، مع طرازات GPU وتوفرها وبرامج التشغيل.",
+  "To create a server with a dedicated GPU, use GPU Servers.":
+    "لإنشاء خادم مع GPU مخصص، استخدم قسم خوادم GPU.",
   "Create a GPU server": "إنشاء خادم GPU",
   "GPU model": "طراز GPU",
   GPUs: "عدد GPU",

@@ -544,7 +544,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                         </span>
                         <p className="mt-4 text-base font-semibold text-foreground">{t("Need a GPU?")}</p>
                         <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                          {t("GPU servers have their own section, with the GPU models, their availability and the drivers.")}
+                          {t("To create a server with a dedicated GPU, use GPU Servers.")}
                         </p>
                         <Button className="mt-5 gap-2" onClick={() => navigate(CREATE_GPU_SERVER_PATH)}>
                           {t("Create a GPU server")}
