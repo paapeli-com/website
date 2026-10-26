@@ -26,8 +26,10 @@ export default function ChooseServerType() {
     <CreatePage>
       <CreateHeader description={t("Choose how you want to create your cloud workload.")} />
 
-      <Card className="p-4">
-        <div role="radiogroup" className="grid max-w-3xl grid-cols-1 gap-4 md:grid-cols-2">
+      {/* Two choices in a wide card: centred, so they do not sit at one edge
+          with the rest of the card empty. */}
+      <Card className="px-4 py-8">
+        <div role="radiogroup" className="mx-auto grid max-w-3xl grid-cols-1 gap-4 md:grid-cols-2">
           <KindCard
             icon={Server}
             title={t("Single virtual machine")}
@@ -43,7 +45,7 @@ export default function ChooseServerType() {
             onSelect={() => setKind("group")}
           />
         </div>
-        <p className="mt-4 flex items-start gap-2 text-xs text-muted-foreground">
+        <p className="mx-auto mt-5 flex max-w-3xl items-start justify-center gap-2 text-center text-xs text-muted-foreground">
           <Info className="mt-px size-4 shrink-0" />
           {t("You can also create Auto Scale groups later from the Auto Scale section.")}
         </p>
