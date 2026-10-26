@@ -704,6 +704,10 @@ const fa: Record<string, string> = {
   "Virtual machines with a dedicated NVIDIA GPU, billed by the hour.":
     "ماشین‌های مجازی با GPU اختصاصی انویدیا، با پرداخت ساعتی.",
   "Linux and Windows": "لینوکس و ویندوز",
+  "A whole physical server for you, to run your own cloud servers on.":
+    "یک سرور فیزیکی کامل برای شما، تا سرورهای ابری خودتان را روی آن اجرا کنید.",
+  "Monthly or yearly": "ماهانه یا سالانه",
+  Clusters: "کلاستر",
   "Dedicated Servers": "سرور اختصاصی",
   "Load Balancer": "لود بالانسر",
   "Public IPs": "IPهای عمومی",
@@ -1414,6 +1418,10 @@ const ar: Record<string, string> = {
   "Virtual machines with a dedicated NVIDIA GPU, billed by the hour.":
     "أجهزة افتراضية مع GPU مخصص من NVIDIA، بالدفع بالساعة.",
   "Linux and Windows": "لينكس وويندوز",
+  "A whole physical server for you, to run your own cloud servers on.":
+    "خادم فعلي كامل لك، لتشغيل خوادمك السحابية عليه.",
+  "Monthly or yearly": "شهري أو سنوي",
+  Clusters: "عناقيد",
   "Dedicated Servers": "الخوادم المخصصة",
   "Load Balancer": "موازن الأحمال",
   "Public IPs": "عناوين IP العامة",

@@ -29,6 +29,8 @@ export const SERVER_CREATED_PATH = `${SERVERS_PATH}/created`;
    mode. */
 export const GPU_SERVERS_PATH = CLOUD_SERVER_GPU_PATH;
 export const CREATE_GPU_SERVER_PATH = `${GPU_SERVERS_PATH}/create`;
+export const DEDICATED_PATH = `${CLOUD_SERVER_BASE}/dedicated-servers`;
+export const CREATE_DEDICATED_PATH = `${DEDICATED_PATH}/create`;
 export const IMAGES_PATH = `${CLOUD_SERVER_BASE}/images`;
 export const UPLOAD_IMAGE_PATH = `${IMAGES_PATH}/upload`;
 

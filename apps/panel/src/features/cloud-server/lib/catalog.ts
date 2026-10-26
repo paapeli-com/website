@@ -56,8 +56,10 @@ export const adminUser = (family: OsImage["family"]) => (family === "windows" ? 
 
 export const DEFAULT_IMAGE = { imageId: "ubuntu", version: "24.04 LTS" };
 
-/** Shared vCPUs, dedicated vCPUs, or a GPU attached. */
-export type PlanFamily = "shared" | "dedicated" | "gpu";
+/** Shared vCPUs, dedicated vCPUs, a GPU attached, or a size carved out of
+    one of the account's own dedicated servers ("host": no PLANS of its own,
+    it borrows the shared sizes and pays nothing for them). */
+export type PlanFamily = "shared" | "dedicated" | "gpu" | "host";
 
 export interface Plan {
   id: string;
@@ -124,6 +126,68 @@ export const PLANS: Plan[] = [
 
 export const DEFAULT_PLAN_ID = "s-2";
 export const DEFAULT_GPU_PLAN_ID = "g-4060";
+
+/* Dedicated servers: whole physical machines rented by the month, which the
+   account then runs its own cloud servers on. Our own sample hardware. */
+export interface HostPlan {
+  id: string;
+  model: string;
+  cpu: string;
+  cores: number;
+  ramGb: number;
+  disk: string;
+  network: string;
+  /** How many cloud servers it can run. */
+  maxVms: number;
+  availability: GpuAvailability;
+  monthly: Money;
+}
+
+export const HOST_PLANS: HostPlan[] = [
+  {
+    id: "h-r650",
+    model: "Dell PowerEdge R650",
+    cpu: "2 × Xeon Silver 4314",
+    cores: 32,
+    ramGb: 256,
+    disk: "2 × 960 GB NVMe",
+    network: "2 × 10 Gbps",
+    maxVms: 30,
+    availability: "available",
+    monthly: { TOMAN: 38_000_000, USD: 650, QAR: 2_370 },
+  },
+  {
+    id: "h-dl380",
+    model: "HPE ProLiant DL380 Gen10 Plus",
+    cpu: "2 × Xeon Gold 6338",
+    cores: 64,
+    ramGb: 512,
+    disk: "4 × 1.92 TB NVMe",
+    network: "2 × 25 Gbps",
+    maxVms: 60,
+    availability: "available",
+    monthly: { TOMAN: 72_000_000, USD: 1_240, QAR: 4_520 },
+  },
+  {
+    id: "h-sr665",
+    model: "Lenovo ThinkSystem SR665",
+    cpu: "2 × AMD EPYC 7543",
+    cores: 64,
+    ramGb: 1024,
+    disk: "4 × 3.84 TB NVMe",
+    network: "2 × 25 Gbps",
+    maxVms: 100,
+    availability: "limited",
+    monthly: { TOMAN: 115_000_000, USD: 1_980, QAR: 7_220 },
+  },
+];
+
+/** Billing periods, in months, and what each takes off the monthly price. */
+export const HOST_PERIODS: { months: 1 | 6 | 12; discount: number }[] = [
+  { months: 1, discount: 0 },
+  { months: 6, discount: 0.1 },
+  { months: 12, discount: 0.2 },
+];
 
 /** Keeping a custom image, per GB a month. */
 export const IMAGE_GB_MONTHLY: Money = { TOMAN: 2_000, USD: 0.03, QAR: 0.11 };

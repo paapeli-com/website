@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArchiveRestore,
   ArrowRight,
@@ -17,6 +17,7 @@ import {
   Plus,
   Repeat,
   Server,
+  ServerCog,
   ShieldCheck,
   Trash2,
   type LucideIcon,
@@ -47,7 +48,9 @@ import { toast } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
 import { CLOUD_SERVER_BASE } from "@/shell/nav/cloudServerNav";
 import { useT } from "../i18n";
+import { Note, OptionCard, Pill, RegionPicker, ReviewBlock, ReviewLine, SettingRow, StepBar, StepSection, SummaryLine } from "../wizard";
 import {
+  CREATE_DEDICATED_PATH,
   CREATE_GPU_SERVER_PATH,
   CreateFooter,
   CreateHeader,
@@ -65,7 +68,8 @@ import {
   type CreatedServer,
 } from "../lib/quickCreate";
 import { OsLogo } from "../lib/osLogos";
-import { addServer, sampleAddresses } from "../lib/serverStore";
+import { addServer, sampleAddresses, useServers } from "../lib/serverStore";
+import { hostStatus, useClusters, useHosts, type HostRecord } from "../lib/hostStore";
 import { CountryFlag, CountryOutline } from "../lib/regionArt";
 import {
   ADDITIONAL_DISK_MAX_GB,
@@ -120,11 +124,12 @@ const REVIEW_STEP = 6;
 const NAME_RE = /^[a-z][a-z0-9-]{1,61}[a-z0-9]$/;
 const looksLikePublicKey = (k: string) => /^(ssh-(ed25519|rsa|dss)|ecdsa-sha2-\S+|sk-\S+)\s+\S{20,}/.test(k.trim());
 
-const FAMILY_ICON: Record<PlanFamily, LucideIcon> = { shared: Cpu, dedicated: Server, gpu: Microchip };
+const FAMILY_ICON: Record<PlanFamily, LucideIcon> = { shared: Cpu, dedicated: Server, gpu: Microchip, host: ServerCog };
 const FAMILY_TEXT: Record<PlanFamily, [string, string]> = {
   shared: ["Shared vCPU", "Good for websites, development and most workloads."],
   dedicated: ["Dedicated vCPU", "Cores reserved for you, for steady high load."],
   gpu: ["GPU", "For training, inference and rendering."],
+  host: ["On my dedicated server", "On a dedicated server you rent, already paid for."],
 };
 
 function generatePassword() {
@@ -170,6 +175,8 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
   const isGpu = mode === "gpu";
   const t = useT();
   const navigate = useNavigate();
+  /* Arriving from a dedicated server's row: that machine is already chosen. */
+  const preHostId = isGpu ? undefined : (useLocation().state as { hostId?: string } | null)?.hostId;
   const { isRTL } = useLanguage();
   const language = useAppLanguage();
   const n = (v: number | string) => localizeDigits(language, v);
@@ -204,14 +211,28 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
   /* Only this mode's plans, and never one that is sold out. */
   const modePlans = PLANS.filter((p) => (p.family === "gpu") === isGpu);
   const [planId, setPlanId] = useState(() =>
-    modePlans.some((p) => p.id === saved?.planId && p.availability !== "soldOut")
+    preHostId
+      ? DEFAULT_PLAN_ID
+      : modePlans.some((p) => p.id === saved?.planId && p.availability !== "soldOut")
       ? saved!.planId
       : isGpu
         ? DEFAULT_GPU_PLAN_ID
         : DEFAULT_PLAN_ID,
   );
   const plan = PLANS.find((p) => p.id === planId) ?? PLANS[0];
-  const [family, setFamily] = useState<PlanFamily>(plan.family);
+  const [family, setFamily] = useState<PlanFamily>(preHostId ? "host" : plan.family);
+
+  /* The account's dedicated servers in the chosen region that can take one
+     more cloud server. */
+  const allHosts = useHosts();
+  const clusters = useClusters();
+  const allServers = useServers();
+  const hostsHere = allHosts.filter(
+    (h) => h.region === region.city && hostStatus(h) === "active" && allServers.filter((s) => s.hostId === h.id).length < h.maxVms,
+  );
+  const [hostId, setHostId] = useState(preHostId ?? "");
+  const host: HostRecord | undefined = hostsHere.find((h) => h.id === hostId) ?? hostsHere[0];
+  const onHost = !isGpu && family === "host";
 
   const startBoot = Math.min(BOOT_DISK_MAX_GB, Math.max(plan.diskGb, saved?.bootGb ?? plan.diskGb));
   const [bootGb, setBootGb] = useState(startBoot);
@@ -247,12 +268,14 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
   // ---- Validation ---------------------------------------------------------
   const nameOk = NAME_RE.test(name);
   const accessOk = access === "password" || !!sshKeyId;
-  const stepOk = (i: number) => (i === 0 ? nameOk : i === SECURITY_STEP ? accessOk : true);
+  const stepOk = (i: number) =>
+    i === 0 ? nameOk : i === 2 ? !(onHost && !host) : i === SECURITY_STEP ? accessOk : true;
 
   // ---- Price ----------------------------------------------------------------
   const extraGb = extraDisks.reduce((sum, d) => sum + d.sizeGb, 0);
   const roundMoney = (raw: number) => (currency === "TOMAN" ? Math.round(raw / 1000) * 1000 : Math.round(raw * 100) / 100);
-  const serverMonthly = plan.monthly[currency] + (bootGb - plan.diskGb + extraGb) * DISK_GB_MONTHLY[currency];
+  const serverMonthly =
+    (onHost ? 0 : plan.monthly[currency]) + (bootGb - plan.diskGb + extraGb) * DISK_GB_MONTHLY[currency];
   /* Backup is a share of what it protects: the server and every disk. */
   const backupMonthly = roundMoney(serverMonthly * BACKUP_RATE);
   const monthly = useMemo(
@@ -274,8 +297,10 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
 
   const chooseFamily = (f: PlanFamily) => {
     setFamily(f);
-    /* GPU here only shows the way to the GPU wizard; the chosen plan stays. */
-    if (f !== "gpu" && plan.family !== f) choosePlan(PLANS.find((p) => p.family === f)!);
+    /* GPU here only shows the way to the GPU wizard; the chosen plan stays.
+       A dedicated server takes the shared sizes. */
+    const sizes = f === "host" ? "shared" : f;
+    if (f !== "gpu" && plan.family !== sizes) choosePlan(PLANS.find((p) => p.family === sizes)!);
   };
 
   const setBoot = (gb: number) => {
@@ -285,7 +310,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
   };
 
   const create = () => {
-    const firstBad = [0, SECURITY_STEP].find((i) => !stepOk(i));
+    const firstBad = [0, 2, SECURITY_STEP].find((i) => !stepOk(i));
     if (firstBad !== undefined) {
       setShowErrors(true);
       setStep(firstBad);
@@ -319,6 +344,8 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
       id,
       kind: mode,
       gpu: plan.gpu,
+      hostId: onHost ? host?.id : undefined,
+      hostName: onHost ? host?.name : undefined,
       name,
       imageId,
       image: `${image.name} ${versions[imageId]}`,
@@ -396,84 +423,16 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                     </p>
                   </div>
 
-                  {/* Region and zone: a card per region, with the zone picked
-                      inside the card it belongs to. One region for now; the
-                      grid takes more as they open. */}
                   <div className="border-t border-border pt-5">
-                    <div className="mb-4 flex items-center gap-3">
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                        <MapPin className="size-[18px]" />
-                      </span>
-                      <div>
-                        <h3 className="text-sm font-semibold text-foreground">{t("Region and availability zone")}</h3>
-                        <p className="text-xs text-muted-foreground">{t("Choose where your server will be located.")}</p>
-                      </div>
-                    </div>
-
-                    <div role="radiogroup" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                      {REGIONS.map((r) => {
-                        const selected = r.id === regionId;
-                        return (
-                          <OptionCard
-                            key={r.id}
-                            selected={selected}
-                            onSelect={() => {
-                              if (r.id === regionId) return;
-                              setRegionId(r.id);
-                              setZone(r.zones[0]);
-                            }}
-                          >
-                            <div className="relative">
-                              <CountryOutline
-                                country={r.country}
-                                className={cn(
-                                  "pointer-events-none absolute -top-1 start-0 h-16 w-20",
-                                  selected ? "text-primary/15" : "text-muted",
-                                )}
-                              />
-                              <div className="relative ps-24">
-                                <CountryFlag country={r.country} className="h-3.5 w-6 rounded-[2px]" />
-                                <p className="mt-1.5 text-base font-semibold text-foreground">{t(r.countryName)}</p>
-                                <p className="text-xs text-muted-foreground">{t(r.city)}</p>
-                                <div className="mt-2 flex flex-wrap gap-1.5">
-                                  {r.tags.map((tag) => (
-                                    <Pill key={tag} tone="ok">
-                                      {t(tag)}
-                                    </Pill>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="mt-4" onClick={(e) => e.stopPropagation()}>
-                              <p className="mb-1.5 text-xs font-medium text-foreground">{t("Availability zone")}</p>
-                              <Select
-                                dir="ltr"
-                                value={selected ? zone : r.zones[0]}
-                                onValueChange={(v) => {
-                                  setRegionId(r.id);
-                                  setZone(v);
-                                }}
-                              >
-                                <SelectTrigger className="h-9" dir="ltr">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {r.zones.map((z, i) => (
-                                    <SelectItem key={z} value={z}>
-                                      {i === 0 ? `${z} (${t("Default")})` : z}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </OptionCard>
-                        );
-                      })}
-                    </div>
-
-                    <Note className="mt-4">
-                      {t("A server stays in the region it is created in; the region cannot be changed later.")}
-                    </Note>
+                    <RegionPicker
+                      regionId={regionId}
+                      zone={zone}
+                      onChange={(r, z) => {
+                        setRegionId(r);
+                        setZone(z);
+                      }}
+                      note={t("A server stays in the region it is created in; the region cannot be changed later.")}
+                    />
                   </div>
 
                 </div>
@@ -544,7 +503,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                   <GpuPlanTable plans={modePlans} planId={planId} onChoose={choosePlan} />
                 ) : (
                   <>
-                <div role="radiogroup" className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div role="radiogroup" className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
                   {(Object.keys(FAMILY_TEXT) as PlanFamily[]).map((f) => {
                     const Icon = FAMILY_ICON[f];
                     return (
@@ -560,7 +519,23 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                 </div>
 
 
-                    {family === "gpu" ? (
+                    {onHost && !host ? (
+                      /* No dedicated server to put it on: the way to rent
+                         one, as the GPU card points to the GPU wizard. */
+                      <div className="mt-4 flex flex-col items-center rounded-xl border border-dashed border-border px-6 py-10 text-center">
+                        <span className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <ServerCog className="size-6" />
+                        </span>
+                        <p className="mt-4 text-base font-semibold text-foreground">{t("No dedicated server here yet")}</p>
+                        <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                          {t("Create a dedicated server in this region first, then come back to create cloud servers on it.")}
+                        </p>
+                        <Button className="mt-5 gap-2" onClick={() => navigate(CREATE_DEDICATED_PATH)}>
+                          {t("Create a dedicated server")}
+                          <ArrowRight className="size-4 rtl:rotate-180" />
+                        </Button>
+                      </div>
+                    ) : family === "gpu" ? (
                       /* GPU servers have their own section and wizard; this
                          card leads there rather than listing plans twice. */
                       <div className="mt-4 flex flex-col items-center rounded-xl border border-dashed border-border px-6 py-10 text-center">
@@ -578,6 +553,15 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                       </div>
                     ) : (
                       <>
+                {onHost && host && (
+                  <HostPicker
+                    hosts={hostsHere}
+                    hostId={host.id}
+                    onChoose={setHostId}
+                    clusterName={(id) => clusters.find((c) => c.id === id)?.name ?? "-"}
+                    used={(id) => allServers.filter((sv) => sv.hostId === id).length}
+                  />
+                )}
                 {/* The device list's table treatment, so a list reads the same
                     in every product. One plan is chosen, so a radio rather than
                     the device list's checkboxes. */}
@@ -601,7 +585,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {PLANS.filter((p) => p.family === family).map((p) => {
+                        {PLANS.filter((p) => p.family === (family === "host" ? "shared" : family)).map((p) => {
                           const selected = p.id === planId;
                           return (
                             <TableRow
@@ -627,7 +611,13 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                               <TableCell>
                                 {n(p.trafficTb)} {t("TB")}
                               </TableCell>
-                              <TableCell className="text-end font-medium">{format(p.monthly[currency])}</TableCell>
+                              <TableCell className="text-end font-medium">
+                                {onHost ? (
+                                  <span className="text-emerald-700 dark:text-emerald-400">{t("Included")}</span>
+                                ) : (
+                                  format(p.monthly[currency])
+                                )}
+                              </TableCell>
                             </TableRow>
                           );
                         })}
@@ -1089,6 +1079,9 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
               {isGpu && plan.gpu && (
                 <SummaryLine icon={Microchip} label={t("GPU")} value={<span dir="ltr">{plan.gpu}</span>} />
               )}
+              {onHost && host && (
+                <SummaryLine icon={ServerCog} label={t("Dedicated server")} value={<span dir="ltr">{host.name}</span>} />
+              )}
               <SummaryLine
                 icon={Cpu}
                 label={t("Plan")}
@@ -1156,6 +1149,58 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
 }
 
 // ---- Pieces ------------------------------------------------------------------
+
+/** Which of the account's dedicated servers the cloud server goes on, with how
+    full each one already is. */
+function HostPicker({
+  hosts,
+  hostId,
+  onChoose,
+  clusterName,
+  used,
+}: {
+  hosts: HostRecord[];
+  hostId: string;
+  onChoose: (id: string) => void;
+  clusterName: (id: string) => string;
+  used: (id: string) => number;
+}) {
+  const t = useT();
+  const language = useAppLanguage();
+  const n = (v: number | string) => localizeDigits(language, v);
+  return (
+    <div className="mt-4">
+      <p className="mb-2 text-sm font-medium text-foreground">{t("Dedicated server")}</p>
+      <div role="radiogroup" className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+        {hosts.map((h) => {
+          const count = used(h.id);
+          return (
+            <OptionCard key={h.id} selected={h.id === hostId} onSelect={() => onChoose(h.id)}>
+              <div className="flex items-center gap-2">
+                <ServerCog className={cn("size-4 shrink-0", h.id === hostId ? "text-primary" : "text-muted-foreground")} />
+                <span className="truncate text-sm font-semibold text-foreground" dir="ltr">
+                  {h.name}
+                </span>
+              </div>
+              <p className="mt-1 truncate text-xs text-muted-foreground" dir="ltr">
+                {h.model} · {clusterName(h.clusterId)}
+              </p>
+              <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                <span>{t("Cloud servers")}</span>
+                <span className="tabular-nums text-foreground">
+                  {n(count)} / {n(h.maxVms)}
+                </span>
+              </div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full bg-violet-500" style={{ width: `${(count / h.maxVms) * 100}%` }} />
+              </div>
+            </OptionCard>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 /** The GPU plans, in the device list's table treatment. A sold-out plan is
     shown, so the range is visible, but cannot be chosen. */
@@ -1249,218 +1294,6 @@ function GpuPlanTable({ plans, planId, onChoose }: { plans: Plan[]; planId: stri
         </Table>
       </div>
     </RadioGroup>
-  );
-}
-
-/** The alert rule wizard's step indicator, mark for mark: small numbered
-    dots with the label beside them and a short rule between. Any step can be
-    opened. A step left short after a Create attempt is marked red. */
-function StepBar({
-  current,
-  labels,
-  done,
-  invalid,
-  onSelect,
-}: {
-  current: number;
-  labels: string[];
-  done: (i: number) => boolean;
-  invalid: (i: number) => boolean;
-  onSelect: (i: number) => void;
-}) {
-  const language = useAppLanguage();
-  const { isRTL } = useLanguage();
-  return (
-    <nav className="mb-5 mt-1 flex items-center gap-1 overflow-x-auto pb-1">
-      {labels.map((label, i) => {
-        const isCurrent = i === current;
-        const isDone = done(i);
-        const isBad = invalid(i);
-        return (
-          <div key={label} className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => onSelect(i)}
-              aria-current={isCurrent ? "step" : undefined}
-              className="flex cursor-pointer items-center gap-1 rounded-full outline-none transition-opacity hover:opacity-75 focus-visible:ring-2 focus-visible:ring-primary/40"
-            >
-              <span
-                className={cn(
-                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium",
-                  isBad
-                    ? "bg-destructive/10 text-destructive"
-                    : isCurrent
-                      ? "bg-primary text-primary-foreground"
-                      : isDone
-                        ? "bg-primary/20 text-primary"
-                        : "bg-muted text-muted-foreground",
-                )}
-              >
-                {isDone && !isBad ? <Check className="h-3.5 w-3.5" /> : localizeDigits(language, i + 1)}
-              </span>
-              <span
-                className={cn(
-                  /* A step larger in Persian and Arabic, whose script reads
-                     smaller at the same size; the alert rule wizard does the
-                     same. */
-                  "hidden whitespace-nowrap sm:inline",
-                  isRTL ? "text-sm" : "text-xs",
-                  isBad ? "text-destructive" : isCurrent ? "font-medium text-foreground" : "text-muted-foreground",
-                )}
-              >
-                {label}
-              </span>
-            </button>
-            {i < labels.length - 1 && <div className="h-px w-4 shrink-0 bg-border" />}
-          </div>
-        );
-      })}
-    </nav>
-  );
-}
-
-function StepSection({
-  icon: Icon,
-  title,
-  description,
-  children,
-}: {
-  icon: LucideIcon;
-  title: string;
-  description?: string;
-  children: ReactNode;
-}) {
-  return (
-    <section>
-      <div className="mb-5 flex items-center gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-          <Icon className="size-[18px]" />
-        </span>
-        <div>
-          <h2 className="text-base font-semibold text-foreground">{title}</h2>
-          {description && <p className="text-sm text-muted-foreground">{description}</p>}
-        </div>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-/** A choosable card. Selected is a thin brand edge and a faint tint. */
-function OptionCard({ selected, onSelect, children }: { selected: boolean; onSelect: () => void; children: ReactNode }) {
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.target !== e.currentTarget) return;
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      onSelect();
-    }
-  };
-  return (
-    <div
-      role="radio"
-      aria-checked={selected}
-      tabIndex={0}
-      onClick={onSelect}
-      onKeyDown={onKeyDown}
-      className={cn(
-        "relative cursor-pointer rounded-xl border p-4 text-start outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/40",
-        selected ? "border-primary/50 bg-primary/[0.04]" : "border-border hover:border-primary/30 hover:bg-muted/30",
-      )}
-    >
-      {selected && (
-        <span className="absolute end-3 top-3 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground">
-          <Check className="size-3" />
-        </span>
-      )}
-      <div className="pe-5">{children}</div>
-    </div>
-  );
-}
-
-/** One setting: icon, what it is, and its control on the far side. */
-function SettingRow({
-  icon: Icon,
-  title,
-  description,
-  control,
-  children,
-}: {
-  icon: LucideIcon;
-  title: ReactNode;
-  description: string;
-  control?: ReactNode;
-  children?: ReactNode;
-}) {
-  return (
-    <div className="rounded-xl border border-border p-4">
-      <div className="flex items-start gap-3">
-        <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-foreground">{title}</p>
-          <p className="text-xs text-muted-foreground">{description}</p>
-        </div>
-        {control && <div className="shrink-0">{control}</div>}
-      </div>
-      {children && <div className="ps-7">{children}</div>}
-    </div>
-  );
-}
-
-/** Neutral, not blue: an aside, not an alert. */
-function Note({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <div className={cn("flex items-start gap-2.5 rounded-lg bg-muted/50 px-3.5 py-2.5 text-xs text-muted-foreground", className)}>
-      <Info className="mt-px size-4 shrink-0" />
-      <span>{children}</span>
-    </div>
-  );
-}
-
-function Pill({ children, tone = "gray" }: { children: ReactNode; tone?: "gray" | "ok" }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium",
-        tone === "ok" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-muted text-muted-foreground",
-      )}
-    >
-      {children}
-    </span>
-  );
-}
-
-function ReviewBlock({ title, onEdit, children }: { title: string; onEdit: () => void; children: ReactNode }) {
-  const t = useT();
-  return (
-    <div className="rounded-xl border border-border p-4">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-        <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={onEdit}>
-          <Pencil className="size-3.5" />
-          {t("Edit")}
-        </Button>
-      </div>
-      <dl className="space-y-1.5">{children}</dl>
-    </div>
-  );
-}
-
-function ReviewLine({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3 text-sm">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 truncate text-end font-medium text-foreground">{value}</dd>
-    </div>
-  );
-}
-
-function SummaryLine({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: ReactNode }) {
-  return (
-    <div className="flex items-center gap-2.5 py-1.5 text-sm">
-      <Icon className="size-4 shrink-0 text-muted-foreground" />
-      <span className="text-muted-foreground">{label}</span>
-      <span className="ms-auto min-w-0 truncate text-end font-medium text-foreground">{value}</span>
-    </div>
   );
 }
 

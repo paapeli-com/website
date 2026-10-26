@@ -353,6 +353,16 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
                   opens
                   pills={[{ text: "RTX 4060 · 4080" }, { text: "A100 · V100" }]}
                 />
+                <ProductCard
+                  icon={Server}
+                  title={t("Dedicated Servers")}
+                  tag={t("Alpha")}
+                  description={t("A whole physical server for you, to run your own cloud servers on.")}
+                  action={t("Open")}
+                  onAction={() => navigate(`${CLOUD_SERVER_BASE}/dedicated-servers`)}
+                  opens
+                  pills={[{ text: t("Monthly or yearly") }, { text: t("Clusters") }]}
+                />
               </div>
             </section>
             )}

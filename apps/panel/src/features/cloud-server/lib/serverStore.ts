@@ -17,6 +17,9 @@ export interface ServerRecord {
   kind?: "cloud" | "gpu";
   /** "1 × NVIDIA RTX 4080", for a GPU server. */
   gpu?: string;
+  /** The account's dedicated server this runs on, if not the shared cloud. */
+  hostId?: string;
+  hostName?: string;
   name: string;
   imageId: string;
   /** "Ubuntu 24.04 LTS" */

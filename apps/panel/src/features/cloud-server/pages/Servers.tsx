@@ -18,6 +18,7 @@ import {
   Plus,
   Power,
   Server,
+  ServerCog,
   SquareTerminal,
   Tag,
   Trash2,
@@ -110,6 +111,9 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | ServerStatus>("all");
   const [imageFilter, setImageFilter] = useState("all");
+  /* Where it runs: the shared cloud, or one of the account's dedicated
+     servers. A filter only; it gets no KPI card. */
+  const [placementFilter, setPlacementFilter] = useState<"all" | "shared" | "host">("all");
   const [sortKey, setSortKey] = useState<SortKey>("created");
   const [sortDirection, setSortDirection] = useState<"desc" | "asc">("desc");
   const [selected, setSelected] = useState<string[]>([]);
@@ -134,7 +138,8 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
         return (
           (!q || s.name.toLowerCase().includes(q) || s.ipv4.includes(q) || s.image.toLowerCase().includes(q)) &&
           (statusFilter === "all" || status === statusFilter) &&
-          (imageFilter === "all" || s.imageId === imageFilter)
+          (imageFilter === "all" || s.imageId === imageFilter) &&
+          (placementFilter === "all" || (placementFilter === "host") === !!s.hostId)
         );
       })
       .sort((a, b) => {
@@ -149,7 +154,7 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
             return sortDirection === "desc" ? b.createdAt - a.createdAt : a.createdAt - b.createdAt;
         }
       });
-  }, [servers, search, statusFilter, imageFilter, sortKey, sortDirection, now]);
+  }, [servers, search, statusFilter, imageFilter, placementFilter, sortKey, sortDirection, now]);
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -169,7 +174,7 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
   };
 
   const exportCsv = () => {
-    const header = ["name", "status", "image", "region", "zone", "ipv4", "plan", "gpu", "created"];
+    const header = ["name", "status", "image", "region", "zone", "ipv4", "plan", "gpu", "dedicatedServer", "created"];
     const rows = filtered.map((s) => [
       s.name,
       serverStatus(s, now),
@@ -179,6 +184,7 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
       s.ipv4,
       s.planId.toUpperCase(),
       s.gpu ?? "",
+      s.hostName ?? "",
       new Date(s.createdAt).toISOString(),
     ]);
     const csv = [header, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
@@ -241,6 +247,24 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
         ...IMAGES.filter((i) => servers.some((s) => s.imageId === i.id)).map((i) => ({ value: i.id, label: i.name })),
       ],
     },
+    ...(isGpu
+      ? []
+      : [
+          {
+            key: "placement",
+            label: t("Placement"),
+            value: placementFilter,
+            onChange: (v: string) => {
+              setPlacementFilter(v as "all" | "shared" | "host");
+              setCurrentPage(1);
+            },
+            options: [
+              { value: "all", label: fx("all") },
+              { value: "shared", label: t("Shared cloud") },
+              { value: "host", label: t("Dedicated server") },
+            ],
+          },
+        ]),
   ];
 
   const sortOptions: SortOption[] = [
@@ -339,10 +363,11 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
             isRefreshing={isRefreshing}
             filter={{
               fields: filterFields,
-              activeCount: [statusFilter, imageFilter].filter((v) => v !== "all").length,
+              activeCount: [statusFilter, imageFilter, placementFilter].filter((v) => v !== "all").length,
               onClear: () => {
                 setStatusFilter("all");
                 setImageFilter("all");
+                setPlacementFilter("all");
                 setCurrentPage(1);
               },
             }}
@@ -483,7 +508,20 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
                                 </span>
                               )}
                               <div className="min-w-0">
-                                <TruncatedText text={s.name} ltr className="font-medium text-foreground" />
+                                <div className="flex min-w-0 items-center gap-1.5">
+                                  <TruncatedText text={s.name} ltr className="font-medium text-foreground" />
+                                  {/* On one of the account's dedicated servers:
+                                      named on hover. */}
+                                  {s.hostId && (
+                                    <span
+                                      title={`${t("Dedicated server")}: ${s.hostName ?? ""}`}
+                                      className="inline-flex shrink-0 items-center gap-1 rounded-md bg-violet-500/10 px-1.5 py-0.5 text-[11px] font-medium text-violet-700 dark:text-violet-400"
+                                    >
+                                      <ServerCog className="h-3 w-3" />
+                                      {t("Dedicated server")}
+                                    </span>
+                                  )}
+                                </div>
                                 <TruncatedText text={s.image} ltr className="text-xs text-muted-foreground" />
                               </div>
                             </div>
