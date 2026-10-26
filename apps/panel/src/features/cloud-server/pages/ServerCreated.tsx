@@ -25,7 +25,7 @@ import { cn } from "@/shared/lib/utils";
 import { CLOUD_SERVER_BASE } from "@/shell/nav/cloudServerNav";
 import { useT } from "../i18n";
 import type { CreatedServer } from "../lib/quickCreate";
-import { CreateHeader, CreatePage, NEW_SERVER_PATH, SERVERS_PATH } from "../ui";
+import { CreateHeader, CreatePage, NEW_SERVER_PATH, SERVERS_PATH, TruncatedText } from "../ui";
 
 /* The page a create lands on: the server while it is being built, then the
  * way into it.
@@ -149,9 +149,20 @@ function Created({ server }: { server: CreatedServer }) {
             <StatusBadge phase={phase} powerOn={server.powerOn} />
           </div>
 
-          {/* The device list's table treatment. */}
+          {/* The device list's table treatment. Fixed columns, so a value
+              changing width (the password shown or hidden, an address
+              arriving) never shifts the others; on a narrow screen the table
+              scrolls sideways instead of squeezing, and anything cut short
+              shows in full on hover. */}
           <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs">
-            <Table>
+            <Table className="min-w-[820px] table-fixed">
+              <colgroup>
+                <col className="w-[26%]" />
+                <col className="w-[17%]" />
+                <col className="w-[21%]" />
+                <col className="w-[13%]" />
+                <col className="w-[23%]" />
+              </colgroup>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead>{t("Server")}</TableHead>
@@ -164,12 +175,8 @@ function Created({ server }: { server: CreatedServer }) {
               <TableBody>
                 <TableRow className="hover:bg-transparent">
                   <TableCell>
-                    <div className="font-medium text-foreground" dir="ltr">
-                      {server.name}
-                    </div>
-                    <div className="text-xs text-muted-foreground" dir="ltr">
-                      {server.image} · {server.spec}
-                    </div>
+                    <TruncatedText text={server.name} ltr className="font-medium text-foreground" />
+                    <TruncatedText text={`${server.image} · ${server.spec}`} ltr className="text-xs text-muted-foreground" />
                   </TableCell>
                   <TableCell>
                     <Pending ready={ipv4}>
@@ -191,10 +198,15 @@ function Created({ server }: { server: CreatedServer }) {
                   <TableCell>
                     {server.access === "password" && server.password ? (
                       <Pending ready={secret}>
-                        <div className="flex items-center gap-1">
-                          <code dir="ltr" className="font-mono text-xs text-foreground">
-                            {showPassword ? server.password : "••••••••••••"}
-                          </code>
+                        <div className="flex min-w-0 items-center gap-1">
+                          {/* As many dots as characters, so showing it does not
+                              change its width. */}
+                          <TruncatedText
+                            text={showPassword ? server.password : "•".repeat(server.password.length)}
+                            ltr
+                            mono
+                            className="text-foreground"
+                          />
                           <IconButton
                             label={showPassword ? t("Hide password") : t("Show password")}
                             onClick={() => setShowPassword((s) => !s)}
@@ -207,9 +219,7 @@ function Created({ server }: { server: CreatedServer }) {
                         </div>
                       </Pending>
                     ) : (
-                      <span className="text-foreground">
-                        {t("SSH key")} <span dir="ltr">({server.sshKeyName})</span>
-                      </span>
+                      <TruncatedText text={`${t("SSH key")} (${server.sshKeyName ?? ""})`} className="text-foreground" />
                     )}
                   </TableCell>
                 </TableRow>
@@ -294,10 +304,8 @@ function Pending({ ready, children }: { ready: boolean; children: ReactNode }) {
 function CopyValue({ value, onCopy }: { value: string; onCopy: (v: string) => void }) {
   const t = useT();
   return (
-    <span className="inline-flex items-center gap-1">
-      <code dir="ltr" className="font-mono text-xs text-foreground">
-        {value}
-      </code>
+    <span className="flex min-w-0 items-center gap-1">
+      <TruncatedText text={value} ltr mono className="text-foreground" />
       <IconButton label={t("Copy")} onClick={() => onCopy(value)}>
         <Copy className="size-3.5" />
       </IconButton>

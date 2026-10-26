@@ -62,7 +62,7 @@ import {
   type ServerRecord,
   type ServerStatus,
 } from "../lib/serverStore";
-import { CREATE_SERVER_PATH } from "../ui";
+import { CREATE_SERVER_PATH, TruncatedText } from "../ui";
 
 /* The server list: Smart Factory's device list, piece for piece.
  *
@@ -318,9 +318,23 @@ export default function Servers() {
             selectionCount={selected.length}
           />
 
-          {/* The device list's table: same frame, header and row sizes. */}
+          {/* The device list's table: same frame, header and row sizes. Fixed
+              columns, so nothing shifts as values change; below its minimum
+              width the table scrolls sideways, and a value cut short shows in
+              full on hover. */}
           <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs">
-            <Table>
+            <Table className="min-w-[1100px] table-fixed">
+              <colgroup>
+                <col className="w-[44px]" />
+                <col className="w-[36px]" />
+                <col className="w-[22%]" />
+                <col className="w-[11%]" />
+                <col className="w-[12%]" />
+                <col className="w-[14%]" />
+                <col className="w-[13%]" />
+                <col className="w-[13%]" />
+                <col className="w-[210px]" />
+              </colgroup>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead className="w-[44px] text-center">
@@ -428,12 +442,8 @@ export default function Servers() {
                                 </span>
                               )}
                               <div className="min-w-0">
-                                <div className="font-medium text-foreground" dir="ltr">
-                                  {s.name}
-                                </div>
-                                <div className="truncate text-xs text-muted-foreground" dir="ltr">
-                                  {s.image}
-                                </div>
+                                <TruncatedText text={s.name} ltr className="font-medium text-foreground" />
+                                <TruncatedText text={s.image} ltr className="text-xs text-muted-foreground" />
                               </div>
                             </div>
                           </TableCell>
@@ -441,18 +451,14 @@ export default function Servers() {
                             <StatusCell status={status} label={statusLabel[status]} />
                           </TableCell>
                           <TableCell>
-                            <span dir="ltr">
-                              {t(s.region)} / {s.zone}
-                            </span>
+                            <TruncatedText text={`${t(s.region)} / ${s.zone}`} />
                           </TableCell>
                           <TableCell onClick={(e) => e.stopPropagation()}>
                             {status === "creating" ? (
                               <span className="text-muted-foreground">-</span>
                             ) : (
-                              <span className="inline-flex items-center gap-1">
-                                <code dir="ltr" className="font-mono text-xs text-foreground">
-                                  {s.ipv4}
-                                </code>
+                              <span className="flex min-w-0 items-center gap-1">
+                                <TruncatedText text={s.ipv4} ltr mono className="text-foreground" />
                                 <button
                                   type="button"
                                   onClick={() => copy(s.ipv4)}
@@ -466,15 +472,14 @@ export default function Servers() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <div className="font-medium" dir="ltr">
-                              {s.planId.toUpperCase()}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {t("{cpu} vCPU · {ram} GB RAM", { cpu: formatNumber(s.vcpu), ram: formatNumber(s.ramGb) })}
-                            </div>
+                            <TruncatedText text={s.planId.toUpperCase()} ltr className="font-medium" />
+                            <TruncatedText
+                              text={t("{cpu} vCPU · {ram} GB RAM", { cpu: formatNumber(s.vcpu), ram: formatNumber(s.ramGb) })}
+                              className="text-xs text-muted-foreground"
+                            />
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
-                            {formatDateTime(s.createdAt, language)}
+                            <TruncatedText text={formatDateTime(s.createdAt, language)} />
                           </TableCell>
                           <TableCell onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-1">

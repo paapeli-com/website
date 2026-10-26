@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/features/factory/components/ui/button";
 import {
@@ -88,6 +88,43 @@ export function CreateFooter({ cancel, back, primary }: { cancel: Action; back?:
         </Button>
       </div>
     </div>
+  );
+}
+
+/** Text cut with an ellipsis when its column is too narrow, carrying the full
+    text as a tooltip then and only then. Re-measured on resize, so a column
+    that widens drops the tooltip again. */
+export function TruncatedText({
+  text,
+  className,
+  ltr,
+  mono,
+}: {
+  text: string;
+  className?: string;
+  ltr?: boolean;
+  mono?: boolean;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [cut, setCut] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setCut(el.scrollWidth > el.clientWidth + 1);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [text]);
+  return (
+    <span
+      ref={ref}
+      dir={ltr ? "ltr" : undefined}
+      title={cut ? text : undefined}
+      className={cn("block min-w-0 truncate", mono && "font-mono text-xs", className)}
+    >
+      {text}
+    </span>
   );
 }
 
