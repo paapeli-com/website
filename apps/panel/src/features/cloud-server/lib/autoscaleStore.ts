@@ -20,6 +20,34 @@ export type ScalingMode = "automatic" | "manual";
 export type Metric = "cpu" | "memory";
 export type HealthSource = "infra" | "lb";
 
+/** The load balancer's health check, Octavia's health monitor field for
+    field: what it asks, and when an answer counts as healthy. */
+export interface HealthCheck {
+  protocol: "HTTP" | "HTTPS" | "TCP";
+  port: number;
+  /** HTTP and HTTPS only. */
+  path: string;
+  /** Answers that count as healthy, HTTP and HTTPS only: "200" or "200-299". */
+  codes: string;
+  intervalSec: number;
+  timeoutSec: number;
+  /** Failures in a row before the instance counts as failed. */
+  unhealthyAfter: number;
+  /** Successes in a row before it counts as healthy again. */
+  healthyAfter: number;
+}
+
+export const DEFAULT_CHECK: HealthCheck = {
+  protocol: "HTTP",
+  port: 80,
+  path: "/health",
+  codes: "200",
+  intervalSec: 10,
+  timeoutSec: 5,
+  unhealthyAfter: 3,
+  healthyAfter: 2,
+};
+
 export interface ScalingRule {
   id: string;
   /** At a set time, or on a metric: out above the threshold, in below. */
@@ -74,7 +102,10 @@ export interface AutoScaleGroup {
   rules: ScalingRule[];
   /** An Octavia load balancer's name, or none. */
   loadBalancer?: string;
-  health: { source: HealthSource; autoReplace: boolean; graceMin: number };
+  health: { source: HealthSource; autoReplace: boolean; graceMin: number; check?: HealthCheck };
+  /** Text these workspace members when the group scales out or in. Sent by
+      the gateway's SMS channel, to verified phones only. */
+  notify?: { sms: boolean; userIds: string[] };
   paused: boolean;
   createdAt: number;
   /** When the desired capacity last changed; new instances read as being

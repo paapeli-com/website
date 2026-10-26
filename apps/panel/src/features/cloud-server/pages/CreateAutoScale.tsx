@@ -38,7 +38,18 @@ import { cn } from "@/shared/lib/utils";
 import { useT } from "../i18n";
 import { DEFAULT_FIREWALL_ID, DEFAULT_IMAGE, DEFAULT_PLAN_ID, FIREWALLS, IMAGES, PLANS, REGIONS } from "../lib/catalog";
 import { OsLogo } from "../lib/osLogos";
-import { addGroup, DEFAULT_RULES, type HealthSource, type Metric, type ScalingMode, type ScalingRule } from "../lib/autoscaleStore";
+import {
+  addGroup,
+  DEFAULT_CHECK,
+  DEFAULT_RULES,
+  type HealthCheck,
+  type HealthSource,
+  type Metric,
+  type ScalingMode,
+  type ScalingRule,
+} from "../lib/autoscaleStore";
+import { HealthSettings, SmsNotify } from "../autoscaleHealthNotify";
+import { getCurrentUserId } from "@paapeli/brand/session";
 import { AUTOSCALE_PATH, CreateFooter, CreatePage, PageBreadcrumb, SERVERS_PATH, groupPath } from "../ui";
 import { Note, OptionCard, RegionPicker, ReviewBlock, ReviewLine, SettingRow, StepBar, StepSection, SummaryLine } from "../wizard";
 import { Stepper } from "../autoscaleUi";
@@ -108,6 +119,12 @@ export default function CreateAutoScale() {
   const [healthSource, setHealthSource] = useState<HealthSource>("infra");
   const [autoReplace, setAutoReplace] = useState(true);
   const [graceMin, setGraceMin] = useState(5);
+  const [check, setCheck] = useState<HealthCheck>(DEFAULT_CHECK);
+  /* Off by default; the creator is the first one ticked when it is turned on. */
+  const [notify, setNotify] = useState<{ sms: boolean; userIds: string[] }>(() => ({
+    sms: false,
+    userIds: getCurrentUserId() ? [getCurrentUserId()!] : [],
+  }));
 
   useEffect(() => {
     setVisited((prev) => (prev.has(step) ? prev : new Set(prev).add(step)));
@@ -164,7 +181,8 @@ export default function CreateAutoScale() {
       cooldownMin,
       rules: mode === "automatic" ? rules : [],
       loadBalancer: withLb ? lbName : undefined,
-      health: { source: healthSource, autoReplace, graceMin },
+      health: { source: healthSource, autoReplace, graceMin, check: healthSource === "lb" ? check : undefined },
+      notify: mode === "automatic" && notify.sms && notify.userIds.length > 0 ? notify : undefined,
     });
     toast.success(t("{name} is being created.", { name }));
     navigate(groupPath(group.id));
@@ -422,6 +440,7 @@ export default function CreateAutoScale() {
                         </Select>
                         <span className="text-xs text-muted-foreground">{t("The wait after a change before the next one.")}</span>
                       </div>
+                      <SmsNotify value={notify} onChange={setNotify} />
                     </>
                   ) : (
                     <Note>{t("Manual mode keeps the desired number; scaling rules are not applied.")}</Note>
@@ -464,39 +483,15 @@ export default function CreateAutoScale() {
                       control={<Switch checked={autoReplace} onCheckedChange={setAutoReplace} aria-label={t("Replace failed instances")} />}
                     />
                     {autoReplace && (
-                      <div className="rounded-xl border border-border p-4">
-                        <p className="mb-2 text-sm font-medium text-foreground">{t("How a failure is noticed")}</p>
-                        <RadioGroup
-                          dir={isRTL ? "rtl" : "ltr"}
-                          value={healthSource}
-                          onValueChange={(v) => setHealthSource(v as HealthSource)}
-                          className="space-y-2"
-                        >
-                          <HealthOption value="infra" title={t("Instance status")} description={t("The server stops or errors.")} />
-                          <HealthOption
-                            value="lb"
-                            title={t("Load balancer health check")}
-                            description={withLb ? t("The application stops answering the load balancer.") : t("Needs a load balancer.")}
-                            disabled={!withLb}
-                          />
-                        </RadioGroup>
-                        <div className="mt-4 flex flex-wrap items-center gap-3">
-                          <span className="text-sm text-foreground">{t("Grace period")}</span>
-                          <Select value={String(graceMin)} onValueChange={(v) => setGraceMin(Number(v))}>
-                            <SelectTrigger className="h-9 w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {[2, 5, 10].map((g) => (
-                                <SelectItem key={g} value={String(g)}>
-                                  {t("{n} min", { n: n(g) })}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <span className="text-xs text-muted-foreground">{t("A new instance is not judged before this.")}</span>
-                        </div>
-                      </div>
+                      <HealthSettings
+                        source={healthSource}
+                        onSource={setHealthSource}
+                        hasLb={withLb}
+                        check={check}
+                        onCheck={setCheck}
+                        graceMin={graceMin}
+                        onGrace={setGraceMin}
+                      />
                     )}
                   </div>
                 </div>
@@ -523,6 +518,12 @@ export default function CreateAutoScale() {
                   <ReviewBlock title={t("Network & health")} onEdit={() => setStep(3)}>
                     <ReviewLine label={t("Load balancer")} value={withLb ? <span dir="ltr">{lbName}</span> : t("None")} />
                     <ReviewLine label={t("Replace failed instances")} value={autoReplace ? t("Enabled") : t("Off")} />
+                    {autoReplace && (
+                      <ReviewLine
+                        label={t("Checked by")}
+                        value={healthSource === "lb" ? <span dir="ltr">{`${check.protocol} :${check.port}${check.protocol === "TCP" ? "" : ` ${check.path}`}`}</span> : t("Instance status")}
+                      />
+                    )}
                   </ReviewBlock>
                 </div>
               </StepSection>

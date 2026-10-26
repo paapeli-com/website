@@ -64,6 +64,7 @@ import {
   useGroups,
   type AutoScaleGroup,
   type EventType,
+  type HealthCheck,
   type HealthSource,
   type ScalingRule,
 } from "../lib/autoscaleStore";
@@ -71,6 +72,8 @@ import { AUTOSCALE_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText } from "../
 import { Note, OptionCard, SettingRow } from "../wizard";
 import { CapacityDialog, HealthBadge, StatCard, Stepper } from "../autoscaleUi";
 import { RulesEditor, newScheduledRule } from "./CreateAutoScale";
+import { HealthSettings, SmsNotify, withDefaultCheck } from "../autoscaleHealthNotify";
+import { getCurrentUserId } from "@paapeli/brand/session";
 
 /* One Auto Scale group: its header, then five tabs.
  *
@@ -627,17 +630,31 @@ function RulesTab({ g }: { g: AutoScaleGroup }) {
   const [max, setMax] = useState(g.max);
   const [cooldown, setCooldown] = useState(g.cooldownMin);
   const [rules, setRules] = useState<ScalingRule[]>(g.rules);
+  const savedNotify = g.notify ?? { sms: false, userIds: getCurrentUserId() ? [getCurrentUserId()!] : [] };
+  const [notify, setNotify] = useState(savedNotify);
   useEffect(() => {
     setMin(g.min);
     setMax(g.max);
     setCooldown(g.cooldownMin);
     setRules(g.rules);
-  }, [g.min, g.max, g.cooldownMin, g.rules]);
+    setNotify(savedNotify);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [g.min, g.max, g.cooldownMin, g.rules, g.notify]);
 
-  const dirty = min !== g.min || max !== g.max || cooldown !== g.cooldownMin || JSON.stringify(rules) !== JSON.stringify(g.rules);
+  const dirty =
+    min !== g.min ||
+    max !== g.max ||
+    cooldown !== g.cooldownMin ||
+    JSON.stringify(rules) !== JSON.stringify(g.rules) ||
+    JSON.stringify(notify) !== JSON.stringify(savedNotify);
 
   const save = () => {
-    updateGroup(g.id, { min, max, cooldownMin: cooldown, rules }, "Scaling settings changed, min {min} max {max}", { min, max });
+    updateGroup(
+      g.id,
+      { min, max, cooldownMin: cooldown, rules, notify: notify.sms && notify.userIds.length > 0 ? notify : { sms: false, userIds: notify.userIds } },
+      "Scaling settings changed, min {min} max {max}",
+      { min, max },
+    );
     toast.success(t("Saved"));
   };
 
@@ -730,6 +747,9 @@ function RulesTab({ g }: { g: AutoScaleGroup }) {
                 onChange={(id, patch) => setRules((all) => all.map((r) => (r.id === id ? { ...r, ...patch } : r)))}
                 onRemove={(id) => setRules((all) => all.filter((r) => r.id !== id))}
               />
+              <div className="mt-4">
+                <SmsNotify value={notify} onChange={setNotify} />
+              </div>
             </>
           ) : (
             <Note>{t("Manual mode keeps the desired number; scaling rules are not applied.")}</Note>
@@ -745,6 +765,7 @@ function RulesTab({ g }: { g: AutoScaleGroup }) {
               setMax(g.max);
               setCooldown(g.cooldownMin);
               setRules(g.rules);
+              setNotify(savedNotify);
             }}
           >
             {t("Discard")}
@@ -766,12 +787,20 @@ function HealthTab({ g, now }: { g: AutoScaleGroup; now: number }) {
   const [source, setSource] = useState<HealthSource>(g.health.source);
   const [autoReplace, setAutoReplace] = useState(g.health.autoReplace);
   const [grace, setGrace] = useState(g.health.graceMin);
-  useEffect(() => {
+  const [check, setCheck] = useState<HealthCheck>(withDefaultCheck(g.health.check));
+  const reset = () => {
     setSource(g.health.source);
     setAutoReplace(g.health.autoReplace);
     setGrace(g.health.graceMin);
-  }, [g.health]);
-  const dirty = source !== g.health.source || autoReplace !== g.health.autoReplace || grace !== g.health.graceMin;
+    setCheck(withDefaultCheck(g.health.check));
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(reset, [g.health]);
+  const dirty =
+    source !== g.health.source ||
+    autoReplace !== g.health.autoReplace ||
+    grace !== g.health.graceMin ||
+    (source === "lb" && JSON.stringify(check) !== JSON.stringify(withDefaultCheck(g.health.check)));
   const instances = groupInstances(g, now);
   const replaced = g.events.filter((e) => e.type === "repair").length;
   const sourceLabel = (s: HealthSource) => (s === "lb" ? t("Load balancer health check") : t("Instance status"));
@@ -808,63 +837,33 @@ function HealthTab({ g, now }: { g: AutoScaleGroup; now: number }) {
             control={<Switch checked={autoReplace} onCheckedChange={setAutoReplace} aria-label={t("Replace failed instances")} />}
           />
           {autoReplace && (
-            <div className="rounded-xl border border-border p-4">
-              <p className="mb-2 text-sm font-medium text-foreground">{t("How a failure is noticed")}</p>
-              <RadioGroup dir={isRTL ? "rtl" : "ltr"} value={source} onValueChange={(v) => setSource(v as HealthSource)} className="space-y-2">
-                {(["infra", "lb"] as HealthSource[]).map((s) => {
-                  const disabled = s === "lb" && !g.loadBalancer;
-                  return (
-                    <div key={s} className={cn("flex items-start gap-2.5", disabled && "opacity-50")}>
-                      <RadioGroupItem value={s} id={`hs-${s}`} disabled={disabled} className="mt-0.5" />
-                      <Label htmlFor={`hs-${s}`} className="cursor-pointer font-normal">
-                        <span className="block text-sm font-medium text-foreground">{sourceLabel(s)}</span>
-                        <span className="block text-xs text-muted-foreground">
-                          {s === "infra"
-                            ? t("The server stops or errors.")
-                            : g.loadBalancer
-                              ? t("The application stops answering the load balancer.")
-                              : t("Needs a load balancer.")}
-                        </span>
-                      </Label>
-                    </div>
-                  );
-                })}
-              </RadioGroup>
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <span className="text-sm text-foreground">{t("Grace period")}</span>
-                <Select value={String(grace)} onValueChange={(v) => setGrace(Number(v))}>
-                  <SelectTrigger className="h-9 w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[2, 5, 10].map((v) => (
-                      <SelectItem key={v} value={String(v)}>
-                        {t("{n} min", { n: formatNumber(v) })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <span className="text-xs text-muted-foreground">{t("A new instance is not judged before this.")}</span>
-              </div>
-            </div>
+            <HealthSettings
+              source={source}
+              onSource={setSource}
+              hasLb={!!g.loadBalancer}
+              check={check}
+              onCheck={setCheck}
+              graceMin={grace}
+              onGrace={setGrace}
+            />
           )}
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <Button
             variant="ghost"
             disabled={!dirty}
-            onClick={() => {
-              setSource(g.health.source);
-              setAutoReplace(g.health.autoReplace);
-              setGrace(g.health.graceMin);
-            }}
+            onClick={reset}
           >
             {t("Discard")}
           </Button>
           <Button
             disabled={!dirty}
             onClick={() => {
-              updateGroup(g.id, { health: { source, autoReplace, graceMin: grace } }, "Health settings changed");
+              updateGroup(
+                g.id,
+                { health: { source, autoReplace, graceMin: grace, check: source === "lb" ? check : undefined } },
+                "Health settings changed",
+              );
               toast.success(t("Saved"));
             }}
           >
