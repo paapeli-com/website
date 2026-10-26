@@ -74,6 +74,9 @@ export const DEFAULT_PLAN_ID = "s-2";
 export const DISK_GB_MONTHLY: Money = { TOMAN: 3_000, USD: 0.05, QAR: 0.18 };
 
 export const BOOT_DISK_MAX_GB = 1_000;
+
+/** Daily backup, as a share of the server's monthly price with its disks. */
+export const BACKUP_RATE = 0.2;
 export const ADDITIONAL_DISK_MAX_GB = 4_000;
 
 /** Hours in the month the hourly figure is worked out against. */

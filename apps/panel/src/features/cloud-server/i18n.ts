@@ -154,6 +154,16 @@ const fa: Record<string, string> = {
   "More secure": "امن‌تر",
   "Path in the server": "مسیر در سرور",
   "Additional disk {n}": "دیسک اضافه {n}",
+  Backup: "بکاپ",
+  Daily: "روزانه",
+  "Enable backup": "فعال‌سازی بکاپ",
+  "Automatic backups of the whole server and its disks, so you can get it back if something goes wrong.":
+    "بکاپ خودکار از کل سرور و دیسک‌هایش، تا اگر مشکلی پیش آمد بتوانید آن را برگردانید.",
+  "A backup every day, automatically": "هر روز یک بکاپ، به‌صورت خودکار",
+  "The last 7 days are kept": "بکاپ ۷ روز اخیر نگه داشته می‌شود",
+  "Restore the whole server or one disk": "بازگردانی کل سرور یا فقط یک دیسک",
+  "Without backup, data lost on this server cannot be recovered.":
+    "بدون بکاپ، داده‌ای که روی این سرور از دست برود قابل بازگردانی نیست.",
 
   // Created
   "The server is ready. Use the details below to connect to it.": "سرور آماده است. با اطلاعات زیر به آن وصل شوید.",
@@ -337,6 +347,16 @@ const ar: Record<string, string> = {
   "More secure": "أكثر أمانًا",
   "Path in the server": "المسار داخل الخادم",
   "Additional disk {n}": "قرص إضافي {n}",
+  Backup: "النسخ الاحتياطي",
+  Daily: "يومي",
+  "Enable backup": "تفعيل النسخ الاحتياطي",
+  "Automatic backups of the whole server and its disks, so you can get it back if something goes wrong.":
+    "نسخ احتياطي تلقائي للخادم بأكمله وأقراصه، لاستعادته إذا حدث خطأ.",
+  "A backup every day, automatically": "نسخة احتياطية كل يوم تلقائيًا",
+  "The last 7 days are kept": "يُحتفظ بآخر ٧ أيام",
+  "Restore the whole server or one disk": "استعادة الخادم كاملًا أو قرص واحد",
+  "Without backup, data lost on this server cannot be recovered.":
+    "بدون نسخ احتياطي، لا يمكن استعادة البيانات المفقودة على هذا الخادم.",
 
   // Created
   "The server is ready. Use the details below to connect to it.": "الخادم جاهز. استخدم المعلومات أدناه للاتصال به.",

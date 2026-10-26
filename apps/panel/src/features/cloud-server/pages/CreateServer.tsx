@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  ArchiveRestore,
   Check,
   Cpu,
   Disc,
@@ -53,6 +54,7 @@ import {
   DEFAULT_FIREWALL_ID,
   DEFAULT_IMAGE,
   DEFAULT_PLAN_ID,
+  BACKUP_RATE,
   DISK_GB_MONTHLY,
   FIREWALLS,
   FLOATING_IPS,
@@ -112,6 +114,23 @@ let diskSeq = 0;
     sdc and on. Every image offered today is Linux; a Windows image would
     read C:, D: and so on instead. */
 const devicePath = (index: number) => `/dev/sd${String.fromCharCode(97 + index)}`;
+
+/* The boot disk slider runs on a log scale: from 25 GB to 1 TB, a linear one
+   puts 50, 100 and 200 GB in the first sliver of the track. On a log scale
+   each doubling takes the same distance, so the marks are evenly readable. */
+const SLIDER_STEPS = 1000;
+const toSlider = (gb: number, min: number) =>
+  Math.round((SLIDER_STEPS * Math.log(gb / min)) / Math.log(BOOT_DISK_MAX_GB / min));
+const fromSlider = (pos: number, min: number) => {
+  const raw = min * Math.pow(BOOT_DISK_MAX_GB / min, pos / SLIDER_STEPS);
+  const snap = raw < 100 ? 5 : raw < 500 ? 10 : 50;
+  return Math.round(raw / snap) * snap;
+};
+/** The marks under the slider: the plan's own size, then round sizes. */
+const sliderMarks = (min: number) => [
+  min,
+  ...[50, 100, 200, 500, 1000].filter((gb) => gb <= BOOT_DISK_MAX_GB && gb / min >= 1.3),
+];
 
 export default function CreateServer() {
   const t = useT();
@@ -173,6 +192,7 @@ export default function CreateServer() {
   );
   const [keyDialogOpen, setKeyDialogOpen] = useState(false);
 
+  const [backup, setBackup] = useState(saved?.backup ?? true);
   const [powerOn, setPowerOn] = useState(saved?.powerOn ?? true);
   const [script, setScript] = useState("");
 
@@ -187,10 +207,15 @@ export default function CreateServer() {
 
   // ---- Price ----------------------------------------------------------------
   const extraGb = extraDisks.reduce((sum, d) => sum + d.sizeGb, 0);
-  const monthly = useMemo(() => {
-    const raw = plan.monthly[currency] + (bootGb - plan.diskGb + extraGb) * DISK_GB_MONTHLY[currency];
-    return currency === "TOMAN" ? Math.round(raw / 1000) * 1000 : Math.round(raw * 100) / 100;
-  }, [plan, bootGb, extraGb, currency]);
+  const roundMoney = (raw: number) => (currency === "TOMAN" ? Math.round(raw / 1000) * 1000 : Math.round(raw * 100) / 100);
+  const serverMonthly = plan.monthly[currency] + (bootGb - plan.diskGb + extraGb) * DISK_GB_MONTHLY[currency];
+  /* Backup is a share of what it protects: the server and every disk. */
+  const backupMonthly = roundMoney(serverMonthly * BACKUP_RATE);
+  const monthly = useMemo(
+    () => roundMoney(serverMonthly) + (backup ? backupMonthly : 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [serverMonthly, backup, backupMonthly, currency],
+  );
   const hourly = currency === "TOMAN" ? Math.round(monthly / HOURS_PER_MONTH) : Math.round((monthly / HOURS_PER_MONTH) * 1000) / 1000;
 
   // ---- Actions ------------------------------------------------------------
@@ -231,6 +256,7 @@ export default function CreateServer() {
         planId,
         bootGb,
         extraDisks: extraDisks.map((d) => d.sizeGb),
+        backup,
         ipv6,
         access,
         sshKeyId: access === "ssh" ? sshKeyId : undefined,
@@ -458,17 +484,37 @@ export default function CreateServer() {
                 <div className="space-y-6">
                   <div>
                     <FieldLabel required>{t("Boot disk size")}</FieldLabel>
-                    <div className="flex flex-wrap items-center gap-4">
-                      <Slider
-                        dir={isRTL ? "rtl" : "ltr"}
-                        min={plan.diskGb}
-                        max={BOOT_DISK_MAX_GB}
-                        step={5}
-                        value={[bootGb]}
-                        onValueChange={([v]) => setBoot(v)}
-                        className="min-w-[200px] flex-1"
-                        aria-label={t("Boot disk size")}
-                      />
+                    <div className="flex flex-wrap items-start gap-4">
+                      <div className="min-w-[200px] flex-1 px-1 pt-3">
+                        <Slider
+                          dir={isRTL ? "rtl" : "ltr"}
+                          min={0}
+                          max={SLIDER_STEPS}
+                          step={1}
+                          value={[toSlider(bootGb, plan.diskGb)]}
+                          onValueChange={([v]) => setBoot(fromSlider(v, plan.diskGb))}
+                          aria-label={t("Boot disk size")}
+                          aria-valuetext={`${bootGb} GB`}
+                        />
+                        {/* Each mark sets the size it names. */}
+                        <div className="relative mt-2 h-6">
+                          {sliderMarks(plan.diskGb).map((gb) => (
+                            <button
+                              key={gb}
+                              type="button"
+                              onClick={() => setBoot(gb)}
+                              style={{ insetInlineStart: `${(toSlider(gb, plan.diskGb) / SLIDER_STEPS) * 100}%` }}
+                              className={cn(
+                                "absolute top-0 flex -translate-x-1/2 flex-col items-center gap-0.5 whitespace-nowrap text-[11px] transition-colors rtl:translate-x-1/2",
+                                bootGb === gb ? "font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
+                              )}
+                            >
+                              <span aria-hidden className="h-1.5 w-px bg-border" />
+                              {gb >= 1000 ? `${n(gb / 1000)} TB` : `${n(gb)} GB`}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                       <div className="flex items-center gap-2">
                         <Input
                           type="number"
@@ -485,25 +531,6 @@ export default function CreateServer() {
                         />
                         <span className="text-sm text-muted-foreground">{t("GB")}</span>
                       </div>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {[...new Set([plan.diskGb, 100, 250, 500])]
-                        .filter((gb) => gb >= plan.diskGb)
-                        .map((gb) => (
-                          <button
-                            key={gb}
-                            type="button"
-                            onClick={() => setBoot(gb)}
-                            className={cn(
-                              "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-                              bootGb === gb
-                                ? "border-primary/50 bg-primary/[0.06] text-foreground"
-                                : "border-border text-muted-foreground hover:border-primary/30 hover:text-foreground",
-                            )}
-                          >
-                            {n(gb)} {t("GB")}
-                          </button>
-                        ))}
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
                       {t("The plan includes {n} GB. Extra space is billed per GB.", { n: n(plan.diskGb) })}
@@ -609,6 +636,48 @@ export default function CreateServer() {
                         </TableBody>
                       </Table>
                     </div>
+                  </div>
+
+                  {/* Backup, on by default. A checklist row rather than a
+                      switch, so what it includes is read before it is turned
+                      off; the whole row is the target. */}
+                  <div className="border-t border-border pt-5">
+                    <label
+                      className={cn(
+                        "flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors",
+                        backup ? "border-primary/50 bg-primary/[0.04]" : "border-border hover:border-primary/30",
+                      )}
+                    >
+                      <Checkbox checked={backup} onCheckedChange={(v) => setBackup(v === true)} className="mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <ArchiveRestore className={cn("size-4", backup ? "text-primary" : "text-muted-foreground")} />
+                          <span className="text-sm font-semibold text-foreground">{t("Enable backup")}</span>
+                          {backup ? <Pill tone="ok">{t("Enabled")}</Pill> : <Pill>{t("Off")}</Pill>}
+                          <span className="ms-auto text-sm font-medium text-foreground">
+                            +{format(backupMonthly)} <span className="font-normal text-muted-foreground">{t("/ month")}</span>
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {t("Automatic backups of the whole server and its disks, so you can get it back if something goes wrong.")}
+                        </p>
+                        <ul className="mt-3 grid grid-cols-1 gap-1.5 text-xs text-foreground sm:grid-cols-3">
+                          {["A backup every day, automatically", "The last 7 days are kept", "Restore the whole server or one disk"].map(
+                            (line) => (
+                              <li key={line} className="flex items-center gap-1.5">
+                                <Check className={cn("size-3.5 shrink-0", backup ? "text-emerald-600" : "text-muted-foreground")} />
+                                {t(line)}
+                              </li>
+                            ),
+                          )}
+                        </ul>
+                        {!backup && (
+                          <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">
+                            {t("Without backup, data lost on this server cannot be recovered.")}
+                          </p>
+                        )}
+                      </div>
+                    </label>
                   </div>
                 </div>
               </StepSection>
@@ -782,6 +851,7 @@ export default function CreateServer() {
                       label={t("Additional disks")}
                       value={extraDisks.length ? extraDisks.map((d) => n(d.sizeGb)).join(" + ") + ` ${t("GB")}` : t("None")}
                     />
+                    <ReviewLine label={t("Backup")} value={backup ? t("Daily") : t("Off")} />
                   </ReviewBlock>
                   <ReviewBlock title={t("Network")} onEdit={() => setStep(4)}>
                     <ReviewLine label={t("Public IPv4")} value={t("Included")} />
@@ -825,6 +895,7 @@ export default function CreateServer() {
               {plan.gpu && <SummaryLine icon={Microchip} label={t("GPU")} value={<span dir="ltr">{plan.gpu}</span>} />}
               <SummaryLine icon={HardDrive} label={t("Boot disk")} value={`${n(bootGb)} ${t("GB")}`} />
               {extraGb > 0 && <SummaryLine icon={HardDrive} label={t("Additional disk")} value={`${n(extraGb)} ${t("GB")}`} />}
+              <SummaryLine icon={ArchiveRestore} label={t("Backup")} value={backup ? t("Daily") : t("Off")} />
               <SummaryLine icon={Globe} label={t("Network")} value={ipv6 ? "IPv4 · IPv6" : "IPv4"} />
               <SummaryLine
                 icon={KeyRound}

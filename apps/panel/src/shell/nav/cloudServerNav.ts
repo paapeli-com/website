@@ -1,5 +1,6 @@
 import {
   Activity,
+  ArchiveRestore,
   Camera,
   Cloud,
   Code2,
@@ -67,6 +68,7 @@ const items = [
     children: [
       { title: "Cloud Disks", icon: HardDrive, path: p("/volumes") },
       { title: "Snapshots", icon: Camera, path: p("/snapshots") },
+      { title: "Backup", icon: ArchiveRestore, path: p("/backups") },
     ],
   },
   {

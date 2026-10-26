@@ -13,6 +13,7 @@ export interface QuickCreateSettings {
   planId: string;
   bootGb: number;
   extraDisks: number[];
+  backup?: boolean;
   ipv6: boolean;
   access: "ssh" | "password";
   sshKeyId?: string;

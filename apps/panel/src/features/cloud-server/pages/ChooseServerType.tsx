@@ -31,9 +31,11 @@ export default function ChooseServerType() {
     <CreatePage>
       <CreateHeader description={t("Choose how you want to create your cloud workload.")} />
 
-      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="min-w-0">
-          <div role="radiogroup" className="grid max-w-3xl grid-cols-1 gap-4 md:grid-cols-2">
+      {/* Stretched rows: the two choices take the whole width and height up
+          to the price column, so there is no empty band beside them. */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="flex min-w-0 flex-col">
+          <div role="radiogroup" className="grid flex-1 grid-cols-1 gap-4 md:grid-cols-2">
             <KindCard
               icon={Server}
               title={t("Single virtual machine")}
@@ -50,7 +52,9 @@ export default function ChooseServerType() {
             />
           </div>
 
-          <div className="mt-4 flex max-w-3xl items-start gap-2.5 rounded-lg bg-muted/50 px-3.5 py-2.5 text-xs text-muted-foreground">
+          {/* Only for the group: it says where else a group can be made. */}
+          {kind === "group" && (
+          <div className="mt-4 flex items-start gap-2.5 rounded-lg bg-muted/50 px-3.5 py-2.5 text-xs text-muted-foreground">
             <Info className="mt-px size-4 shrink-0" />
             {/* One sentence with the link inside it, split where {link} falls,
                 since the link sits in a different place in each language. */}
@@ -66,6 +70,7 @@ export default function ChooseServerType() {
               {noteAfter}
             </span>
           </div>
+          )}
         </div>
 
         {/* The wizard's price and summary column, empty until the server is
@@ -132,7 +137,7 @@ function KindCard({
       aria-checked={selected}
       onClick={onSelect}
       className={cn(
-        "relative flex flex-col items-center rounded-xl border bg-card px-6 py-10 text-center shadow-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/40",
+        "relative flex min-h-[18rem] flex-col items-center justify-center rounded-xl border bg-card px-6 py-12 text-center shadow-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/40",
         selected ? "border-primary/50 bg-primary/[0.04]" : "border-border hover:border-primary/30",
       )}
     >
@@ -146,14 +151,14 @@ function KindCard({
       </span>
       <span
         className={cn(
-          "flex size-16 items-center justify-center rounded-full",
+          "flex size-20 items-center justify-center rounded-full",
           selected ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
         )}
       >
-        <Icon className="size-7" />
+        <Icon className="size-9" />
       </span>
-      <span className="mt-5 text-base font-semibold text-foreground">{title}</span>
-      <span className="mt-1 max-w-[16rem] text-sm text-muted-foreground">{description}</span>
+      <span className="mt-6 text-lg font-semibold text-foreground">{title}</span>
+      <span className="mt-1.5 max-w-xs text-sm text-muted-foreground">{description}</span>
     </button>
   );
 }
