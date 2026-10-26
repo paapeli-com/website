@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Download, Expand, Eye, HeartPulse, Layers, Loader2, MoreHorizontal, Pause, Play, Plus, Server, SlidersHorizontal, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Download, Expand, Eye, HeartPulse, Layers, Loader2, MoreHorizontal, Pause, Play, Plus, Server, SlidersHorizontal, Trash2 } from "lucide-react";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
@@ -73,6 +73,7 @@ export default function AutoScaleGroups() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [deleteIds, setDeleteIds] = useState<string[] | null>(null);
   const [capacityFor, setCapacityFor] = useState<AutoScaleGroup | null>(null);
+  const [expanded, setExpanded] = useState<string[]>([]);
   const [pauseFor, setPauseFor] = useState<AutoScaleGroup | null>(null);
 
   const modeLabel = (g: AutoScaleGroup) => (g.mode === "manual" ? t("Manual") : g.paused ? t("Paused") : t("Automatic"));
@@ -296,6 +297,7 @@ export default function AutoScaleGroups() {
             <Table className="min-w-[1060px] table-fixed">
               <colgroup>
                 <col className="w-[44px]" />
+                <col className="w-[36px]" />
                 <col className="w-[22%]" />
                 <col className="w-[11%]" />
                 <col className="w-[12%]" />
@@ -322,6 +324,7 @@ export default function AutoScaleGroups() {
                       />
                     </div>
                   </TableHead>
+                  <TableHead />
                   <TableHead>{t("Name")}</TableHead>
                   <TableHead>{t("Scaling mode")}</TableHead>
                   <TableHead>{t("Region / zone")}</TableHead>
@@ -335,7 +338,7 @@ export default function AutoScaleGroups() {
               <TableBody>
                 {groups.length === 0 ? (
                   <TableRow className="hover:bg-transparent">
-                    <TableCell colSpan={9}>
+                    <TableCell colSpan={10}>
                       <div className="flex flex-col items-center px-6 py-14 text-center">
                         <span className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
                           <Expand className="size-7" />
@@ -350,7 +353,7 @@ export default function AutoScaleGroups() {
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow className="hover:bg-transparent">
-                    <TableCell colSpan={9}>
+                    <TableCell colSpan={10}>
                       <p className="py-12 text-center text-muted-foreground">{t("No groups match these filters.")}</p>
                     </TableCell>
                   </TableRow>
@@ -358,9 +361,13 @@ export default function AutoScaleGroups() {
                   pageRows.map((g) => {
                     const health = groupHealth(g, now);
                     const running = runningCount(g, now);
+                    const isExpanded = expanded.includes(g.id);
+                    const toggle = () =>
+                      setExpanded((prev) => (prev.includes(g.id) ? prev.filter((k) => k !== g.id) : [...prev, g.id]));
                     return (
-                      <TableRow key={g.id} className="border-b hover:bg-muted/30">
-                        <TableCell className="text-center">
+                      <Fragment key={g.id}>
+                      <TableRow className="cursor-pointer border-b hover:bg-muted/30" onClick={toggle}>
+                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-center">
                             <Checkbox
                               checked={selected.includes(g.id)}
@@ -372,6 +379,13 @@ export default function AutoScaleGroups() {
                           </div>
                         </TableCell>
                         <TableCell>
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </TableCell>
+                        <TableCell>
                           <div className="flex min-w-0 items-center gap-2">
                             <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
                               <Expand className="h-4 w-4" />
@@ -379,7 +393,10 @@ export default function AutoScaleGroups() {
                             <div className="min-w-0">
                               <button
                                 type="button"
-                                onClick={() => navigate(groupPath(g.id))}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(groupPath(g.id));
+                                }}
                                 className="block max-w-full text-start font-medium text-foreground hover:text-primary"
                               >
                                 <TruncatedText text={g.name} ltr />
@@ -409,7 +426,7 @@ export default function AutoScaleGroups() {
                         <TableCell className="text-sm text-muted-foreground">
                           <TruncatedText text={formatDateTime(g.createdAt, language)} />
                         </TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
                             <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => navigate(groupPath(g.id))}>
                               <Eye className="h-3.5 w-3.5" /> {fx("view")}
@@ -446,6 +463,39 @@ export default function AutoScaleGroups() {
                           </div>
                         </TableCell>
                       </TableRow>
+                      {/* The template and how the group behaves, out of the row. */}
+                      {isExpanded && (
+                        <TableRow className="bg-muted/20 hover:bg-muted/20">
+                          <TableCell colSpan={10} className="p-4">
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                              <ExpandField label={t("Image")} value={g.image} ltr />
+                              <ExpandField
+                                label={t("Instance size")}
+                                value={t("{cpu} vCPU · {ram} GB RAM", { cpu: formatNumber(g.vcpu), ram: formatNumber(g.ramGb) })}
+                              />
+                              <ExpandField label={t("Boot disk")} value={`${formatNumber(g.diskGb)} ${t("GB")}`} />
+                              <ExpandField label={t("Firewall")} value={g.firewall} ltr />
+                              <ExpandField label={t("Scaling rules")} value={g.mode === "automatic" ? formatNumber(g.rules.length) : "-"} />
+                              <ExpandField label={t("Cooldown")} value={t("{n} min", { n: formatNumber(g.cooldownMin) })} />
+                              <ExpandField
+                                label={t("Replace failed instances")}
+                                value={
+                                  !g.health.autoReplace
+                                    ? t("Off")
+                                    : g.health.source === "lb"
+                                      ? t("Load balancer health check")
+                                      : t("Instance status")
+                                }
+                              />
+                              <ExpandField
+                                label={t("Text members when the group scales")}
+                                value={g.notify?.sms ? t("{n} members", { n: formatNumber(g.notify.userIds.length) }) : t("Off")}
+                              />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      </Fragment>
                     );
                   })
                 )}
@@ -493,9 +543,11 @@ export default function AutoScaleGroups() {
           <DialogHeader className={isRTL ? "text-right" : ""}>
             <DialogTitle className={isRTL ? "text-right" : ""}>{t("Delete groups?")}</DialogTitle>
             <DialogDescription className={isRTL ? "text-right" : ""}>
-              {t("{n} groups and every instance in them will be deleted. This cannot be undone.", {
-                n: formatNumber(deleteIds?.length ?? 0),
-              })}
+              {(deleteIds?.length ?? 0) === 1
+                ? t("This group will be deleted with all its resources, including its virtual machines, disks and IPs. This cannot be undone.")
+                : t("{n} groups will be deleted with all their resources, including their virtual machines, disks and IPs. This cannot be undone.", {
+                    n: formatNumber(deleteIds?.length ?? 0),
+                  })}
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 flex justify-end gap-3">
@@ -519,6 +571,19 @@ export default function AutoScaleGroups() {
 
       <CapacityDialog group={capacityFor} onClose={() => setCapacityFor(null)} />
       <PauseDialog group={pauseFor} onClose={() => setPauseFor(null)} />
+    </div>
+  );
+}
+
+function ExpandField({ label, value, ltr }: { label: string; value: string; ltr?: boolean }) {
+  return (
+    <div className="rounded-lg border bg-background px-4 py-3">
+      <div className="mb-1 truncate text-xs text-muted-foreground" title={label}>
+        {label}
+      </div>
+      <div className="truncate text-sm font-medium text-foreground" dir={ltr ? "ltr" : undefined} title={value}>
+        {value}
+      </div>
     </div>
   );
 }

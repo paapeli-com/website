@@ -325,7 +325,8 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
     { key: "creating", label: t("Creating"), icon: Loader2, accent: "text-sky-500", bg: "from-sky-50 to-transparent dark:from-sky-500/10" },
   ];
 
-  const allOnPageSelected = pageRows.length > 0 && pageRows.every((s) => selected.includes(s.id));
+  const pickable = pageRows.filter((s) => !s.groupId);
+  const allOnPageSelected = pickable.length > 0 && pickable.every((s) => selected.includes(s.id));
 
   return (
     <div data-uniform-type className="space-y-4 p-4 lg:p-6">
@@ -430,8 +431,13 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
                     <div className="flex justify-center">
                       <Checkbox
                         checked={allOnPageSelected}
+                        disabled={pickable.length === 0}
                         onCheckedChange={(c) =>
-                          setSelected(c ? Array.from(new Set([...selected, ...pageRows.map((s) => s.id)])) : selected.filter((id) => !pageRows.some((s) => s.id === id)))
+                          setSelected(
+                            c
+                              ? Array.from(new Set([...selected, ...pickable.map((s) => s.id)]))
+                              : selected.filter((id) => !pickable.some((s) => s.id === id)),
+                          )
                         }
                         aria-label={t("Select all")}
                       />
@@ -755,62 +761,51 @@ function DeleteServersDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent data-uniform-type className="sm:max-w-[520px]">
+      <DialogContent data-uniform-type className="max-h-[90vh] sm:max-w-[520px]">
         <DialogHeader className={isRTL ? "text-right" : ""}>
           <DialogTitle className={isRTL ? "text-right" : ""}>
-            {servers.length === 1 ? t("Delete {name}?", { name: servers[0].name }) : t("Delete servers?")}
+            {servers.length === 1
+              ? t("Delete {name}?", { name: servers[0].name })
+              : t("Delete {n} servers?", { n: formatNumber(servers.length) })}
           </DialogTitle>
           <DialogDescription className={isRTL ? "text-right" : ""}>
             {t("These are deleted with the servers. This cannot be undone.")}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[50vh] space-y-3 overflow-y-auto">
+        <div className="max-h-[45vh] divide-y divide-border overflow-y-auto rounded-lg border border-border">
           {servers.map((sv) => {
             const released = [sv.ipv4, ...(sv.ipv6 ? [sv.ipv6] : []), ...(sv.extraIps ?? []).filter((i) => !i.reservedId).map((i) => i.address)];
             const kept = (sv.extraIps ?? []).filter((i) => i.reservedId);
             const disks = sv.disks ?? [{ label: "Boot disk", sizeGb: sv.diskGb, path: "" }];
             return (
-              <div key={sv.id} className="rounded-lg border border-border p-3 text-sm">
-                <p className="mb-2 font-semibold text-foreground" dir="ltr">
+              <div key={sv.id} className="space-y-1 px-3 py-2.5 text-xs">
+                <p className="text-sm font-semibold text-foreground" dir="ltr">
                   {sv.name}
                 </p>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">{t("Public IPs")}</p>
-                <ul className="mb-2 space-y-0.5">
-                  {released.map((ip) => (
-                    <li key={ip} className="flex items-center gap-2 text-destructive">
-                      <Trash2 className="size-3 shrink-0" />
-                      <code dir="ltr" className="font-mono text-xs">
-                        {ip}
-                      </code>
-                    </li>
-                  ))}
-                  {kept.map((ip) => (
-                    <li key={ip.address} className="flex items-center gap-2 text-muted-foreground">
-                      <CheckCircle2 className="size-3 shrink-0 text-emerald-600" />
-                      <code dir="ltr" className="font-mono text-xs">
-                        {ip.address}
-                      </code>
-                      <span className="text-xs">{t("reserved, stays under Public IPs")}</span>
-                    </li>
-                  ))}
-                </ul>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">{t("Disks")}</p>
-                <ul className="space-y-0.5">
-                  {disks.map((d, i) => (
-                    <li key={i} className="flex items-center gap-2 text-destructive">
-                      <Trash2 className="size-3 shrink-0" />
-                      <span className="text-xs">
-                        {t(d.label)} · {formatNumber(d.sizeGb)} {t("GB")}
-                      </span>
-                      {d.path && (
-                        <code dir="ltr" className="font-mono text-[11px] text-muted-foreground">
-                          {d.path}
-                        </code>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                <p className="flex flex-wrap items-center gap-x-1.5 text-destructive">
+                  <Trash2 className="size-3 shrink-0" />
+                  <span className="text-muted-foreground">{t("Public IPs")}:</span>
+                  <span dir="ltr" className="font-mono">
+                    {released.join("  ·  ")}
+                  </span>
+                </p>
+                <p className="flex flex-wrap items-center gap-x-1.5 text-destructive">
+                  <Trash2 className="size-3 shrink-0" />
+                  <span className="text-muted-foreground">{t("Disks")}:</span>
+                  <span>
+                    {disks.map((d) => `${t(d.label)} ${formatNumber(d.sizeGb)} ${t("GB")}`).join("  ·  ")}
+                  </span>
+                </p>
+                {kept.length > 0 && (
+                  <p className="flex flex-wrap items-center gap-x-1.5 text-muted-foreground">
+                    <CheckCircle2 className="size-3 shrink-0 text-emerald-600" />
+                    <span dir="ltr" className="font-mono">
+                      {kept.map((k) => k.address).join("  ·  ")}
+                    </span>
+                    <span>{t("reserved, stays under Public IPs")}</span>
+                  </p>
+                )}
               </div>
             );
           })}

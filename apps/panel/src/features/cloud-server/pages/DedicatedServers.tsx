@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Download,
   Loader2,
   MoreHorizontal,
@@ -39,10 +41,11 @@ import {
 } from "@/features/factory/components/ui/dialog";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useShellT } from "@/shared/i18n/shell";
-import { formatDateTime } from "@/shared/lib/formatDate";
+import { formatDate, formatDateTime } from "@/shared/lib/formatDate";
 import { toast } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
 import { useT } from "../i18n";
+import { HOST_PLANS } from "../lib/catalog";
 import { hostStatus, removeHosts, updateHost, useClusters, useHosts, type HostRecord, type HostStatus } from "../lib/hostStore";
 import { useServers } from "../lib/serverStore";
 import { CREATE_DEDICATED_PATH, CREATE_SERVER_PATH, DEDICATED_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText } from "../ui";
@@ -93,6 +96,7 @@ export default function DedicatedServers() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [deleteIds, setDeleteIds] = useState<string[] | null>(null);
   const [renaming, setRenaming] = useState<HostRecord | null>(null);
+  const [expanded, setExpanded] = useState<string[]>([]);
 
   const statusLabel: Record<HostStatus, string> = { provisioning: t("Preparing"), active: t("Active") };
 
@@ -309,14 +313,14 @@ export default function DedicatedServers() {
             <Table className="min-w-[1100px] table-fixed">
               <colgroup>
                 <col className="w-[44px]" />
-                <col className="w-[22%]" />
-                <col className="w-[10%]" />
-                <col className="w-[10%]" />
+                <col className="w-[36px]" />
+                <col className="w-[24%]" />
                 <col className="w-[11%]" />
-                <col className="w-[12%]" />
+                <col className="w-[11%]" />
                 <col className="w-[13%]" />
-                <col className="w-[10%]" />
+                <col className="w-[15%]" />
                 <col className="w-[12%]" />
+                <col className="w-[14%]" />
                 <col className="w-[110px]" />
               </colgroup>
               <TableHeader>
@@ -336,11 +340,11 @@ export default function DedicatedServers() {
                       />
                     </div>
                   </TableHead>
+                  <TableHead />
                   <TableHead>{t("Name")}</TableHead>
                   <TableHead>{fx("status")}</TableHead>
                   <TableHead>{t("Cluster")}</TableHead>
                   <TableHead>{t("Region / zone")}</TableHead>
-                  <TableHead>{t("Resources")}</TableHead>
                   <TableHead>{t("Cloud servers")}</TableHead>
                   <TableHead>{t("Billing period")}</TableHead>
                   <TableHead>{t("Created")}</TableHead>
@@ -374,9 +378,16 @@ export default function DedicatedServers() {
                     const status = hostStatus(h, now);
                     const used = vmsOn(h.id);
                     const load = Math.min(1, used / h.maxVms);
+                    const isExpanded = expanded.includes(h.id);
+                    const plan = HOST_PLANS.find((p) => p.id === h.planId);
+                    const renewsAt = new Date(h.createdAt);
+                    renewsAt.setMonth(renewsAt.getMonth() + h.periodMonths);
+                    const toggle = () =>
+                      setExpanded((prev) => (prev.includes(h.id) ? prev.filter((k) => k !== h.id) : [...prev, h.id]));
                     return (
-                      <TableRow key={h.id} className="border-b hover:bg-muted/30">
-                        <TableCell className="text-center">
+                      <Fragment key={h.id}>
+                      <TableRow className="cursor-pointer border-b hover:bg-muted/30" onClick={toggle}>
+                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-center">
                             <Checkbox
                               checked={selected.includes(h.id)}
@@ -386,6 +397,13 @@ export default function DedicatedServers() {
                               aria-label={h.name}
                             />
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex min-w-0 items-center gap-2">
@@ -418,11 +436,6 @@ export default function DedicatedServers() {
                           <TruncatedText text={`${t(h.region)} / ${h.zone}`} />
                         </TableCell>
                         <TableCell>
-                          <TruncatedText
-                            text={t("{cpu} cores · {ram} GB RAM", { cpu: formatNumber(h.cores), ram: formatNumber(h.ramGb) })}
-                          />
-                        </TableCell>
-                        <TableCell>
                           <div className="flex items-center justify-between gap-2 text-xs">
                             <span className="tabular-nums text-foreground">
                               {formatNumber(used)} / {formatNumber(h.maxVms)}
@@ -444,7 +457,7 @@ export default function DedicatedServers() {
                         <TableCell className="text-sm text-muted-foreground">
                           <TruncatedText text={formatDateTime(h.createdAt, language)} />
                         </TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
                             <Button
                               variant="ghost"
@@ -490,6 +503,31 @@ export default function DedicatedServers() {
                           </div>
                         </TableCell>
                       </TableRow>
+                      {/* The machine itself, out of the row: its hardware and
+                          when it renews. */}
+                      {isExpanded && (
+                        <TableRow className="bg-muted/20 hover:bg-muted/20">
+                          <TableCell colSpan={10} className="p-4">
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                              <ExpandField label={t("Model")} value={h.model} ltr />
+                              <ExpandField
+                                label={t("Processor")}
+                                value={`${plan?.cpu ?? "-"} · ${t("{n} cores", { n: formatNumber(h.cores) })}`}
+                              />
+                              <ExpandField label={t("RAM")} value={`${formatNumber(h.ramGb)} ${t("GB")}`} />
+                              <ExpandField label={t("Disk")} value={plan?.disk ?? "-"} ltr />
+                              <ExpandField label={t("Network")} value={plan?.network ?? "-"} ltr />
+                              <ExpandField label={t("Cloud servers")} value={t("Up to {n}", { n: formatNumber(h.maxVms) })} />
+                              <ExpandField
+                                label={h.autoRenew ? t("Renews on") : t("Ends on")}
+                                value={formatDate(renewsAt, language)}
+                              />
+                              <ExpandField label={t("Server ID")} value={h.id} ltr />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      </Fragment>
                     );
                   })
                 )}
@@ -603,5 +641,16 @@ function RenameHostDialog({ host, onClose }: { host: HostRecord | null; onClose:
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ExpandField({ label, value, ltr }: { label: string; value: string; ltr?: boolean }) {
+  return (
+    <div className="rounded-lg border bg-background px-4 py-3">
+      <div className="mb-1 text-xs text-muted-foreground">{label}</div>
+      <div className="truncate text-sm font-medium text-foreground" dir={ltr ? "ltr" : undefined} title={value}>
+        {value}
+      </div>
+    </div>
   );
 }

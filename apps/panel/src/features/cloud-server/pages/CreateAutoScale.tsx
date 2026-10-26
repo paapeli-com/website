@@ -106,6 +106,7 @@ export default function CreateAutoScale() {
   const image = IMAGES.find((i) => i.id === imageId) ?? IMAGES[0];
   const sizes = PLANS.filter((p) => p.family === "shared" || p.family === "dedicated");
   const [planId, setPlanId] = useState(DEFAULT_PLAN_ID);
+  const [sizeFamily, setSizeFamily] = useState<"shared" | "dedicated">("shared");
   const plan = sizes.find((p) => p.id === planId) ?? sizes[0];
   const [firewallId, setFirewallId] = useState(DEFAULT_FIREWALL_ID);
 
@@ -278,41 +279,82 @@ export default function CreateAutoScale() {
                 <div className="space-y-6">
                   <div>
                     <FieldLabel required>{t("Operating system")}</FieldLabel>
-                    <div role="radiogroup" className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
-                      {IMAGES.map((img) => (
-                        <OptionCard key={img.id} selected={img.id === imageId} onSelect={() => setImageId(img.id)}>
-                          <div className="flex items-center gap-3">
-                            <OsLogo id={img.id} name={img.name} color={img.color} />
-                            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{img.name}</span>
-                          </div>
-                          <div className="mt-3" onClick={(e) => e.stopPropagation()}>
-                            <Select
-                              dir="ltr"
-                              value={versions[img.id]}
-                              onValueChange={(v) => {
-                                setVersions((prev) => ({ ...prev, [img.id]: v }));
-                                setImageId(img.id);
-                              }}
-                            >
-                              <SelectTrigger className="h-9" aria-label={t("Version")} dir="ltr">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {img.versions.map((v) => (
-                                  <SelectItem key={v} value={v}>
-                                    {v}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </OptionCard>
-                      ))}
+                    {/* Small tiles, and one version list for the chosen image,
+                        so the size and firewall below stay in view. */}
+                    <div role="radiogroup" className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                      {IMAGES.map((img) => {
+                        const on = img.id === imageId;
+                        return (
+                          <button
+                            key={img.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={on}
+                            onClick={() => setImageId(img.id)}
+                            className={cn(
+                              "flex min-w-0 items-center gap-2 rounded-lg border px-2.5 py-2 text-start outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/40",
+                              on ? "border-primary/50 bg-primary/[0.04]" : "border-border hover:border-primary/30",
+                            )}
+                          >
+                            <OsLogo
+                              id={img.id}
+                              name={img.name}
+                              color={img.color}
+                              className="flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-bold [&_svg]:size-4"
+                            />
+                            <span className="truncate text-sm font-medium text-foreground" title={img.name}>
+                              {img.name}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-3 flex items-center gap-3">
+                      <span className="text-sm text-muted-foreground">{t("Version")}</span>
+                      <Select
+                        dir="ltr"
+                        value={versions[imageId]}
+                        onValueChange={(v) => setVersions((prev) => ({ ...prev, [imageId]: v }))}
+                      >
+                        <SelectTrigger className="h-9 w-48" aria-label={t("Version")} dir="ltr">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {image.versions.map((v) => (
+                            <SelectItem key={v} value={v}>
+                              {v}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
                   <div>
-                    <FieldLabel required>{t("Instance size")}</FieldLabel>
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <FieldLabel required className="mb-0">
+                        {t("Instance size")}
+                      </FieldLabel>
+                      <div className="inline-flex rounded-lg border border-border p-0.5">
+                        {(["shared", "dedicated"] as const).map((f) => (
+                          <button
+                            key={f}
+                            type="button"
+                            aria-pressed={sizeFamily === f}
+                            onClick={() => {
+                              setSizeFamily(f);
+                              if (plan.family !== f) setPlanId(sizes.find((p) => p.family === f)!.id);
+                            }}
+                            className={cn(
+                              "rounded-md px-3 py-1 text-xs transition-colors",
+                              sizeFamily === f ? "bg-primary/10 font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
+                            )}
+                          >
+                            {f === "shared" ? t("Shared vCPU") : t("Dedicated vCPU")}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <RadioGroup dir={isRTL ? "rtl" : "ltr"} value={planId} onValueChange={setPlanId} className="block">
                       <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs">
                         <Table>
@@ -327,7 +369,7 @@ export default function CreateAutoScale() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {sizes.map((p) => (
+                            {sizes.filter((p) => p.family === sizeFamily).map((p) => (
                               <TableRow
                                 key={p.id}
                                 onClick={() => setPlanId(p.id)}

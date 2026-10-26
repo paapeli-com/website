@@ -244,9 +244,9 @@ function GroupPage({ group: g }: { group: AutoScaleGroup }) {
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent data-uniform-type className="sm:max-w-[425px]">
           <DialogHeader className={isRTL ? "text-right" : ""}>
-            <DialogTitle className={isRTL ? "text-right" : ""}>{t("Delete groups?")}</DialogTitle>
+            <DialogTitle className={isRTL ? "text-right" : ""}>{t("Delete {name}?", { name: g.name })}</DialogTitle>
             <DialogDescription className={isRTL ? "text-right" : ""}>
-              {t("{n} groups and every instance in them will be deleted. This cannot be undone.", { n: 1 })}
+              {t("This group will be deleted with all its resources, including its virtual machines, disks and IPs. This cannot be undone.")}
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 flex justify-end gap-3">
