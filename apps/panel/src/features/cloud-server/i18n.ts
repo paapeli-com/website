@@ -20,9 +20,13 @@ const fa: Record<string, string> = {
   "Auto Scale group": "گروه مقیاس‌پذیری خودکار",
   "A managed group of servers that grows and shrinks with load.":
     "گروهی مدیریت‌شده از سرورها که با تغییر بار بزرگ و کوچک می‌شود.",
-  "You can also create Auto Scale groups later from the Auto Scale section.":
-    "گروه مقیاس‌پذیری خودکار را بعداً هم می‌توانید از بخش مقیاس‌پذیری خودکار بسازید.",
+  "You can also create Auto Scale groups later from the {link}.":
+    "گروه مقیاس‌پذیری خودکار را بعداً هم می‌توانید از {link} بسازید.",
+  "Auto Scale section": "بخش مقیاس‌پذیری خودکار",
   Continue: "ادامه",
+  Type: "نوع",
+  "Not chosen yet": "هنوز انتخاب نشده",
+  "The price and details appear as you configure the server.": "قیمت و جزئیات با پیکربندی سرور نمایش داده می‌شوند.",
 
   // Steps
   Basics: "اطلاعات پایه",
@@ -199,9 +203,13 @@ const ar: Record<string, string> = {
   "Auto Scale group": "مجموعة التوسع التلقائي",
   "A managed group of servers that grows and shrinks with load.":
     "مجموعة مُدارة من الخوادم تكبر وتصغر مع الحمل.",
-  "You can also create Auto Scale groups later from the Auto Scale section.":
-    "يمكنك أيضًا إنشاء مجموعات التوسع التلقائي لاحقًا من قسم التوسع التلقائي.",
+  "You can also create Auto Scale groups later from the {link}.":
+    "يمكنك أيضًا إنشاء مجموعات التوسع التلقائي لاحقًا من {link}.",
+  "Auto Scale section": "قسم التوسع التلقائي",
   Continue: "متابعة",
+  Type: "النوع",
+  "Not chosen yet": "لم يُحدَّد بعد",
+  "The price and details appear as you configure the server.": "يظهر السعر والتفاصيل أثناء إعداد الخادم.",
 
   // Steps
   Basics: "الأساسيات",
