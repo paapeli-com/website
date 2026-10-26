@@ -143,7 +143,7 @@ const fa: Record<string, string> = {
   "Live fleet positions, geofences and trip history.":
     "موقعیت زندهٔ ناوگان، محدوده‌های جغرافیایی و تاریخچهٔ سفرها.",
   "AI Inference": "مدل‌های هوش مصنوعی",
-  "AI Inference (MaaS)": "مدل‌های هوش مصنوعی (MaaS)",
+  "AI Inference (MaaS)": "مدل‌های هوش مصنوعی",
   "Serve open models behind a managed endpoint. Pay per token, autoscaled.":
     "مدل‌های متن‌باز را پشت یک اندپوینت مدیریت‌شده سرو کنید. پرداخت به ازای توکن، با مقیاس‌پذیری خودکار.",
   "OpenAI-compatible API": "API سازگار با OpenAI",
@@ -848,7 +848,7 @@ const ar: Record<string, string> = {
   "Live fleet positions, geofences and trip history.":
     "مواقع الأسطول المباشرة والأسيجة الجغرافية وسجل الرحلات.",
   "AI Inference": "نماذج الذكاء الاصطناعي",
-  "AI Inference (MaaS)": "نماذج الذكاء الاصطناعي (MaaS)",
+  "AI Inference (MaaS)": "نماذج الذكاء الاصطناعي",
   "Serve open models behind a managed endpoint. Pay per token, autoscaled.":
     "شغّل النماذج المفتوحة خلف نقطة نهاية مُدارة. الدفع لكل رمز، مع توسّع تلقائي.",
   "OpenAI-compatible API": "واجهة متوافقة مع OpenAI",

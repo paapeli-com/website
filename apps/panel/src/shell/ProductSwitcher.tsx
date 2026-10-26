@@ -147,7 +147,13 @@ export function ProductSwitcher() {
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-[19rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-border bg-popover p-2 shadow-lg ltr:left-0 rtl:right-0">
+        /* data-uniform-type: a row with nowhere to go renders as a div, not a
+           button, and the unscoped [lang="fa"] div rule in index.css set those
+           rows a size larger than the rest. Every row reads at text-sm now. */
+        <div
+          data-uniform-type
+          className="absolute z-50 mt-1 w-[19rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-border bg-popover p-2 shadow-lg ltr:left-0 rtl:right-0"
+        >
           <div className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {t("Switch Product")}
           </div>
