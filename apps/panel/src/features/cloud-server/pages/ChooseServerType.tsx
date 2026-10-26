@@ -25,6 +25,7 @@ export default function ChooseServerType() {
   const t = useT();
   const navigate = useNavigate();
   const [kind, setKind] = useState<Kind>("single");
+  const proceed = (next: Kind) => navigate(next === "single" ? CREATE_SERVER_PATH : AUTO_SCALE_PATH);
   const [noteBefore, noteAfter = ""] = t("You can also create Auto Scale groups later from the {link}.").split("{link}");
 
   return (
@@ -42,6 +43,7 @@ export default function ChooseServerType() {
               description={t("One server with its own configuration.")}
               selected={kind === "single"}
               onSelect={() => setKind("single")}
+              onConfirm={() => proceed("single")}
             />
             <KindCard
               icon={Layers}
@@ -49,6 +51,7 @@ export default function ChooseServerType() {
               description={t("A managed group of servers that grows and shrinks with load.")}
               selected={kind === "group"}
               onSelect={() => setKind("group")}
+              onConfirm={() => proceed("group")}
             />
           </div>
 
@@ -118,7 +121,7 @@ export default function ChooseServerType() {
         cancel={{ label: t("Cancel"), onClick: () => navigate(SERVERS_PATH) }}
         primary={{
           label: t("Continue"),
-          onClick: () => navigate(kind === "single" ? CREATE_SERVER_PATH : AUTO_SCALE_PATH),
+          onClick: () => proceed(kind),
         }}
       />
     </CreatePage>
@@ -131,12 +134,15 @@ function KindCard({
   description,
   selected,
   onSelect,
+  onConfirm,
 }: {
   icon: LucideIcon;
   title: string;
   description: string;
   selected: boolean;
   onSelect: () => void;
+  /** A double-click picks the card and moves on, as Continue would. */
+  onConfirm: () => void;
 }) {
   return (
     <button
@@ -144,6 +150,7 @@ function KindCard({
       role="radio"
       aria-checked={selected}
       onClick={onSelect}
+      onDoubleClick={onConfirm}
       className={cn(
         "relative flex min-h-[18rem] flex-col items-center justify-center rounded-xl border bg-card px-6 py-12 text-center shadow-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/40",
         selected ? "border-primary/50 bg-primary/[0.04]" : "border-border hover:border-primary/30",
