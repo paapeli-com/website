@@ -95,6 +95,14 @@ export function ProductSwitcher() {
   const onAiInference = SHOW_UNRELEASED_PRODUCTS && path.startsWith(AI_INFERENCE_BASE.toLowerCase());
   const onCloudServer = SHOW_IAAS && path.startsWith(CLOUD_SERVER_BASE.toLowerCase());
 
+  /* The one row the page belongs to. Rows can nest (GPU Servers is a page
+     inside Cloud Server), so the longest matching path wins, as in the
+     sidebar; otherwise both rows lit at once. */
+  const activeRowPath = [...AI_INFRA_ROWS, ...(SHOW_IAAS ? IAAS_ROWS : [])]
+    .flatMap((row) => (row.path ? [row.path.toLowerCase()] : []))
+    .filter((p) => path === p || path.startsWith(`${p}/`))
+    .sort((a, b) => b.length - a.length)[0];
+
   const allSolutions = PRODUCTS.flatMap((p) => p.solutions ?? []);
   const activeSolution = allSolutions.find((s) => location.pathname.startsWith(solutionPath(s.id)))?.id;
 
@@ -189,7 +197,7 @@ export function ProductSwitcher() {
                       icon={row.icon}
                       label={t(row.name)}
                       tag={row.tag}
-                      active={!!row.path && path.startsWith(row.path.toLowerCase())}
+                      active={!!row.path && row.path.toLowerCase() === activeRowPath}
                       onSelect={row.path ? () => go(row.path!) : undefined}
                     />
                   ))}
