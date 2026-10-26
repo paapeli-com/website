@@ -48,6 +48,7 @@ import { CLOUD_SERVER_BASE } from "@/shell/nav/cloudServerNav";
 import { useT } from "../i18n";
 import { CreateFooter, CreateHeader, CreatePage, NEW_SERVER_PATH, SERVERS_PATH, SERVER_CREATED_PATH } from "../ui";
 import { clearQuickCreate, loadQuickCreate, saveQuickCreate, type CreatedServer } from "../lib/quickCreate";
+import { OsLogo } from "../lib/osLogos";
 import {
   ADDITIONAL_DISK_MAX_GB,
   BOOT_DISK_MAX_GB,
@@ -368,13 +369,7 @@ export default function CreateServer() {
                   {IMAGES.map((img) => (
                     <OptionCard key={img.id} selected={img.id === imageId} onSelect={() => setImageId(img.id)}>
                       <div className="flex items-center gap-3">
-                        <span
-                          aria-hidden
-                          className="flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold"
-                          style={{ backgroundColor: `${img.color}1a`, color: img.color }}
-                        >
-                          {img.name[0]}
-                        </span>
+                        <OsLogo id={img.id} name={img.name} color={img.color} />
                         <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{img.name}</span>
                         {img.id === DEFAULT_IMAGE.imageId && <Pill tone="ok">{t("Recommended")}</Pill>}
                       </div>
@@ -886,7 +881,21 @@ export default function CreateServer() {
               <p className="mb-2 text-sm font-semibold text-foreground">{t("Summary")}</p>
               <SummaryLine icon={Server} label={t("Server name")} value={<span dir="ltr">{name || "-"}</span>} />
               <SummaryLine icon={MapPin} label={t("Region")} value={`${region.name} · ${zone}`} />
-              <SummaryLine icon={Disc} label={t("Image")} value={<span dir="ltr">{`${image.name} ${versions[image.id]}`}</span>} />
+              <SummaryLine
+                icon={Disc}
+                label={t("Image")}
+                value={
+                  <span dir="ltr" className="inline-flex items-center gap-1.5">
+                    <OsLogo
+                      id={image.id}
+                      name={image.name}
+                      color={image.color}
+                      className="flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-bold [&_svg]:size-3.5"
+                    />
+                    {`${image.name} ${versions[image.id]}`}
+                  </span>
+                }
+              />
               <SummaryLine
                 icon={Cpu}
                 label={t("Plan")}

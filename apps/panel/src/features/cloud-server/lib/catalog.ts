@@ -31,11 +31,11 @@ export interface OsImage {
 
 export const IMAGES: OsImage[] = [
   { id: "ubuntu", name: "Ubuntu", versions: ["24.04 LTS", "22.04 LTS"], color: "#E95420" },
-  { id: "debian", name: "Debian", versions: ["13", "12"], color: "#A80030" },
+  { id: "debian", name: "Debian", versions: ["13", "12"], color: "#D70A53" },
   { id: "almalinux", name: "AlmaLinux", versions: ["10", "9"], color: "#0F4266" },
   { id: "rocky", name: "Rocky Linux", versions: ["10", "9"], color: "#10B981" },
   { id: "centos", name: "CentOS Stream", versions: ["10", "9"], color: "#932279" },
-  { id: "fedora", name: "Fedora", versions: ["43", "42"], color: "#51A2DA" },
+  { id: "fedora", name: "Fedora", versions: ["43", "42"], color: "#294172" },
   { id: "opensuse", name: "openSUSE Leap", versions: ["16.0", "15.6"], color: "#73BA25" },
 ];
 
