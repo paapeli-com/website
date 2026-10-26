@@ -5,7 +5,7 @@ import { PRODUCTS, solutionPath, type Product } from "@paapeli/brand/config";
 import { AI_INFERENCE_BASE } from "@/shell/nav/aiInferenceNav";
 import { CLOUD_SERVER_BASE, CLOUD_SERVER_GPU_PATH } from "@/shell/nav/cloudServerNav";
 import { HOME_CATEGORY_PATHS } from "@/shell/nav/homeNav";
-import { SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
+import { SHOW_IAAS, SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
 import { cn } from "@/shared/lib/utils";
 import { menuRowIdle, menuRowSelected } from "@/shell/menuRow";
 import { useShellT } from "@/shared/i18n/shell";
@@ -70,7 +70,7 @@ const AI_INFRA_ROWS: Row[] = SHOW_UNRELEASED_PRODUCTS
    and the search, and none of them should hear about IaaS before it launches. */
 const IAAS_FAMILY: Product = { id: "iaas", name: "IaaS" };
 const IAAS_ROWS: Row[] = [{ id: "CloudServer", name: "Cloud Server", icon: Server, tag: "Alpha", path: CLOUD_SERVER_BASE }];
-const FAMILIES: Product[] = SHOW_UNRELEASED_PRODUCTS ? [...PRODUCTS, IAAS_FAMILY] : PRODUCTS;
+const FAMILIES: Product[] = SHOW_IAAS ? [...PRODUCTS, IAAS_FAMILY] : PRODUCTS;
 
 export function ProductSwitcher() {
   const [open, setOpen] = useState(false);
@@ -93,7 +93,7 @@ export function ProductSwitcher() {
   const path = location.pathname.toLowerCase();
   const onHome = path.startsWith("/home");
   const onAiInference = SHOW_UNRELEASED_PRODUCTS && path.startsWith(AI_INFERENCE_BASE.toLowerCase());
-  const onCloudServer = SHOW_UNRELEASED_PRODUCTS && path.startsWith(CLOUD_SERVER_BASE.toLowerCase());
+  const onCloudServer = SHOW_IAAS && path.startsWith(CLOUD_SERVER_BASE.toLowerCase());
 
   const allSolutions = PRODUCTS.flatMap((p) => p.solutions ?? []);
   const activeSolution = allSolutions.find((s) => location.pathname.startsWith(solutionPath(s.id)))?.id;

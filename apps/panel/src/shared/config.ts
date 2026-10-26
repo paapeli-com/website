@@ -57,3 +57,9 @@ export const IS_STAGING = stage ? stage === "staging" : import.meta.env.DEV;
    today. Staging opens them; production lists them as "Coming soon" with no
    way in, and has no route to AI Inference, until this flips for them. */
 export const SHOW_UNRELEASED_PRODUCTS = IS_STAGING;
+
+/* IaaS (Cloud Server) is on production as well as staging for now, by
+   request, while staging is down and development goes on against
+   production. Set this back to SHOW_UNRELEASED_PRODUCTS to make it staging
+   only again. */
+export const SHOW_IAAS = true;

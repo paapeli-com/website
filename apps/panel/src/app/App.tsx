@@ -8,7 +8,7 @@ import { solutionPath, productKeyFor } from "@paapeli/brand/config";
 import { BrandProvider } from "@/shell/BrandProvider";
 import { Layout } from "@/shell/Layout";
 import { RequireAuth } from "@/shell/RequireAuth";
-import { PAAPELI_API_BASE_URL, SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
+import { PAAPELI_API_BASE_URL, SHOW_IAAS, SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
 import { isRTLLanguage, useAppLanguage } from "@/shared/i18n/appLanguage";
 import { Feature } from "./Feature";
 import {
@@ -105,9 +105,9 @@ export default function App() {
                   element={<Feature name="AI Inference" routes={aiInferenceRoutes} />}
                 />
               )}
-              {/* IaaS's first product. Staging only, like AI Inference, and
+              {/* IaaS's first product. Shown where SHOW_IAAS says, and
                   no productKey for the same reason. */}
-              {SHOW_UNRELEASED_PRODUCTS && (
+              {SHOW_IAAS && (
                 <Route
                   path="IaaS/CloudServer/*"
                   element={<Feature name="Cloud Server" routes={cloudServerRoutes} />}

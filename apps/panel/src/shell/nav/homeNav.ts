@@ -2,7 +2,7 @@ import { Bot, Cloud, Code2, Cpu, Factory, HardDrive, House, MapPin, Microchip, S
 import { solutionPath } from "@paapeli/brand/config";
 import { AI_INFERENCE_BASE } from "./aiInferenceNav";
 import { CLOUD_SERVER_BASE, CLOUD_SERVER_GPU_PATH } from "./cloudServerNav";
-import { SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
+import { SHOW_IAAS, SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
 import type { NavItem, NavSection } from "./types";
 
 /* Home's sidebar is the product list and nothing else.
@@ -39,8 +39,8 @@ const items: NavItem[] = [
       ...(SHOW_UNRELEASED_PRODUCTS ? [{ title: "GPU Servers", icon: Microchip, path: CLOUD_SERVER_GPU_PATH }] : []),
     ],
   },
-  /* IaaS: staging only, so production's list is unchanged. */
-  ...(SHOW_UNRELEASED_PRODUCTS
+  /* IaaS: see SHOW_IAAS. */
+  ...(SHOW_IAAS
     ? [{ title: "IaaS", icon: HardDrive, children: [{ title: "Cloud Server", icon: Server, path: CLOUD_SERVER_BASE }] }]
     : []),
 ];
