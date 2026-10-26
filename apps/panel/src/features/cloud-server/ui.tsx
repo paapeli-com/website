@@ -12,7 +12,7 @@ import {
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useShellT } from "@/shared/i18n/shell";
 import { cn } from "@/shared/lib/utils";
-import { CLOUD_SERVER_BASE } from "@/shell/nav/cloudServerNav";
+import { CLOUD_SERVER_BASE, CLOUD_SERVER_GPU_PATH } from "@/shell/nav/cloudServerNav";
 import { useT } from "./i18n";
 
 /* The frame both create pages share, taken from Smart Factory's Create alert
@@ -25,12 +25,26 @@ export const SERVERS_PATH = `${CLOUD_SERVER_BASE}/servers`;
 export const NEW_SERVER_PATH = `${SERVERS_PATH}/new`;
 export const CREATE_SERVER_PATH = `${SERVERS_PATH}/create`;
 export const SERVER_CREATED_PATH = `${SERVERS_PATH}/created`;
+/* GPU servers: their own list and their own wizard, the same pages in GPU
+   mode. */
+export const GPU_SERVERS_PATH = CLOUD_SERVER_GPU_PATH;
+export const CREATE_GPU_SERVER_PATH = `${GPU_SERVERS_PATH}/create`;
 
-export function CreateHeader({ description, title }: { description: string; title?: string }) {
+export function CreateHeader({
+  description,
+  title,
+  gpu,
+}: {
+  description: string;
+  title?: string;
+  /** Under GPU Servers rather than Cloud Server. */
+  gpu?: boolean;
+}) {
   const t = useT();
   const heading = title ?? t("Create cloud server");
   const shellT = useShellT();
   const navigate = useNavigate();
+  const listPath = gpu ? GPU_SERVERS_PATH : SERVERS_PATH;
   return (
     <>
       {/* Compute > Cloud Server > Create cloud server: the sidebar group, the
@@ -38,14 +52,14 @@ export function CreateHeader({ description, title }: { description: string; titl
       <Breadcrumb className="mb-3">
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink onClick={() => navigate(SERVERS_PATH)} className="cursor-pointer">
+            <BreadcrumbLink onClick={() => navigate(listPath)} className="cursor-pointer">
               {shellT("Compute")}
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink onClick={() => navigate(SERVERS_PATH)} className="cursor-pointer">
-              {shellT("Cloud Server")}
+            <BreadcrumbLink onClick={() => navigate(listPath)} className="cursor-pointer">
+              {shellT(gpu ? "GPU Servers" : "Cloud Server")}
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />

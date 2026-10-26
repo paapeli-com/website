@@ -10,6 +10,13 @@ import { useSyncExternalStore } from "react";
 
 export interface ServerRecord {
   id: string;
+  /** Which section the server lives in. Both are the same kind of VM
+      underneath; a GPU server is listed only under GPU Servers and a cloud
+      server only under Cloud Server, so the backend has to tag them. Records
+      saved before the tag existed read as "cloud". */
+  kind?: "cloud" | "gpu";
+  /** "1 × NVIDIA RTX 4080", for a GPU server. */
+  gpu?: string;
   name: string;
   imageId: string;
   /** "Ubuntu 24.04 LTS" */

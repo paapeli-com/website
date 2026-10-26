@@ -10,6 +10,7 @@ import {
   EyeOff,
   HardDrive,
   Loader2,
+  Microchip,
   Repeat,
   Server,
   ShieldCheck,
@@ -25,7 +26,15 @@ import { cn } from "@/shared/lib/utils";
 import { CLOUD_SERVER_BASE } from "@/shell/nav/cloudServerNav";
 import { useT } from "../i18n";
 import type { CreatedServer } from "../lib/quickCreate";
-import { CreateHeader, CreatePage, NEW_SERVER_PATH, SERVERS_PATH, TruncatedText } from "../ui";
+import {
+  CREATE_GPU_SERVER_PATH,
+  CreateHeader,
+  CreatePage,
+  GPU_SERVERS_PATH,
+  NEW_SERVER_PATH,
+  SERVERS_PATH,
+  TruncatedText,
+} from "../ui";
 
 /* The page a create lands on: the server while it is being built, then the
  * way into it.
@@ -110,6 +119,7 @@ export default function ServerCreated() {
 
 function Created({ server }: { server: CreatedServer }) {
   const t = useT();
+  const isGpu = server.kind === "gpu";
   const navigate = useNavigate();
 
   const ipv4 = useArrived(ARRIVALS.ipv4);
@@ -129,6 +139,7 @@ function Created({ server }: { server: CreatedServer }) {
   return (
     <CreatePage>
       <CreateHeader
+        gpu={isGpu}
         title={server.name}
         description={
           phase === "ready"
@@ -233,11 +244,43 @@ function Created({ server }: { server: CreatedServer }) {
             </p>
           )}
 
+          {/* For a GPU server, the one check worth doing first. */}
+          {isGpu && (
+            <div className="mt-3 flex items-start gap-2.5 rounded-lg bg-muted/50 px-3.5 py-2.5 text-xs text-muted-foreground">
+              <Microchip className="mt-px size-4 shrink-0" />
+              <span>
+                {server.osFamily === "windows" ? (
+                  t("Once it is running, the GPU appears in Device Manager under Display adapters.")
+                ) : (
+                  /* One sentence split where {cmd} falls: the command sits in
+                     a different place in each language. */
+                  t("Once it is running, sign in and run {cmd} to see the GPU.")
+                    .split("{cmd}")
+                    .map((part, i) =>
+                      i === 0 ? (
+                        <span key={i}>{part}</span>
+                      ) : (
+                        <span key={i}>
+                          <code dir="ltr" className="rounded bg-background px-1.5 py-0.5 font-mono text-foreground">
+                            nvidia-smi
+                          </code>
+                          {part}
+                        </span>
+                      ),
+                    )
+                )}
+              </span>
+            </div>
+          )}
+
           <div className="mt-4 flex flex-wrap justify-end gap-3">
-            <Button variant="outline" onClick={() => navigate(NEW_SERVER_PATH)}>
+            <Button variant="outline" onClick={() => navigate(isGpu ? CREATE_GPU_SERVER_PATH : NEW_SERVER_PATH)}>
               {t("Create another server")}
             </Button>
-            <Button onClick={() => navigate(SERVERS_PATH)} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <Button
+              onClick={() => navigate(isGpu ? GPU_SERVERS_PATH : SERVERS_PATH)}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
               {t("Go to servers")}
             </Button>
           </div>

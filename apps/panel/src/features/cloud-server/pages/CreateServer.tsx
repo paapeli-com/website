@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from
 import { useNavigate } from "react-router-dom";
 import {
   ArchiveRestore,
+  ArrowRight,
   Check,
   Cpu,
   Disc,
@@ -46,8 +47,23 @@ import { toast } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
 import { CLOUD_SERVER_BASE } from "@/shell/nav/cloudServerNav";
 import { useT } from "../i18n";
-import { CreateFooter, CreateHeader, CreatePage, NEW_SERVER_PATH, SERVERS_PATH, SERVER_CREATED_PATH } from "../ui";
-import { clearQuickCreate, loadQuickCreate, saveQuickCreate, type CreatedServer } from "../lib/quickCreate";
+import {
+  CREATE_GPU_SERVER_PATH,
+  CreateFooter,
+  CreateHeader,
+  CreatePage,
+  GPU_SERVERS_PATH,
+  NEW_SERVER_PATH,
+  SERVERS_PATH,
+  SERVER_CREATED_PATH,
+} from "../ui";
+import {
+  clearQuickCreate,
+  loadQuickCreate,
+  saveQuickCreate,
+  type CreateMode,
+  type CreatedServer,
+} from "../lib/quickCreate";
 import { OsLogo } from "../lib/osLogos";
 import { addServer, sampleAddresses } from "../lib/serverStore";
 import { CountryFlag, CountryOutline } from "../lib/regionArt";
@@ -56,6 +72,7 @@ import {
   BOOT_DISK_MAX_GB,
   DEFAULT_FIREWALL_ID,
   DEFAULT_IMAGE,
+  DEFAULT_GPU_PLAN_ID,
   DEFAULT_PLAN_ID,
   BACKUP_RATE,
   adminUser,
@@ -67,6 +84,7 @@ import {
   PLANS,
   REGIONS,
   SSH_KEYS,
+  type GpuAvailability,
   type Plan,
   type PlanFamily,
   type SshKey,
@@ -85,6 +103,12 @@ import {
  * returning you to the first step that is short. Brand orange is kept for the
  * primary button and the current step; a selection is a light tint, not a
  * block of colour.
+ *
+ * GPU servers use the same wizard in GPU mode: the same steps and the same
+ * VM underneath, with the plan step listing GPU plans only, the drivers
+ * offered with the image, and the price shown by the hour, the way GPU time
+ * is usually counted. In cloud mode the GPU plan card stays, and points to
+ * the GPU wizard instead of listing plans, so a GPU server is made one way.
  *
  * Nothing is sent anywhere yet. See lib/catalog.ts.
  */
@@ -136,20 +160,27 @@ const sliderMarks = (min: number) => [
   ...[50, 100, 200, 500, 1000].filter((gb) => gb <= BOOT_DISK_MAX_GB && gb / min >= 1.3),
 ];
 
-export default function CreateServer() {
+const AVAILABILITY: Record<GpuAvailability, { label: string; tone: string }> = {
+  available: { label: "Available", tone: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
+  limited: { label: "Limited", tone: "bg-amber-500/10 text-amber-700 dark:text-amber-400" },
+  soldOut: { label: "Sold out", tone: "bg-muted text-muted-foreground" },
+};
+
+export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) {
+  const isGpu = mode === "gpu";
   const t = useT();
   const navigate = useNavigate();
   const { isRTL } = useLanguage();
   const language = useAppLanguage();
   const n = (v: number | string) => localizeDigits(language, v);
   const { currency, format } = useBillingCurrency();
-  const goToServers = () => navigate(SERVERS_PATH);
+  const goToServers = () => navigate(isGpu ? GPU_SERVERS_PATH : SERVERS_PATH);
 
   // ---- Form state -------------------------------------------------------
   /* Settings kept from an earlier create, when the user asked for that.
      Anything that no longer exists in the catalogue falls back to its
      default. */
-  const [saved] = useState(loadQuickCreate);
+  const [saved] = useState(() => loadQuickCreate(mode));
   const [keepSettings, setKeepSettings] = useState(!!saved);
   const [step, setStep] = useState(0);
   const [visited, setVisited] = useState<Set<number>>(() => new Set([0]));
@@ -170,7 +201,15 @@ export default function CreateServer() {
   );
   const image = IMAGES.find((i) => i.id === imageId) ?? IMAGES[0];
 
-  const [planId, setPlanId] = useState(PLANS.some((p) => p.id === saved?.planId) ? saved!.planId : DEFAULT_PLAN_ID);
+  /* Only this mode's plans, and never one that is sold out. */
+  const modePlans = PLANS.filter((p) => (p.family === "gpu") === isGpu);
+  const [planId, setPlanId] = useState(() =>
+    modePlans.some((p) => p.id === saved?.planId && p.availability !== "soldOut")
+      ? saved!.planId
+      : isGpu
+        ? DEFAULT_GPU_PLAN_ID
+        : DEFAULT_PLAN_ID,
+  );
   const plan = PLANS.find((p) => p.id === planId) ?? PLANS[0];
   const [family, setFamily] = useState<PlanFamily>(plan.family);
 
@@ -197,6 +236,7 @@ export default function CreateServer() {
   const [keyDialogOpen, setKeyDialogOpen] = useState(false);
 
   const [backup, setBackup] = useState(saved?.backup ?? true);
+  const [installDrivers, setInstallDrivers] = useState(saved?.installDrivers ?? true);
   const [powerOn, setPowerOn] = useState(saved?.powerOn ?? true);
   const [script, setScript] = useState("");
 
@@ -234,7 +274,8 @@ export default function CreateServer() {
 
   const chooseFamily = (f: PlanFamily) => {
     setFamily(f);
-    if (plan.family !== f) choosePlan(PLANS.find((p) => p.family === f)!);
+    /* GPU here only shows the way to the GPU wizard; the chosen plan stays. */
+    if (f !== "gpu" && plan.family !== f) choosePlan(PLANS.find((p) => p.family === f)!);
   };
 
   const setBoot = (gb: number) => {
@@ -252,7 +293,7 @@ export default function CreateServer() {
       return;
     }
     if (keepSettings) {
-      saveQuickCreate({
+      saveQuickCreate(mode, {
         regionId,
         zone,
         imageId,
@@ -261,6 +302,7 @@ export default function CreateServer() {
         bootGb,
         extraDisks: extraDisks.map((d) => d.sizeGb),
         backup,
+        installDrivers,
         ipv6,
         access,
         sshKeyId: access === "ssh" ? sshKeyId : undefined,
@@ -268,13 +310,15 @@ export default function CreateServer() {
         powerOn,
       });
     } else {
-      clearQuickCreate();
+      clearQuickCreate(mode);
     }
     const id = `srv-${Date.now().toString(36)}`;
     const addresses = sampleAddresses(id);
     /* Into the server list straight away, as a server being created. */
     addServer({
       id,
+      kind: mode,
+      gpu: plan.gpu,
       name,
       imageId,
       image: `${image.name} ${versions[imageId]}`,
@@ -290,6 +334,9 @@ export default function CreateServer() {
       createdAt: Date.now(),
     });
     const created: CreatedServer = {
+      kind: mode,
+      gpu: plan.gpu,
+      osFamily: image.family,
       name,
       image: `${image.name} ${versions[imageId]}`,
       spec: `${plan.vcpu} vCPU · ${plan.ramGb} GB RAM`,
@@ -311,7 +358,11 @@ export default function CreateServer() {
   // ---- Render ---------------------------------------------------------------
   return (
     <CreatePage>
-      <CreateHeader description={t("Set up a virtual machine in a few steps.")} />
+      <CreateHeader
+        gpu={isGpu}
+        title={isGpu ? t("Create GPU server") : undefined}
+        description={isGpu ? t("A virtual machine with a dedicated NVIDIA GPU.") : t("Set up a virtual machine in a few steps.")}
+      />
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0">
@@ -463,6 +514,24 @@ export default function CreateServer() {
                     </OptionCard>
                   ))}
                 </div>
+                {isGpu && (
+                  <label
+                    className={cn(
+                      "mt-4 flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors",
+                      installDrivers ? "border-primary/50 bg-primary/[0.04]" : "border-border hover:border-primary/30",
+                    )}
+                  >
+                    <Checkbox checked={installDrivers} onCheckedChange={(v) => setInstallDrivers(v === true)} className="mt-0.5" />
+                    <span>
+                      <span className="block text-sm font-semibold text-foreground">
+                        {image.family === "windows" ? t("Install NVIDIA driver") : t("Install NVIDIA driver and CUDA")}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        {t("Ready on first boot, so the GPU works without setting anything up.")}
+                      </span>
+                    </span>
+                  </label>
+                )}
                 <Note className="mt-4">
                   {t("Custom images you upload under Images & Operating Systems will appear here.")}
                 </Note>
@@ -470,7 +539,11 @@ export default function CreateServer() {
             )}
 
             {step === 2 && (
-              <StepSection icon={Cpu} title={t("Plan")}>
+              <StepSection icon={isGpu ? Microchip : Cpu} title={t("Plan")}>
+                {isGpu ? (
+                  <GpuPlanTable plans={modePlans} planId={planId} onChoose={choosePlan} />
+                ) : (
+                  <>
                 <div role="radiogroup" className="grid grid-cols-1 gap-3 md:grid-cols-3">
                   {(Object.keys(FAMILY_TEXT) as PlanFamily[]).map((f) => {
                     const Icon = FAMILY_ICON[f];
@@ -486,6 +559,25 @@ export default function CreateServer() {
                   })}
                 </div>
 
+
+                    {family === "gpu" ? (
+                      /* GPU servers have their own section and wizard; this
+                         card leads there rather than listing plans twice. */
+                      <div className="mt-4 flex flex-col items-center rounded-xl border border-dashed border-border px-6 py-10 text-center">
+                        <span className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <Microchip className="size-6" />
+                        </span>
+                        <p className="mt-4 text-base font-semibold text-foreground">{t("Need a GPU?")}</p>
+                        <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                          {t("GPU servers have their own section, with the GPU models, their availability and the drivers.")}
+                        </p>
+                        <Button className="mt-5 gap-2" onClick={() => navigate(CREATE_GPU_SERVER_PATH)}>
+                          {t("Create a GPU server")}
+                          <ArrowRight className="size-4 rtl:rotate-180" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
                 {/* The device list's table treatment, so a list reads the same
                     in every product. One plan is chosen, so a radio rather than
                     the device list's checkboxes. */}
@@ -503,7 +595,6 @@ export default function CreateServer() {
                           <TableHead>{t("Plan")}</TableHead>
                           <TableHead>{t("vCPU")}</TableHead>
                           <TableHead>{t("RAM")}</TableHead>
-                          {family === "gpu" && <TableHead>{t("GPU")}</TableHead>}
                           <TableHead>{t("Boot disk")}</TableHead>
                           <TableHead>{t("Traffic")}</TableHead>
                           <TableHead className="text-end">{t("Monthly price")}</TableHead>
@@ -530,7 +621,6 @@ export default function CreateServer() {
                               <TableCell>
                                 {n(p.ramGb)} {t("GB")}
                               </TableCell>
-                              {family === "gpu" && <TableCell dir="ltr">{p.gpu}</TableCell>}
                               <TableCell>
                                 {n(p.diskGb)} {t("GB")}
                               </TableCell>
@@ -545,6 +635,10 @@ export default function CreateServer() {
                     </Table>
                   </div>
                 </RadioGroup>
+                      </>
+                    )}
+                  </>
+                )}
               </StepSection>
             )}
 
@@ -951,11 +1045,17 @@ export default function CreateServer() {
         <aside className="xl:sticky xl:top-4">
           <Card className="p-5">
             <p className="text-sm text-muted-foreground">{t("Estimated price")}</p>
+            {/* GPU time is counted by the hour, so a GPU server leads with
+                the hourly figure. */}
             <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5">
-              <span className="text-2xl font-bold text-foreground tabular-nums">{format(monthly)}</span>
-              <span className="text-sm text-muted-foreground">{t("/ month")}</span>
+              <span className="text-2xl font-bold text-foreground tabular-nums">{format(isGpu ? hourly : monthly)}</span>
+              <span className="text-sm text-muted-foreground">{isGpu ? t("/ hour") : t("/ month")}</span>
             </div>
-            <p className="mt-0.5 text-xs text-muted-foreground">{t("about {amount} / hour", { amount: format(hourly) })}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {isGpu
+                ? t("about {amount} / month", { amount: format(monthly) })
+                : t("about {amount} / hour", { amount: format(hourly) })}
+            </p>
 
             <div className="mt-4 border-t border-border pt-4">
               <p className="mb-2 text-sm font-semibold text-foreground">{t("Summary")}</p>
@@ -976,6 +1076,9 @@ export default function CreateServer() {
                   </span>
                 }
               />
+              {isGpu && plan.gpu && (
+                <SummaryLine icon={Microchip} label={t("GPU")} value={<span dir="ltr">{plan.gpu}</span>} />
+              )}
               <SummaryLine
                 icon={Cpu}
                 label={t("Plan")}
@@ -983,7 +1086,9 @@ export default function CreateServer() {
                    between Persian digits scrambles their order. */
                 value={t("{cpu} vCPU · {ram} GB RAM", { cpu: n(plan.vcpu), ram: n(plan.ramGb) })}
               />
-              {plan.gpu && <SummaryLine icon={Microchip} label={t("GPU")} value={<span dir="ltr">{plan.gpu}</span>} />}
+              {isGpu && (
+                <SummaryLine icon={Disc} label={t("Driver")} value={installDrivers ? t("Enabled") : t("Off")} />
+              )}
               <SummaryLine icon={HardDrive} label={t("Boot disk")} value={`${n(bootGb)} ${t("GB")}`} />
               {extraGb > 0 && <SummaryLine icon={HardDrive} label={t("Additional disk")} value={`${n(extraGb)} ${t("GB")}`} />}
               <SummaryLine icon={ArchiveRestore} label={t("Backup")} value={backup ? t("Daily") : t("Off")} />
@@ -1021,7 +1126,10 @@ export default function CreateServer() {
         cancel={{ label: t("Cancel"), onClick: goToServers }}
         /* On the first step, Back returns to the choice of one machine or an
            Auto Scale group. */
-        back={{ label: t("Back"), onClick: () => (step === 0 ? navigate(NEW_SERVER_PATH) : setStep((s) => s - 1)) }}
+        back={{
+          label: t("Back"),
+          onClick: () => (step === 0 ? (isGpu ? goToServers() : navigate(NEW_SERVER_PATH)) : setStep((s) => s - 1)),
+        }}
         primary={{ label: isLast ? t("Create server") : t("Next"), onClick: isLast ? create : () => setStep((s) => s + 1) }}
       />
 
@@ -1038,6 +1146,101 @@ export default function CreateServer() {
 }
 
 // ---- Pieces ------------------------------------------------------------------
+
+/** The GPU plans, in the device list's table treatment. A sold-out plan is
+    shown, so the range is visible, but cannot be chosen. */
+function GpuPlanTable({ plans, planId, onChoose }: { plans: Plan[]; planId: string; onChoose: (p: Plan) => void }) {
+  const t = useT();
+  const { isRTL } = useLanguage();
+  const language = useAppLanguage();
+  const n = (v: number | string) => localizeDigits(language, v);
+  const { currency, format } = useBillingCurrency();
+  const hourlyOf = (p: Plan) => {
+    const raw = p.monthly[currency] / HOURS_PER_MONTH;
+    return currency === "TOMAN" ? Math.round(raw) : Math.round(raw * 100) / 100;
+  };
+  return (
+    <RadioGroup
+      dir={isRTL ? "rtl" : "ltr"}
+      value={planId}
+      onValueChange={(v) => onChoose(plans.find((p) => p.id === v)!)}
+      className="block"
+    >
+      <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs">
+        <Table className="min-w-[760px]">
+          <TableHeader>
+            <TableRow className="bg-muted/40 hover:bg-muted/40">
+              <TableHead className="w-[44px]" aria-label={t("Choose plan")} />
+              <TableHead>{t("GPU model")}</TableHead>
+              <TableHead>{t("GPUs")}</TableHead>
+              <TableHead>{t("GPU memory")}</TableHead>
+              <TableHead>{t("vCPU")}</TableHead>
+              <TableHead>{t("RAM")}</TableHead>
+              <TableHead>{t("Boot disk")}</TableHead>
+              <TableHead>{t("Availability")}</TableHead>
+              <TableHead className="text-end">{t("Price")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {plans.map((p) => {
+              const selected = p.id === planId;
+              const soldOut = p.availability === "soldOut";
+              const avail = AVAILABILITY[p.availability ?? "available"];
+              return (
+                <TableRow
+                  key={p.id}
+                  onClick={() => !soldOut && onChoose(p)}
+                  aria-disabled={soldOut}
+                  className={cn(
+                    "border-b",
+                    soldOut
+                      ? "cursor-not-allowed opacity-60 hover:bg-transparent"
+                      : selected
+                        ? "cursor-pointer bg-primary/[0.04] hover:bg-primary/[0.06]"
+                        : "cursor-pointer hover:bg-muted/30",
+                  )}
+                >
+                  <TableCell className="text-center">
+                    <div className="flex justify-center">
+                      <RadioGroupItem value={p.id} disabled={soldOut} aria-label={p.gpu} />
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium" dir="ltr">
+                    NVIDIA {p.gpuModel}
+                  </TableCell>
+                  <TableCell>{n(p.gpuCount ?? 1)}</TableCell>
+                  <TableCell>
+                    {n(p.vramGb ?? 0)} {t("GB")}
+                  </TableCell>
+                  <TableCell>{n(p.vcpu)}</TableCell>
+                  <TableCell>
+                    {n(p.ramGb)} {t("GB")}
+                  </TableCell>
+                  <TableCell>
+                    {n(p.diskGb)} {t("GB")}
+                  </TableCell>
+                  <TableCell>
+                    <span className={cn("inline-flex rounded-md px-1.5 py-0.5 text-[11px] font-medium", avail.tone)}>
+                      {t(avail.label)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-end">
+                    <div className="font-medium">
+                      {format(hourlyOf(p))} {t("/ hour")}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {format(p.monthly[currency])} {t("/ month")}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+    </RadioGroup>
+  );
+}
 
 /** The alert rule wizard's step indicator, mark for mark: small numbered
     dots with the label beside them and a short rule between. Any step can be

@@ -67,9 +67,45 @@ export interface Plan {
   /** The boot disk the plan includes; a larger one is billed per extra GB. */
   diskGb: number;
   trafficTb: number;
+  /** "1 × NVIDIA RTX 4080": the whole GPU line, for summaries and lists. */
   gpu?: string;
+  gpuModel?: string;
+  gpuCount?: number;
+  /** Memory on each GPU. */
+  vramGb?: number;
+  /** GPUs are scarce; a plan says whether it can be had right now. */
+  availability?: GpuAvailability;
   monthly: Money;
 }
+
+export type GpuAvailability = "available" | "limited" | "soldOut";
+
+/* GPU plans: one or more whole NVIDIA cards passed through to the VM, the
+   boot disk sized for the drivers, CUDA and a model or two. */
+const gpuPlan = (
+  id: string,
+  gpuModel: string,
+  gpuCount: number,
+  vramGb: number,
+  vcpu: number,
+  ramGb: number,
+  diskGb: number,
+  availability: GpuAvailability,
+  monthly: Money,
+): Plan => ({
+  id,
+  family: "gpu",
+  vcpu,
+  ramGb,
+  diskGb,
+  trafficTb: 10,
+  gpu: `${gpuCount} × NVIDIA ${gpuModel}`,
+  gpuModel,
+  gpuCount,
+  vramGb,
+  availability,
+  monthly,
+});
 
 export const PLANS: Plan[] = [
   { id: "s-1", family: "shared", vcpu: 1, ramGb: 2, diskGb: 25, trafficTb: 1, monthly: { TOMAN: 390_000, USD: 6, QAR: 22 } },
@@ -79,11 +115,15 @@ export const PLANS: Plan[] = [
   { id: "d-2", family: "dedicated", vcpu: 2, ramGb: 8, diskGb: 80, trafficTb: 4, monthly: { TOMAN: 1_850_000, USD: 32, QAR: 117 } },
   { id: "d-4", family: "dedicated", vcpu: 4, ramGb: 16, diskGb: 160, trafficTb: 6, monthly: { TOMAN: 3_590_000, USD: 62, QAR: 226 } },
   { id: "d-8", family: "dedicated", vcpu: 8, ramGb: 32, diskGb: 320, trafficTb: 8, monthly: { TOMAN: 6_990_000, USD: 120, QAR: 437 } },
-  { id: "g-1", family: "gpu", vcpu: 8, ramGb: 32, diskGb: 200, trafficTb: 8, gpu: "1 × NVIDIA L4", monthly: { TOMAN: 24_900_000, USD: 430, QAR: 1_565 } },
-  { id: "g-2", family: "gpu", vcpu: 16, ramGb: 64, diskGb: 400, trafficTb: 10, gpu: "2 × NVIDIA L4", monthly: { TOMAN: 48_900_000, USD: 845, QAR: 3_075 } },
+  gpuPlan("g-4060", "RTX 4060", 1, 8, 8, 32, 100, "available", { TOMAN: 9_900_000, USD: 170, QAR: 620 }),
+  gpuPlan("g-4080", "RTX 4080", 1, 16, 12, 48, 150, "available", { TOMAN: 17_900_000, USD: 310, QAR: 1_130 }),
+  gpuPlan("g-v100", "V100", 1, 32, 8, 64, 200, "limited", { TOMAN: 21_900_000, USD: 380, QAR: 1_385 }),
+  gpuPlan("g-a100", "A100", 1, 80, 16, 128, 300, "limited", { TOMAN: 44_900_000, USD: 780, QAR: 2_840 }),
+  gpuPlan("g-a100x2", "A100", 2, 80, 32, 256, 500, "soldOut", { TOMAN: 88_900_000, USD: 1_540, QAR: 5_600 }),
 ];
 
 export const DEFAULT_PLAN_ID = "s-2";
+export const DEFAULT_GPU_PLAN_ID = "g-4060";
 
 /** Per extra GB of SSD a month, beyond what the plan includes. */
 export const DISK_GB_MONTHLY: Money = { TOMAN: 3_000, USD: 0.05, QAR: 0.18 };

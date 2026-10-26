@@ -11,6 +11,7 @@ import {
   Info,
   Layers,
   Loader2,
+  Microchip,
   MoreHorizontal,
   Pencil,
   Play,
@@ -62,7 +63,7 @@ import {
   type ServerRecord,
   type ServerStatus,
 } from "../lib/serverStore";
-import { CREATE_SERVER_PATH, TruncatedText } from "../ui";
+import { CREATE_GPU_SERVER_PATH, CREATE_SERVER_PATH, TruncatedText } from "../ui";
 
 /* The server list: Smart Factory's device list, piece for piece.
  *
@@ -75,18 +76,24 @@ import { CREATE_SERVER_PATH, TruncatedText } from "../ui";
  *
  * With no servers at all, the page is an empty state whose Create button
  * offers the two ways to make one.
+ *
+ * GPU Servers is this same page for GPU servers only: they are listed there
+ * and nowhere else, as cloud servers are listed only here. Its Create opens
+ * the GPU wizard straight away, and the plan column names the GPU.
  */
 
 const AUTO_SCALE_PATH = `${CLOUD_SERVER_BASE}/auto-scale`;
 
 type SortKey = "created" | "nameAsc" | "nameDesc" | "status";
 
-export default function Servers() {
+export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) {
+  const isGpu = kind === "gpu";
   const t = useT();
   const { t: ft, isRTL, language, formatNumber } = useLanguage();
   const fx = ft as (k: string) => string;
   const navigate = useNavigate();
-  const servers = useServers();
+  const allServers = useServers();
+  const servers = useMemo(() => allServers.filter((s) => (s.kind ?? "cloud") === kind), [allServers, kind]);
 
   /* Re-read the clock while anything is being created, so its status turns
      over without a refresh. */
@@ -160,7 +167,7 @@ export default function Servers() {
   };
 
   const exportCsv = () => {
-    const header = ["name", "status", "image", "region", "zone", "ipv4", "plan", "created"];
+    const header = ["name", "status", "image", "region", "zone", "ipv4", "plan", "gpu", "created"];
     const rows = filtered.map((s) => [
       s.name,
       serverStatus(s, now),
@@ -169,18 +176,31 @@ export default function Servers() {
       s.zone,
       s.ipv4,
       s.planId.toUpperCase(),
+      s.gpu ?? "",
       new Date(s.createdAt).toISOString(),
     ]);
     const csv = [header, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = `servers-${Date.now()}.csv`;
+    a.download = `${isGpu ? "gpu-servers" : "servers"}-${Date.now()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  const createMenu = (
+  /* GPU servers have one way in, so no menu: the button opens the wizard. */
+  const gpuCreate = (
+    <Button
+      onClick={() => navigate(CREATE_GPU_SERVER_PATH)}
+      className="h-10 gap-2 rounded-md bg-primary px-5 text-primary-foreground hover:bg-primary/90"
+    >
+      <Plus className="h-4 w-4" />
+      {t("Create GPU server")}
+    </Button>
+  );
+  const createMenu = isGpu ? (
+    gpuCreate
+  ) : (
     <CreateMenu
       onSingle={() => navigate(CREATE_SERVER_PATH)}
       onGroup={() => navigate(AUTO_SCALE_PATH)}
@@ -252,9 +272,14 @@ export default function Servers() {
 
   return (
     <div data-uniform-type className="space-y-4 p-4 lg:p-6">
-      <PageHeader title={t("Cloud Server")} count={servers.length} countLabel={t("servers")} actions={createMenu} />
+      <PageHeader
+        title={isGpu ? t("GPU Servers") : t("Cloud Server")}
+        count={servers.length}
+        countLabel={t("servers")}
+        actions={createMenu}
+      />
 
-      <KpiSection storageKey="cloud-servers" className="mb-4">
+      <KpiSection storageKey={isGpu ? "gpu-servers" : "cloud-servers"} className="mb-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {kpis.map((k) => {
             const Icon = k.icon;
@@ -353,7 +378,7 @@ export default function Servers() {
                   <TableHead>{fx("status")}</TableHead>
                   <TableHead>{t("Region / zone")}</TableHead>
                   <TableHead>{t("IP address")}</TableHead>
-                  <TableHead>{t("Plan")}</TableHead>
+                  <TableHead>{isGpu ? t("GPU") : t("Plan")}</TableHead>
                   <TableHead>
                     <button
                       type="button"
@@ -376,19 +401,27 @@ export default function Servers() {
                     <TableCell colSpan={9}>
                       <div className="flex flex-col items-center px-6 py-14 text-center">
                         <span className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                          <Server className="size-7" />
+                          {isGpu ? <Microchip className="size-7" /> : <Server className="size-7" />}
                         </span>
-                        <h2 className="mt-5 text-lg font-semibold text-foreground">{t("No servers yet")}</h2>
+                        <h2 className="mt-5 text-lg font-semibold text-foreground">
+                          {isGpu ? t("No GPU servers yet") : t("No servers yet")}
+                        </h2>
                         <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                          {t("Create a virtual machine from one of the ready Linux or Windows images.")}
+                          {isGpu
+                            ? t("Create a virtual machine with a dedicated NVIDIA GPU, on Linux or Windows.")
+                            : t("Create a virtual machine from one of the ready Linux or Windows images.")}
                         </p>
                         {/* Centred under its own button. */}
                         <div className="mt-6">
-                          <CreateMenu
-                            onSingle={() => navigate(CREATE_SERVER_PATH)}
-                            onGroup={() => navigate(AUTO_SCALE_PATH)}
-                            align="center"
-                          />
+                          {isGpu ? (
+                            gpuCreate
+                          ) : (
+                            <CreateMenu
+                              onSingle={() => navigate(CREATE_SERVER_PATH)}
+                              onGroup={() => navigate(AUTO_SCALE_PATH)}
+                              align="center"
+                            />
+                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -472,7 +505,7 @@ export default function Servers() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <TruncatedText text={s.planId.toUpperCase()} ltr className="font-medium" />
+                            <TruncatedText text={isGpu && s.gpu ? s.gpu : s.planId.toUpperCase()} ltr className="font-medium" />
                             <TruncatedText
                               text={t("{cpu} vCPU · {ram} GB RAM", { cpu: formatNumber(s.vcpu), ram: formatNumber(s.ramGb) })}
                               className="text-xs text-muted-foreground"

@@ -32,11 +32,17 @@ export default function CloudServerRoutes() {
       <TooltipProvider delayDuration={150}>
         <div data-uniform-type dir={isRTL ? "rtl" : "ltr"} className="min-h-full">
           <Routes>
-            <Route path="/servers" element={<Servers />} />
+            {/* Keyed by mode: going from the cloud wizard to the GPU one (its
+                "Need a GPU?" link) would otherwise reuse the same instance and
+                carry the cloud form's state, plan and all, across. */}
+            <Route path="/servers" element={<Servers key="cloud" />} />
             <Route path="/servers/new" element={<ChooseServerType />} />
-            <Route path="/servers/create" element={<CreateServer />} />
+            <Route path="/servers/create" element={<CreateServer key="cloud" />} />
             <Route path="/servers/created" element={<ServerCreated />} />
-            {CLOUD_SERVER_PAGES.filter(([segment]) => segment !== "servers").map(([segment, title]) => (
+            {/* GPU servers: the same list and wizard, in GPU mode. */}
+            <Route path="/gpu-servers" element={<Servers key="gpu" kind="gpu" />} />
+            <Route path="/gpu-servers/create" element={<CreateServer key="gpu" mode="gpu" />} />
+            {CLOUD_SERVER_PAGES.filter(([segment]) => segment !== "servers" && segment !== "gpu-servers").map(([segment, title]) => (
               <Route key={segment} path={`/${segment}`} element={<Page title={title} />} />
             ))}
             <Route path="*" element={<Navigate to={`${CLOUD_SERVER_BASE}/servers`} replace />} />

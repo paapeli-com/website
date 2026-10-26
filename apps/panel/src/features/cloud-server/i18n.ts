@@ -211,6 +211,37 @@ const fa: Record<string, string> = {
   "Resource Monitoring": "مانیتورینگ منابع",
   "CPU, memory, disk and network over time.": "مصرف پردازنده، حافظه، دیسک و شبکه در طول زمان.",
 
+  // GPU servers
+  "GPU Servers": "سرورهای GPU",
+  "Create GPU server": "ساخت سرور GPU",
+  "A virtual machine with a dedicated NVIDIA GPU.": "یک ماشین مجازی با GPU اختصاصی انویدیا.",
+  "Need a GPU?": "به GPU نیاز دارید؟",
+  "GPU servers have their own section, with the GPU models, their availability and the drivers.":
+    "سرورهای GPU بخش جداگانه‌ی خودشان را دارند، با مدل‌های GPU، موجودی و درایورها.",
+  "Create a GPU server": "ساخت سرور GPU",
+  "GPU model": "مدل GPU",
+  GPUs: "تعداد GPU",
+  "GPU memory": "حافظه‌ی GPU",
+  Availability: "موجودی",
+  Available: "موجود",
+  Limited: "محدود",
+  "Sold out": "ناموجود",
+  Price: "قیمت",
+  "/ hour": "/ ساعتی",
+  "about {amount} / month": "حدود {amount} / ماهانه",
+  "Install NVIDIA driver and CUDA": "نصب درایور NVIDIA و CUDA",
+  "Install NVIDIA driver": "نصب درایور NVIDIA",
+  "Ready on first boot, so the GPU works without setting anything up.":
+    "از اولین راه‌اندازی آماده است و GPU بدون هیچ تنظیمی کار می‌کند.",
+  Driver: "درایور",
+  "No GPU servers yet": "هنوز سرور GPU ندارید",
+  "Create a virtual machine with a dedicated NVIDIA GPU, on Linux or Windows.":
+    "یک ماشین مجازی با GPU اختصاصی انویدیا، روی لینوکس یا ویندوز بسازید.",
+  "Once it is running, the GPU appears in Device Manager under Display adapters.":
+    "پس از روشن شدن سرور، GPU در Device Manager زیر Display adapters دیده می‌شود.",
+  "Once it is running, sign in and run {cmd} to see the GPU.":
+    "پس از روشن شدن سرور، وارد شوید و برای دیدن GPU دستور {cmd} را اجرا کنید.",
+
   // Server list
   servers: "سرور",
   "Total servers": "کل سرورها",
@@ -446,6 +477,37 @@ const ar: Record<string, string> = {
   "Spread traffic across several servers.": "توزيع حركة البيانات على عدة خوادم.",
   "Resource Monitoring": "مراقبة الموارد",
   "CPU, memory, disk and network over time.": "استهلاك المعالج والذاكرة والقرص والشبكة عبر الوقت.",
+
+  // GPU servers
+  "GPU Servers": "خوادم GPU",
+  "Create GPU server": "إنشاء خادم GPU",
+  "A virtual machine with a dedicated NVIDIA GPU.": "جهاز افتراضي مع GPU مخصص من NVIDIA.",
+  "Need a GPU?": "هل تحتاج إلى GPU؟",
+  "GPU servers have their own section, with the GPU models, their availability and the drivers.":
+    "لخوادم GPU قسم خاص بها، مع طرازات GPU وتوفرها وبرامج التشغيل.",
+  "Create a GPU server": "إنشاء خادم GPU",
+  "GPU model": "طراز GPU",
+  GPUs: "عدد GPU",
+  "GPU memory": "ذاكرة GPU",
+  Availability: "التوفر",
+  Available: "متوفر",
+  Limited: "محدود",
+  "Sold out": "غير متوفر",
+  Price: "السعر",
+  "/ hour": "/ ساعة",
+  "about {amount} / month": "حوالي {amount} / شهريًا",
+  "Install NVIDIA driver and CUDA": "تثبيت برنامج تشغيل NVIDIA وCUDA",
+  "Install NVIDIA driver": "تثبيت برنامج تشغيل NVIDIA",
+  "Ready on first boot, so the GPU works without setting anything up.":
+    "جاهز عند أول تشغيل، فيعمل GPU دون أي إعداد.",
+  Driver: "برنامج التشغيل",
+  "No GPU servers yet": "لا توجد خوادم GPU بعد",
+  "Create a virtual machine with a dedicated NVIDIA GPU, on Linux or Windows.":
+    "أنشئ جهازًا افتراضيًا مع GPU مخصص من NVIDIA، على لينكس أو ويندوز.",
+  "Once it is running, the GPU appears in Device Manager under Display adapters.":
+    "بعد تشغيل الخادم، يظهر GPU في Device Manager ضمن Display adapters.",
+  "Once it is running, sign in and run {cmd} to see the GPU.":
+    "بعد تشغيل الخادم، سجّل الدخول وشغّل {cmd} لرؤية GPU.",
 
   // Server list
   servers: "خوادم",
