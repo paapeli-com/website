@@ -4,6 +4,7 @@ import {
   ArrowDown,
   ArrowUp,
   Check,
+  Clock,
   Cpu,
   Disc,
   Expand,
@@ -395,7 +396,7 @@ export default function CreateAutoScale() {
                             onClick={() =>
                               setRules((all) => [
                                 ...all,
-                                { id: `r-${++ruleSeq}`, direction: "out", metric: "memory", threshold: 80, durationMin: 5, step: 1 },
+                                newScheduledRule(`r-${++ruleSeq}`),
                               ])
                             }
                           >
@@ -570,7 +571,24 @@ export default function CreateAutoScale() {
   );
 }
 
-/** Each rule on one row: direction, metric, threshold, how long, how many. */
+/** A new rule starts at a set time, the first kind in the list. */
+export const newScheduledRule = (id: string): ScalingRule => ({
+  id,
+  direction: "schedule",
+  metric: "cpu",
+  threshold: 70,
+  durationMin: 5,
+  step: 1,
+  time: "09:00",
+  repeat: "daily",
+  scheduleAction: "add",
+});
+
+const todayIso = () => new Date().toISOString().slice(0, 10);
+
+/** Each rule on one row. A scheduled one: when, how often, add or remove how
+    many. A metric one: which metric, above or below what, for how long, add
+    or remove how many. */
 export function RulesEditor({
   rules,
   onChange,
@@ -588,11 +606,28 @@ export function RulesEditor({
     <div className="space-y-2">
       {rules.map((r) => (
         <div key={r.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-border p-3 text-sm">
-          <Select value={r.direction} onValueChange={(v) => onChange(r.id, { direction: v as "out" | "in" })}>
-            <SelectTrigger className="h-9 w-40">
+          <Select
+            value={r.direction}
+            onValueChange={(v) => {
+              const direction = v as ScalingRule["direction"];
+              onChange(
+                r.id,
+                direction === "schedule"
+                  ? { direction, time: r.time ?? "09:00", repeat: r.repeat ?? "daily", scheduleAction: r.scheduleAction ?? "add" }
+                  : { direction },
+              );
+            }}
+          >
+            <SelectTrigger className="h-9 w-44">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="schedule">
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock className="size-3.5 text-violet-600" />
+                  {t("At a set time")}
+                </span>
+              </SelectItem>
               <SelectItem value="out">
                 <span className="inline-flex items-center gap-1.5">
                   <ArrowUp className="size-3.5 text-emerald-600" />
@@ -607,6 +642,54 @@ export function RulesEditor({
               </SelectItem>
             </SelectContent>
           </Select>
+          {r.direction === "schedule" ? (
+            <>
+              <span className="text-muted-foreground">{t("at")}</span>
+              <Input
+                type="time"
+                dir="ltr"
+                value={r.time ?? "09:00"}
+                onChange={(e) => onChange(r.id, { time: e.target.value || "09:00" })}
+                className="h-9 w-28"
+                aria-label={t("Time")}
+              />
+              <Select
+                value={r.repeat ?? "daily"}
+                onValueChange={(v) => onChange(r.id, { repeat: v as "daily" | "once", date: v === "once" ? (r.date ?? todayIso()) : r.date })}
+              >
+                <SelectTrigger className="h-9 w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">{t("Every day")}</SelectItem>
+                  <SelectItem value="once">{t("Once, on")}</SelectItem>
+                </SelectContent>
+              </Select>
+              {r.repeat === "once" && (
+                <Input
+                  type="date"
+                  dir="ltr"
+                  value={r.date ?? todayIso()}
+                  onChange={(e) => onChange(r.id, { date: e.target.value })}
+                  className="h-9 w-40"
+                  aria-label={t("Date")}
+                />
+              )}
+              <Select
+                value={r.scheduleAction ?? "add"}
+                onValueChange={(v) => onChange(r.id, { scheduleAction: v as "add" | "remove" })}
+              >
+                <SelectTrigger className="h-9 w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="add">{t("add")}</SelectItem>
+                  <SelectItem value="remove">{t("remove")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </>
+          ) : (
+            <>
           <span className="text-muted-foreground">{t("when")}</span>
           <Select value={r.metric} onValueChange={(v) => onChange(r.id, { metric: v as Metric })}>
             <SelectTrigger className="h-9 w-36">
@@ -647,6 +730,8 @@ export function RulesEditor({
             </SelectContent>
           </Select>
           <span className="text-muted-foreground">{r.direction === "out" ? t("add") : t("remove")}</span>
+            </>
+          )}
           <Stepper value={r.step} min={1} max={5} onChange={(v) => onChange(r.id, { step: v })} label={t("Instances")} />
           <Button
             variant="ghost"

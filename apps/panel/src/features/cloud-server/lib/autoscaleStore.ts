@@ -9,7 +9,8 @@ import { sampleAddresses } from "./serverStore";
  * window) with a cooldown; the load balancer is an Octavia pool the group's
  * members join; a failed instance is replaced on an Aodh alarm, from the
  * instance's own status or from the load balancer's member health check.
- * Scheduled scaling has no native engine there, so it is not offered.
+ * A rule at a set time is a Mistral cron trigger that changes the group's
+ * capacity when it fires.
  *
  * Kept in this browser. Instances are derived from the desired capacity, and
  * the activity log records what happens through the panel.
@@ -21,7 +22,15 @@ export type HealthSource = "infra" | "lb";
 
 export interface ScalingRule {
   id: string;
-  direction: "out" | "in";
+  /** At a set time, or on a metric: out above the threshold, in below. */
+  direction: "schedule" | "out" | "in";
+  /** For a scheduled rule: when, "HH:MM", and on which days. */
+  time?: string;
+  repeat?: "daily" | "once";
+  /** For a one-off scheduled rule, "YYYY-MM-DD". */
+  date?: string;
+  /** For a scheduled rule: add or remove the step. */
+  scheduleAction?: "add" | "remove";
   metric: Metric;
   /** Percent. Out fires above it, in below it. */
   threshold: number;

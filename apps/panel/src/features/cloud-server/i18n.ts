@@ -530,6 +530,13 @@ const fa: Record<string, string> = {
   "Scaling mode set to automatic": "حالت مقیاس‌پذیری خودکار شد",
   "Scaling mode set to manual": "حالت مقیاس‌پذیری دستی شد",
   "Health settings changed": "تنظیمات سلامت تغییر کرد",
+  "At a set time": "در زمان مشخص",
+  "at": "ساعت",
+  "Every day": "هر روز",
+  "Once, on": "یک بار، در",
+  "Date": "تاریخ",
+  "Open group": "باز کردن گروه",
+  "Managed by its Auto Scale group": "توسط گروه مقیاس‌پذیری خودکارش مدیریت می‌شود",
 };
 
 const ar: Record<string, string> = {
@@ -1055,6 +1062,13 @@ const ar: Record<string, string> = {
   "Scaling mode set to automatic": "ضُبط وضع التوسيع على تلقائي",
   "Scaling mode set to manual": "ضُبط وضع التوسيع على يدوي",
   "Health settings changed": "تغيّرت إعدادات الصحة",
+  "At a set time": "في وقت محدد",
+  "at": "الساعة",
+  "Every day": "كل يوم",
+  "Once, on": "مرة واحدة، في",
+  "Date": "التاريخ",
+  "Open group": "فتح المجموعة",
+  "Managed by its Auto Scale group": "تديرها مجموعة التوسع التلقائي الخاصة بها",
 };
 
 const dictionaries: Record<AppLanguage, Record<string, string>> = { en: {}, fa, ar };

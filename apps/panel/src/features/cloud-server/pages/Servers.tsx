@@ -7,6 +7,7 @@ import {
   CircleStop,
   Copy,
   Download,
+  Expand,
   Eye,
   Info,
   Layers,
@@ -64,7 +65,8 @@ import {
   type ServerRecord,
   type ServerStatus,
 } from "../lib/serverStore";
-import { CREATE_GPU_SERVER_PATH, CREATE_SERVER_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText } from "../ui";
+import { CREATE_GPU_SERVER_PATH, CREATE_SERVER_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText, groupPath } from "../ui";
+import { groupInstances, useGroups } from "../lib/autoscaleStore";
 import { useShellT } from "@/shared/i18n/shell";
 
 /* The server list: Smart Factory's device list, piece for piece.
@@ -96,11 +98,42 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
   const fx = ft as (k: string) => string;
   const navigate = useNavigate();
   const allServers = useServers();
-  const servers = useMemo(() => allServers.filter((s) => (s.kind ?? "cloud") === kind), [allServers, kind]);
+  const groups = useGroups();
 
   /* Re-read the clock while anything is being created, so its status turns
      over without a refresh. */
   const [now, setNow] = useState(Date.now());
+
+  /* The account's own servers, then the instances of its Auto Scale groups:
+     listed here too so every cloud server is in one place, labelled with
+     their group, which manages them. */
+  const servers = useMemo(() => {
+    const own = allServers.filter((s) => (s.kind ?? "cloud") === kind);
+    if (isGpu) return own;
+    const fromGroups: ServerRecord[] = groups.flatMap((g) =>
+      groupInstances(g, now).map((i) => ({
+        id: i.id,
+        kind: "cloud" as const,
+        name: i.name,
+        imageId: g.imageId,
+        image: g.image,
+        planId: g.planId,
+        vcpu: g.vcpu,
+        ramGb: g.ramGb,
+        diskGb: g.diskGb,
+        region: g.region,
+        zone: g.zone,
+        ipv4: i.publicIp,
+        powerOn: true,
+        createdAt: i.createdAt,
+        groupId: g.id,
+        groupName: g.name,
+      })),
+    );
+    return [...own, ...fromGroups];
+  }, [allServers, groups, kind, isGpu, now]);
+  /** Ids the list can act on: an Auto Scale instance is its group's to manage. */
+  const ownIds = (ids: string[]) => ids.filter((id) => !servers.find((s) => s.id === id)?.groupId);
   const anyCreating = servers.some((s) => serverStatus(s, now) === "creating");
   useEffect(() => {
     if (!anyCreating) return;
@@ -113,7 +146,7 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
   const [imageFilter, setImageFilter] = useState("all");
   /* Where it runs: the shared cloud, or one of the account's dedicated
      servers. A filter only; it gets no KPI card. */
-  const [placementFilter, setPlacementFilter] = useState<"all" | "shared" | "host">("all");
+  const [placementFilter, setPlacementFilter] = useState<"all" | "shared" | "host" | "group">("all");
   const [sortKey, setSortKey] = useState<SortKey>("created");
   const [sortDirection, setSortDirection] = useState<"desc" | "asc">("desc");
   const [selected, setSelected] = useState<string[]>([]);
@@ -139,7 +172,10 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
           (!q || s.name.toLowerCase().includes(q) || s.ipv4.includes(q) || s.image.toLowerCase().includes(q)) &&
           (statusFilter === "all" || status === statusFilter) &&
           (imageFilter === "all" || s.imageId === imageFilter) &&
-          (placementFilter === "all" || (placementFilter === "host") === !!s.hostId)
+          (placementFilter === "all" ||
+            (placementFilter === "host" && !!s.hostId) ||
+            (placementFilter === "group" && !!s.groupId) ||
+            (placementFilter === "shared" && !s.hostId && !s.groupId))
         );
       })
       .sort((a, b) => {
@@ -247,13 +283,14 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
             label: t("Placement"),
             value: placementFilter,
             onChange: (v: string) => {
-              setPlacementFilter(v as "all" | "shared" | "host");
+              setPlacementFilter(v as "all" | "shared" | "host" | "group");
               setCurrentPage(1);
             },
             options: [
               { value: "all", label: fx("all") },
               { value: "shared", label: t("Shared cloud") },
               { value: "host", label: t("Dedicated server") },
+              { value: "group", label: t("Auto Scale group") },
             ],
           },
         ]),
@@ -268,9 +305,9 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
 
   const actionItems: ActionItem[] = [
     { key: "export", label: fx("export"), icon: Download, onSelect: exportCsv },
-    { key: "on", label: t("Power on"), icon: Play, onSelect: () => setPower(selected, true) },
-    { key: "off", label: t("Power off"), icon: CircleStop, onSelect: () => setPower(selected, false) },
-    { key: "delete", label: fx("delete"), icon: Trash2, destructive: true, onSelect: () => setDeleteIds(selected) },
+    { key: "on", label: t("Power on"), icon: Play, onSelect: () => setPower(ownIds(selected), true) },
+    { key: "off", label: t("Power off"), icon: CircleStop, onSelect: () => setPower(ownIds(selected), false) },
+    { key: "delete", label: fx("delete"), icon: Trash2, destructive: true, onSelect: () => setDeleteIds(ownIds(selected)) },
   ];
 
   const counts = {
@@ -462,6 +499,8 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
                           <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                             <div className="flex justify-center">
                               <Checkbox
+                                disabled={!!s.groupId}
+                                title={s.groupId ? t("Managed by its Auto Scale group") : undefined}
                                 checked={selected.includes(s.id)}
                                 onCheckedChange={(c) =>
                                   setSelected((prev) => (c ? [...prev, s.id] : prev.filter((id) => id !== s.id)))
@@ -504,6 +543,21 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
                                       <ServerCog className="h-3 w-3" />
                                       {t("Dedicated server")}
                                     </span>
+                                  )}
+                                  {/* An Auto Scale instance: opens its group. */}
+                                  {s.groupId && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(groupPath(s.groupId!));
+                                      }}
+                                      title={`${t("Auto Scale group")}: ${s.groupName ?? ""}`}
+                                      className="inline-flex shrink-0 items-center gap-1 rounded-md bg-sky-500/10 px-1.5 py-0.5 text-[11px] font-medium text-sky-700 hover:bg-sky-500/20 dark:text-sky-400"
+                                    >
+                                      <Expand className="h-3 w-3" />
+                                      Auto Scale
+                                    </button>
                                   )}
                                 </div>
                                 <TruncatedText text={s.image} ltr className="text-xs text-muted-foreground" />
@@ -555,7 +609,7 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
                               <RowIcon
                                 label={s.powerOn ? t("Power off") : t("Power on")}
                                 onClick={() => setPower([s.id], !s.powerOn)}
-                                disabled={status === "creating"}
+                                disabled={status === "creating" || !!s.groupId}
                               >
                                 <Power className={cn("h-4 w-4", status === "running" && "text-emerald-600")} />
                               </RowIcon>
@@ -566,6 +620,13 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align={isRTL ? "start" : "end"} className="z-[100] w-48 bg-background">
+                                  {s.groupId ? (
+                                    <DropdownMenuItem onClick={() => navigate(groupPath(s.groupId!))}>
+                                      <Expand className="me-2 h-4 w-4" />
+                                      {t("Open group")}
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <>
                                   <DropdownMenuItem onClick={comingSoon}>
                                     <Info className="me-2 h-4 w-4" />
                                     {t("Server details")}
@@ -590,6 +651,8 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
                                     <Trash2 className="me-2 h-4 w-4" />
                                     {t("Delete server")}
                                   </DropdownMenuItem>
+                                    </>
+                                  )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>

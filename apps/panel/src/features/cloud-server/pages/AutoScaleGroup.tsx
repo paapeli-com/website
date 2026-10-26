@@ -70,7 +70,7 @@ import {
 import { AUTOSCALE_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText } from "../ui";
 import { Note, OptionCard, SettingRow } from "../wizard";
 import { CapacityDialog, HealthBadge, StatCard, Stepper } from "../autoscaleUi";
-import { RulesEditor } from "./CreateAutoScale";
+import { RulesEditor, newScheduledRule } from "./CreateAutoScale";
 
 /* One Auto Scale group: its header, then five tabs.
  *
@@ -404,15 +404,6 @@ function OverviewTab({ g, now, onShow }: { g: AutoScaleGroup; now: number; onSho
         </Card>
       </div>
 
-      <Card className="p-5">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="text-base font-semibold text-foreground">{t("Recent activity")}</h2>
-          <Button variant="ghost" size="sm" onClick={() => onShow("activity")}>
-            {t("See all")}
-          </Button>
-        </div>
-        <EventsTable events={g.events.slice(0, 3)} />
-      </Card>
     </div>
   );
 }
@@ -726,7 +717,7 @@ function RulesTab({ g }: { g: AutoScaleGroup }) {
                   onClick={() =>
                     setRules((all) => [
                       ...all,
-                      { id: `r-${Date.now().toString(36)}`, direction: "out", metric: "memory", threshold: 80, durationMin: 5, step: 1 },
+                      newScheduledRule(`r-${Date.now().toString(36)}`),
                     ])
                   }
                 >

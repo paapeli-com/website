@@ -20,6 +20,10 @@ export interface ServerRecord {
   /** The account's dedicated server this runs on, if not the shared cloud. */
   hostId?: string;
   hostName?: string;
+  /** An instance of an Auto Scale group, listed with the servers but managed
+      by its group: never stored here, derived from the group. */
+  groupId?: string;
+  groupName?: string;
   name: string;
   imageId: string;
   /** "Ubuntu 24.04 LTS" */
