@@ -46,9 +46,9 @@ import { toast } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
 import { useT } from "../i18n";
 import { HOST_PLANS } from "../lib/catalog";
-import { hostStatus, removeHosts, updateHost, useClusters, useHosts, type HostRecord, type HostStatus } from "../lib/hostStore";
+import { hostStatus, PROVISIONING_MS, removeHosts, updateHost, useClusters, useHosts, type HostRecord, type HostStatus } from "../lib/hostStore";
 import { useServers } from "../lib/serverStore";
-import { CREATE_DEDICATED_PATH, CREATE_SERVER_PATH, DEDICATED_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText } from "../ui";
+import { CREATE_DEDICATED_PATH, CREATE_SERVER_PATH, DEDICATED_PATH, deletePhraseOk, PageBreadcrumb, ProgressStatus, SERVERS_PATH, TruncatedText, TypeToConfirm } from "../ui";
 
 /* Dedicated Servers: the physical machines this account rents, and how many
  * of its cloud servers each one carries.
@@ -95,6 +95,8 @@ export default function DedicatedServers() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [deleteIds, setDeleteIds] = useState<string[] | null>(null);
+  const [phrase, setPhrase] = useState("");
+  useEffect(() => setPhrase(""), [deleteIds]);
   const [renaming, setRenaming] = useState<HostRecord | null>(null);
   const [expanded, setExpanded] = useState<string[]>([]);
 
@@ -418,10 +420,7 @@ export default function DedicatedServers() {
                         </TableCell>
                         <TableCell>
                           {status === "provisioning" ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-md bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-700 dark:text-sky-400">
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                              {statusLabel.provisioning}
-                            </span>
+                            <ProgressStatus label={statusLabel.provisioning} startedAt={h.createdAt} durationMs={PROVISIONING_MS} now={now} />
                           ) : (
                             <span className="inline-flex items-center gap-1.5 text-sm">
                               <span className="h-2 w-2 rounded-full bg-emerald-500" />
@@ -584,13 +583,14 @@ export default function DedicatedServers() {
                   })}
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-4 flex justify-end gap-3">
+          {blocking.length === 0 && <TypeToConfirm value={phrase} onChange={setPhrase} />}
+          <div className="mt-2 flex justify-end gap-3">
             <Button variant="outline" onClick={() => setDeleteIds(null)}>
               {fx("cancel")}
             </Button>
             <Button
               variant="destructive"
-              disabled={blocking.length > 0}
+              disabled={blocking.length > 0 || !deletePhraseOk(phrase)}
               onClick={() => {
                 removeHosts(deleteIds ?? []);
                 setSelected((prev) => prev.filter((id) => !deleteIds?.includes(id)));

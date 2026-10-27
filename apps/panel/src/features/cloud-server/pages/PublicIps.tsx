@@ -658,7 +658,7 @@ function ReserveIpDialog({ open, onClose, used }: { open: boolean; onClose: () =
 
           <label className="flex cursor-pointer items-start gap-2 text-sm text-foreground">
             <Checkbox checked={agreed} onCheckedChange={(c) => setAgreed(c === true)} className="mt-0.5" />
-            <span>{t("I understand I cannot release it for {n} days.", { n: formatNumber(HOLD_DAYS) })}</span>
+            <span>{t("I confirm that it cannot be deleted for {n} days.", { n: formatNumber(HOLD_DAYS) })}</span>
           </label>
         </div>
         <DialogFooter>

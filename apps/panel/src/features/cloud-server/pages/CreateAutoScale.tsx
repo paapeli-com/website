@@ -36,7 +36,8 @@ import { useBillingCurrency } from "@/shared/lib/billingCurrency";
 import { toast } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
 import { useT } from "../i18n";
-import { DEFAULT_FIREWALL_ID, DEFAULT_IMAGE, DEFAULT_PLAN_ID, FIREWALLS, IMAGES, PLANS, REGIONS } from "../lib/catalog";
+import { DEFAULT_IMAGE, DEFAULT_PLAN_ID, IMAGES, PLANS, REGIONS } from "../lib/catalog";
+import { DEFAULT_FIREWALL_ID, inboundSummary, useFirewalls } from "../lib/firewallStore";
 import { OsLogo } from "../lib/osLogos";
 import {
   addGroup,
@@ -51,7 +52,7 @@ import {
 import { HealthSettings, SmsNotify } from "../autoscaleHealthNotify";
 import { getCurrentUserId } from "@paapeli/brand/session";
 import { AUTOSCALE_PATH, CreateFooter, CreatePage, PageBreadcrumb, SERVERS_PATH, groupPath } from "../ui";
-import { Note, OptionCard, RegionPicker, ReviewBlock, ReviewLine, SettingRow, StepBar, StepSection, SummaryLine } from "../wizard";
+import { FieldBox, Note, OptionCard, RegionBox, ReviewBlock, ReviewLine, SettingRow, StepBar, StepSection, SummaryLine } from "../wizard";
 import { Stepper } from "../autoscaleUi";
 
 /* Create Auto Scale group: the server wizard's frame and pieces, five steps.
@@ -108,6 +109,7 @@ export default function CreateAutoScale() {
   const [planId, setPlanId] = useState(DEFAULT_PLAN_ID);
   const [sizeFamily, setSizeFamily] = useState<"shared" | "dedicated">("shared");
   const plan = sizes.find((p) => p.id === planId) ?? sizes[0];
+  const FIREWALLS = useFirewalls();
   const [firewallId, setFirewallId] = useState(DEFAULT_FIREWALL_ID);
 
   const [min, setMin] = useState(2);
@@ -219,28 +221,41 @@ export default function CreateAutoScale() {
             {step === 0 && (
               <StepSection icon={Expand} title={t("Basics")}>
                 <div className="space-y-5">
-                  <div>
-                    <FieldLabel required htmlFor="group-name">
-                      {t("Group name")}
-                    </FieldLabel>
-                    <Input
-                      id="group-name"
-                      dir="ltr"
-                      value={name}
-                      onChange={(e) => setName(e.target.value.toLowerCase())}
-                      aria-invalid={showErrors && !nameOk}
-                      className={cn("max-w-md", showErrors && !nameOk && "border-destructive")}
+                  {/* Where and the name, as equal boxes; the mode cards below sit on
+                      the same two columns. */}
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <RegionBox
+                      regionId={regionId}
+                      zone={zone}
+                      onChange={(r, z) => {
+                        setRegionId(r);
+                        setZone(z);
+                      }}
+                      description={t("A group stays in the region it is created in; the region cannot be changed later.")}
                     />
-                    <p className={cn("mt-1.5 text-xs", showErrors && !nameOk ? "text-destructive" : "text-muted-foreground")}>
-                      {showErrors && !nameOk
-                        ? t("Use 3 to 63 lowercase letters, digits or hyphens, starting with a letter.")
-                        : t("Instances are named after the group: {name}-01, {name}-02 and on.", { name: name || "group" })}
-                    </p>
+                    <FieldBox
+                      title={t("Group name")}
+                      required
+                      description={t("Instances are named after the group: {name}-01, {name}-02 and on.", { name: name || "group" })}
+                    >
+                      <Input
+                        id="group-name"
+                        dir="ltr"
+                        value={name}
+                        onChange={(e) => setName(e.target.value.toLowerCase())}
+                        aria-label={t("Group name")}
+                        aria-invalid={showErrors && !nameOk}
+                        className={cn("h-12", showErrors && !nameOk && "border-destructive")}
+                      />
+                      {showErrors && !nameOk && (
+                        <p className="mt-1.5 text-xs text-destructive">{t("Use 3 to 63 lowercase letters, digits or hyphens, starting with a letter.")}</p>
+                      )}
+                    </FieldBox>
                   </div>
 
                   <div>
                     <FieldLabel required>{t("Scaling mode")}</FieldLabel>
-                    <div role="radiogroup" className="grid max-w-3xl grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div role="radiogroup" className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                       <OptionCard selected={mode === "automatic"} onSelect={() => setMode("automatic")}>
                         <div className="flex items-center gap-2.5">
                           <Settings2 className={cn("size-4", mode === "automatic" ? "text-primary" : "text-muted-foreground")} />
@@ -258,17 +273,6 @@ export default function CreateAutoScale() {
                     </div>
                   </div>
 
-                  <div className="border-t border-border pt-5">
-                    <RegionPicker
-                      regionId={regionId}
-                      zone={zone}
-                      onChange={(r, z) => {
-                        setRegionId(r);
-                        setZone(z);
-                      }}
-                      note={t("A group stays in the region it is created in; the region cannot be changed later.")}
-                    />
-                  </div>
                 </div>
               </StepSection>
             )}
@@ -413,7 +417,8 @@ export default function CreateAutoScale() {
                       <SelectContent>
                         {FIREWALLS.map((f) => (
                           <SelectItem key={f.id} value={f.id}>
-                            {f.name} ({f.rules})
+                            {f.name}
+                            {f.inbound.length > 0 && <span className="text-muted-foreground"> ({inboundSummary(f)})</span>}
                           </SelectItem>
                         ))}
                       </SelectContent>

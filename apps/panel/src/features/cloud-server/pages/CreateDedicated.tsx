@@ -42,7 +42,7 @@ import { useT } from "../i18n";
 import { HOST_PERIODS, HOST_PLANS, REGIONS, type GpuAvailability, type HostPlan } from "../lib/catalog";
 import { addCluster, addHosts, useClusters, type HostRecord } from "../lib/hostStore";
 import { CreateFooter, CreatePage, DEDICATED_PATH, PageBreadcrumb, SERVERS_PATH } from "../ui";
-import { Note, Pill, RegionPicker, ReviewBlock, ReviewLine, StepBar, StepSection, SummaryLine } from "../wizard";
+import { FieldBox, Note, Pill, RegionBox, ReviewBlock, ReviewLine, StepBar, StepSection, SummaryLine } from "../wizard";
 
 /* Create dedicated server: the cloud server wizard's frame and pieces, in
  * three steps, since a whole machine has fewer choices than a VM.
@@ -169,30 +169,33 @@ export default function CreateDedicated() {
             {step === 0 && (
               <StepSection icon={ServerCog} title={t("Basics")}>
                 <div className="space-y-5">
-                  <div>
-                    <FieldLabel required htmlFor="host-name">
-                      {t("Server name")}
-                    </FieldLabel>
-                    <Input
-                      id="host-name"
-                      dir="ltr"
-                      value={name}
-                      onChange={(e) => setName(e.target.value.toLowerCase())}
-                      aria-invalid={showErrors && !nameOk}
-                      className={cn("max-w-md", showErrors && !nameOk && "border-destructive")}
+                  {/* Where, the name, and the cluster with the count: equal
+                      boxes, like the other create pages. */}
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                    <RegionBox
+                      regionId={regionId}
+                      zone={zone}
+                      onChange={(r, z) => {
+                        setRegionId(r);
+                        setZone(z);
+                      }}
+                      description={t("A server stays in the region it is created in; the region cannot be changed later.")}
                     />
-                    <p className={cn("mt-1.5 text-xs", showErrors && !nameOk ? "text-destructive" : "text-muted-foreground")}>
-                      {showErrors && !nameOk
-                        ? t("Use 3 to 63 lowercase letters, digits or hyphens, starting with a letter.")
-                        : t("Lowercase letters, digits and hyphens; 3 to 63 characters.")}
-                    </p>
-                  </div>
-
-                  {/* Cluster and count on one row, each with a value from the
-                      start. */}
-                  <div className="grid max-w-3xl grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <FieldLabel required>{t("Cluster")}</FieldLabel>
+                    <FieldBox title={t("Server name")} required description={t("Lowercase letters, digits and hyphens; 3 to 63 characters.")}>
+                      <Input
+                        id="host-name"
+                        dir="ltr"
+                        value={name}
+                        onChange={(e) => setName(e.target.value.toLowerCase())}
+                        aria-label={t("Server name")}
+                        aria-invalid={showErrors && !nameOk}
+                        className={cn("h-12", showErrors && !nameOk && "border-destructive")}
+                      />
+                      {showErrors && !nameOk && (
+                        <p className="mt-1.5 text-xs text-destructive">{t("Use 3 to 63 lowercase letters, digits or hyphens, starting with a letter.")}</p>
+                      )}
+                    </FieldBox>
+                    <FieldBox title={t("Cluster")} required description={t("Servers in one cluster share their cloud servers' capacity.")}>
                       <div className="flex gap-2">
                         <Select dir="ltr" value={clusterId} onValueChange={setClusterId}>
                           <SelectTrigger className={cn("flex-1", showErrors && !clusterId && "border-destructive")}>
@@ -211,12 +214,7 @@ export default function CreateDedicated() {
                           {t("New cluster")}
                         </Button>
                       </div>
-                      <p className="mt-1.5 text-xs text-muted-foreground">
-                        {t("Servers in one cluster share their cloud servers' capacity.")}
-                      </p>
-                    </div>
-                    <div>
-                      <FieldLabel required>{t("Number of servers")}</FieldLabel>
+                      <p className="mb-1.5 mt-3 text-xs font-medium text-foreground">{t("Number of servers")}</p>
                       <Select value={String(count)} onValueChange={(v) => setCount(Number(v))}>
                         <SelectTrigger>
                           <SelectValue />
@@ -229,19 +227,7 @@ export default function CreateDedicated() {
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
-                  </div>
-
-                  <div className="border-t border-border pt-5">
-                    <RegionPicker
-                      regionId={regionId}
-                      zone={zone}
-                      onChange={(r, z) => {
-                        setRegionId(r);
-                        setZone(z);
-                      }}
-                      note={t("A server stays in the region it is created in; the region cannot be changed later.")}
-                    />
+                    </FieldBox>
                   </div>
                 </div>
               </StepSection>

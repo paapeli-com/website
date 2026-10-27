@@ -58,6 +58,7 @@ import {
   groupHealth,
   groupInstances,
   removeGroups,
+  INSTANCE_CREATING_MS,
   runningCount,
   setDesired,
   updateGroup,
@@ -68,7 +69,7 @@ import {
   type HealthSource,
   type ScalingRule,
 } from "../lib/autoscaleStore";
-import { AUTOSCALE_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText } from "../ui";
+import { AUTOSCALE_PATH, deletePhraseOk, PageBreadcrumb, ProgressStatus, SERVERS_PATH, TruncatedText, TypeToConfirm } from "../ui";
 import { Note, OptionCard, SettingRow } from "../wizard";
 import { CapacityDialog, HealthBadge, PauseDialog, StatCard, Stepper } from "../autoscaleUi";
 import { RulesEditor, newScheduledRule } from "./CreateAutoScale";
@@ -128,6 +129,8 @@ function GroupPage({ group: g }: { group: AutoScaleGroup }) {
   const [capacityOpen, setCapacityOpen] = useState(false);
   const [pauseOpen, setPauseOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [phrase, setPhrase] = useState("");
+  useEffect(() => setPhrase(""), [deleteOpen]);
 
   const modeText = g.mode === "manual" ? t("Manual") : g.paused ? t("Paused") : t("Automatic");
 
@@ -249,12 +252,14 @@ function GroupPage({ group: g }: { group: AutoScaleGroup }) {
               {t("This group will be deleted with all its resources, including its virtual machines, disks and IPs. This cannot be undone.")}
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-4 flex justify-end gap-3">
+          <TypeToConfirm value={phrase} onChange={setPhrase} />
+          <div className="mt-2 flex justify-end gap-3">
             <Button variant="outline" onClick={() => setDeleteOpen(false)}>
               {t("Cancel")}
             </Button>
             <Button
               variant="destructive"
+              disabled={!deletePhraseOk(phrase)}
               onClick={() => {
                 removeGroups([g.id]);
                 toast.success(t("Groups deleted"));
@@ -541,10 +546,7 @@ function InstancesTab({ g, now }: { g: AutoScaleGroup; now: number }) {
                 </TableCell>
                 <TableCell>
                   {i.status === "creating" ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-md bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-700 dark:text-sky-400">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      {t("Creating")}
-                    </span>
+                    <ProgressStatus label={t("Creating")} startedAt={i.createdAt} durationMs={INSTANCE_CREATING_MS} now={Date.now()} />
                   ) : (
                     <span className="inline-flex items-center gap-1.5 text-sm">
                       <span className="h-2 w-2 rounded-full bg-emerald-500" />

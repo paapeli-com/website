@@ -125,7 +125,8 @@ export interface Instance {
 
 export type GroupHealth = "healthy" | "scaling";
 
-const CREATING_MS = 6000;
+/** How long a new instance reads as being created. */
+export const INSTANCE_CREATING_MS = 6000;
 
 export const DEFAULT_RULES: ScalingRule[] = [
   { id: "r-out", direction: "out", metric: "cpu", threshold: 70, durationMin: 5, step: 1 },
@@ -135,7 +136,7 @@ export const DEFAULT_RULES: ScalingRule[] = [
 /** The group's instances: one per unit of desired capacity. Those added by
     the latest change are still being created for a few seconds. */
 export function groupInstances(g: AutoScaleGroup, now = Date.now()): Instance[] {
-  const fresh = now - g.changedAt < CREATING_MS;
+  const fresh = now - g.changedAt < INSTANCE_CREATING_MS;
   return Array.from({ length: g.desired }, (_, i) => {
     const id = `${g.id}-i${i + 1}`;
     const addr = sampleAddresses(id);

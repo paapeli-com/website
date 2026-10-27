@@ -34,7 +34,7 @@ import {
   type GroupHealth,
   type ScalingMode,
 } from "../lib/autoscaleStore";
-import { AUTOSCALE_PATH, CREATE_AUTOSCALE_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText, groupPath } from "../ui";
+import { AUTOSCALE_PATH, CREATE_AUTOSCALE_PATH, deletePhraseOk, groupPath, PageBreadcrumb, SERVERS_PATH, TruncatedText, TypeToConfirm } from "../ui";
 import { CapacityDialog, HealthBadge, PauseDialog } from "../autoscaleUi";
 
 /* Auto Scale: the account's groups of cloud servers that grow and shrink.
@@ -72,6 +72,8 @@ export default function AutoScaleGroups() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [deleteIds, setDeleteIds] = useState<string[] | null>(null);
+  const [phrase, setPhrase] = useState("");
+  useEffect(() => setPhrase(""), [deleteIds]);
   const [capacityFor, setCapacityFor] = useState<AutoScaleGroup | null>(null);
   const [expanded, setExpanded] = useState<string[]>([]);
   const [pauseFor, setPauseFor] = useState<AutoScaleGroup | null>(null);
@@ -550,12 +552,14 @@ export default function AutoScaleGroups() {
                   })}
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-4 flex justify-end gap-3">
+          <TypeToConfirm value={phrase} onChange={setPhrase} />
+          <div className="mt-2 flex justify-end gap-3">
             <Button variant="outline" onClick={() => setDeleteIds(null)}>
               {fx("cancel")}
             </Button>
             <Button
               variant="destructive"
+              disabled={!deletePhraseOk(phrase)}
               onClick={() => {
                 removeGroups(deleteIds ?? []);
                 setSelected((prev) => prev.filter((id) => !deleteIds?.includes(id)));

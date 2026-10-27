@@ -29,6 +29,8 @@ export interface ServerRecord {
   extraIps?: { address: string; reservedId?: string }[];
   /** The server's disks, boot first, with where each shows inside it. */
   disks?: { label: string; sizeGb: number; path: string }[];
+  /** The SSH key written into it when it was made, if one was. */
+  sshKeyId?: string;
   name: string;
   imageId: string;
   /** "Ubuntu 24.04 LTS" */

@@ -59,6 +59,7 @@ import { useT } from "../i18n";
 import { OsLogo } from "../lib/osLogos";
 import { IMAGES } from "../lib/catalog";
 import {
+  CREATING_MS,
   removeServers,
   serverStatus,
   updateServer,
@@ -66,10 +67,16 @@ import {
   type ServerRecord,
   type ServerStatus,
 } from "../lib/serverStore";
-import { CREATE_GPU_SERVER_PATH, CREATE_SERVER_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText, groupPath } from "../ui";
+import { CREATE_GPU_SERVER_PATH, CREATE_SERVER_PATH, deletePhraseOk, groupPath, PageBreadcrumb, ProgressStatus, SERVERS_PATH, TruncatedText, TypeToConfirm } from "../ui";
 import { groupInstances, useGroups } from "../lib/autoscaleStore";
 import { detachFrom } from "../lib/ipStore";
 import { releaseFromServers, useFloatingIps } from "../lib/floatingStore";
+import { deleteBackupsOf, useBackups } from "../lib/backupStore";
+import { deleteSnapshotsOf, useSnapshots } from "../lib/snapshotStore";
+import { releaseVolumesOf, useVolumes } from "../lib/volumeStore";
+import { releaseServersFromFirewalls } from "../lib/firewallStore";
+import { releaseServersFromNetworks } from "../lib/networkStore";
+import { CreateSnapshotDialog } from "../snapshotDialog";
 import { useShellT } from "@/shared/i18n/shell";
 
 /* The server list: Smart Factory's device list, piece for piece.
@@ -159,6 +166,7 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [deleteIds, setDeleteIds] = useState<string[] | null>(null);
   const [renaming, setRenaming] = useState<ServerRecord | null>(null);
+  const [snapshotOf, setSnapshotOf] = useState<string | null>(null);
 
   const statusLabel: Record<ServerStatus, string> = {
     creating: t("Creating"),
@@ -574,7 +582,7 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
                             </div>
                           </TableCell>
                           <TableCell>
-                            <StatusCell status={status} label={statusLabel[status]} />
+                            <StatusCell status={status} label={statusLabel[status]} startedAt={s.createdAt} now={now} />
                           </TableCell>
                           <TableCell>
                             <TruncatedText text={`${t(s.region)} / ${s.zone}`} />
@@ -644,7 +652,7 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
                                     <Pencil className="me-2 h-4 w-4" />
                                     {fx("rename")}
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => navigate(`${CLOUD_SERVER_BASE}/snapshots`)}>
+                                  <DropdownMenuItem onClick={() => setSnapshotOf(s.id)}>
                                     <Camera className="me-2 h-4 w-4" />
                                     {t("Create snapshot")}
                                   </DropdownMenuItem>
@@ -731,6 +739,11 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
         onDeleted={(ids) => {
           detachFrom(ids);
           releaseFromServers(ids);
+          deleteBackupsOf(ids);
+          deleteSnapshotsOf(ids);
+          releaseVolumesOf(ids);
+          releaseServersFromFirewalls(ids);
+          releaseServersFromNetworks(ids);
           removeServers(ids);
           setSelected((prev) => prev.filter((id) => !ids.includes(id)));
           toast.success(t("Servers deleted"));
@@ -739,6 +752,7 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
       />
 
       <RenameDialog server={renaming} onClose={() => setRenaming(null)} />
+      <CreateSnapshotDialog open={!!snapshotOf} serverId={snapshotOf ?? undefined} onClose={() => setSnapshotOf(null)} />
     </div>
   );
 }
@@ -757,10 +771,13 @@ function DeleteServersDialog({
   const t = useT();
   const { t: ft, isRTL, formatNumber } = useLanguage();
   const fx = ft as (k: string) => string;
-  const [agreed, setAgreed] = useState(false);
+  const [phrase, setPhrase] = useState("");
   const floatingIps = useFloatingIps();
+  const backups = useBackups();
+  const snapshots = useSnapshots();
+  const volumes = useVolumes();
   const open = servers.length > 0;
-  useEffect(() => setAgreed(false), [open]);
+  useEffect(() => setPhrase(""), [open]);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -779,11 +796,20 @@ function DeleteServersDialog({
         <div className="max-h-[45vh] divide-y divide-border overflow-y-auto rounded-lg border border-border">
           {servers.map((sv) => {
             const released = [sv.ipv4, ...(sv.ipv6 ? [sv.ipv6] : []), ...(sv.extraIps ?? []).filter((i) => !i.reservedId).map((i) => i.address)];
-            const kept = [
-              ...(sv.extraIps ?? []).filter((i) => i.reservedId),
-              ...floatingIps.filter((f) => f.attachedTo?.serverId === sv.id).map((f) => ({ address: f.address })),
+            const kept = (sv.extraIps ?? []).filter((i) => i.reservedId);
+            const keptFloating = floatingIps.filter((f) => f.attachedTo?.serverId === sv.id);
+            const backup = backups.find((b) => b.serverId === sv.id);
+            const serverSnapshots = snapshots.filter((sn) => sn.serverId === sv.id);
+            /* The boot disk and the disks made with the server go; a disk
+               attached from Cloud Disks stays there, detached. Servers saved
+               before disks were volumes keep their own list. */
+            const attached = volumes.filter((v) => v.attachedTo?.serverId === sv.id);
+            const legacy = !volumes.some((v) => v.madeWithServerId === sv.id);
+            const disks = [
+              ...(sv.disks ?? [{ label: "Boot disk", sizeGb: sv.diskGb, path: "" }]).slice(0, legacy ? undefined : 1),
+              ...attached.filter((v) => v.deleteWithServer).map((v) => ({ label: "Additional disk", sizeGb: v.sizeGb, path: v.attachedTo!.path })),
             ];
-            const disks = sv.disks ?? [{ label: "Boot disk", sizeGb: sv.diskGb, path: "" }];
+            const keptDisks = attached.filter((v) => !v.deleteWithServer);
             return (
               <div key={sv.id} className="space-y-1 px-3 py-2.5 text-xs">
                 <p className="text-sm font-semibold text-foreground" dir="ltr">
@@ -812,21 +838,50 @@ function DeleteServersDialog({
                     <span>{t("reserved, stays under Public IPs")}</span>
                   </p>
                 )}
+                {keptDisks.length > 0 && (
+                  <p className="flex flex-wrap items-center gap-x-1.5 text-muted-foreground">
+                    <CheckCircle2 className="size-3 shrink-0 text-emerald-600" />
+                    <span dir="ltr">{keptDisks.map((v) => v.name).join("  ·  ")}</span>
+                    <span>{t("detached, stays under Cloud Disks")}</span>
+                  </p>
+                )}
+                {keptFloating.length > 0 && (
+                  <p className="flex flex-wrap items-center gap-x-1.5 text-muted-foreground">
+                    <CheckCircle2 className="size-3 shrink-0 text-emerald-600" />
+                    <span dir="ltr" className="font-mono">
+                      {keptFloating.map((k) => k.address).join("  ·  ")}
+                    </span>
+                    <span>{t("stays under Floating IPs")}</span>
+                  </p>
+                )}
+                {backup && (
+                  <p className="flex flex-wrap items-center gap-x-1.5 text-destructive">
+                    <Trash2 className="size-3 shrink-0" />
+                    <span className="text-muted-foreground">{t("Backup")}:</span>
+                    <span>
+                      {t("{name}, with {n} saved backups", { name: backup.name, n: formatNumber(backup.points.length) })}
+                    </span>
+                  </p>
+                )}
+                {serverSnapshots.length > 0 && (
+                  <p className="flex flex-wrap items-center gap-x-1.5 text-destructive">
+                    <Trash2 className="size-3 shrink-0" />
+                    <span className="text-muted-foreground">{t("Snapshots")}:</span>
+                    <span dir="ltr">{serverSnapshots.map((sn) => sn.name).join("  ·  ")}</span>
+                  </p>
+                )}
               </div>
             );
           })}
         </div>
 
-        <label className="flex cursor-pointer items-start gap-2 text-sm text-foreground">
-          <Checkbox checked={agreed} onCheckedChange={(c) => setAgreed(c === true)} className="mt-0.5" />
-          <span>{t("I understand these addresses and disks will be deleted.")}</span>
-        </label>
+        <TypeToConfirm value={phrase} onChange={setPhrase} />
 
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={onClose}>
             {fx("cancel")}
           </Button>
-          <Button variant="destructive" disabled={!agreed} onClick={() => onDeleted(servers.map((sv) => sv.id))}>
+          <Button variant="destructive" disabled={!deletePhraseOk(phrase)} onClick={() => onDeleted(servers.map((sv) => sv.id))}>
             {fx("delete")}
           </Button>
         </div>
@@ -875,15 +930,8 @@ function CreateMenu({
   );
 }
 
-function StatusCell({ status, label }: { status: ServerStatus; label: string }) {
-  if (status === "creating") {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-md bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-700 dark:text-sky-400">
-        <Loader2 className="h-3 w-3 animate-spin" />
-        {label}
-      </span>
-    );
-  }
+function StatusCell({ status, label, startedAt, now }: { status: ServerStatus; label: string; startedAt: number; now: number }) {
+  if (status === "creating") return <ProgressStatus label={label} startedAt={startedAt} durationMs={CREATING_MS} now={now} />;
   return (
     <span className="inline-flex items-center gap-1.5 text-sm">
       <span className={cn("h-2 w-2 rounded-full", status === "running" ? "bg-emerald-500" : "bg-muted-foreground/50")} />

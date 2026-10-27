@@ -189,51 +189,147 @@ export const HOST_PERIODS: { months: 1 | 6 | 12; discount: number }[] = [
   { months: 12, discount: 0.2 },
 ];
 
-/** A floating IP a month, its router's public address included. */
-export const FLOATING_IP_MONTHLY: Money = { TOMAN: 300_000, USD: 6, QAR: 22 };
+/* The price list: every per-unit price the console shows, in one place.
+ *
+ * Pages never write a price of their own; they read it from here, by key or
+ * through the names below. When the billing API exists, it fills this one
+ * object (the same keys, a Money per key) and every page follows. Plans and
+ * dedicated machines carry their own monthly price above, as catalog items.
+ */
+export const PRICE_LIST = {
+  /** Cloud disks, per GB a month. SSD is also what a server's extra boot
+      disk space and its additional disks cost. */
+  "disk.ssd.gb": { TOMAN: 3_000, USD: 0.05, QAR: 0.18 },
+  "disk.hdd.gb": { TOMAN: 1_200, USD: 0.02, QAR: 0.07 },
+  "disk.local.gb": { TOMAN: 2_000, USD: 0.035, QAR: 0.13 },
+  /** An additional public IPv4 made with a server, a month. */
+  "ip.extra": { TOMAN: 150_000, USD: 3, QAR: 11 },
+  /** A floating IP a month, its router's public address included. */
+  "ip.floating": { TOMAN: 300_000, USD: 6, QAR: 22 },
+  /** Keeping a custom image, per GB a month. */
+  "image.gb": { TOMAN: 2_000, USD: 0.03, QAR: 0.11 },
+  /** A backup, per GB kept a month. Only the boot disk is backed up, so a
+      full backup costs the boot disk's size times its capacity at most. */
+  "backup.gb": { TOMAN: 1_500, USD: 0.025, QAR: 0.09 },
+  /** A snapshot, per GB a month; it copies the boot disk only. */
+  "snapshot.gb": { TOMAN: 1_500, USD: 0.025, QAR: 0.09 },
+} satisfies Record<string, Money>;
 
-/** An additional public IPv4 made with a server, a month. */
-export const EXTRA_IP_MONTHLY: Money = { TOMAN: 150_000, USD: 3, QAR: 11 };
+export type PriceKey = keyof typeof PRICE_LIST;
 
-/** Keeping a custom image, per GB a month. */
-export const IMAGE_GB_MONTHLY: Money = { TOMAN: 2_000, USD: 0.03, QAR: 0.11 };
-
+export const FLOATING_IP_MONTHLY: Money = PRICE_LIST["ip.floating"];
+export const EXTRA_IP_MONTHLY: Money = PRICE_LIST["ip.extra"];
+export const IMAGE_GB_MONTHLY: Money = PRICE_LIST["image.gb"];
 /** Per extra GB of SSD a month, beyond what the plan includes. */
-export const DISK_GB_MONTHLY: Money = { TOMAN: 3_000, USD: 0.05, QAR: 0.18 };
+export const DISK_GB_MONTHLY: Money = PRICE_LIST["disk.ssd.gb"];
+export const BACKUP_GB_MONTHLY: Money = PRICE_LIST["backup.gb"];
+export const SNAPSHOT_GB_MONTHLY: Money = PRICE_LIST["snapshot.gb"];
+
+/** Money as the console shows it: whole thousands of toman, cents otherwise. */
+export const roundMoney = (raw: number, currency: CurrencyCode) =>
+  currency === "TOMAN" ? Math.round(raw / 1000) * 1000 : Math.round(raw * 100) / 100;
 
 export const BOOT_DISK_MAX_GB = 1_000;
+/** A server's additional disks are SSD cloud disks, so they share its limit. */
+export const ADDITIONAL_DISK_MAX_GB = 1_000;
 
-/** Daily backup, as a share of the server's monthly price with its disks. */
-export const BACKUP_RATE = 0.2;
-export const ADDITIONAL_DISK_MAX_GB = 4_000;
+/* Cloud disk types. Local is a disk on one of the account's own dedicated
+   servers, so it needs one, and attaches only to servers running on it. */
+export type DiskTypeId = "ssd" | "hdd" | "local";
+
+export interface DiskType {
+  id: DiskTypeId;
+  name: string;
+  description: string;
+  /** A short tag on the type's card. */
+  badge: string;
+  badgeTone: "ok" | "gray" | "brand";
+  minGb: number;
+  maxGb: number;
+  price: PriceKey;
+  /** Whole drives in fixed sizes, offered as cards only, with no slider. */
+  fixedSizes?: number[];
+  /** What the type delivers: its latency in words, and IOPS and throughput
+      that grow with the size up to a ceiling. */
+  latency: string;
+  iopsPerGb: number;
+  maxIops: number;
+  mbpsPerGb: number;
+  maxMbps: number;
+}
+
+export const DISK_TYPES: DiskType[] = [
+  {
+    id: "ssd",
+    name: "SSD",
+    description: "Balanced, for most services",
+    badge: "Recommended",
+    badgeTone: "ok",
+    minGb: 10,
+    maxGb: 1_000,
+    price: "disk.ssd.gb",
+    latency: "Low (~1 ms)",
+    iopsPerGb: 30,
+    maxIops: 20_000,
+    mbpsPerGb: 1.5,
+    maxMbps: 500,
+  },
+  {
+    id: "hdd",
+    name: "HDD",
+    description: "Large and economical, for archives and backups",
+    badge: "Economical",
+    badgeTone: "gray",
+    minGb: 50,
+    maxGb: 2_000,
+    price: "disk.hdd.gb",
+    latency: "Medium (~8 ms)",
+    iopsPerGb: 3,
+    maxIops: 3_000,
+    mbpsPerGb: 0.4,
+    maxMbps: 180,
+  },
+  {
+    id: "local",
+    name: "Local NVMe",
+    description: "The fastest, for databases, on your dedicated server",
+    badge: "New",
+    badgeTone: "brand",
+    minGb: 960,
+    maxGb: 3_840,
+    price: "disk.local.gb",
+    fixedSizes: [960, 1_800, 3_840],
+    latency: "Very low (<0.2 ms)",
+    iopsPerGb: 120,
+    maxIops: 150_000,
+    mbpsPerGb: 6,
+    maxMbps: 3_000,
+  },
+];
+
+/** What a disk of this type and size delivers. Writes run at four fifths of reads. */
+export const diskPerformance = (type: DiskType, gb: number) => {
+  const read = Math.min(type.maxMbps, gb * type.mbpsPerGb);
+  return { iops: Math.round(Math.min(type.maxIops, gb * type.iopsPerGb)), readMbps: Math.round(read), writeMbps: Math.round(read * 0.8) };
+};
+
+/** The sizes offered as one click; each type shows the ones in its range.
+    Any other size is on the slider. */
+export const DISK_SIZE_PRESETS = [20, 50, 100, 200, 500, 1_000, 2_000];
+
+/** The next sizes up offered when a disk is made larger. */
+export const DISK_GROW_SIZES = [50, 100, 200, 500, 1_000, 2_000];
+
+/** A size as people say it: 960 GB, 1 TB, 1.8 TB, 3.8 TB. */
+export const sizeParts = (gb: number): { value: number; unit: "GB" | "TB" } =>
+  gb >= 1000 ? { value: Math.round(gb / 100) / 10, unit: "TB" } : { value: gb, unit: "GB" };
 
 /** Hours in the month the hourly figure is worked out against. */
 export const HOURS_PER_MONTH = 730;
 
-export interface SshKey {
-  id: string;
-  name: string;
-  fingerprint: string;
-}
+/* SSH keys live in lib/sshKeyStore.ts: the wizards pick from the account's own. */
 
-export const SSH_KEYS: SshKey[] = [
-  { id: "key-laptop", name: "laptop-key", fingerprint: "SHA256:3f9c…a1e2" },
-  { id: "key-ci", name: "ci-deploy", fingerprint: "SHA256:7b02…d4c8" },
-];
-
-export interface Firewall {
-  id: string;
-  name: string;
-  /** One line on what it lets through. */
-  rules: string;
-}
-
-export const FIREWALLS: Firewall[] = [
-  { id: "fw-ssh", name: "default-allow-ssh", rules: "22/tcp" },
-  { id: "fw-web", name: "web-allow-http-https-ssh", rules: "22, 80, 443/tcp" },
-];
-
-export const DEFAULT_FIREWALL_ID = "fw-ssh";
+/* Firewalls live in lib/firewallStore.ts: the wizards pick from the account's own. */
 
 /** No floating IP exists yet in the sample account. */
 export const FLOATING_IPS: { id: string; address: string }[] = [];

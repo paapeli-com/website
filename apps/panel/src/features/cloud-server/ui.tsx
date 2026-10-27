@@ -1,6 +1,17 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/features/factory/components/ui/button";
+import { Checkbox } from "@/features/factory/components/ui/checkbox";
+import { Input } from "@/features/factory/components/ui/input";
+import { Loader2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/features/factory/components/ui/dialog";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -36,6 +47,19 @@ export const DEDICATED_PATH = `${CLOUD_SERVER_BASE}/dedicated-servers`;
 export const CREATE_DEDICATED_PATH = `${DEDICATED_PATH}/create`;
 export const IMAGES_PATH = `${CLOUD_SERVER_BASE}/images`;
 export const UPLOAD_IMAGE_PATH = `${IMAGES_PATH}/upload`;
+export const BACKUPS_PATH = `${CLOUD_SERVER_BASE}/backups`;
+export const CREATE_BACKUP_PATH = `${BACKUPS_PATH}/create`;
+export const SNAPSHOTS_PATH = `${CLOUD_SERVER_BASE}/snapshots`;
+export const VOLUMES_PATH = `${CLOUD_SERVER_BASE}/volumes`;
+export const CREATE_VOLUME_PATH = `${VOLUMES_PATH}/create`;
+export const FIREWALLS_PATH = `${CLOUD_SERVER_BASE}/security-groups`;
+export const CREATE_FIREWALL_PATH = `${FIREWALLS_PATH}/create`;
+export const firewallPath = (id: string) => `${FIREWALLS_PATH}/${id}`;
+export const SSH_KEYS_PATH = `${CLOUD_SERVER_BASE}/ssh-keys`;
+export const CREATE_SSH_KEY_PATH = `${SSH_KEYS_PATH}/create`;
+export const NETWORKS_PATH = `${CLOUD_SERVER_BASE}/vpc`;
+export const CREATE_NETWORK_PATH = `${NETWORKS_PATH}/create`;
+export const networkPath = (id: string) => `${NETWORKS_PATH}/${id}`;
 
 export function CreateHeader({
   description,
@@ -178,4 +202,140 @@ export function TruncatedText({
 /** The page frame: the padding the factory pages sit in. */
 export function CreatePage({ children }: { children: ReactNode }) {
   return <div className="p-4 lg:p-6">{children}</div>;
+}
+
+/** Cloud Server's confirmations: one frame everywhere, with a tick to
+    confirm first wherever data is lost. */
+export function ConfirmDialog({
+  open,
+  onClose,
+  title,
+  description,
+  acknowledge,
+  destructive,
+  confirmLabel,
+  onConfirm,
+  blocked,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  description: string;
+  acknowledge?: string;
+  destructive?: boolean;
+  confirmLabel: string;
+  onConfirm: () => void;
+  /** Nothing can be done yet; the description says why. */
+  blocked?: boolean;
+}) {
+  const { t: ft, isRTL } = useLanguage();
+  const fx = ft as (k: string) => string;
+  const [agreed, setAgreed] = useState(false);
+  useEffect(() => setAgreed(false), [open]);
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent data-uniform-type className="sm:max-w-[460px]">
+        <DialogHeader className={isRTL ? "text-right" : ""}>
+          <DialogTitle className={isRTL ? "text-right" : ""}>{title}</DialogTitle>
+          <DialogDescription className={isRTL ? "text-right" : ""}>{description}</DialogDescription>
+        </DialogHeader>
+        {acknowledge && (
+          <label className="flex cursor-pointer items-start gap-2 text-sm text-foreground">
+            <Checkbox checked={agreed} onCheckedChange={(c) => setAgreed(c === true)} className="mt-0.5" />
+            <span>{acknowledge}</span>
+          </label>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            {fx("cancel")}
+          </Button>
+          <Button variant={destructive ? "destructive" : "default"} disabled={blocked || (!!acknowledge && !agreed)} onClick={onConfirm}>
+            {confirmLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Work under way, as a bar and a percentage worked out from when it began
+    and how long it takes. Wherever the console waits on something: a server
+    or disk being made, a backup or snapshot, a restore, an extension. */
+export function ProgressStatus({
+  label,
+  startedAt,
+  durationMs,
+  now,
+  tone = "sky",
+}: {
+  label: string;
+  startedAt: number;
+  durationMs: number;
+  now: number;
+  /** Amber for work that replaces data (a restore). */
+  tone?: "sky" | "amber";
+}) {
+  const { formatNumber, isRTL } = useLanguage();
+  /* Never 100 while still running: the row turns ready instead. */
+  const pct = Math.min(99, Math.max(1, Math.floor(((now - startedAt) / durationMs) * 100)));
+  return (
+    <div className="min-w-0">
+      <div className="flex items-center justify-between gap-2 text-xs">
+        <span
+          className={cn(
+            "inline-flex min-w-0 items-center gap-1.5 font-medium",
+            tone === "sky" ? "text-sky-700 dark:text-sky-400" : "text-amber-700 dark:text-amber-400",
+          )}
+        >
+          <Loader2 className="h-3 w-3 shrink-0 animate-spin" />
+          <span className="truncate">{label}</span>
+        </span>
+        <span className="shrink-0 tabular-nums text-muted-foreground">
+          {formatNumber(pct)}
+          {isRTL ? "٪" : "%"}
+        </span>
+      </div>
+      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+        <div
+          className={cn("h-full rounded-full transition-[width] duration-700", tone === "sky" ? "bg-sky-500" : "bg-amber-500")}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* Deleting what matters most (a server, an Auto Scale group, a dedicated
+   server) takes this phrase typed out, the same in every language. */
+export const DELETE_PHRASE = "delete me";
+export const deletePhraseOk = (value: string) => value.trim().toLowerCase() === DELETE_PHRASE;
+
+export function TypeToConfirm({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const t = useT();
+  /* The phrase sits inside the sentence in every language, set apart. */
+  const [before, after] = t("To confirm, type {phrase} below.", { phrase: "\u0000" }).split("\u0000");
+  return (
+    <div className="rounded-lg border border-border p-3">
+      <p className="text-sm font-medium text-foreground">
+        {t("Confirm deletion")} <span className="text-xs font-normal text-destructive">({t("Required")})</span>
+      </p>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        {before}
+        <span dir="ltr" className="rounded bg-muted px-1 font-mono font-medium text-foreground">
+          {DELETE_PHRASE}
+        </span>
+        {after}
+      </p>
+      <Input
+        dir="ltr"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={DELETE_PHRASE}
+        autoComplete="off"
+        spellCheck={false}
+        aria-label={t("Confirm deletion")}
+        className="mt-2 h-9"
+      />
+    </div>
+  );
 }

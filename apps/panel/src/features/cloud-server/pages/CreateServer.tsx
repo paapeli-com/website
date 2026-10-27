@@ -72,30 +72,33 @@ import { OsLogo } from "../lib/osLogos";
 import { addServer, sampleAddresses, useServers } from "../lib/serverStore";
 import { attachIp, useReservedIps } from "../lib/ipStore";
 import { associateFloating, useFloatingIps } from "../lib/floatingStore";
+import { BACKUP_CAPACITY, enableBackup } from "../lib/backupStore";
+import { addVolumes, devicePath } from "../lib/volumeStore";
+import { addSshKey, keyAvailableIn, sshKeyNameTaken, useSshKeys, type SshKeyRecord } from "../lib/sshKeyStore";
+import { parsePublicKey } from "../lib/sshKeyGen";
+import { connectServer, fixedIpProblem, freeAddresses, useNetworks } from "../lib/networkStore";
+import { apiCall } from "../lib/openstackErrors";
+import { attachServer as applyFirewall, DEFAULT_FIREWALL_ID, inboundSummary, useFirewalls } from "../lib/firewallStore";
 import { hostStatus, useClusters, useHosts, type HostRecord } from "../lib/hostStore";
 import { CountryFlag, CountryOutline } from "../lib/regionArt";
 import {
   ADDITIONAL_DISK_MAX_GB,
   BOOT_DISK_MAX_GB,
-  DEFAULT_FIREWALL_ID,
   DEFAULT_IMAGE,
   DEFAULT_GPU_PLAN_ID,
   DEFAULT_PLAN_ID,
-  BACKUP_RATE,
+  BACKUP_GB_MONTHLY,
   adminUser,
   DISK_GB_MONTHLY,
   EXTRA_IP_MONTHLY,
-  FIREWALLS,
   FLOATING_IPS,
   HOURS_PER_MONTH,
   IMAGES,
   PLANS,
   REGIONS,
-  SSH_KEYS,
   type GpuAvailability,
   type Plan,
   type PlanFamily,
-  type SshKey,
 } from "../lib/catalog";
 
 /* Create cloud server: the seven-step wizard.
@@ -126,7 +129,6 @@ const SECURITY_STEP = 5;
 const REVIEW_STEP = 6;
 
 const NAME_RE = /^[a-z][a-z0-9-]{1,61}[a-z0-9]$/;
-const looksLikePublicKey = (k: string) => /^(ssh-(ed25519|rsa|dss)|ecdsa-sha2-\S+|sk-\S+)\s+\S{20,}/.test(k.trim());
 
 const FAMILY_ICON: Record<PlanFamily, LucideIcon> = { shared: Cpu, dedicated: Server, gpu: Microchip, host: ServerCog };
 const FAMILY_TEXT: Record<PlanFamily, [string, string]> = {
@@ -147,10 +149,6 @@ function generatePassword() {
 
 let diskSeq = 0;
 
-/** Where a disk shows up inside the server. On Linux the boot disk is sda,
-    then sdb, sdc and on; on Windows it is drive C:, then D:, E: and on. */
-const devicePath = (index: number, family: "linux" | "windows") =>
-  family === "windows" ? `${String.fromCharCode(67 + index)}:` : `/dev/sd${String.fromCharCode(97 + index)}`;
 
 /* The boot disk slider runs on a log scale: from 25 GB to 1 TB, a linear one
    puts 50, 100 and 200 GB in the first sliver of the track. On a log scale
@@ -258,14 +256,27 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
   /* A generated password is the default: it needs nothing from someone who
      has no SSH key yet, and is shown once the server is ready. */
   const [access, setAccess] = useState<"ssh" | "password">(saved?.access ?? "password");
-  const [keys, setKeys] = useState<SshKey[]>(SSH_KEYS);
-  const [sshKeyId, setSshKeyId] = useState(
-    SSH_KEYS.some((k) => k.id === saved?.sshKeyId) ? saved!.sshKeyId! : (SSH_KEYS[0]?.id ?? ""),
-  );
+  /* The account's SSH keys this server's zone can be given (certificates
+     are for Windows logins, not SSH). */
+  const keys = useSshKeys().filter((k) => k.type === "ssh" && keyAvailableIn(k, region.city, zone));
+  const [sshKeyId, setSshKeyId] = useState(saved?.sshKeyId ?? "");
+  /* The saved key was deleted, or the zone changed: fall back to the first. */
+  useEffect(() => {
+    if (!keys.some((k) => k.id === sshKeyId)) setSshKeyId(keys[0]?.id ?? "");
+  }, [keys, sshKeyId]);
+  const firewalls = useFirewalls();
   const [firewallId, setFirewallId] = useState(
-    FIREWALLS.some((f) => f.id === saved?.firewallId) ? saved!.firewallId : DEFAULT_FIREWALL_ID,
+    firewalls.some((f) => f.id === saved?.firewallId) ? saved!.firewallId : DEFAULT_FIREWALL_ID,
   );
   const [keyDialogOpen, setKeyDialogOpen] = useState(false);
+
+  /* A private network in this region, with the next free address or one
+     chosen; checked as it is typed. */
+  const networksHere = useNetworks().filter((x) => x.region === region.city);
+  const [privateNetId, setPrivateNetId] = useState("none");
+  const [privateIp, setPrivateIp] = useState("");
+  const privateNet = networksHere.find((x) => x.id === privateNetId);
+  const privateIpProblem = privateNet && privateIp ? fixedIpProblem(privateNet, privateIp) : undefined;
 
   const [backup, setBackup] = useState(saved?.backup ?? true);
   const [installDrivers, setInstallDrivers] = useState(saved?.installDrivers ?? true);
@@ -280,7 +291,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
   const nameOk = NAME_RE.test(name);
   const accessOk = access === "password" || !!sshKeyId;
   const stepOk = (i: number) =>
-    i === 0 ? nameOk : i === 2 ? !(onHost && !host) : i === SECURITY_STEP ? accessOk : true;
+    i === 0 ? nameOk : i === 2 ? !(onHost && !host) : i === 4 ? !privateIpProblem : i === SECURITY_STEP ? accessOk : true;
 
   // ---- Price ----------------------------------------------------------------
   const extraGb = extraDisks.reduce((sum, d) => sum + d.sizeGb, 0);
@@ -289,8 +300,9 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
     (onHost ? 0 : plan.monthly[currency]) +
     (bootGb - plan.diskGb + extraGb) * DISK_GB_MONTHLY[currency] +
     (extraIp === "new" ? EXTRA_IP_MONTHLY[currency] : 0);
-  /* Backup is a share of what it protects: the server and every disk. */
-  const backupMonthly = roundMoney(serverMonthly * BACKUP_RATE);
+  /* Backup keeps the boot disk only; the most it costs is that disk kept
+     BACKUP_CAPACITY times, the same rule as the Backup page. */
+  const backupMonthly = roundMoney(bootGb * BACKUP_CAPACITY * BACKUP_GB_MONTHLY[currency]);
   const monthly = useMemo(
     () => roundMoney(serverMonthly) + (backup ? backupMonthly : 0),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -360,6 +372,23 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
           : [];
     if (extraReserved) attachIp(extraReserved.id, id, name);
     if (floating) associateFloating(floating.id, id, name);
+    if (firewalls.some((f) => f.id === firewallId)) applyFirewall(firewallId, id);
+    /* The additional disks are cloud disks of their own, listed under Cloud
+       Disks and deleted with the server. */
+    if (extraDisks.length)
+      addVolumes(
+        extraDisks.map((d, i) => ({
+          name: `${name}-disk-${i + 1}`,
+          type: "ssd" as const,
+          sizeGb: d.sizeGb,
+          region: region.city,
+          zone,
+          attachedTo: { serverId: id, path: devicePath(i + 1, image.family) },
+          deleteWithServer: true,
+          madeWithServerId: id,
+        })),
+      );
+    if (backup) enableBackup({ name: `${name}-backup`, serverId: id, region: region.city, zone, diskGb: bootGb });
     /* Into the server list straight away, as a server being created. */
     addServer({
       id,
@@ -383,9 +412,13 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
         { label: "Boot disk", sizeGb: bootGb, path: devicePath(0, image.family) },
         ...extraDisks.map((d, i) => ({ label: "Additional disk", sizeGb: d.sizeGb, path: devicePath(i + 1, image.family) })),
       ],
+      sshKeyId: access === "ssh" ? sshKeyId : undefined,
       powerOn,
       createdAt: Date.now(),
     });
+    /* Onto the private network once it exists; a refusal (the address was
+       just taken) is said, and the server is made without it. */
+    if (privateNet) void apiCall(() => connectServer(privateNet.id, id, privateIp || undefined), t);
     const created: CreatedServer = {
       kind: mode,
       gpu: plan.gpu,
@@ -847,21 +880,24 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                           <span className="text-sm font-semibold text-foreground">{t("Enable backup")}</span>
                           {backup ? <Pill tone="ok">{t("Enabled")}</Pill> : <Pill>{t("Off")}</Pill>}
                           <span className="ms-auto text-sm font-medium text-foreground">
-                            +{format(backupMonthly)} <span className="font-normal text-muted-foreground">{t("/ month")}</span>
+                            {t("Up to {amount}", { amount: format(backupMonthly) })}{" "}
+                            <span className="font-normal text-muted-foreground">{t("/ month")}</span>
                           </span>
                         </div>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {t("Automatic backups of the whole server and its disks, so you can get it back if something goes wrong.")}
+                          {t("Automatic backups of the server's main disk, so you can get it back if something goes wrong.")}
                         </p>
                         <ul className="mt-3 grid grid-cols-1 gap-1.5 text-xs text-foreground sm:grid-cols-3">
-                          {["A backup every day, automatically", "The last 7 days are kept", "Restore the whole server or one disk"].map(
-                            (line) => (
-                              <li key={line} className="flex items-center gap-1.5">
-                                <Check className={cn("size-3.5 shrink-0", backup ? "text-emerald-600" : "text-muted-foreground")} />
-                                {t(line)}
-                              </li>
-                            ),
-                          )}
+                          {[
+                            t("A backup every week, automatically"),
+                            t("Room for {n} backups", { n: localizeDigits(language, BACKUP_CAPACITY) }),
+                            t("Restore the server from any of them"),
+                          ].map((line) => (
+                            <li key={line} className="flex items-center gap-1.5">
+                              <Check className={cn("size-3.5 shrink-0", backup ? "text-emerald-600" : "text-muted-foreground")} />
+                              {line}
+                            </li>
+                          ))}
                         </ul>
                         {!backup && (
                           <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">
@@ -947,24 +983,57 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                       </p>
                     )}
                   </SettingRow>
-                  {/* Private networks get their own pages later; the row is
-                      here so the step has its final shape. */}
                   <SettingRow
                     icon={Waypoints}
                     title={t("Private network")}
                     description={t("An address on a private network, for traffic between your servers.")}
                   >
-                    <div className="mt-3">
-                      <Select value="none" disabled>
+                    <div className="mt-3 flex flex-wrap items-start gap-3">
+                      <Select
+                        value={privateNetId}
+                        onValueChange={(v) => {
+                          setPrivateNetId(v);
+                          setPrivateIp("");
+                        }}
+                      >
                         <SelectTrigger className="h-9 w-full sm:w-64">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">{t("None")}</SelectItem>
+                          {networksHere.map((x) => (
+                            <SelectItem key={x.id} value={x.id} disabled={freeAddresses(x) === 0}>
+                              <span dir="ltr">{x.name}</span> · <span dir="ltr">{x.cidr}</span>
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
+                      {privateNet ? (
+                        <div className="w-full sm:w-56">
+                          <Input
+                            dir="ltr"
+                            value={privateIp}
+                            onChange={(e) => setPrivateIp(e.target.value.trim())}
+                            placeholder={t("Next free address")}
+                            aria-label={t("Private IP")}
+                            aria-invalid={!!privateIpProblem}
+                            className={cn("h-9 font-mono", privateIpProblem && "border-destructive")}
+                          />
+                          {privateIpProblem && <p className="mt-1.5 text-xs text-destructive">{t(privateIpProblem.text, privateIpProblem.vars)}</p>}
+                        </div>
+                      ) : (
+                        networksHere.length === 0 && (
+                          <Button variant="outline" size="sm" onClick={() => navigate(`${CLOUD_SERVER_BASE}/vpc/create`)}>
+                            {t("Create private network")}
+                          </Button>
+                        )
+                      )}
                     </div>
-                    <p className="mt-2 text-xs text-muted-foreground">{t("Private networks are coming soon.")}</p>
+                    {privateNet ? (
+                      <p className="mt-2 text-xs text-muted-foreground">{t("Leave the address empty to get the next free one.")}</p>
+                    ) : (
+                      networksHere.length === 0 && <p className="mt-2 text-xs text-muted-foreground">{t("No private network in this region yet.")}</p>
+                    )}
                   </SettingRow>
                 </div>
               </StepSection>
@@ -1033,10 +1102,10 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {FIREWALLS.map((f) => (
+                          {firewalls.map((f) => (
                             <SelectItem key={f.id} value={f.id}>
                               <span dir="ltr">
-                                {f.name} <span className="text-muted-foreground">({f.rules})</span>
+                                {f.name} {f.inbound.length > 0 && <span className="text-muted-foreground">({inboundSummary(f)})</span>}
                               </span>
                             </SelectItem>
                           ))}
@@ -1095,7 +1164,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                       label={t("Additional disks")}
                       value={extraDisks.length ? extraDisks.map((d) => n(d.sizeGb)).join(" + ") + ` ${t("GB")}` : t("None")}
                     />
-                    <ReviewLine label={t("Backup")} value={backup ? t("Daily") : t("Off")} />
+                    <ReviewLine label={t("Backup")} value={backup ? t("Weekly") : t("Off")} />
                   </ReviewBlock>
                   <ReviewBlock title={t("Network")} onEdit={() => setStep(4)}>
                     <ReviewLine label={t("Public IPv4")} value={t("Included")} />
@@ -1105,13 +1174,17 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                       value={extraIp === "new" ? t("New IP") : extraReserved ? <span dir="ltr">{extraReserved.address}</span> : t("None")}
                     />
                     <ReviewLine label={t("Floating IP")} value={floating ? <span dir="ltr">{floating.address}</span> : t("None")} />
+                    <ReviewLine
+                      label={t("Private network")}
+                      value={privateNet ? <span dir="ltr">{privateNet.name} · {privateIp || privateNet.cidr}</span> : t("None")}
+                    />
                   </ReviewBlock>
                   <ReviewBlock title={t("Security")} onEdit={() => setStep(SECURITY_STEP)}>
                     <ReviewLine
                       label={t("Access")}
                       value={access === "ssh" ? <span dir="ltr">{keys.find((k) => k.id === sshKeyId)?.name ?? "-"}</span> : t("Password")}
                     />
-                    <ReviewLine label={t("Firewall")} value={<span dir="ltr">{FIREWALLS.find((f) => f.id === firewallId)?.name}</span>} />
+                    <ReviewLine label={t("Firewall")} value={<span dir="ltr">{firewalls.find((f) => f.id === firewallId)?.name}</span>} />
                   </ReviewBlock>
                 </div>
               </StepSection>
@@ -1173,7 +1246,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
               )}
               <SummaryLine icon={HardDrive} label={t("Boot disk")} value={`${n(bootGb)} ${t("GB")}`} />
               {extraGb > 0 && <SummaryLine icon={HardDrive} label={t("Additional disk")} value={`${n(extraGb)} ${t("GB")}`} />}
-              <SummaryLine icon={ArchiveRestore} label={t("Backup")} value={backup ? t("Daily") : t("Off")} />
+              <SummaryLine icon={ArchiveRestore} label={t("Backup")} value={backup ? t("Weekly") : t("Off")} />
               <SummaryLine
                 icon={Globe}
                 label={t("Network")}
@@ -1187,7 +1260,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
               <SummaryLine
                 icon={ShieldCheck}
                 label={t("Firewall")}
-                value={<span dir="ltr">{FIREWALLS.find((f) => f.id === firewallId)?.name}</span>}
+                value={<span dir="ltr">{firewalls.find((f) => f.id === firewallId)?.name}</span>}
               />
             </div>
 
@@ -1222,10 +1295,9 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
       <AddKeyDialog
         open={keyDialogOpen}
         onOpenChange={setKeyDialogOpen}
-        onAdd={(key) => {
-          setKeys((all) => [...all, key]);
-          setSshKeyId(key.id);
-        }}
+        region={region.city}
+        zone={zone}
+        onAdd={(key) => setSshKeyId(key.id)}
       />
     </CreatePage>
   );
@@ -1384,17 +1456,30 @@ function AddKeyDialog({
   open,
   onOpenChange,
   onAdd,
+  region,
+  zone,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (key: SshKey) => void;
+  onAdd: (key: SshKeyRecord) => void;
+  region: string;
+  zone: string;
 }) {
   const t = useT();
   const [name, setName] = useState("");
   const [key, setKey] = useState("");
   const [tried, setTried] = useState(false);
-  const keyOk = looksLikePublicKey(key);
-  const ok = !!name.trim() && keyOk;
+  const [parsed, setParsed] = useState<Awaited<ReturnType<typeof parsePublicKey>>>("empty");
+  useEffect(() => {
+    let live = true;
+    void parsePublicKey(key).then((r) => live && setParsed(r));
+    return () => {
+      live = false;
+    };
+  }, [key]);
+  const keyOk = typeof parsed !== "string";
+  const nameTaken = sshKeyNameTaken(name);
+  const ok = !!name.trim() && !nameTaken && keyOk;
 
   useEffect(() => {
     if (open) {
@@ -1404,11 +1489,29 @@ function AddKeyDialog({
     }
   }, [open]);
 
-  const submit = () => {
+  const submit = async () => {
     setTried(true);
     if (!ok) return;
-    const body = key.trim().split(/\s+/)[1] ?? "";
-    onAdd({ id: `key-${Date.now()}`, name: name.trim(), fingerprint: `SHA256:${body.slice(0, 4)}…${body.slice(-4)}` });
+    if (typeof parsed === "string") return;
+    /* Into the account's keys, so the SSH Keys page lists it too. */
+    const added = await apiCall(
+      () =>
+        addSshKey({
+        name: name.trim(),
+        type: "ssh",
+        algorithm: parsed.algorithm,
+        bits: parsed.bits,
+        publicKey: parsed.publicKey,
+        fingerprint: parsed.fingerprint,
+        origin: "imported",
+        region,
+        zone,
+        allZones: true,
+      }),
+      t,
+    );
+    if (!added) return;
+    onAdd(added);
     onOpenChange(false);
   };
 
@@ -1424,7 +1527,8 @@ function AddKeyDialog({
             <FieldLabel required htmlFor="key-name">
               {t("Key name")}
             </FieldLabel>
-            <Input id="key-name" dir="ltr" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input id="key-name" dir="ltr" value={name} onChange={(e) => setName(e.target.value)} className={cn(nameTaken && "border-destructive")} />
+            {nameTaken && <p className="mt-1.5 text-xs text-destructive">{t("A key with this name already exists.")}</p>}
           </div>
           <div>
             <FieldLabel required htmlFor="key-body">

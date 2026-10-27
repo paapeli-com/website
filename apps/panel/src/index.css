@@ -33,8 +33,12 @@ html body[data-scroll-locked] {
     width: 10px;
     height: 10px;
   }
+  /* Gray enough to be seen against the cards and the sidebar. */
   ::-webkit-scrollbar-thumb {
-    @apply rounded-full bg-border;
+    @apply rounded-full bg-muted-foreground/40;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/60;
   }
 }
 body {

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Copy, Download, Link2, MoreHorizontal, Pencil, Plus, Repeat, Trash2, Unlink, Wallet } from "lucide-react";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
-import { KpiSection } from "@/features/factory/components/panel/KpiSection";
 import { ListToolbar, type ActionItem, type FilterField, type SortOption } from "@/features/factory/components/panel/ListToolbar";
 import { Button } from "@/features/factory/components/ui/button";
 import { Card, CardContent } from "@/features/factory/components/ui/card";
@@ -65,7 +64,6 @@ export default function FloatingIps() {
   const { t: ft, isRTL, language, formatNumber } = useLanguage();
   const fx = ft as (k: string) => string;
   const navigate = useNavigate();
-  const { currency, format } = useBillingCurrency();
   const ips = useFloatingIps();
 
   const [search, setSearch] = useState("");
@@ -142,35 +140,6 @@ export default function FloatingIps() {
     { key: "delete", label: fx("delete"), icon: Trash2, destructive: true, onSelect: () => setDeleteIds(selected) },
   ];
 
-  const attachedCount = ips.filter((i) => i.attachedTo).length;
-  const kpis: { key: "all" | "attached" | "free" | "cost"; label: string; value: string; icon: typeof Repeat; accent: string; bg: string }[] = [
-    { key: "all", label: t("Floating IPs"), value: formatNumber(ips.length), icon: Repeat, accent: "text-primary", bg: "from-primary/10 to-transparent" },
-    {
-      key: "attached",
-      label: t("Attached"),
-      value: formatNumber(attachedCount),
-      icon: Link2,
-      accent: "text-emerald-500",
-      bg: "from-emerald-50 to-transparent dark:from-emerald-500/10",
-    },
-    {
-      key: "free",
-      label: t("Not attached"),
-      value: formatNumber(ips.length - attachedCount),
-      icon: Unlink,
-      accent: "text-muted-foreground",
-      bg: "from-muted/40 to-transparent",
-    },
-    {
-      key: "cost",
-      label: t("Monthly cost"),
-      value: format(ips.length * FLOATING_IP_MONTHLY[currency]),
-      icon: Wallet,
-      accent: "text-violet-500",
-      bg: "from-violet-50 to-transparent dark:from-violet-500/10",
-    },
-  ];
-
   const createButton = (
     <Button onClick={() => setCreateOpen(true)} className="h-10 gap-2 rounded-md bg-primary px-5 text-primary-foreground hover:bg-primary/90">
       <Plus className="h-4 w-4" />
@@ -187,40 +156,6 @@ export default function FloatingIps() {
         ]}
       />
       <PageHeader title={shellT("Floating IPs")} count={ips.length} countLabel={t("IPs")} actions={createButton} />
-
-      <KpiSection storageKey="floating-ips" className="mb-4">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {kpis.map((k) => {
-            const Icon = k.icon;
-            const filterable = k.key !== "cost";
-            const isActive = filterable && stateFilter === k.key;
-            return (
-              <button
-                key={k.key}
-                type="button"
-                disabled={!filterable}
-                onClick={() => {
-                  if (!filterable) return;
-                  setStateFilter(k.key as "all" | "attached" | "free");
-                  setCurrentPage(1);
-                }}
-                className={cn(
-                  "relative rounded-lg border bg-card bg-gradient-to-br px-3 py-2.5 text-start transition-all",
-                  filterable && "hover:shadow-sm",
-                  k.bg,
-                  isActive ? "border-primary shadow-sm ring-2 ring-primary/20" : "border-border",
-                )}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-xs font-medium text-muted-foreground">{k.label}</span>
-                  <Icon className={cn("h-3.5 w-3.5 shrink-0", k.accent)} />
-                </div>
-                <div className="mt-1 truncate text-xl font-bold leading-none text-foreground">{k.value}</div>
-              </button>
-            );
-          })}
-        </div>
-      </KpiSection>
 
       <Card>
         <CardContent className="pt-6">

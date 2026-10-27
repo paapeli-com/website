@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import { LanguageProvider } from "@/features/factory/contexts/LanguageContext";
 import { TooltipProvider } from "@/features/factory/components/ui/tooltip";
 import { isRTLLanguage, useAppLanguage } from "@/shared/i18n/appLanguage";
@@ -13,6 +13,17 @@ import ServerCreated from "./pages/ServerCreated";
 import Images from "./pages/Images";
 import PublicIps from "./pages/PublicIps";
 import FloatingIps from "./pages/FloatingIps";
+import Backups from "./pages/Backups";
+import CreateBackup from "./pages/CreateBackup";
+import Snapshots from "./pages/Snapshots";
+import Volumes from "./pages/Volumes";
+import CreateVolume from "./pages/CreateVolume";
+import Firewalls from "./pages/Firewalls";
+import FirewallForm from "./pages/FirewallForm";
+import SshKeys from "./pages/SshKeys";
+import CreateSshKey from "./pages/CreateSshKey";
+import PrivateNetworks from "./pages/PrivateNetworks";
+import NetworkForm from "./pages/NetworkForm";
 import DedicatedServers from "./pages/DedicatedServers";
 import CreateDedicated from "./pages/CreateDedicated";
 import UploadImage from "./pages/UploadImage";
@@ -26,6 +37,18 @@ import UploadImage from "./pages/UploadImage";
  * (the list toolbar, pagination, form labels) reads its own labels through it.
  * data-uniform-type so the type sits at the same Tailwind steps in all three
  * languages. */
+
+/* Keyed by group: going from one firewall's page to another's starts afresh. */
+function FirewallFormByGroup() {
+  const { groupId } = useParams();
+  return <FirewallForm key={groupId} />;
+}
+
+/* Keyed by network, for the same reason. */
+function NetworkFormById() {
+  const { networkId } = useParams();
+  return <NetworkForm key={networkId} />;
+}
 
 function Page({ title }: { title: string }) {
   const t = useShellT();
@@ -61,8 +84,22 @@ export default function CloudServerRoutes() {
             <Route path="/floating-ips" element={<FloatingIps />} />
             <Route path="/images" element={<Images />} />
             <Route path="/images/upload" element={<UploadImage />} />
+            <Route path="/backups" element={<Backups />} />
+            <Route path="/backups/create" element={<CreateBackup />} />
+            <Route path="/snapshots" element={<Snapshots />} />
+            <Route path="/volumes" element={<Volumes />} />
+            <Route path="/volumes/create" element={<CreateVolume />} />
+            <Route path="/security-groups" element={<Firewalls />} />
+            <Route path="/security-groups/create" element={<FirewallForm key="new" />} />
+            <Route path="/security-groups/:groupId" element={<FirewallFormByGroup />} />
+            <Route path="/ssh-keys" element={<SshKeys />} />
+            <Route path="/ssh-keys/create" element={<CreateSshKey />} />
+            <Route path="/vpc" element={<PrivateNetworks />} />
+            <Route path="/vpc/create" element={<NetworkForm key="new" />} />
+            <Route path="/vpc/:networkId" element={<NetworkFormById />} />
             {CLOUD_SERVER_PAGES.filter(
-              ([segment]) => !["servers", "gpu-servers", "images", "dedicated-servers", "auto-scale", "public-ips", "floating-ips"].includes(segment),
+              ([segment]) =>
+                !["servers", "gpu-servers", "images", "dedicated-servers", "auto-scale", "public-ips", "floating-ips", "backups", "snapshots", "volumes", "security-groups", "ssh-keys", "vpc"].includes(segment),
             ).map(([segment, title]) => (
               <Route key={segment} path={`/${segment}`} element={<Page title={title} />} />
             ))}
