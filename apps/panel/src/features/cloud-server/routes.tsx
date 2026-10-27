@@ -24,6 +24,8 @@ import SshKeys from "./pages/SshKeys";
 import CreateSshKey from "./pages/CreateSshKey";
 import PrivateNetworks from "./pages/PrivateNetworks";
 import NetworkForm from "./pages/NetworkForm";
+import LoadBalancers from "./pages/LoadBalancers";
+import LoadBalancerForm from "./pages/LoadBalancerForm";
 import DedicatedServers from "./pages/DedicatedServers";
 import CreateDedicated from "./pages/CreateDedicated";
 import UploadImage from "./pages/UploadImage";
@@ -42,6 +44,12 @@ import UploadImage from "./pages/UploadImage";
 function FirewallFormByGroup() {
   const { groupId } = useParams();
   return <FirewallForm key={groupId} />;
+}
+
+/* Keyed by load balancer, for the same reason. */
+function LoadBalancerFormById() {
+  const { lbId } = useParams();
+  return <LoadBalancerForm key={lbId} />;
 }
 
 /* Keyed by network, for the same reason. */
@@ -97,9 +105,12 @@ export default function CloudServerRoutes() {
             <Route path="/vpc" element={<PrivateNetworks />} />
             <Route path="/vpc/create" element={<NetworkForm key="new" />} />
             <Route path="/vpc/:networkId" element={<NetworkFormById />} />
+            <Route path="/load-balancers" element={<LoadBalancers />} />
+            <Route path="/load-balancers/create" element={<LoadBalancerForm key="new" />} />
+            <Route path="/load-balancers/:lbId" element={<LoadBalancerFormById />} />
             {CLOUD_SERVER_PAGES.filter(
               ([segment]) =>
-                !["servers", "gpu-servers", "images", "dedicated-servers", "auto-scale", "public-ips", "floating-ips", "backups", "snapshots", "volumes", "security-groups", "ssh-keys", "vpc"].includes(segment),
+                !["servers", "gpu-servers", "images", "dedicated-servers", "auto-scale", "public-ips", "floating-ips", "backups", "snapshots", "volumes", "security-groups", "ssh-keys", "vpc", "load-balancers"].includes(segment),
             ).map(([segment, title]) => (
               <Route key={segment} path={`/${segment}`} element={<Page title={title} />} />
             ))}

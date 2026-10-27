@@ -24,6 +24,8 @@ import { formatDateTime } from "@/shared/lib/formatDate";
 import { toast } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
 import { useT } from "../i18n";
+import { useLoadBalancers } from "../lib/loadBalancerStore";
+import { groupLb } from "../lbUi";
 import {
   groupHealth,
   removeGroups,
@@ -54,6 +56,7 @@ export default function AutoScaleGroups() {
   const fx = ft as (k: string) => string;
   const navigate = useNavigate();
   const groups = useGroups();
+  const lbs = useLoadBalancers();
 
   const [now, setNow] = useState(Date.now());
   const anyScaling = groups.some((g) => groupHealth(g, now) === "scaling");
@@ -420,7 +423,11 @@ export default function AutoScaleGroups() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {g.loadBalancer ? <TruncatedText text={g.loadBalancer} ltr /> : <span className="text-muted-foreground">-</span>}
+                          {groupLb(g, lbs).name ? (
+                            <TruncatedText text={groupLb(g, lbs).name!} ltr />
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <HealthBadge health={health} />

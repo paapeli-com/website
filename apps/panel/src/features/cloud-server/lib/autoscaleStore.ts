@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { sampleAddresses } from "./serverStore";
+import { intToIp, isCidr, parseCidr } from "./ipv4";
 
 /* Auto Scale groups, until Cloud Server has an API.
  *
@@ -102,6 +103,12 @@ export interface AutoScaleGroup {
   rules: ScalingRule[];
   /** An Octavia load balancer's name, or none. */
   loadBalancer?: string;
+  /** The load balancer and the traffic rule (its listener and pool) the
+      instances join as members. Groups made before load balancers were
+      real carry the name only. */
+  lb?: { id: string; ruleId: string };
+  /** The private network the instances are on, as it was when chosen. */
+  network?: { id: string; name: string; cidr: string };
   health: { source: HealthSource; autoReplace: boolean; graceMin: number; check?: HealthCheck };
   /** Text these workspace members when the group scales out or in. Sent by
       the gateway's SMS channel, to verified phones only. */
@@ -145,11 +152,19 @@ export function groupInstances(g: AutoScaleGroup, now = Date.now()): Instance[] 
       id,
       name: `${g.name}-${String(i + 1).padStart(2, "0")}`,
       status: isNew ? ("creating" as const) : ("running" as const),
-      privateIp: `10.0.1.${11 + i}`,
+      privateIp: instanceIp(g, i),
       publicIp: addr.ipv4,
       createdAt: isNew ? g.changedAt : g.createdAt,
     };
   });
+}
+
+/** An instance's address: from its private network's range when it has
+    one, counting down from the top, away from the servers DHCP gives the
+    first addresses to. */
+function instanceIp(g: AutoScaleGroup, i: number) {
+  const c = g.network ? parseCidr(g.network.cidr) : null;
+  return c && isCidr(c) ? intToIp(c.broadcast - 1 - i) : `10.0.1.${11 + i}`;
 }
 
 /** How many instances the latest change added (0 when it removed some). */
@@ -263,6 +278,9 @@ export function updateGroup(id: string, changes: Partial<AutoScaleGroup>, detail
     };
   });
 }
+
+/** Read outside React, for the checks other stores make. */
+export const getGroups = () => cache;
 
 export const removeGroups = (ids: string[]) => write(cache.filter((g) => !ids.includes(g.id)));
 

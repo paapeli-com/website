@@ -76,6 +76,7 @@ import { deleteSnapshotsOf, useSnapshots } from "../lib/snapshotStore";
 import { releaseVolumesOf, useVolumes } from "../lib/volumeStore";
 import { releaseServersFromFirewalls } from "../lib/firewallStore";
 import { releaseServersFromNetworks } from "../lib/networkStore";
+import { releaseServersFromLoadBalancers } from "../lib/loadBalancerStore";
 import { CreateSnapshotDialog } from "../snapshotDialog";
 import { useShellT } from "@/shared/i18n/shell";
 
@@ -744,6 +745,7 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
           releaseVolumesOf(ids);
           releaseServersFromFirewalls(ids);
           releaseServersFromNetworks(ids);
+          releaseServersFromLoadBalancers(ids);
           removeServers(ids);
           setSelected((prev) => prev.filter((id) => !ids.includes(id)));
           toast.success(t("Servers deleted"));

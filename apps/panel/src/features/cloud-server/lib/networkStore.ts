@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { ApiError } from "./openstackErrors";
+import { getGroups } from "./autoscaleStore";
 import { cidrsOverlap, inCidr, intToIp, ipToInt, isCidr, isPrivateCidr, parseCidr, type Cidr } from "./ipv4";
 
 /* Private networks, until Cloud Server has an API.
@@ -43,7 +44,10 @@ export interface HostRoute {
 
 export interface NetworkPort {
   id: string;
+  /** Empty for a port that is not a server's (a load balancer's address). */
   serverId: string;
+  /** What holds the port when it is not a server: a load balancer's VIP. */
+  device?: { kind: "loadbalancer"; id: string; name: string };
   ip: string;
   /** Firewalls apply to this connection, and only its own address leaves it. */
   portSecurity: boolean;
@@ -310,6 +314,7 @@ export function updateNetwork(id: string, raw: NetworkInput) {
 export function deleteNetworks(ids: string[]) {
   const busy = cache.find((n) => ids.includes(n.id) && n.ports.length > 0);
   if (busy) refuse(409, { type: "NetworkInUse", text: "" });
+  if (getGroups().some((g) => g.network && ids.includes(g.network.id))) refuse(409, { type: "NetworkInUseByGroup", text: "" });
   write(cache.filter((n) => !ids.includes(n.id)));
 }
 
@@ -353,6 +358,28 @@ export function connectServer(networkId: string, serverId: string, fixedIp?: str
   return port;
 }
 
+/** A port for something other than a server, such as a load balancer's
+    address: the next free one, or the one asked for. */
+export function reserveAddress(networkId: string, device: NonNullable<NetworkPort["device"]>, fixedIp?: string): NetworkPort {
+  const n = find(networkId);
+  let ip = fixedIp?.trim();
+  if (ip) {
+    const problem = fixedIpProblem(n, ip);
+    if (problem) refuse(problem.type === "IpAddressInUse" ? 409 : 400, problem);
+  } else {
+    ip = allocate(n) ?? refuse(409, { type: "IpAddressGenerationFailure", text: "" });
+  }
+  const port: NetworkPort = { id: `port-${Date.now().toString(36)}-${device.id}`, serverId: "", device, ip: ip!, portSecurity: true };
+  write(cache.map((x) => (x.id === networkId ? { ...x, ports: [...x.ports, port], updatedAt: Date.now() } : x)));
+  return port;
+}
+
+/** The device is gone (or renamed): its ports go (or follow). */
+export const releaseDevice = (deviceId: string) =>
+  write(cache.map((n) => (n.ports.some((p) => p.device?.id === deviceId) ? { ...n, ports: n.ports.filter((p) => p.device?.id !== deviceId) } : n)));
+export const renameDevice = (deviceId: string, name: string) =>
+  write(cache.map((n) => ({ ...n, ports: n.ports.map((p) => (p.device?.id === deviceId ? { ...p, device: { ...p.device, name } } : p)) })));
+
 export function disconnectServer(networkId: string, serverId: string) {
   find(networkId);
   write(cache.map((x) => (x.id === networkId ? { ...x, ports: x.ports.filter((p) => p.serverId !== serverId), updatedAt: Date.now() } : x)));
@@ -384,6 +411,9 @@ export function freeAddresses(n: PrivateNetwork) {
   }, 0);
   return Math.max(0, total - n.ports.length);
 }
+
+/** Read outside React, for the checks other stores make. */
+export const getNetworks = () => cache;
 
 export function useNetworks(): PrivateNetwork[] {
   return useSyncExternalStore(

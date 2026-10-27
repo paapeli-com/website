@@ -60,6 +60,9 @@ export const CREATE_SSH_KEY_PATH = `${SSH_KEYS_PATH}/create`;
 export const NETWORKS_PATH = `${CLOUD_SERVER_BASE}/vpc`;
 export const CREATE_NETWORK_PATH = `${NETWORKS_PATH}/create`;
 export const networkPath = (id: string) => `${NETWORKS_PATH}/${id}`;
+export const LOAD_BALANCERS_PATH = `${CLOUD_SERVER_BASE}/load-balancers`;
+export const CREATE_LOAD_BALANCER_PATH = `${LOAD_BALANCERS_PATH}/create`;
+export const loadBalancerPath = (id: string) => `${LOAD_BALANCERS_PATH}/${id}`;
 
 export function CreateHeader({
   description,

@@ -45,7 +45,9 @@ import {
   useFloatingIps,
   type FloatingIp,
 } from "../lib/floatingStore";
-import { PageBreadcrumb, SERVERS_PATH, TruncatedText } from "../ui";
+import { LOAD_BALANCERS_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText } from "../ui";
+import { attachPublicIp, forgetPublicIp, useLoadBalancers } from "../lib/loadBalancerStore";
+import { apiCall } from "../lib/openstackErrors";
 
 /* Floating IPs: addresses that move between servers without changing.
  *
@@ -287,10 +289,11 @@ export default function FloatingIps() {
                         {i.attachedTo ? (
                           <button
                             type="button"
-                            onClick={() => navigate(SERVERS_PATH)}
+                            onClick={() => navigate(i.attachedTo?.kind === "loadbalancer" ? LOAD_BALANCERS_PATH : SERVERS_PATH)}
                             className="block max-w-full text-start text-foreground hover:text-primary"
                           >
                             <TruncatedText text={i.attachedTo.serverName} ltr />
+                            {i.attachedTo.kind === "loadbalancer" && <span className="block text-xs text-muted-foreground">{t("Load balancer")}</span>}
                           </button>
                         ) : (
                           <span className="text-muted-foreground">-</span>
@@ -314,6 +317,7 @@ export default function FloatingIps() {
                               title={t("Detach")}
                               onClick={() => {
                                 disassociateFloating(i.id);
+                                forgetPublicIp(i.id);
                                 toast.success(t("{ip} detached", { ip: i.address }));
                               }}
                             >
@@ -542,6 +546,7 @@ function AssociateDialog({ ip, onClose }: { ip: FloatingIp | null; onClose: () =
   const { t: ft } = useLanguage();
   const fx = ft as (k: string) => string;
   const servers = useServers().filter((s) => ip && s.region === ip.region && s.id !== ip.attachedTo?.serverId);
+  const lbs = useLoadBalancers().filter((l) => ip && l.region === ip.region && l.id !== ip.attachedTo?.serverId);
   const [serverId, setServerId] = useState("");
   useEffect(() => setServerId(""), [ip]);
 
@@ -554,7 +559,7 @@ function AssociateDialog({ ip, onClose }: { ip: FloatingIp | null; onClose: () =
             <span dir="ltr">{ip?.address}</span>
           </DialogDescription>
         </DialogHeader>
-        {servers.length === 0 ? (
+        {servers.length === 0 && lbs.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("No server in this region to attach it to.")}</p>
         ) : (
           <Select value={serverId} onValueChange={setServerId}>
@@ -567,6 +572,11 @@ function AssociateDialog({ ip, onClose }: { ip: FloatingIp | null; onClose: () =
                   <span dir="ltr">{s.name}</span> · <span dir="ltr">{s.ipv4}</span>
                 </SelectItem>
               ))}
+              {lbs.map((l) => (
+                <SelectItem key={l.id} value={l.id}>
+                  <span dir="ltr">{l.name}</span> · <span className="text-muted-foreground">{t("Load balancer")}</span>
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         )}
@@ -576,9 +586,18 @@ function AssociateDialog({ ip, onClose }: { ip: FloatingIp | null; onClose: () =
           </Button>
           <Button
             disabled={!serverId}
-            onClick={() => {
+            onClick={async () => {
+              if (!ip) return;
+              const lb = lbs.find((l) => l.id === serverId);
+              if (lb) {
+                if (!(await apiCall(() => (attachPublicIp(lb.id, ip.id), true), t))) return;
+                toast.success(t("{ip} attached to {server}", { ip: ip.address, server: lb.name }));
+                onClose();
+                return;
+              }
               const server = servers.find((s) => s.id === serverId);
-              if (!ip || !server) return;
+              if (!server) return;
+              forgetPublicIp(ip.id);
               associateFloating(ip.id, server.id, server.name);
               toast.success(t("{ip} attached to {server}", { ip: ip.address, server: server.name }));
               onClose();

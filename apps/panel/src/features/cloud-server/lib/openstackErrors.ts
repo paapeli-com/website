@@ -9,6 +9,7 @@ import { toast } from "@/shared/lib/toast";
  *             (also badRequest, itemNotFound, forbidden, overLimit, computeFault)
  *   Cinder    the same shape as Nova
  *   Keystone  { "error": { "code": 401, "title": "Unauthorized", "message": "…" } }
+ *   Octavia   { "faultcode": "Client", "faultstring": "Load Balancer … is immutable …", "debuginfo": null }
  *
  * and the gateway may wrap any of them in its problem details, with the
  * service's text in `detail` and its type in `code`. Each refusal is read
@@ -68,6 +69,15 @@ const BY_TYPE: Record<string, string> = {
   SecurityGroupCannotRemoveDefault: "The default firewall cannot be deleted.",
   SecurityGroupRuleExists: "This rule already exists.",
   AlreadyConnected: "This server is already connected to this network.",
+  NetworkInUseByGroup: "An Auto Scale group uses this network. Change or delete the group first.",
+  // Octavia
+  ImmutableObject: "The load balancer is still applying the last change. Try again in a moment.",
+  LoadBalancerNotFound: "This load balancer no longer exists. Refresh the list.",
+  LoadBalancerInUse: "An Auto Scale group sends its instances to this load balancer. Change or delete the group first.",
+  PoolInUseByGroup: "An Auto Scale group's instances are behind this rule. Change the group before removing it.",
+  DuplicateListenerEntry: "Another rule already listens on port {port}.",
+  DuplicateMemberEntry: "This server is already behind this rule.",
+  FloatingIPNotFound: "This public IP no longer exists. Refresh the list.",
   // Nova
   KeyPairExists: "A key with this name already exists.",
   InvalidKeypair: "This key was not accepted. Check that it is a whole public key.",
@@ -96,6 +106,11 @@ const BY_MESSAGE: [RegExp, string][] = [
   [/security group .* in use/i, "SecurityGroupInUse"],
   /* Neutron: "Invalid input for operation: Requested subnet with cidr: … overlaps with another subnet." */
   [/overlaps with (another subnet|cidr)|cidr .* overlaps/i, "SubnetOverlap"],
+  /* Octavia's faultstring. */
+  [/is immutable and cannot be updated/i, "ImmutableObject"],
+  [/already (has|using) .*protocol_port|listener .* already exists|protocol_port .* in use/i, "DuplicateListenerEntry"],
+  [/member .* already exists|duplicate member/i, "DuplicateMemberEntry"],
+  [/load ?balancer .* (could not be found|not found)/i, "LoadBalancerNotFound"],
 ];
 
 const BY_STATUS: Record<number, string> = {
@@ -146,14 +161,18 @@ export function readApiError(error: unknown): ApiError {
       const inner = Object.values(data).find((v) => v && typeof v === "object" && "message" in (v as object)) as
         | { message?: string }
         | undefined;
-      message = inner?.message ?? (typeof data.detail === "string" ? data.detail : "") ?? "";
+      message =
+        inner?.message ??
+        (typeof data.faultstring === "string" ? data.faultstring : typeof data.detail === "string" ? data.detail : "") ??
+        "";
       if (typeof data.code === "string" && BY_TYPE[data.code]) type = data.code;
     }
   }
   if (!BY_TYPE[type]) type = BY_MESSAGE.find(([re]) => re.test(message))?.[1] ?? type;
   /* Neutron puts the address in its message; the sentence wants it. */
   const ip = message.match(/\b\d{1,3}(\.\d{1,3}){3}\b/)?.[0];
-  return new ApiError(status, type, message, ip ? { ip } : {});
+  const port = message.match(/protocol_port[^0-9]*(\d+)/i)?.[1];
+  return new ApiError(status, type, message, { ...(ip ? { ip } : {}), ...(port ? { port } : {}) });
 }
 
 /** The refusal as one sentence in the person's language. */

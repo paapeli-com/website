@@ -17,7 +17,9 @@ export interface FloatingIp {
   region: string;
   zone: string;
   createdAt: number;
-  attachedTo?: { serverId: string; serverName: string };
+  /** A server, or a load balancer's address (kind "loadbalancer", its id in
+      serverId). */
+  attachedTo?: { serverId: string; serverName: string; kind?: "server" | "loadbalancer" };
 }
 
 const STORAGE_KEY = "paapeli.cloudServer.floatingIps";
@@ -67,14 +69,17 @@ export function allocateFloating(region: string, zone: string, description?: str
   return ip;
 }
 
-export const associateFloating = (id: string, serverId: string, serverName: string) =>
-  write(cache.map((i) => (i.id === id ? { ...i, attachedTo: { serverId, serverName } } : i)));
+export const associateFloating = (id: string, serverId: string, serverName: string, kind: "server" | "loadbalancer" = "server") =>
+  write(cache.map((i) => (i.id === id ? { ...i, attachedTo: { serverId, serverName, kind } } : i)));
 export const disassociateFloating = (id: string) => write(cache.map((i) => (i.id === id ? { ...i, attachedTo: undefined } : i)));
 /** Unassociate every floating IP from these servers (when they are deleted). */
 export const releaseFromServers = (serverIds: string[]) =>
   write(cache.map((i) => (i.attachedTo && serverIds.includes(i.attachedTo.serverId) ? { ...i, attachedTo: undefined } : i)));
 export const updateFloating = (id: string, patch: Partial<FloatingIp>) => write(cache.map((i) => (i.id === id ? { ...i, ...patch } : i)));
 export const deleteFloating = (ids: string[]) => write(cache.filter((i) => !ids.includes(i.id) || !!i.attachedTo));
+
+/** Read outside React, for the checks other stores make. */
+export const getFloatingIps = () => cache;
 
 export function useFloatingIps(): FloatingIp[] {
   return useSyncExternalStore(

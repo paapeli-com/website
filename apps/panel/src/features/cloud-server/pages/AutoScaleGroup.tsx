@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import {
   Activity,
@@ -69,7 +69,20 @@ import {
   type HealthSource,
   type ScalingRule,
 } from "../lib/autoscaleStore";
-import { AUTOSCALE_PATH, deletePhraseOk, PageBreadcrumb, ProgressStatus, SERVERS_PATH, TruncatedText, TypeToConfirm } from "../ui";
+import {
+  AUTOSCALE_PATH,
+  deletePhraseOk,
+  LOAD_BALANCERS_PATH,
+  loadBalancerPath,
+  networkPath,
+  PageBreadcrumb,
+  ProgressStatus,
+  SERVERS_PATH,
+  TruncatedText,
+  TypeToConfirm,
+} from "../ui";
+import { ruleLabel, useLoadBalancers } from "../lib/loadBalancerStore";
+import { groupLb, useLbText } from "../lbUi";
 import { Note, OptionCard, SettingRow } from "../wizard";
 import { CapacityDialog, HealthBadge, PauseDialog, StatCard, Stepper } from "../autoscaleUi";
 import { RulesEditor, newScheduledRule } from "./CreateAutoScale";
@@ -164,10 +177,7 @@ function GroupPage({ group: g }: { group: AutoScaleGroup }) {
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Split className="size-4" />
-              {t("Load balancer")}:{" "}
-              <span className="text-foreground" dir="ltr">
-                {g.loadBalancer ?? "-"}
-              </span>
+              {t("Load balancer")}: <LbLink g={g} />
             </span>
           </div>
         </div>
@@ -279,6 +289,7 @@ function GroupPage({ group: g }: { group: AutoScaleGroup }) {
 
 function OverviewTab({ g, now, onShow }: { g: AutoScaleGroup; now: number; onShow: (tab: string) => void }) {
   const t = useT();
+  const navigate = useNavigate();
   const { formatNumber } = useLanguage();
   const instances = groupInstances(g, now);
   const running = runningCount(g, now);
@@ -321,7 +332,7 @@ function OverviewTab({ g, now, onShow }: { g: AutoScaleGroup; now: number; onSho
           <div className="flex flex-col items-center">
             {g.loadBalancer && (
               <>
-                <DiagramBox icon={Split} title={t("Load balancer")} sub={g.loadBalancer} />
+                <DiagramBox icon={Split} title={t("Load balancer")} sub={<LbLink g={g} withRule />} />
                 <ArrowDown className="my-1.5 size-4 text-muted-foreground" />
               </>
             )}
@@ -381,7 +392,17 @@ function OverviewTab({ g, now, onShow }: { g: AutoScaleGroup; now: number; onSho
           <h2 className="mb-3 text-base font-semibold text-foreground">{t("Group details")}</h2>
           <DetailLine label={t("Group name")} value={<span dir="ltr">{g.name}</span>} />
           <DetailLine label={t("Region")} value={`${t(g.region)} / ${g.zone}`} />
-          <DetailLine label={t("Load balancer")} value={<span dir="ltr">{g.loadBalancer ?? "-"}</span>} />
+          <DetailLine label={t("Load balancer")} value={<LbLink g={g} withRule />} />
+          {g.network && (
+            <DetailLine
+              label={t("Private network")}
+              value={
+                <button type="button" className="hover:text-primary" onClick={() => navigate(networkPath(g.network!.id))}>
+                  <span dir="ltr">{`${g.network.name} · ${g.network.cidr}`}</span>
+                </button>
+              }
+            />
+          )}
           <DetailLine label={t("Cooldown")} value={t("{n} min", { n: formatNumber(g.cooldownMin) })} />
           <p className="mb-1 mt-4 text-sm font-semibold text-foreground">{t("Template")}</p>
           <DetailLine
@@ -413,7 +434,26 @@ function OverviewTab({ g, now, onShow }: { g: AutoScaleGroup; now: number; onSho
   );
 }
 
-function DiagramBox({ icon: Icon, title, sub }: { icon: typeof Split; title: string; sub: string }) {
+/** The group's load balancer by its name now, opening its page; with the
+    rule its instances are behind, where there is room. */
+function LbLink({ g, withRule }: { g: AutoScaleGroup; withRule?: boolean }) {
+  const navigate = useNavigate();
+  const { lb, rule, name } = groupLb(g, useLoadBalancers());
+  if (!name) return <span className="text-foreground">-</span>;
+  return (
+    <button
+      type="button"
+      dir="ltr"
+      className="text-foreground hover:text-primary"
+      onClick={() => navigate(lb ? loadBalancerPath(lb.id) : LOAD_BALANCERS_PATH)}
+    >
+      {name}
+      {withRule && rule ? ` · ${ruleLabel(rule)}` : ""}
+    </button>
+  );
+}
+
+function DiagramBox({ icon: Icon, title, sub }: { icon: typeof Split; title: string; sub: ReactNode }) {
   return (
     <div className="flex min-w-[220px] items-center justify-center gap-2.5 rounded-xl border border-border bg-card px-4 py-2.5">
       <Icon className="size-4 text-primary" />
@@ -824,9 +864,20 @@ function HealthTab({ g, now }: { g: AutoScaleGroup; now: number }) {
     source !== g.health.source ||
     autoReplace !== g.health.autoReplace ||
     grace !== g.health.graceMin ||
-    (source === "lb" && JSON.stringify(check) !== JSON.stringify(withDefaultCheck(g.health.check)));
+    (source === "lb" && !g.lb && JSON.stringify(check) !== JSON.stringify(withDefaultCheck(g.health.check)));
   const instances = groupInstances(g, now);
   const replaced = g.events.filter((e) => e.type === "repair").length;
+  const { lb, rule } = groupLb(g, useLoadBalancers());
+  const lbText = useLbText();
+  const navigate = useNavigate();
+  const monitorNote = rule && lb ? (
+    <p className="text-sm text-muted-foreground">
+      {t("The check of rule {rule} on {name}: {check}.", { rule: ruleLabel(rule), name: lb.name, check: lbText.monitor(rule.monitor) })}{" "}
+      <button type="button" className="font-medium text-primary hover:underline" onClick={() => navigate(loadBalancerPath(lb.id))}>
+        {t("Change it on the load balancer")}
+      </button>
+    </p>
+  ) : undefined;
   const sourceLabel = (s: HealthSource) => (s === "lb" ? t("Load balancer health check") : t("Instance status"));
 
   return (
@@ -865,6 +916,7 @@ function HealthTab({ g, now }: { g: AutoScaleGroup; now: number }) {
               source={source}
               onSource={setSource}
               hasLb={!!g.loadBalancer}
+              monitorNote={monitorNote}
               check={check}
               onCheck={setCheck}
               graceMin={grace}
@@ -885,7 +937,7 @@ function HealthTab({ g, now }: { g: AutoScaleGroup; now: number }) {
             onClick={() => {
               updateGroup(
                 g.id,
-                { health: { source, autoReplace, graceMin: grace, check: source === "lb" ? check : undefined } },
+                { health: { source, autoReplace, graceMin: grace, check: source === "lb" && !g.lb ? check : undefined } },
                 "Health settings changed",
               );
               toast.success(t("Saved"));

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useListWorkspaceMembersQuery } from "@paapeli/api";
 import { getCurrentUserId } from "@paapeli/brand/session";
 import { useActiveWorkspaceId } from "@paapeli/brand/workspace";
@@ -31,6 +31,8 @@ export function HealthSettings({
   onCheck,
   graceMin,
   onGrace,
+  monitorNote,
+  hidePort,
 }: {
   source: HealthSource;
   onSource: (s: HealthSource) => void;
@@ -39,6 +41,11 @@ export function HealthSettings({
   onCheck: (c: HealthCheck) => void;
   graceMin: number;
   onGrace: (m: number) => void;
+  /** The load balancer's rule already has its health check: said here in
+      place of the fields, which live on the load balancer's page. */
+  monitorNote?: ReactNode;
+  /** The check asks the port the instances serve on; no port of its own. */
+  hidePort?: boolean;
 }) {
   const t = useT();
   const { isRTL, formatNumber } = useLanguage();
@@ -71,7 +78,9 @@ export function HealthSettings({
         </div>
       </RadioGroup>
 
-      {source === "lb" && hasLb && (
+      {source === "lb" && hasLb && monitorNote && <div className="mt-4 border-t border-border pt-4">{monitorNote}</div>}
+
+      {source === "lb" && hasLb && !monitorNote && (
         <div className="mt-4 space-y-3 border-t border-border pt-4">
           {/* What it asks: always in view. */}
           <div className="flex flex-wrap items-end gap-3">
@@ -89,9 +98,11 @@ export function HealthSettings({
                 </SelectContent>
               </Select>
             </Field>
-            <Field label={t("Port")}>
-              <NumberInput value={check.port} min={1} max={65535} onChange={(port) => set({ port })} className="w-24" />
-            </Field>
+            {!hidePort && (
+              <Field label={t("Port")}>
+                <NumberInput value={check.port} min={1} max={65535} onChange={(port) => set({ port })} className="w-24" />
+              </Field>
+            )}
             {isHttp && (
               <Field label={t("Path")}>
                 <Input

@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, Download, Link2, MoreHorizontal, Pencil, Plus, Server, Trash2, Unlink, Waypoints } from "lucide-react";
+import { ChevronDown, ChevronUp, Download, Layers, Link2, MoreHorizontal, Pencil, Plus, Split, Trash2, Unlink, Waypoints } from "lucide-react";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import { ListToolbar, type ActionItem, type FilterField, type SortOption } from "@/features/factory/components/panel/ListToolbar";
@@ -38,8 +38,10 @@ import {
   type PrivateNetwork,
 } from "../lib/networkStore";
 import { apiCall } from "../lib/openstackErrors";
+import { useGroups } from "../lib/autoscaleStore";
+import { loadBalancersOf, releaseServersFromLoadBalancers, useLoadBalancers } from "../lib/loadBalancerStore";
 import { downloadText } from "../lib/sshKeyGen";
-import { ConfirmDialog, CREATE_NETWORK_PATH, networkPath, NETWORKS_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText } from "../ui";
+import { ConfirmDialog, CREATE_NETWORK_PATH, groupPath, loadBalancerPath, networkPath, NETWORKS_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText } from "../ui";
 import { Pill, ServerOption } from "../wizard";
 
 /* Private Networks: the account's own networks between its servers.
@@ -65,6 +67,9 @@ export default function PrivateNetworks() {
   const navigate = useNavigate();
   const networks = useNetworks();
   const servers = useServers();
+  const groups = useGroups();
+  const lbs = useLoadBalancers();
+  const groupsOn = (x: PrivateNetwork) => groups.filter((g) => g.network?.id === x.id);
 
   const [search, setSearch] = useState("");
   const [usageFilter, setUsageFilter] = useState<"all" | "used" | "unused">("all");
@@ -159,7 +164,9 @@ export default function PrivateNetworks() {
   );
 
   const toDelete = networks.filter((x) => deleteIds?.includes(x.id));
-  const blocking = toDelete.filter((x) => x.ports.length > 0);
+  const blocking = toDelete.filter((x) => x.ports.length > 0 || groupsOn(x).length > 0);
+  /* Load balancers the server being disconnected is behind, on this network. */
+  const behind = disconnecting ? loadBalancersOf(lbs, disconnecting.port.serverId).filter((l) => l.networkId === disconnecting.network.id) : [];
 
   return (
     <div data-uniform-type className="space-y-4 p-4 lg:p-6">
@@ -324,11 +331,19 @@ export default function PrivateNetworks() {
                                     {t("Connect a server")}
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="text-destructive focus:text-destructive" disabled={x.ports.length > 0} onClick={() => setDeleteIds([x.id])}>
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    disabled={x.ports.length > 0 || groupsOn(x).length > 0}
+                                    onClick={() => setDeleteIds([x.id])}
+                                  >
                                     <Trash2 className="me-2 h-4 w-4" />
                                     {fx("delete")}
                                   </DropdownMenuItem>
-                                  {x.ports.length > 0 && <p className="px-2 pb-1.5 text-xs text-muted-foreground">{t("Disconnect its servers first to delete it.")}</p>}
+                                  {(x.ports.length > 0 || groupsOn(x).length > 0) && (
+                                    <p className="px-2 pb-1.5 text-xs text-muted-foreground">
+                                      {x.ports.length > 0 ? t("Disconnect its servers first to delete it.") : t("An Auto Scale group uses it.")}
+                                    </p>
+                                  )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>
@@ -394,6 +409,36 @@ export default function PrivateNetworks() {
                                     </thead>
                                     <tbody>
                                       {x.ports.map((p) => {
+                                        if (p.device)
+                                          return (
+                                            <tr key={p.id} className="border-t [&>td]:px-4 [&>td]:py-2">
+                                              <td>
+                                                <button
+                                                  type="button"
+                                                  className="flex items-center gap-2.5 text-start hover:text-primary"
+                                                  onClick={() => navigate(loadBalancerPath(p.device!.id))}
+                                                >
+                                                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                                                    <Split className="size-3.5" />
+                                                  </span>
+                                                  <span className="min-w-0">
+                                                    <span dir="ltr" className="block truncate text-sm font-medium text-foreground">
+                                                      {p.device.name}
+                                                    </span>
+                                                    <span className="block text-xs text-muted-foreground">{t("Load balancer")}</span>
+                                                  </span>
+                                                </button>
+                                              </td>
+                                              <td>
+                                                <span dir="ltr" className="font-mono text-[13px] text-foreground">
+                                                  {p.ip}
+                                                </span>
+                                              </td>
+                                              <td className="text-muted-foreground">-</td>
+                                              <td className="text-muted-foreground">-</td>
+                                              <td />
+                                            </tr>
+                                          );
                                         const s = servers.find((sv) => sv.id === p.serverId);
                                         const status = s ? serverStatus(s) : null;
                                         return (
@@ -444,6 +489,17 @@ export default function PrivateNetworks() {
                                     </tbody>
                                   </table>
                                 )}
+                                {groupsOn(x).map((g) => (
+                                  <p key={g.id} className="flex items-center gap-1.5 border-t px-4 py-2.5 text-xs text-muted-foreground">
+                                    <Layers className="size-3.5 shrink-0" />
+                                    <span>
+                                      {t("The instances of Auto Scale group {name} are on this network too.", { name: g.name })}{" "}
+                                      <button type="button" className="font-medium text-primary hover:underline" onClick={() => navigate(groupPath(g.id))}>
+                                        {t("Open group")}
+                                      </button>
+                                    </span>
+                                  </p>
+                                ))}
                               </div>
                             </TableCell>
                           </TableRow>
@@ -500,16 +556,27 @@ export default function PrivateNetworks() {
           server: disconnecting ? serverName(disconnecting.port.serverId) : "",
           name: disconnecting?.network.name ?? "",
         })}
-        description={t("The server loses its address {ip} on this network right away, and can no longer reach the other servers on it.", {
-          ip: disconnecting?.port.ip ?? "",
-        })}
+        description={
+          t("The server loses its address {ip} on this network right away, and can no longer reach the other servers on it.", {
+            ip: disconnecting?.port.ip ?? "",
+          }) +
+          (behind.length > 0
+            ? " " + t("It is also taken out of these load balancers: {names}", { names: behind.map((l) => l.name).join("، ") })
+            : "")
+        }
         destructive
         confirmLabel={t("Disconnect")}
         onConfirm={async () => {
           if (!disconnecting) return;
           const { network, port } = disconnecting;
           setDisconnecting(null);
-          if (await apiCall(() => (disconnectServer(network.id, port.serverId), true), t))
+          if (
+            await apiCall(() => {
+              disconnectServer(network.id, port.serverId);
+              releaseServersFromLoadBalancers([port.serverId], network.id);
+              return true;
+            }, t)
+          )
             toast.success(t("{server} disconnected from {name}", { server: serverName(port.serverId), name: network.name }));
         }}
       />
@@ -538,7 +605,9 @@ export default function PrivateNetworks() {
         title={toDelete.length === 1 ? t("Delete {name}?", { name: toDelete[0].name }) : t("Delete {n} networks?", { n: formatNumber(toDelete.length) })}
         description={
           blocking.length > 0
-            ? t("These still have servers connected. Disconnect them first: {names}", { names: blocking.map((x) => x.name).join("، ") })
+            ? t("These still have servers, load balancers or Auto Scale groups on them. Remove those first: {names}", {
+                names: blocking.map((x) => x.name).join("، "),
+              })
             : t("The networks and their settings are deleted. This cannot be undone.")
         }
         blocked={blocking.length > 0}
