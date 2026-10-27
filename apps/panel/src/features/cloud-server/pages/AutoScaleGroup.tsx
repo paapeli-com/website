@@ -536,22 +536,22 @@ function InstancesTab({ g, now }: { g: AutoScaleGroup; now: number }) {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs">
+      <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs [&_th]:px-3">
         <Table className="min-w-[960px] table-fixed">
           <colgroup>
-            <col className="w-[44px]" />
-            <col className="w-[20%]" />
-            <col className="w-[11%]" />
-            <col className="w-[12%]" />
-            <col className="w-[14%]" />
-            <col className="w-[16%]" />
-            <col className="w-[14%]" />
+            <col className="w-[80px]" />
+            <col />
+            <col className="w-[9.5%]" />
+            <col className="w-[10.4%]" />
+            <col className="w-[12.1%]" />
+            <col className="w-[13.9%]" />
+            <col className="w-[12.1%]" />
             <col className="w-[130px]" />
           </colgroup>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40">
               <TableHead className="text-center">
-                <div className="flex justify-center">
+                <div className="flex w-5 justify-center">
                   <Checkbox
                     checked={shown.length > 0 && shown.every((i) => selected.includes(i.id))}
                     onCheckedChange={(c) => setSelected(c ? shown.map((i) => i.id) : [])}
@@ -572,7 +572,7 @@ function InstancesTab({ g, now }: { g: AutoScaleGroup; now: number }) {
             {shown.map((i) => (
               <TableRow key={i.id} className="border-b hover:bg-muted/30">
                 <TableCell className="text-center">
-                  <div className="flex justify-center">
+                  <div className="flex w-5 justify-center">
                     <Checkbox
                       checked={selected.includes(i.id)}
                       onCheckedChange={(c) => setSelected((prev) => (c ? [...prev, i.id] : prev.filter((id) => id !== i.id)))}
@@ -950,7 +950,7 @@ function HealthTab({ g, now }: { g: AutoScaleGroup; now: number }) {
 
       <Card className="p-5">
         <h2 className="mb-3 text-base font-semibold text-foreground">{t("Instance health")}</h2>
-        <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs">
+        <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs [&_th]:px-3">
           <Table className="min-w-[640px] table-fixed">
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-muted/40">
@@ -1065,7 +1065,7 @@ function EventsTable({ events, empty }: { events: AutoScaleGroup["events"]; empt
   const t = useT();
   const { language } = useLanguage();
   return (
-    <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs">
+    <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs [&_th]:px-3">
       <Table className="min-w-[760px] table-fixed">
         <colgroup>
           <col className="w-[17%]" />

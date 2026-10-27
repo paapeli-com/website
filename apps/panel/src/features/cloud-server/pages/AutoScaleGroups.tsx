@@ -298,24 +298,24 @@ export default function AutoScaleGroups() {
             selectionCount={selected.length}
           />
 
-          <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs">
+          <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs [&_th]:px-3">
             <Table className="min-w-[1060px] table-fixed">
               <colgroup>
                 <col className="w-[44px]" />
                 <col className="w-[36px]" />
-                <col className="w-[22%]" />
-                <col className="w-[11%]" />
-                <col className="w-[12%]" />
-                <col className="w-[13%]" />
-                <col className="w-[13%]" />
-                <col className="w-[10%]" />
-                <col className="w-[13%]" />
+                <col />
+                <col className="w-[9%]" />
+                <col className="w-[9.9%]" />
+                <col className="w-[10.7%]" />
+                <col className="w-[10.7%]" />
+                <col className="w-[8.2%]" />
+                <col className="w-[10.7%]" />
                 <col className="w-[120px]" />
               </colgroup>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead className="text-center">
-                    <div className="flex justify-center">
+                    <div className="flex w-5 justify-center">
                       <Checkbox
                         checked={allOnPageSelected}
                         onCheckedChange={(c) =>
@@ -373,7 +373,7 @@ export default function AutoScaleGroups() {
                       <Fragment key={g.id}>
                       <TableRow className="cursor-pointer border-b hover:bg-muted/30" onClick={toggle}>
                         <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-center">
+                          <div className="flex w-5 justify-center">
                             <Checkbox
                               checked={selected.includes(g.id)}
                               onCheckedChange={(c) =>

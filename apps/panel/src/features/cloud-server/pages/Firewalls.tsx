@@ -219,22 +219,22 @@ export default function Firewalls() {
             selectionCount={selected.length}
           />
 
-          <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs">
+          <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs [&_th]:px-3">
             <Table className="min-w-[1000px] table-fixed">
               <colgroup>
                 <col className="w-[44px]" />
                 <col className="w-[36px]" />
-                <col className="w-[22%]" />
-                <col className="w-[26%]" />
-                <col className="w-[14%]" />
-                <col className="w-[11%]" />
-                <col className="w-[14%]" />
+                <col />
+                <col className="w-[23.2%]" />
+                <col className="w-[12.5%]" />
+                <col className="w-[9.8%]" />
+                <col className="w-[12.5%]" />
                 <col className="w-[120px]" />
               </colgroup>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead className="text-center">
-                    <div className="flex justify-center">
+                    <div className="flex w-5 justify-center">
                       <Checkbox
                         checked={allOnPageSelected}
                         onCheckedChange={(c) =>
@@ -287,7 +287,7 @@ export default function Firewalls() {
                       <Fragment key={g.id}>
                         <TableRow className="cursor-pointer border-b hover:bg-muted/30" onClick={toggle}>
                           <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex justify-center">
+                            <div className="flex w-5 justify-center">
                               <Checkbox
                                 checked={selected.includes(g.id)}
                                 onCheckedChange={(c) => setSelected((prev) => (c ? [...prev, g.id] : prev.filter((id) => id !== g.id)))}

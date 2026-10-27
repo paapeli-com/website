@@ -188,22 +188,22 @@ export default function FloatingIps() {
             selectionCount={selected.length}
           />
 
-          <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs">
+          <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs [&_th]:px-3">
             <Table className="min-w-[980px] table-fixed">
               <colgroup>
-                <col className="w-[44px]" />
-                <col className="w-[20%]" />
-                <col className="w-[20%]" />
-                <col className="w-[13%]" />
-                <col className="w-[18%]" />
-                <col className="w-[13%]" />
+                <col className="w-[80px]" />
+                <col />
+                <col className="w-[15.5%]" />
+                <col className="w-[10.1%]" />
                 <col className="w-[14%]" />
+                <col className="w-[10.1%]" />
+                <col className="w-[10.9%]" />
                 <col className="w-[110px]" />
               </colgroup>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead className="text-center">
-                    <div className="flex justify-center">
+                    <div className="flex w-5 justify-center">
                       <Checkbox
                         checked={allOnPageSelected}
                         disabled={pickable.length === 0}
@@ -253,7 +253,7 @@ export default function FloatingIps() {
                   pageRows.map((i) => (
                     <TableRow key={i.id} className="border-b hover:bg-muted/30">
                       <TableCell className="text-center">
-                        <div className="flex justify-center">
+                        <div className="flex w-5 justify-center">
                           <Checkbox
                             disabled={!!i.attachedTo}
                             checked={selected.includes(i.id)}
