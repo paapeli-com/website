@@ -82,6 +82,8 @@ export interface ServerRecord {
   imageId: string;
   /** "Ubuntu 24.04 LTS" */
   image: string;
+  /** Made from one of the account's own images: what it runs. */
+  osFamily?: "linux" | "windows";
   planId: string;
   vcpu: number;
   ramGb: number;
@@ -321,7 +323,7 @@ export function revertResize(id: string) {
 export function rebuildServer(id: string, image: { imageId: string; label: string }) {
   const s = find(id);
   ready(s, ["running", "stopped"]);
-  start(s, "rebuild", { imageId: image.imageId, image: image.label, powerOn: true }, "Rebuilt", "from {image}", { image: image.label });
+  start(s, "rebuild", { imageId: image.imageId, image: image.label, osFamily: undefined, powerOn: true }, "Rebuilt", "from {image}", { image: image.label });
 }
 
 /** Back to a backup or snapshot: a rebuild from its image. */

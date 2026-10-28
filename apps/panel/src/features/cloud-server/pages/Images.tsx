@@ -54,7 +54,7 @@ import {
   type ImageRecord,
   type ImageStatus,
 } from "../lib/imageStore";
-import { IMAGES_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText, UPLOAD_IMAGE_PATH } from "../ui";
+import { CREATE_SERVER_PATH, IMAGES_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText, UPLOAD_IMAGE_PATH } from "../ui";
 import { apiCall } from "../lib/openstackErrors";
 
 /* Images & Operating Systems: the custom images this account has uploaded.
@@ -422,7 +422,7 @@ export default function Images() {
                             ) : (
                               <RowIcon
                                 label={t("Create server from this image")}
-                                onClick={() => toast.info(fx("comingSoon"))}
+                                onClick={() => navigate(CREATE_SERVER_PATH, { state: { imageId: img.id } })}
                                 disabled={status !== "ready"}
                               >
                                 <Server className="h-4 w-4" />

@@ -64,8 +64,9 @@ const fa: Record<string, string> = {
   "Operating system": "سیستم‌عامل",
   Version: "نسخه",
   Recommended: "پیشنهادی",
-  "Custom images you upload under Images & Operating Systems will appear here.":
-    "ایمیج‌های اختصاصی که در بخش ایمیج‌ها و سیستم‌عامل‌ها بارگذاری کنید، اینجا نمایش داده می‌شوند.",
+  "Images you upload or save from a snapshot under Images & Operating Systems appear here, with the snapshots of your servers in this region.":
+    "ایمیج‌هایی که در بخش ایمیج‌ها و سیستم‌عامل‌ها بارگذاری می‌کنید یا از اسنپ‌شات ذخیره می‌کنید، همراه با اسنپ‌شات‌های سرورهای شما در این منطقه، اینجا نمایش داده می‌شوند.",
+  "The image needs at least {n} GB.": "این ایمیج دست‌کم {n} گیگابایت فضا نیاز دارد.",
 
   // Plan
   "Shared vCPU": "پردازندهٔ اشتراکی",
@@ -1604,8 +1605,9 @@ const ar: Record<string, string> = {
   "Operating system": "نظام التشغيل",
   Version: "الإصدار",
   Recommended: "مُوصى به",
-  "Custom images you upload under Images & Operating Systems will appear here.":
-    "ستظهر هنا الصور المخصصة التي ترفعها في قسم الصور وأنظمة التشغيل.",
+  "Images you upload or save from a snapshot under Images & Operating Systems appear here, with the snapshots of your servers in this region.":
+    "تظهر هنا الصور التي ترفعها أو تحفظها من لقطة في قسم الصور وأنظمة التشغيل، مع لقطات خوادمك في هذه المنطقة.",
+  "The image needs at least {n} GB.": "تحتاج هذه الصورة إلى {n} غيغابايت على الأقل.",
 
   // Plan
   "Shared vCPU": "معالج مشترك",

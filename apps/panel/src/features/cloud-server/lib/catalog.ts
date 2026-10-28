@@ -333,3 +333,8 @@ export const HOURS_PER_MONTH = 730;
 
 /** No floating IP exists yet in the sample account. */
 export const FLOATING_IPS: { id: string; address: string }[] = [];
+
+/** Linux or Windows: from the system image, or as recorded when the server
+    was made from one of the account's own images. */
+export const serverFamily = (s: { imageId: string; osFamily?: "linux" | "windows" }): "linux" | "windows" =>
+  s.osFamily ?? IMAGES.find((i) => i.id === s.imageId)?.family ?? "linux";

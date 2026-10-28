@@ -195,7 +195,7 @@ export default function CreateSshKey() {
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <Card className="min-w-0 space-y-6 p-4 lg:p-5">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <FieldBox title={t("Key name")} required description={t("Letters, digits, dots, hyphens and underscores; up to 63 characters.")}>
+            <FieldBox pinTop title={t("Key name")} required description={t("Letters, digits, dots, hyphens and underscores; up to 63 characters.")}>
               <Input
                 dir="ltr"
                 value={name}

@@ -123,8 +123,8 @@ export function addImageFromSnapshot(input: {
 
 /** Linux or Windows, from what the snapshot's server runs. */
 export function snapshotFamily(serverId: string): ImageRecord["osFamily"] {
-  const imageId = getServers().find((s) => s.id === serverId)?.imageId;
-  return IMAGES.find((i) => i.id === imageId)?.family ?? cache.find((i) => i.id === imageId)?.osFamily ?? "linux";
+  const server = getServers().find((s) => s.id === serverId);
+  return server?.osFamily ?? IMAGES.find((i) => i.id === server?.imageId)?.family ?? cache.find((i) => i.id === server?.imageId)?.osFamily ?? "linux";
 }
 
 /** The image a snapshot was saved as, if it still exists. */

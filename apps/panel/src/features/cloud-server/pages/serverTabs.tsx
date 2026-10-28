@@ -35,7 +35,7 @@ import { formatDateTime } from "@/shared/lib/formatDate";
 import { toast } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
 import { useT } from "../i18n";
-import { adminUser, BACKUP_GB_MONTHLY, DISK_TYPES, FLOATING_IP_MONTHLY, IMAGES, PLANS } from "../lib/catalog";
+import { adminUser, BACKUP_GB_MONTHLY, DISK_TYPES, FLOATING_IP_MONTHLY, IMAGES, PLANS, serverFamily } from "../lib/catalog";
 import {
   bootDiskGb,
   changePassword,
@@ -1012,7 +1012,7 @@ export function DisksTab({ s }: { s: ServerRecord }) {
   const volumes = useVolumes();
   const [attaching, setAttaching] = useState(false);
   const [detaching, setDetaching] = useState<VolumeRecord | null>(null);
-  const family = IMAGES.find((i) => i.id === s.imageId)?.family ?? "linux";
+  const family = serverFamily(s);
   const attached = volumes.filter((v) => v.attachedTo?.serverId === s.id);
   /* Servers saved before disks were volumes keep their own list. */
   const legacy = volumes.some((v) => v.madeWithServerId === s.id) ? [] : (s.disks ?? []).slice(1);
@@ -1545,7 +1545,7 @@ export function MaintenanceTab({ s, now }: { s: ServerRecord; now: number }) {
   const t = useT();
   const phase = serverPhase(s, now);
   const blocked = blockedBecause(s, phase, t);
-  const user = adminUser(IMAGES.find((i) => i.id === s.imageId)?.family ?? "linux");
+  const user = adminUser(serverFamily(s));
   const [resizing, setResizing] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [rescuing, setRescuing] = useState(false);

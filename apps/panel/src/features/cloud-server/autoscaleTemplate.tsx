@@ -127,17 +127,13 @@ export interface MineChoice {
   origin: { type: "upload" } | { type: "saved"; from: string } | { type: "snapshot"; server: string };
 }
 
-/** What a draft comes to: the image, the plan, the key, and what is still
-    missing, as sentences. */
-export function useTemplateInfo(d: TemplateDraft, region: string, zone: string, opts: { keepPassword?: boolean } = {}) {
-  const t = useT();
+/** The account's own images in a region: its images (uploaded, or saved
+    from a snapshot), then its snapshots not saved as one yet. */
+export function useOwnImages(region: string): MineChoice[] {
   const images = useImages();
   const snapshots = useSnapshots();
   const servers = useServers();
-  const keys = useSshKeys();
-  const firewalls = useFirewalls();
-
-  const mine: MineChoice[] = [
+  return [
     ...images
       .filter((i) => imageInRegion(i, region) && imageProgress(i).status !== "failed")
       .map<MineChoice>((i) => ({
@@ -164,6 +160,82 @@ export function useTemplateInfo(d: TemplateDraft, region: string, zone: string, 
         origin: { type: "snapshot", server: servers.find((x) => x.id === s.serverId)?.name ?? "-" },
       })),
   ];
+}
+
+/** The own images as a list to choose one from. */
+export function OwnImageList({
+  choices,
+  value,
+  onChange,
+  region,
+  invalid,
+}: {
+  choices: MineChoice[];
+  value: string;
+  onChange: (id: string) => void;
+  region: string;
+  invalid?: boolean;
+}) {
+  const t = useT();
+  const { formatNumber } = useLanguage();
+  const familyLabel = (f: "linux" | "windows") => (f === "windows" ? t("Windows") : t("Linux"));
+  const originLabel = (c: MineChoice) =>
+    c.origin.type === "upload"
+      ? t("Uploaded image")
+      : c.origin.type === "saved"
+        ? t("Saved from {name}", { name: c.origin.from })
+        : t("Snapshot of {name}", { name: c.origin.server });
+
+  if (!choices.length)
+    return (
+      <div className="rounded-lg border border-dashed border-border px-4 py-5 text-center text-sm text-muted-foreground">
+        {t("No image or snapshot in {region} yet.", { region: t(region) })}
+      </div>
+    );
+  return (
+    <div role="radiogroup" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      {choices.map((c) => {
+        const on = c.id === value;
+        return (
+          <button
+            key={c.id}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            disabled={!c.ready}
+            onClick={() => onChange(c.id)}
+            className={cn(
+              "flex min-w-0 items-center gap-2.5 rounded-lg border px-3 py-2.5 text-start outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60",
+              on ? "border-primary/50 bg-primary/[0.04]" : "border-border hover:border-primary/30",
+              invalid && !value && "border-destructive",
+            )}
+          >
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+              {c.kind === "image" ? <Disc className="size-4" /> : <Camera className="size-4" />}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span dir="ltr" className="block truncate text-sm font-medium text-foreground">
+                {c.name}
+              </span>
+              <span className="block truncate text-xs text-muted-foreground">
+                {originLabel(c)} · {familyLabel(c.family)} · {formatNumber(c.sizeGb)} {t("GB")}
+              </span>
+            </span>
+            {!c.ready && <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" aria-label={t("Creating")} />}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** What a draft comes to: the image, the plan, the key, and what is still
+    missing, as sentences. */
+export function useTemplateInfo(d: TemplateDraft, region: string, zone: string, opts: { keepPassword?: boolean } = {}) {
+  const t = useT();
+  const keys = useSshKeys();
+  const firewalls = useFirewalls();
+  const mine = useOwnImages(region);
 
   const os = IMAGES.find((i) => i.id === d.osId) ?? IMAGES[0];
   const chosen = d.source === "mine" ? mine.find((c) => c.id === d.mineId) : undefined;
@@ -387,45 +459,13 @@ export function TemplateFields({
             <p className="mb-3 text-xs text-muted-foreground">
               {t("Set up a server with your software, take a snapshot of it, and choose it here. A snapshot is saved as an image when the group is saved, so the group keeps working after the server is deleted.")}
             </p>
-            {info.mine.length > 0 ? (
-              <div role="radiogroup" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {info.mine.map((c) => {
-                  const on = c.id === d.mineId;
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={on}
-                      disabled={!c.ready}
-                      onClick={() => onChange({ mineId: c.id })}
-                      className={cn(
-                        "flex min-w-0 items-center gap-2.5 rounded-lg border px-3 py-2.5 text-start outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60",
-                        on ? "border-primary/50 bg-primary/[0.04]" : "border-border hover:border-primary/30",
-                        showErrors && problems.image && !d.mineId && "border-destructive",
-                      )}
-                    >
-                      <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                        {c.kind === "image" ? <Disc className="size-4" /> : <Camera className="size-4" />}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span dir="ltr" className="block truncate text-sm font-medium text-foreground">
-                          {c.name}
-                        </span>
-                        <span className="block truncate text-xs text-muted-foreground">
-                          {originLabel(c)} · {familyLabel(c.family)} · {formatNumber(c.sizeGb)} {t("GB")}
-                        </span>
-                      </span>
-                      {!c.ready && <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" aria-label={t("Creating")} />}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="rounded-lg border border-dashed border-border px-4 py-5 text-center text-sm text-muted-foreground">
-                {t("No image or snapshot in {region} yet.", { region: t(region) })}
-              </div>
-            )}
+            <OwnImageList
+              choices={info.mine}
+              value={d.mineId}
+              onChange={(id) => onChange({ mineId: id })}
+              region={region}
+              invalid={showErrors && !!problems.image}
+            />
             {error(problems.image)}
             <Button variant="outline" size="sm" className="mt-3 gap-1.5" onClick={() => setSnapshotOpen(true)}>
               <Camera className="size-3.5" />

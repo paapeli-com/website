@@ -68,6 +68,8 @@ import { BACKUP_CAPACITY, enableBackup } from "../lib/backupStore";
 import { addVolumes, devicePath } from "../lib/volumeStore";
 import { keyAvailableIn, useSshKeys } from "../lib/sshKeyStore";
 import { AddKeyDialog } from "../sshKeyDialog";
+import { OwnImageList, TemplateImage, useOwnImages } from "../autoscaleTemplate";
+import { getImages } from "../lib/imageStore";
 import { connectServer, fixedIpProblem, freeAddresses, useNetworks } from "../lib/networkStore";
 import { apiCall } from "../lib/openstackErrors";
 import { attachServer as applyFirewall, DEFAULT_FIREWALL_ID, inboundSummary, useFirewalls } from "../lib/firewallStore";
@@ -169,8 +171,11 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
   const isGpu = mode === "gpu";
   const t = useT();
   const navigate = useNavigate();
-  /* Arriving from a dedicated server's row: that machine is already chosen. */
-  const preHostId = isGpu ? undefined : (useLocation().state as { hostId?: string } | null)?.hostId;
+  /* Arriving from a dedicated server's row, that machine is already chosen;
+     from an image's row, that image (and the region it is kept in). */
+  const arrival = useLocation().state as { hostId?: string; imageId?: string } | null;
+  const preHostId = isGpu ? undefined : arrival?.hostId;
+  const [preImage] = useState(() => getImages().find((i) => i.id === arrival?.imageId));
   const { isRTL } = useLanguage();
   const language = useAppLanguage();
   const n = (v: number | string) => localizeDigits(language, v);
@@ -189,7 +194,8 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
 
   const [name, setName] = useState(isGpu ? "gpu-server-01" : "server-01");
   const [regionId, setRegionId] = useState(
-    REGIONS.some((r) => r.id === saved?.regionId) ? saved!.regionId : REGIONS[0].id,
+    REGIONS.find((r) => preImage?.region && r.city === preImage.region)?.id ??
+      (REGIONS.some((r) => r.id === saved?.regionId) ? saved!.regionId : REGIONS[0].id),
   );
   const region = REGIONS.find((r) => r.id === regionId) ?? REGIONS[0];
   const [zone, setZone] = useState(region.zones.includes(saved?.zone ?? "") ? saved!.zone : region.zones[0]);
@@ -201,6 +207,15 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
     Object.fromEntries(IMAGES.map((i) => [i.id, i.id === startImage.imageId ? startImage.version : i.versions[0]])),
   );
   const image = IMAGES.find((i) => i.id === imageId) ?? IMAGES[0];
+  /* Or one of the account's own images or snapshots in this region. A
+     snapshot boots a server as it is; it is not saved as an image. */
+  const [imageSource, setImageSource] = useState<"os" | "mine">(preImage ? "mine" : "os");
+  const [mineId, setMineId] = useState(preImage ? `img:${preImage.id}` : "");
+  const ownImages = useOwnImages(region.city);
+  const own = imageSource === "mine" ? ownImages.find((c) => c.id === mineId) : undefined;
+  const osFamily = imageSource === "mine" ? (own?.family ?? "linux") : image.family;
+  const imageLabel = imageSource === "mine" ? (own?.name ?? "") : `${image.name} ${versions[imageId]}`;
+  const imageOk = imageSource === "os" || !!own?.ready;
 
   /* Only this mode's plans, and never one that is sold out. */
   const modePlans = PLANS.filter((p) => (p.family === "gpu") === isGpu);
@@ -228,7 +243,10 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
   const host: HostRecord | undefined = hostsHere.find((h) => h.id === hostId) ?? hostsHere[0];
   const onHost = !isGpu && family === "host";
 
-  const startBoot = Math.min(BOOT_DISK_MAX_GB, Math.max(plan.diskGb, saved?.bootGb ?? plan.diskGb));
+  /* The boot disk holds the plan's disk and the image, whichever is larger. */
+  const needGb = own?.sizeGb ?? 0;
+  const minBoot = Math.max(plan.diskGb, needGb);
+  const startBoot = Math.min(BOOT_DISK_MAX_GB, Math.max(plan.diskGb, preImage?.sizeGb ?? 0, saved?.bootGb ?? plan.diskGb));
   const [bootGb, setBootGb] = useState(startBoot);
   const [bootDraft, setBootDraft] = useState(String(startBoot));
   const [extraDisks, setExtraDisks] = useState<{ id: number; sizeGb: number }[]>(() =>
@@ -283,7 +301,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
   const nameOk = NAME_RE.test(name);
   const accessOk = access === "password" || !!sshKeyId;
   const stepOk = (i: number) =>
-    i === 0 ? nameOk : i === 2 ? !(onHost && !host) : i === 4 ? !privateIpProblem : i === SECURITY_STEP ? accessOk : true;
+    i === 0 ? nameOk : i === 1 ? imageOk : i === 2 ? !(onHost && !host) : i === 4 ? !privateIpProblem : i === SECURITY_STEP ? accessOk : true;
 
   // ---- Price ----------------------------------------------------------------
   const extraGb = extraDisks.reduce((sum, d) => sum + d.sizeGb, 0);
@@ -305,10 +323,12 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
   // ---- Actions ------------------------------------------------------------
   const choosePlan = (p: Plan) => {
     setPlanId(p.id);
-    /* The boot disk can never be smaller than what the plan includes. */
-    if (bootGb < p.diskGb) {
-      setBootGb(p.diskGb);
-      setBootDraft(String(p.diskGb));
+    /* The boot disk can never be smaller than what the plan includes, or
+       than the image. */
+    const least = Math.max(p.diskGb, needGb);
+    if (bootGb < least) {
+      setBootGb(least);
+      setBootDraft(String(least));
     }
   };
 
@@ -321,13 +341,18 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
   };
 
   const setBoot = (gb: number) => {
-    const clamped = Math.min(BOOT_DISK_MAX_GB, Math.max(plan.diskGb, Math.round(gb)));
+    const clamped = Math.min(BOOT_DISK_MAX_GB, Math.max(minBoot, Math.round(gb)));
     setBootGb(clamped);
     setBootDraft(String(clamped));
   };
 
+  /* A larger image grows the boot disk to fit it. */
+  useEffect(() => {
+    if (bootGb < minBoot) setBoot(minBoot);
+  }, [minBoot]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const create = () => {
-    const firstBad = [0, 2, SECURITY_STEP].find((i) => !stepOk(i));
+    const firstBad = [0, 1, 2, SECURITY_STEP].find((i) => !stepOk(i));
     if (firstBad !== undefined) {
       setShowErrors(true);
       setStep(firstBad);
@@ -375,7 +400,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
           sizeGb: d.sizeGb,
           region: region.city,
           zone,
-          attachedTo: { serverId: id, path: devicePath(i + 1, image.family) },
+          attachedTo: { serverId: id, path: devicePath(i + 1, osFamily) },
           deleteWithServer: true,
           madeWithServerId: id,
         })),
@@ -389,8 +414,9 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
       hostId: onHost ? host?.id : undefined,
       hostName: onHost ? host?.name : undefined,
       name,
-      imageId,
-      image: `${image.name} ${versions[imageId]}`,
+      imageId: own ? own.refId : imageId,
+      image: imageLabel,
+      osFamily: own ? own.family : undefined,
       planId: plan.id,
       vcpu: plan.vcpu,
       ramGb: plan.ramGb,
@@ -401,8 +427,8 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
       ipv6: ipv6 ? addresses.ipv6 : undefined,
       extraIps,
       disks: [
-        { label: "Boot disk", sizeGb: bootGb, path: devicePath(0, image.family) },
-        ...extraDisks.map((d, i) => ({ label: "Additional disk", sizeGb: d.sizeGb, path: devicePath(i + 1, image.family) })),
+        { label: "Boot disk", sizeGb: bootGb, path: devicePath(0, osFamily) },
+        ...extraDisks.map((d, i) => ({ label: "Additional disk", sizeGb: d.sizeGb, path: devicePath(i + 1, osFamily) })),
       ],
       sshKeyId: access === "ssh" ? sshKeyId : undefined,
       powerOn,
@@ -414,13 +440,13 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
     const created: CreatedServer = {
       kind: mode,
       gpu: plan.gpu,
-      osFamily: image.family,
+      osFamily,
       name,
-      image: `${image.name} ${versions[imageId]}`,
+      image: imageLabel,
       spec: `${plan.vcpu} vCPU · ${plan.ramGb} GB RAM`,
       ipv6,
       ipv4Address: addresses.ipv4,
-      username: adminUser(image.family),
+      username: adminUser(osFamily),
       ipv6Address: addresses.ipv6,
       access,
       sshKeyName: access === "ssh" ? keys.find((k) => k.id === sshKeyId)?.name : undefined,
@@ -491,7 +517,44 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
             )}
 
             {step === 1 && (
-              <StepSection icon={Disc} title={t("Operating system")}>
+              <StepSection
+                icon={Disc}
+                title={t("Image")}
+                action={
+                  <div className="inline-flex rounded-lg border border-border p-0.5">
+                    {(["os", "mine"] as const).map((src) => (
+                      <button
+                        key={src}
+                        type="button"
+                        aria-pressed={imageSource === src}
+                        onClick={() => setImageSource(src)}
+                        className={cn(
+                          "rounded-md px-3 py-1 text-xs transition-colors",
+                          imageSource === src ? "bg-primary/10 font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {src === "os" ? t("Operating systems") : t("My images and snapshots")}
+                      </button>
+                    ))}
+                  </div>
+                }
+              >
+                {imageSource === "mine" ? (
+                  <>
+                    <OwnImageList
+                      choices={ownImages}
+                      value={mineId}
+                      onChange={setMineId}
+                      region={region.city}
+                      invalid={showErrors && !imageOk}
+                    />
+                    {showErrors && !imageOk && (
+                      <p className="mt-1.5 text-xs text-destructive">
+                        {own ? t("{name} is still being made. Choose it once it is ready.", { name: own.name }) : t("Choose an image or a snapshot.")}
+                      </p>
+                    )}
+                  </>
+                ) : (
                 <div role="radiogroup" className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
                   {IMAGES.map((img) => (
                     <OptionCard key={img.id} selected={img.id === imageId} onSelect={() => setImageId(img.id)}>
@@ -524,6 +587,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                     </OptionCard>
                   ))}
                 </div>
+                )}
                 {isGpu && (
                   <label
                     className={cn(
@@ -534,7 +598,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                     <Checkbox checked={installDrivers} onCheckedChange={(v) => setInstallDrivers(v === true)} className="mt-0.5" />
                     <span>
                       <span className="block text-sm font-semibold text-foreground">
-                        {image.family === "windows" ? t("Install NVIDIA driver") : t("Install NVIDIA driver and CUDA")}
+                        {osFamily === "windows" ? t("Install NVIDIA driver") : t("Install NVIDIA driver and CUDA")}
                       </span>
                       <span className="block text-xs text-muted-foreground">
                         {t("Ready on first boot, so the GPU works without setting anything up.")}
@@ -542,9 +606,11 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                     </span>
                   </label>
                 )}
-                <Note className="mt-4">
-                  {t("Custom images you upload under Images & Operating Systems will appear here.")}
-                </Note>
+                {imageSource === "mine" && (
+                  <Note className="mt-4">
+                    {t("Images you upload or save from a snapshot under Images & Operating Systems appear here, with the snapshots of your servers in this region.")}
+                  </Note>
+                )}
               </StepSection>
             )}
 
@@ -695,15 +761,15 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                           min={0}
                           max={SLIDER_STEPS}
                           step={1}
-                          value={[toSlider(bootGb, plan.diskGb)]}
-                          onValueChange={([v]) => setBoot(fromSlider(v, plan.diskGb))}
+                          value={[toSlider(bootGb, minBoot)]}
+                          onValueChange={([v]) => setBoot(fromSlider(v, minBoot))}
                           aria-label={t("Boot disk size")}
                           aria-valuetext={`${bootGb} GB`}
                         />
                         {/* Each mark sets the size it names. */}
                         <div className="relative mt-2 h-6">
-                          {sliderMarks(plan.diskGb).map((gb, i, marks) => {
-                            const pos = toSlider(gb, plan.diskGb) / SLIDER_STEPS;
+                          {sliderMarks(minBoot).map((gb, i, marks) => {
+                            const pos = toSlider(gb, minBoot) / SLIDER_STEPS;
                             /* A mark at either end hangs inward from its point
                                rather than centring on it, so its label stays
                                inside the card. */
@@ -737,12 +803,12 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                           type="number"
                           dir="ltr"
                           inputMode="numeric"
-                          min={plan.diskGb}
+                          min={minBoot}
                           max={BOOT_DISK_MAX_GB}
                           value={bootDraft}
                           onChange={(e) => setBootDraft(e.target.value)}
-                          onBlur={() => setBoot(Number(bootDraft) || plan.diskGb)}
-                          onKeyDown={(e) => e.key === "Enter" && setBoot(Number(bootDraft) || plan.diskGb)}
+                          onBlur={() => setBoot(Number(bootDraft) || minBoot)}
+                          onKeyDown={(e) => e.key === "Enter" && setBoot(Number(bootDraft) || minBoot)}
                           className="h-9 w-24"
                           aria-label={t("Boot disk size")}
                         />
@@ -751,6 +817,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
                       {t("The plan includes {n} GB. Extra space is billed per GB.", { n: n(plan.diskGb) })}
+                      {needGb > plan.diskGb && ` ${t("The image needs at least {n} GB.", { n: n(needGb) })}`}
                     </p>
                   </div>
 
@@ -796,7 +863,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                             </TableCell>
                             <TableCell>
                               <code dir="ltr" className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
-                                {devicePath(0, image.family)}
+                                {devicePath(0, osFamily)}
                               </code>
                             </TableCell>
                             <TableCell />
@@ -834,7 +901,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                               </TableCell>
                               <TableCell>
                                 <code dir="ltr" className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
-                                  {devicePath(i + 1, image.family)}
+                                  {devicePath(i + 1, osFamily)}
                                 </code>
                               </TableCell>
                               <TableCell>
@@ -1140,7 +1207,10 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                     <ReviewLine label={t("Region")} value={`${t(region.city)} · ${zone}`} />
                   </ReviewBlock>
                   <ReviewBlock title={t("Image")} onEdit={() => setStep(1)}>
-                    <ReviewLine label={t("Operating system")} value={<span dir="ltr">{`${image.name} ${versions[image.id]}`}</span>} />
+                    <ReviewLine
+                      label={imageSource === "mine" ? t("Image") : t("Operating system")}
+                      value={<TemplateImage source={imageSource === "mine" ? "custom" : "os"} imageId={imageId} label={imageLabel} />}
+                    />
                   </ReviewBlock>
                   <ReviewBlock title={t("Plan")} onEdit={() => setStep(2)}>
                     <ReviewLine label={t("Plan")} value={<span dir="ltr">{plan.id.toUpperCase()}</span>} />
@@ -1209,15 +1279,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                 icon={Disc}
                 label={t("Image")}
                 value={
-                  <span dir="ltr" className="inline-flex items-center gap-1.5">
-                    <OsLogo
-                      id={image.id}
-                      name={image.name}
-                      color={image.color}
-                      className="flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-bold [&_svg]:size-3.5"
-                    />
-                    {`${image.name} ${versions[image.id]}`}
-                  </span>
+                  <TemplateImage source={imageSource === "mine" ? "custom" : "os"} imageId={imageId} label={imageLabel || "-"} />
                 }
               />
               {isGpu && plan.gpu && (

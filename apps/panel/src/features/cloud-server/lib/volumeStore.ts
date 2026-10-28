@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { ApiError } from "./openstackErrors";
-import { IMAGES, type DiskTypeId } from "./catalog";
+import { serverFamily, type DiskTypeId } from "./catalog";
 import type { ServerRecord } from "./serverStore";
 
 /* Cloud disks, until Cloud Server has an API.
@@ -51,7 +51,7 @@ export const volumeStatus = (v: VolumeRecord, now = Date.now()): VolumeStatus =>
 export const devicePath = (index: number, family: "linux" | "windows") =>
   family === "windows" ? `${String.fromCharCode(67 + index)}:` : `/dev/sd${String.fromCharCode(97 + index)}`;
 
-const familyOf = (s: ServerRecord) => IMAGES.find((i) => i.id === s.imageId)?.family ?? "linux";
+const familyOf = (s: ServerRecord) => serverFamily(s);
 
 /** The first free place on a server for one more disk. */
 export function nextDevicePath(server: ServerRecord, volumes: VolumeRecord[]) {

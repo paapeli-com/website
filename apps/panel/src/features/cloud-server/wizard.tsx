@@ -168,23 +168,27 @@ export function StepSection({
   icon: Icon,
   title,
   description,
+  action,
   children,
 }: {
   icon: LucideIcon;
   title: string;
   description?: string;
+  /** Beside the title, at the far end. */
+  action?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <section>
-      <div className="mb-5 flex items-center gap-3">
+      <div className="mb-5 flex flex-wrap items-center gap-3">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
           <Icon className="size-[18px]" />
         </span>
-        <div>
+        <div className="min-w-0 flex-1">
           <h2 className="text-base font-semibold text-foreground">{title}</h2>
           {description && <p className="text-sm text-muted-foreground">{description}</p>}
         </div>
+        {action}
       </div>
       {children}
     </section>
@@ -319,6 +323,7 @@ export function FieldBox({
   description,
   children,
   className,
+  pinTop,
 }: {
   icon?: LucideIcon;
   title: string;
@@ -326,6 +331,8 @@ export function FieldBox({
   description?: string;
   children: ReactNode;
   className?: string;
+  /** Keep the control under the title when the box beside it grows. */
+  pinTop?: boolean;
 }) {
   return (
     <div className={cn("flex h-full min-w-0 flex-col rounded-xl border border-border p-4", className)}>
@@ -343,7 +350,7 @@ export function FieldBox({
           {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
         </div>
       </div>
-      <div className="mt-auto">{children}</div>
+      <div className={pinTop ? undefined : "mt-auto"}>{children}</div>
     </div>
   );
 }
