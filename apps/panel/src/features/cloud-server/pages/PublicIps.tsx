@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Copy, Download, Globe, Link2, Lock, MoreHorizontal, Plus, ShieldCheck, Trash2, Unlink } from "lucide-react";
+import { Download, Globe, Link2, Lock, MoreHorizontal, Plus, ShieldCheck, Trash2, Unlink } from "lucide-react";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
@@ -44,7 +44,7 @@ import {
   useReservedIps,
   type ReservedIp,
 } from "../lib/ipStore";
-import { GPU_SERVERS_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText, groupPath } from "../ui";
+import { GPU_SERVERS_PATH, PageBreadcrumb, SERVERS_PATH, CopyButton, TruncatedText, groupPath } from "../ui";
 
 /* Public IPs: every public address the account has.
  *
@@ -166,11 +166,6 @@ export default function PublicIps() {
   const allOnPageSelected = pickable.length > 0 && pickable.every((r) => selected.includes(r.key));
   const full = reserved.length >= MAX_RESERVED;
 
-  const copy = (v: string) =>
-    void navigator.clipboard?.writeText(v).then(
-      () => toast.success(t("Copied")),
-      () => toast.error(t("Could not copy")),
-    );
 
   const exportCsv = () => {
     const header = ["address", "version", "type", "attachedTo", "region", "zone", "created"];
@@ -423,16 +418,8 @@ export default function PublicIps() {
                         </TableCell>
                         <TableCell>
                           <span className="flex min-w-0 items-center gap-1">
-                            <TruncatedText text={r.address} ltr mono className="font-medium text-foreground" />
-                            <button
-                              type="button"
-                              onClick={() => copy(r.address)}
-                              aria-label={t("Copy")}
-                              title={t("Copy")}
-                              className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                            >
-                              <Copy className="size-3.5" />
-                            </button>
+                            <TruncatedText text={r.address} ltr className="font-medium text-foreground" />
+                            <CopyButton text={r.address} />
                           </span>
                         </TableCell>
                         <TableCell>{r.version}</TableCell>

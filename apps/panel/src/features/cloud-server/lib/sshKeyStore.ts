@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import type { KeyAlgorithm } from "./sshKeyGen";
 import { ApiError } from "./openstackErrors";
+import { getGroups } from "./autoscaleStore";
 
 /* SSH keys, until Cloud Server has an API.
  *
@@ -67,7 +68,13 @@ export function addSshKey(input: Omit<SshKeyRecord, "id" | "createdAt">): SshKey
   return key;
 }
 
-export const deleteSshKeys = (ids: string[]) => write(cache.filter((k) => !ids.includes(k.id)));
+/** Refused while an Auto Scale group gives one of them to its new instances:
+    Nova would not find the key pair for the next one. */
+export function deleteSshKeys(ids: string[]) {
+  const users = getGroups().filter((g) => g.access?.method === "ssh" && ids.includes(g.access.keyId));
+  if (users.length) throw new ApiError(409, "KeyInUseByGroup", "", { groups: users.map((g) => g.name).join(", ") });
+  write(cache.filter((k) => !ids.includes(k.id)));
+}
 
 /** Nova answers "already exists" for a name in use. */
 export const sshKeyNameTaken = (name: string) => cache.some((k) => k.name === name.trim());

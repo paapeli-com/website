@@ -10,6 +10,7 @@ import AutoScaleGroups from "./pages/AutoScaleGroups";
 import CreateAutoScale from "./pages/CreateAutoScale";
 import AutoScaleGroup from "./pages/AutoScaleGroup";
 import ServerCreated from "./pages/ServerCreated";
+import ServerDetail from "./pages/ServerDetail";
 import Images from "./pages/Images";
 import PublicIps from "./pages/PublicIps";
 import FloatingIps from "./pages/FloatingIps";
@@ -80,9 +81,11 @@ export default function CloudServerRoutes() {
             <Route path="/servers/new" element={<Navigate to={`${CLOUD_SERVER_BASE}/servers/create`} replace />} />
             <Route path="/servers/create" element={<CreateServer key="cloud" />} />
             <Route path="/servers/created" element={<ServerCreated />} />
+            <Route path="/servers/:serverId" element={<ServerDetail key="cloud" />} />
             {/* GPU servers: the same list and wizard, in GPU mode. */}
             <Route path="/gpu-servers" element={<Servers key="gpu" kind="gpu" />} />
             <Route path="/gpu-servers/create" element={<CreateServer key="gpu" mode="gpu" />} />
+            <Route path="/gpu-servers/:serverId" element={<ServerDetail key="gpu" kind="gpu" />} />
             <Route path="/auto-scale" element={<AutoScaleGroups />} />
             <Route path="/auto-scale/create" element={<CreateAutoScale />} />
             <Route path="/auto-scale/:groupId" element={<AutoScaleGroup />} />

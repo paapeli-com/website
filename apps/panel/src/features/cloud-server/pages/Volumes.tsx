@@ -358,7 +358,7 @@ export default function Volumes() {
                               className="block max-w-full text-start text-foreground hover:text-primary"
                             >
                               <TruncatedText text={serverName(v.attachedTo.serverId)} ltr />
-                              <TruncatedText text={v.attachedTo.path} ltr mono className="text-xs text-muted-foreground" />
+                              <TruncatedText text={v.attachedTo.path} ltr className="text-xs text-muted-foreground" />
                             </button>
                           ) : (
                             <span className="text-muted-foreground">-</span>

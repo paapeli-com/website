@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, Download, Loader2, MoreHorizontal, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { Camera, Disc, Download, Loader2, MoreHorizontal, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import { ListToolbar, type ActionItem, type FilterField, type SortOption } from "@/features/factory/components/panel/ListToolbar";
@@ -42,10 +42,13 @@ import {
   type SnapshotRecord,
   type SnapshotStatus,
 } from "../lib/snapshotStore";
-import { CreateSnapshotDialog } from "../snapshotDialog";
-import { ConfirmDialog, PageBreadcrumb, ProgressStatus, SERVERS_PATH, SNAPSHOTS_PATH, TruncatedText } from "../ui";
+import { CreateSnapshotDialog, SaveAsImageDialog } from "../snapshotDialog";
+import { imageOfSnapshot, useImages } from "../lib/imageStore";
+import { ConfirmDialog, IMAGES_PATH, PageBreadcrumb, ProgressStatus, SERVERS_PATH, SNAPSHOTS_PATH, TruncatedText } from "../ui";
 
-/* Snapshots: copies of servers' main disks, taken by hand.
+/* Snapshots: copies of servers' main disks, taken by hand. A snapshot goes
+ * with its server; Save as image keeps it as the account's own image, for new
+ * servers and Auto Scale groups.
  *
  * Backup's standard, one level flatter: a snapshot is a row of its own, with
  * no schedule and no capacity, so nothing to open. No KPI cards. Made in a
@@ -64,6 +67,7 @@ export default function Snapshots() {
   const navigate = useNavigate();
   const snapshots = useSnapshots();
   const servers = useServers();
+  const images = useImages();
   const serverName = (id: string) => servers.find((s) => s.id === id)?.name ?? "-";
 
   const [now, setNow] = useState(Date.now());
@@ -86,6 +90,7 @@ export default function Snapshots() {
   const [createOpen, setCreateOpen] = useState(false);
   const [restoring, setRestoring] = useState<SnapshotRecord | null>(null);
   const [renaming, setRenaming] = useState<SnapshotRecord | null>(null);
+  const [saving, setSaving] = useState<SnapshotRecord | null>(null);
   const [deleteIds, setDeleteIds] = useState<string[] | null>(null);
 
   const statusLabel: Record<SnapshotStatus, string> = { creating: t("Creating"), ready: t("Ready"), restoring: t("Restoring") };
@@ -367,6 +372,17 @@ export default function Snapshots() {
                                   <Pencil className="me-2 h-4 w-4" />
                                   {fx("rename")}
                                 </DropdownMenuItem>
+                                {imageOfSnapshot(s.id, images) ? (
+                                  <DropdownMenuItem onClick={() => navigate(IMAGES_PATH)}>
+                                    <Disc className="me-2 h-4 w-4" />
+                                    {t("View image")}
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem disabled={status === "creating"} onClick={() => setSaving(s)}>
+                                    <Disc className="me-2 h-4 w-4" />
+                                    {t("Save as image")}
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   className="text-destructive focus:text-destructive"
@@ -471,6 +487,7 @@ export default function Snapshots() {
       />
 
       <RenameSnapshotDialog snapshot={renaming} onClose={() => setRenaming(null)} />
+      <SaveAsImageDialog snapshot={saving} onClose={() => setSaving(null)} />
     </div>
   );
 }

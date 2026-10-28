@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Copy, Download, Link2, MoreHorizontal, Pencil, Plus, Repeat, Trash2, Unlink, Wallet } from "lucide-react";
+import { Download, Link2, MoreHorizontal, Pencil, Plus, Repeat, Trash2, Unlink, Wallet } from "lucide-react";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import { ListToolbar, type ActionItem, type FilterField, type SortOption } from "@/features/factory/components/panel/ListToolbar";
@@ -45,7 +45,7 @@ import {
   useFloatingIps,
   type FloatingIp,
 } from "../lib/floatingStore";
-import { LOAD_BALANCERS_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText } from "../ui";
+import { LOAD_BALANCERS_PATH, PageBreadcrumb, SERVERS_PATH, CopyButton, TruncatedText } from "../ui";
 import { attachPublicIp, forgetPublicIp, useLoadBalancers } from "../lib/loadBalancerStore";
 import { apiCall } from "../lib/openstackErrors";
 
@@ -99,11 +99,6 @@ export default function FloatingIps() {
   const pickable = pageRows.filter((i) => !i.attachedTo);
   const allOnPageSelected = pickable.length > 0 && pickable.every((i) => selected.includes(i.id));
 
-  const copy = (v: string) =>
-    void navigator.clipboard?.writeText(v).then(
-      () => toast.success(t("Copied")),
-      () => toast.error(t("Could not copy")),
-    );
 
   const exportCsv = () => {
     const header = ["address", "description", "attachedTo", "region", "zone", "created"];
@@ -264,16 +259,8 @@ export default function FloatingIps() {
                       </TableCell>
                       <TableCell>
                         <span className="flex min-w-0 items-center gap-1">
-                          <TruncatedText text={i.address} ltr mono className="font-medium text-foreground" />
-                          <button
-                            type="button"
-                            onClick={() => copy(i.address)}
-                            aria-label={t("Copy")}
-                            title={t("Copy")}
-                            className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                          >
-                            <Copy className="size-3.5" />
-                          </button>
+                          <TruncatedText text={i.address} ltr className="font-medium text-foreground" />
+                          <CopyButton text={i.address} />
                         </span>
                       </TableCell>
                       <TableCell>

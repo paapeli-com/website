@@ -10,6 +10,7 @@ import { toast } from "@/shared/lib/toast";
  *   Cinder    the same shape as Nova
  *   Keystone  { "error": { "code": 401, "title": "Unauthorized", "message": "…" } }
  *   Octavia   { "faultcode": "Client", "faultstring": "Load Balancer … is immutable …", "debuginfo": null }
+ *   Designate { "code": 400, "type": "invalid_object", "message": "…" }
  *
  * and the gateway may wrap any of them in its problem details, with the
  * service's text in `detail` and its type in `code`. Each refusal is read
@@ -70,6 +71,8 @@ const BY_TYPE: Record<string, string> = {
   SecurityGroupRuleExists: "This rule already exists.",
   AlreadyConnected: "This server is already connected to this network.",
   NetworkInUseByGroup: "An Auto Scale group uses this network. Change or delete the group first.",
+  ImageInUseByGroup: "Auto Scale groups make their instances from this image: {groups}. Change their template first.",
+  KeyInUseByGroup: "Auto Scale groups give this key to their instances: {groups}. Change their template first.",
   // Octavia
   ImmutableObject: "The load balancer is still applying the last change. Try again in a moment.",
   LoadBalancerNotFound: "This load balancer no longer exists. Refresh the list.",
@@ -85,6 +88,18 @@ const BY_TYPE: Record<string, string> = {
   InstanceNotFound: "This server no longer exists. Refresh the list.",
   FlavorNotFound: "This plan is not available any more. Choose another one.",
   NoValidHost: "There is no room for this server in the chosen zone right now. Try another plan or zone.",
+  InstanceIsLocked: "This server is locked. Unlock it first.",
+  CannotResizeDisk: "A plan with a smaller disk cannot be chosen: a disk is never shrunk.",
+  CannotResizeToSameFlavor: "The server is already on this plan.",
+  TooManyTags: "A server can have at most {n} labels.",
+  FlavorDiskSmallerThanImage: "The plan's disk is smaller than the image needs. Choose a larger plan.",
+  ImageNotActive: "The image is not ready yet. Try again once it is.",
+  ImageNotFound: "This image no longer exists. Choose another one.",
+  UserDataTooLarge: "The startup script is too long. Keep it under 48 KB.",
+  ImageProtected: "This image is protected and cannot be deleted.",
+  // Designate
+  invalid_object: "The domain name was not accepted. Check it and try again.",
+  duplicate_record: "This address already has a reverse DNS record. Refresh and try again.",
   // Cinder
   VolumeAttached: "The disk is attached to a server. Detach it first.",
   VolumeInvalidState: "The disk is busy with another task. Try again in a moment.",
@@ -100,7 +115,17 @@ const BY_MESSAGE: [RegExp, string][] = [
   [/no valid host/i, "NoValidHost"],
   [/cannot .* while it is in (task_state|vm_state)|instance .* in (task_state|vm_state)/i, "InstanceInvalidState"],
   [/instance .* could not be found/i, "InstanceNotFound"],
+  [/instance .* is locked/i, "InstanceIsLocked"],
+  [/resize .*(disk down|smaller disk|zero disk)|unable to resize disk down/i, "CannotResizeDisk"],
+  [/must change flavor|same flavor/i, "CannotResizeToSameFlavor"],
+  [/maximum number of (server )?tags/i, "TooManyTags"],
   [/flavor .* could not be found/i, "FlavorNotFound"],
+  /* Nova on boot, and Glance. */
+  [/flavor'?s (disk|memory) is too small for requested image/i, "FlavorDiskSmallerThanImage"],
+  [/image .* is not active/i, "ImageNotActive"],
+  [/image .* could not be found|no image found/i, "ImageNotFound"],
+  [/user data too large/i, "UserDataTooLarge"],
+  [/image .* is protected/i, "ImageProtected"],
   [/volume .* (is )?(still )?attached|status must be available/i, "VolumeAttached"],
   [/invalid volume.*status/i, "VolumeInvalidState"],
   [/security group .* in use/i, "SecurityGroupInUse"],
@@ -163,9 +188,17 @@ export function readApiError(error: unknown): ApiError {
         | undefined;
       message =
         inner?.message ??
-        (typeof data.faultstring === "string" ? data.faultstring : typeof data.detail === "string" ? data.detail : "") ??
+        (typeof data.message === "string"
+          ? data.message
+          : typeof data.faultstring === "string"
+            ? data.faultstring
+            : typeof data.detail === "string"
+              ? data.detail
+              : "") ??
         "";
       if (typeof data.code === "string" && BY_TYPE[data.code]) type = data.code;
+      /* Designate names the fault in "type". */
+      if (typeof data.type === "string" && BY_TYPE[data.type]) type = data.type;
     }
   }
   if (!BY_TYPE[type]) type = BY_MESSAGE.find(([re]) => re.test(message))?.[1] ?? type;

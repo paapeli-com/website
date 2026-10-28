@@ -270,7 +270,7 @@ export default function NetworkForm() {
                     aria-label={t("Subnet")}
                     aria-invalid={!!shown(errors.cidr, form.cidr)}
                     className={cn(
-                      "h-12 pe-24 font-mono",
+                      "h-12 pe-24 rtl:text-right",
                       shown(errors.cidr, form.cidr) && "border-destructive",
                     )}
                   />
@@ -603,7 +603,7 @@ export default function NetworkForm() {
                       }
                       aria-label="MTU"
                       className={cn(
-                        "h-10 font-mono",
+                        "h-10",
                         errors.mtu &&
                           (showErrors || !Number.isNaN(form.mtu)) &&
                           "border-destructive",
@@ -763,7 +763,7 @@ function IpInput({
         aria-label={label}
         aria-invalid={bad}
         spellCheck={false}
-        className={cn("h-10 font-mono text-sm", bad && "border-destructive")}
+        className={cn("h-10 text-sm rtl:text-right", bad && "border-destructive")}
       />
       <FieldError problem={problem} />
     </div>

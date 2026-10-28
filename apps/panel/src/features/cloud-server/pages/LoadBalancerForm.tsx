@@ -248,7 +248,7 @@ export default function LoadBalancerForm() {
                         {(editing ? networks.filter((x) => x.id === form.networkId) : regionNetworks).map((x) => (
                           <SelectItem key={x.id} value={x.id}>
                             <span dir="ltr">{x.name}</span> <span className="text-muted-foreground">·</span>{" "}
-                            <span dir="ltr" className="font-mono text-xs text-muted-foreground">
+                            <span dir="ltr" className="text-xs text-muted-foreground">
                               {x.cidr}
                             </span>
                           </SelectItem>
@@ -353,7 +353,7 @@ export default function LoadBalancerForm() {
               label={t("Traffic rules")}
               value={
                 form.rules.length ? (
-                  <span dir="ltr" className="font-mono text-xs">
+                  <span dir="ltr" className="text-xs">
                     {form.rules.map((r) => `${r.protocol}:${r.port}`).join(", ")}
                   </span>
                 ) : (
@@ -576,7 +576,7 @@ function RuleCard({
                           <span dir="ltr" className="block truncate font-medium text-foreground">
                             {s?.name ?? "-"}
                           </span>
-                          <span dir="ltr" className="block font-mono text-xs text-muted-foreground">
+                          <span dir="ltr" className="block text-xs text-muted-foreground">
                             {ipOf(m.serverId)}:{rule.targetPort}
                           </span>
                           {closed && (
@@ -652,7 +652,7 @@ function RuleCard({
                   {addable.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
                       <span dir="ltr">{s.name}</span>{" "}
-                      <span dir="ltr" className="font-mono text-xs text-muted-foreground">
+                      <span dir="ltr" className="text-xs text-muted-foreground">
                         {ipOf(s.id)}
                       </span>
                     </SelectItem>

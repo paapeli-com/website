@@ -29,9 +29,8 @@ import { Button } from "@/features/factory/components/ui/button";
 import { Card } from "@/features/factory/components/ui/card";
 import { Input } from "@/features/factory/components/ui/input";
 import { Switch } from "@/features/factory/components/ui/switch";
-import { RadioGroup, RadioGroupItem } from "@/features/factory/components/ui/radio-group";
+import { RadioGroupItem } from "@/features/factory/components/ui/radio-group";
 import { Label } from "@/features/factory/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/features/factory/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/features/factory/components/ui/select";
 import { FieldLabel } from "@/features/factory/components/FieldLabel";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
@@ -41,9 +40,9 @@ import { useBillingCurrency } from "@/shared/lib/billingCurrency";
 import { toast } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
 import { useT } from "../i18n";
-import { DEFAULT_IMAGE, DEFAULT_PLAN_ID, IMAGES, PLANS, REGIONS } from "../lib/catalog";
-import { DEFAULT_FIREWALL_ID, inboundSummary, useFirewalls } from "../lib/firewallStore";
-import { OsLogo } from "../lib/osLogos";
+import { REGIONS } from "../lib/catalog";
+import { useSshKeys } from "../lib/sshKeyStore";
+import { newDraft, resolveTemplate, TemplateFields, TemplateImage, useTemplateInfo, type TemplateDraft } from "../autoscaleTemplate";
 import {
   addGroup,
   DEFAULT_CHECK,
@@ -68,7 +67,9 @@ import { Stepper } from "../autoscaleUi";
  *
  *   Basics           name, region, and whether the group scales itself or
  *                    holds a number you set.
- *   Template         what every instance is made from: image, size, firewall.
+ *   Template         what every instance is made from: image (a system one,
+ *                    or the account's own image or snapshot), size, sign-in,
+ *                    firewall and a startup script; see autoscaleTemplate.tsx.
  *   Scaling          min, desired and max, the cooldown, and (automatic) the
  *                    rules: a metric over a window, and how many to add or
  *                    remove.
@@ -109,17 +110,12 @@ export default function CreateAutoScale() {
   const [zone, setZone] = useState(region.zones[0]);
   const [mode, setMode] = useState<ScalingMode>("automatic");
 
-  const [imageId, setImageId] = useState(DEFAULT_IMAGE.imageId);
-  const [versions, setVersions] = useState<Record<string, string>>(() =>
-    Object.fromEntries(IMAGES.map((i) => [i.id, i.id === DEFAULT_IMAGE.imageId ? DEFAULT_IMAGE.version : i.versions[0]])),
-  );
-  const image = IMAGES.find((i) => i.id === imageId) ?? IMAGES[0];
-  const sizes = PLANS.filter((p) => p.family === "shared" || p.family === "dedicated");
-  const [planId, setPlanId] = useState(DEFAULT_PLAN_ID);
-  const [sizeFamily, setSizeFamily] = useState<"shared" | "dedicated">("shared");
-  const plan = sizes.find((p) => p.id === planId) ?? sizes[0];
-  const FIREWALLS = useFirewalls();
-  const [firewallId, setFirewallId] = useState(DEFAULT_FIREWALL_ID);
+  /* The template: image, size, sign-in, firewall and startup script. */
+  const hasKeys = useSshKeys().some((k) => k.type === "ssh");
+  const [draft, setDraft] = useState<TemplateDraft>(() => newDraft(hasKeys));
+  const patchDraft = (patch: Partial<TemplateDraft>) => setDraft((d) => ({ ...d, ...patch }));
+  const tpl = useTemplateInfo(draft, region.city, zone);
+  const plan = tpl.plan;
 
   const [min, setMin] = useState(2);
   const [desired, setDesired] = useState(2);
@@ -188,12 +184,12 @@ export default function CreateAutoScale() {
             ? t("This load balancer has no rule yet. Add one on its page first.")
             : undefined
         : undefined;
-  const stepOk = (i: number) => (i === 0 ? nameOk : i === 3 ? !networkProblem && !lbProblem : true);
+  const stepOk = (i: number) => (i === 0 ? nameOk : i === 1 ? tpl.ok : i === 3 ? !networkProblem && !lbProblem : true);
   const lbDisplayName = lbChoice === "new" ? lbName : lbChoice === "existing" ? existingLb?.name : undefined;
   /* The port the instances serve on, and whether the template's firewall opens it. */
   const servePort = lbChoice === "existing" ? existingRule?.targetPort : lbChoice === "new" ? appPort : undefined;
   const servesUdp = lbChoice === "existing" && existingRule?.protocol === "UDP";
-  const templateFirewall = FIREWALLS.find((f) => f.id === firewallId);
+  const templateFirewall = tpl.firewall;
   const firewallClosed =
     servePort !== undefined &&
     !!templateFirewall &&
@@ -238,7 +234,7 @@ export default function CreateAutoScale() {
   const updateRule = (id: string, patch: Partial<ScalingRule>) => setRules((all) => all.map((r) => (r.id === id ? { ...r, ...patch } : r)));
 
   const create = async () => {
-    const bad = [0, 3].find((i) => !stepOk(i));
+    const bad = [0, 1, 3].find((i) => !stepOk(i));
     if (bad !== undefined) {
       setShowErrors(true);
       setStep(bad);
@@ -258,18 +254,14 @@ export default function CreateAutoScale() {
     } else if (lbChoice === "existing" && existingLb && existingRule) {
       lbRef = { id: existingLb.id, ruleId: existingRule.id };
     }
+    /* A chosen snapshot is saved as an image now, once nothing else can refuse. */
+    const { savedImage, ...template } = resolveTemplate(draft, tpl, region.city);
     const group = addGroup({
       name,
       region: region.city,
       zone,
       mode,
-      imageId,
-      image: `${image.name} ${versions[imageId]}`,
-      planId: plan.id,
-      vcpu: plan.vcpu,
-      ramGb: plan.ramGb,
-      diskGb: plan.diskGb,
-      firewall: FIREWALLS.find((f) => f.id === firewallId)?.name ?? "",
+      ...template,
       min,
       desired,
       max,
@@ -282,6 +274,7 @@ export default function CreateAutoScale() {
       notify: mode === "automatic" && notify.sms && notify.userIds.length > 0 ? notify : undefined,
     });
     toast.success(t("{name} is being created.", { name }));
+    if (savedImage) toast.info(t("The snapshot was saved as the image {name}.", { name: savedImage }));
     navigate(groupPath(group.id));
   };
 
@@ -378,151 +371,7 @@ export default function CreateAutoScale() {
             {step === 1 && (
               <StepSection icon={Layers} title={t("Template")}>
                 <p className="-mt-3 mb-4 text-sm text-muted-foreground">{t("Every instance in the group is made from this.")}</p>
-                <div className="space-y-6">
-                  <div>
-                    <FieldLabel required>{t("Operating system")}</FieldLabel>
-                    {/* Small tiles, and one version list for the chosen image,
-                        so the size and firewall below stay in view. */}
-                    <div role="radiogroup" className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                      {IMAGES.map((img) => {
-                        const on = img.id === imageId;
-                        return (
-                          <button
-                            key={img.id}
-                            type="button"
-                            role="radio"
-                            aria-checked={on}
-                            onClick={() => setImageId(img.id)}
-                            className={cn(
-                              "flex min-w-0 items-center gap-2 rounded-lg border px-2.5 py-2 text-start outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/40",
-                              on ? "border-primary/50 bg-primary/[0.04]" : "border-border hover:border-primary/30",
-                            )}
-                          >
-                            <OsLogo
-                              id={img.id}
-                              name={img.name}
-                              color={img.color}
-                              className="flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-bold [&_svg]:size-4"
-                            />
-                            <span className="truncate text-sm font-medium text-foreground" title={img.name}>
-                              {img.name}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <div className="mt-3 flex items-center gap-3">
-                      <span className="text-sm text-muted-foreground">{t("Version")}</span>
-                      <Select
-                        dir="ltr"
-                        value={versions[imageId]}
-                        onValueChange={(v) => setVersions((prev) => ({ ...prev, [imageId]: v }))}
-                      >
-                        <SelectTrigger className="h-9 w-48" aria-label={t("Version")} dir="ltr">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {image.versions.map((v) => (
-                            <SelectItem key={v} value={v}>
-                              {v}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                      <FieldLabel required className="mb-0">
-                        {t("Instance size")}
-                      </FieldLabel>
-                      <div className="inline-flex rounded-lg border border-border p-0.5">
-                        {(["shared", "dedicated"] as const).map((f) => (
-                          <button
-                            key={f}
-                            type="button"
-                            aria-pressed={sizeFamily === f}
-                            onClick={() => {
-                              setSizeFamily(f);
-                              if (plan.family !== f) setPlanId(sizes.find((p) => p.family === f)!.id);
-                            }}
-                            className={cn(
-                              "rounded-md px-3 py-1 text-xs transition-colors",
-                              sizeFamily === f ? "bg-primary/10 font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
-                            )}
-                          >
-                            {f === "shared" ? t("Shared vCPU") : t("Dedicated vCPU")}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <RadioGroup dir={isRTL ? "rtl" : "ltr"} value={planId} onValueChange={setPlanId} className="block">
-                      <div className="overflow-hidden rounded-lg border text-sm [&_td]:p-3 [&_td]:text-sm [&_th]:h-10 [&_th]:text-xs">
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="bg-muted/40 hover:bg-muted/40">
-                              <TableHead className="w-[44px]" aria-label={t("Choose plan")} />
-                              <TableHead>{t("Plan")}</TableHead>
-                              <TableHead>{t("vCPU")}</TableHead>
-                              <TableHead>{t("RAM")}</TableHead>
-                              <TableHead>{t("Boot disk")}</TableHead>
-                              <TableHead className="text-end">{t("Price per instance")}</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {sizes.filter((p) => p.family === sizeFamily).map((p) => (
-                              <TableRow
-                                key={p.id}
-                                onClick={() => setPlanId(p.id)}
-                                className={cn(
-                                  "cursor-pointer border-b",
-                                  p.id === planId ? "bg-primary/[0.04] hover:bg-primary/[0.06]" : "hover:bg-muted/30",
-                                )}
-                              >
-                                <TableCell className="text-center">
-                                  <div className="flex justify-center">
-                                    <RadioGroupItem value={p.id} aria-label={p.id.toUpperCase()} />
-                                  </div>
-                                </TableCell>
-                                <TableCell className="font-medium" dir="ltr">
-                                  {p.id.toUpperCase()}
-                                </TableCell>
-                                <TableCell>{n(p.vcpu)}</TableCell>
-                                <TableCell>
-                                  {n(p.ramGb)} {t("GB")}
-                                </TableCell>
-                                <TableCell>
-                                  {n(p.diskGb)} {t("GB")}
-                                </TableCell>
-                                <TableCell className="text-end font-medium">
-                                  {format(p.monthly[currency])} {t("/ month")}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  <div>
-                    <FieldLabel required>{t("Firewall")}</FieldLabel>
-                    <Select dir="ltr" value={firewallId} onValueChange={setFirewallId}>
-                      <SelectTrigger className="w-full sm:w-72">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FIREWALLS.map((f) => (
-                          <SelectItem key={f.id} value={f.id}>
-                            {f.name}
-                            {f.inbound.length > 0 && <span className="text-muted-foreground"> ({inboundSummary(f)})</span>}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                <TemplateFields draft={draft} onChange={patchDraft} info={tpl} region={region.city} zone={zone} showErrors={showErrors} />
               </StepSection>
             )}
 
@@ -680,7 +529,7 @@ export default function CreateAutoScale() {
                               {regionLbs.map((x) => (
                                 <SelectItem key={x.id} value={x.id}>
                                   <span dir="ltr">{x.name}</span>{" "}
-                                  <span dir="ltr" className="font-mono text-xs text-muted-foreground">
+                                  <span dir="ltr" className="text-xs text-muted-foreground">
                                     {x.vipAddress}
                                   </span>
                                 </SelectItem>
@@ -696,7 +545,7 @@ export default function CreateAutoScale() {
                             <SelectContent>
                               {existingLb?.rules.map((r) => (
                                 <SelectItem key={r.id} value={r.id}>
-                                  <span className="font-mono text-xs">{ruleLabel(r)}</span>
+                                  <span dir="ltr">{ruleLabel(r)}</span>
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -740,7 +589,7 @@ export default function CreateAutoScale() {
                           {regionNetworks.map((x) => (
                             <SelectItem key={x.id} value={x.id}>
                               <span dir="ltr">{x.name}</span>{" "}
-                              <span dir="ltr" className="font-mono text-xs text-muted-foreground">
+                              <span dir="ltr" className="text-xs text-muted-foreground">
                                 {x.cidr}
                               </span>
                             </SelectItem>
@@ -805,9 +654,17 @@ export default function CreateAutoScale() {
                     <ReviewLine label={t("Scaling mode")} value={mode === "automatic" ? t("Automatic") : t("Manual")} />
                   </ReviewBlock>
                   <ReviewBlock title={t("Template")} onEdit={() => setStep(1)}>
-                    <ReviewLine label={t("Operating system")} value={<span dir="ltr">{`${image.name} ${versions[imageId]}`}</span>} />
+                    <ReviewLine
+                      label={t("Image")}
+                      value={<TemplateImage source={draft.source === "mine" ? "custom" : "os"} imageId={draft.osId} label={tpl.imageLabel || "-"} />}
+                    />
                     <ReviewLine label={t("Instance size")} value={t("{cpu} vCPU · {ram} GB RAM", { cpu: n(plan.vcpu), ram: n(plan.ramGb) })} />
-                    <ReviewLine label={t("Firewall")} value={<span dir="ltr">{FIREWALLS.find((f) => f.id === firewallId)?.name}</span>} />
+                    <ReviewLine
+                      label={t("Sign-in")}
+                      value={tpl.access === "ssh" ? <span dir="ltr">{tpl.key?.name ?? "-"}</span> : t("Password")}
+                    />
+                    <ReviewLine label={t("Firewall")} value={<span dir="ltr">{tpl.firewall?.name}</span>} />
+                    <ReviewLine label={t("Startup script")} value={draft.script.trim() ? t("{n} lines", { n: n(draft.script.trim().split("\n").length) }) : t("None")} />
                   </ReviewBlock>
                   <ReviewBlock title={t("Scaling")} onEdit={() => setStep(2)}>
                     <ReviewLine label={t("Capacity")} value={t("min {min} · desired {desired} · max {max}", { min: n(min), desired: n(desired), max: n(max) })} />
@@ -859,13 +716,13 @@ export default function CreateAutoScale() {
               <p className="mb-2 text-sm font-semibold text-foreground">{t("Summary")}</p>
               <SummaryLine icon={Expand} label={t("Group name")} value={<span dir="ltr">{name || "-"}</span>} />
               <SummaryLine icon={MapPin} label={t("Region")} value={`${t(region.city)} · ${zone}`} />
-              <SummaryLine icon={Disc} label={t("Image")} value={<span dir="ltr">{`${image.name} ${versions[imageId]}`}</span>} />
+              <SummaryLine icon={Disc} label={t("Image")} value={<span dir="ltr">{tpl.imageLabel || "-"}</span>} />
               <SummaryLine icon={Cpu} label={t("Instance size")} value={t("{cpu} vCPU · {ram} GB RAM", { cpu: n(plan.vcpu), ram: n(plan.ramGb) })} />
               <SummaryLine icon={Layers} label={t("Capacity")} value={`${n(min)} · ${n(desired)} · ${n(max)}`} />
               <SummaryLine icon={Settings2} label={t("Scaling mode")} value={mode === "automatic" ? t("Automatic") : t("Manual")} />
               <SummaryLine icon={Split} label={t("Load balancer")} value={lbDisplayName ? <span dir="ltr">{lbDisplayName}</span> : t("None")} />
               <SummaryLine icon={Waypoints} label={t("Private network")} value={network ? <span dir="ltr">{network.name}</span> : t("None")} />
-              <SummaryLine icon={ShieldCheck} label={t("Firewall")} value={<span dir="ltr">{FIREWALLS.find((f) => f.id === firewallId)?.name}</span>} />
+              <SummaryLine icon={ShieldCheck} label={t("Firewall")} value={<span dir="ltr">{tpl.firewall?.name}</span>} />
             </div>
 
             <Button onClick={() => void create()} className="mt-4 w-full bg-primary text-primary-foreground hover:bg-primary/90">

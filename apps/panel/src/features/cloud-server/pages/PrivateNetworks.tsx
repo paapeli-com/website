@@ -295,13 +295,13 @@ export default function PrivateNetworks() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <span dir="ltr" className="font-mono text-[13px] text-foreground">
+                            <span dir="ltr" className="text-foreground">
                               {x.cidr}
                             </span>
                           </TableCell>
                           <TableCell className="text-muted-foreground">
                             {x.gatewayIp ? (
-                              <span dir="ltr" className="font-mono text-[13px]">
+                              <span dir="ltr">
                                 {x.gatewayIp}
                               </span>
                             ) : (
@@ -430,7 +430,7 @@ export default function PrivateNetworks() {
                                                 </button>
                                               </td>
                                               <td>
-                                                <span dir="ltr" className="font-mono text-[13px] text-foreground">
+                                                <span dir="ltr" className="text-foreground">
                                                   {p.ip}
                                                 </span>
                                               </td>
@@ -453,7 +453,7 @@ export default function PrivateNetworks() {
                                               )}
                                             </td>
                                             <td>
-                                              <span dir="ltr" className="font-mono text-[13px] text-foreground">
+                                              <span dir="ltr" className="text-foreground">
                                                 {p.ip}
                                               </span>
                                             </td>
@@ -631,7 +631,7 @@ export default function PrivateNetworks() {
 function Mono({ children }: { children: ReactNode }) {
   return (
     <span className="block">
-      <span dir="ltr" className="font-mono text-[13px]">
+      <span dir="ltr">
         {children}
       </span>
     </span>
@@ -642,7 +642,7 @@ function Detail({ label, ltr, children }: { label: string; ltr?: boolean; childr
   return (
     <div className="min-w-0">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <div dir={ltr ? "ltr" : undefined} className={cn("mt-0.5 break-words text-sm font-medium text-foreground", ltr && "text-start font-mono text-[13px]")}>
+      <div dir={ltr ? "ltr" : undefined} className={cn("mt-0.5 break-words text-sm font-medium text-foreground", ltr && "text-start")}>
         {children}
       </div>
     </div>
@@ -728,7 +728,7 @@ function ConnectDialog({ network, onClose }: { network: PrivateNetwork | null; o
                     onChange={(e) => setIp(e.target.value.trim())}
                     placeholder={live?.pools[0]?.start ?? "10.0.0.20"}
                     aria-invalid={!!problem}
-                    className={cn("h-10 font-mono", problem && "border-destructive")}
+                    className={cn("h-10 rtl:text-right", problem && "border-destructive")}
                   />
                   {problem && <p className="text-xs text-destructive">{t(problem.text, problem.vars)}</p>}
                 </>

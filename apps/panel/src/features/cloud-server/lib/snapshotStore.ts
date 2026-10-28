@@ -61,6 +61,9 @@ export function takeSnapshot(input: Omit<SnapshotRecord, "id" | "createdAt">): S
   return record;
 }
 
+/** Read outside React. */
+export const getSnapshots = () => cache;
+
 export const restoreSnapshot = (id: string) =>
   write(cache.map((s) => (s.id === id ? { ...s, restoringUntil: Date.now() + SNAPSHOT_BUSY_MS } : s)));
 export const renameSnapshot = (id: string, name: string) => write(cache.map((s) => (s.id === id ? { ...s, name } : s)));

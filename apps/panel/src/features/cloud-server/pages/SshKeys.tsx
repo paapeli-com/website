@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, ChevronDown, ChevronUp, Copy, Download, FileKey2, KeyRound, MoreHorizontal, Plus, Server, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Download, FileKey2, KeyRound, MoreHorizontal, Plus, Server, Trash2 } from "lucide-react";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import { ListToolbar, type ActionItem, type FilterField, type SortOption } from "@/features/factory/components/panel/ListToolbar";
@@ -24,8 +24,9 @@ import { cn } from "@/shared/lib/utils";
 import { useT } from "../i18n";
 import { useServers } from "../lib/serverStore";
 import { deleteSshKeys, useSshKeys, type SshKeyRecord } from "../lib/sshKeyStore";
+import { apiCall } from "../lib/openstackErrors";
 import { algorithmLabel, downloadText } from "../lib/sshKeyGen";
-import { ConfirmDialog, CREATE_SSH_KEY_PATH, PageBreadcrumb, SERVERS_PATH, SSH_KEYS_PATH, TruncatedText } from "../ui";
+import { ConfirmDialog, CopyButton, CREATE_SSH_KEY_PATH, PageBreadcrumb, SERVERS_PATH, SSH_KEYS_PATH, TruncatedText } from "../ui";
 import { Pill } from "../wizard";
 
 /* SSH Keys: the public keys new servers can be given.
@@ -49,30 +50,6 @@ function shortKey(k: SshKeyRecord) {
   if (k.type === "x509") return "-----BEGIN CERTIFICATE-----";
   const [type, body = ""] = k.publicKey.split(/\s+/);
   return body.length > 40 ? `${type} ${body.slice(0, 22)}…${body.slice(-10)}` : `${type} ${body}`;
-}
-
-export function CopyButton({ text, label }: { text: string; label: string }) {
-  const t = useT();
-  const [done, setDone] = useState(false);
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="size-7 shrink-0"
-      aria-label={label}
-      title={label}
-      onClick={(e) => {
-        e.stopPropagation();
-        void navigator.clipboard?.writeText(text).then(() => {
-          setDone(true);
-          toast.success(t("Copied"));
-          window.setTimeout(() => setDone(false), 1500);
-        });
-      }}
-    >
-      {done ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
-    </Button>
-  );
 }
 
 export default function SshKeys() {
@@ -456,8 +433,15 @@ export default function SshKeys() {
           .join(" ")}
         destructive
         confirmLabel={fx("delete")}
-        onConfirm={() => {
-          deleteSshKeys(deleteIds ?? []);
+        onConfirm={async () => {
+          const done = await apiCall(() => {
+            deleteSshKeys(deleteIds ?? []);
+            return true;
+          }, t);
+          if (!done) {
+            setDeleteIds(null);
+            return;
+          }
           setSelected((prev) => prev.filter((id) => !deleteIds?.includes(id)));
           setExpanded((prev) => prev.filter((id) => !deleteIds?.includes(id)));
           toast.success(t("Keys deleted"));

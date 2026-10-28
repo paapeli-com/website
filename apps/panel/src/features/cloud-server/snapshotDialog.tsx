@@ -17,9 +17,10 @@ import { useBillingCurrency } from "@/shared/lib/billingCurrency";
 import { toast } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
 import { useT } from "./i18n";
-import { SNAPSHOT_GB_MONTHLY } from "./lib/catalog";
+import { IMAGE_GB_MONTHLY, SNAPSHOT_GB_MONTHLY } from "./lib/catalog";
 import { useServers } from "./lib/serverStore";
-import { takeSnapshot } from "./lib/snapshotStore";
+import { takeSnapshot, type SnapshotRecord } from "./lib/snapshotStore";
+import { addImageFromSnapshot, snapshotFamily } from "./lib/imageStore";
 import { Note } from "./wizard";
 
 /* New snapshot: a server and a name, nothing else. Opened from the Snapshots
@@ -34,15 +35,20 @@ export function CreateSnapshotDialog({
   open,
   onClose,
   serverId: initialServerId,
+  region,
+  onTaken,
 }: {
   open: boolean;
   onClose: () => void;
   serverId?: string;
+  /** Offer only the servers in this region. */
+  region?: string;
+  onTaken?: (snapshot: SnapshotRecord) => void;
 }) {
   const t = useT();
   const { formatNumber } = useLanguage();
   const { currency, format } = useBillingCurrency();
-  const servers = useServers();
+  const servers = useServers().filter((s) => !region || s.region === region);
   const [serverId, setServerId] = useState("");
   const [name, setName] = useState("");
   const [nameTouched, setNameTouched] = useState(false);
@@ -65,8 +71,9 @@ export function CreateSnapshotDialog({
   const submit = () => {
     setTried(true);
     if (!server || !nameOk) return;
-    takeSnapshot({ name, serverId: server.id, region: server.region, zone: server.zone, sizeGb });
+    const taken = takeSnapshot({ name, serverId: server.id, region: server.region, zone: server.zone, sizeGb });
     toast.success(t("Taking a snapshot of {name}", { name: server.name }));
+    onTaken?.(taken);
     onClose();
   };
 
@@ -155,6 +162,93 @@ export function CreateSnapshotDialog({
           <Button onClick={submit} disabled={servers.length === 0}>
             {t("Create snapshot")}
           </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* Save as image: a snapshot belongs to its server and goes when the server
+ * is deleted. An image saved from it is the account's own, kept until it is
+ * deleted, and new servers and Auto Scale groups can be made from it. In
+ * Glance both are images; this one is kept apart from the server.
+ */
+export function SaveAsImageDialog({ snapshot, onClose }: { snapshot: SnapshotRecord | null; onClose: () => void }) {
+  const t = useT();
+  const { formatNumber } = useLanguage();
+  const { currency, format } = useBillingCurrency();
+  const [name, setName] = useState("");
+  const [tried, setTried] = useState(false);
+  useEffect(() => {
+    if (!snapshot) return;
+    setName(`${snapshot.name.replace(/-snapshot$/, "")}-image`.slice(0, 63));
+    setTried(false);
+  }, [snapshot]);
+  const nameOk = NAME_RE.test(name);
+
+  const submit = () => {
+    setTried(true);
+    if (!snapshot || !nameOk) return;
+    addImageFromSnapshot({
+      name,
+      snapshotId: snapshot.id,
+      snapshotName: snapshot.name,
+      region: snapshot.region,
+      osFamily: snapshotFamily(snapshot.serverId),
+      sizeGb: snapshot.sizeGb,
+    });
+    toast.success(t("Saving {name} as an image", { name: snapshot.name }));
+    onClose();
+  };
+
+  return (
+    <Dialog open={!!snapshot} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent data-uniform-type className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t("Save as image")}</DialogTitle>
+          <DialogDescription>
+            {t("An image is kept after its server is deleted. New servers and Auto Scale groups can be made from it.")}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <FieldLabel required htmlFor="image-name">
+              {t("Image name")}
+            </FieldLabel>
+            <Input
+              id="image-name"
+              dir="ltr"
+              value={name}
+              onChange={(e) => setName(e.target.value.toLowerCase())}
+              className={cn(tried && !nameOk && "border-destructive")}
+            />
+            <p className={cn("mt-1.5 text-xs", tried && !nameOk ? "text-destructive" : "text-muted-foreground")}>
+              {tried && !nameOk
+                ? t("Use 3 to 63 lowercase letters, digits or hyphens, starting with a letter.")
+                : t("Lowercase letters, digits and hyphens; 3 to 63 characters.")}
+            </p>
+          </div>
+          <Note>{t("The snapshot stays as it is. Delete it if you no longer need it.")}</Note>
+          <div className="flex flex-wrap items-baseline justify-between gap-2 border-t border-border pt-3 text-sm">
+            <span className="text-muted-foreground">{t("Price per GB")}</span>
+            <span className="font-medium text-foreground">
+              {format(IMAGE_GB_MONTHLY[currency])} <span className="font-normal text-muted-foreground">{t("/ month")}</span>
+            </span>
+          </div>
+          {snapshot && (
+            <p className="-mt-2 text-xs text-muted-foreground">
+              {t("{size} GB for this image: {amount} a month", {
+                size: formatNumber(snapshot.sizeGb),
+                amount: format(snapshot.sizeGb * IMAGE_GB_MONTHLY[currency]),
+              })}
+            </p>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            {t("Cancel")}
+          </Button>
+          <Button onClick={submit}>{t("Save as image")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

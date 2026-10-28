@@ -1,4 +1,8 @@
 import { useSyncExternalStore } from "react";
+import { getGroups } from "./autoscaleStore";
+import { ApiError } from "./openstackErrors";
+import { getServers } from "./serverStore";
+import { IMAGES } from "./catalog";
 
 /* Custom images, until Cloud Server has an API.
  *
@@ -18,9 +22,15 @@ export type ImageStatus = "uploading" | "ready" | "failed";
 export interface ImageRecord {
   id: string;
   name: string;
-  source: "url" | "file";
-  /** The URL, or the file's name. */
+  /** Uploaded from a URL or a file, or saved from one of the account's
+      snapshots (Glance keeps it after the snapshot and its server go). */
+  source: "url" | "file" | "snapshot";
+  /** The URL, the file's name, or the snapshot's name. */
   location: string;
+  /** Saved from a snapshot: which one, and the region it is kept in. An
+      uploaded image is offered in every region. */
+  snapshotId?: string;
+  region?: string;
   format: ImageFormat;
   boot: BootType;
   osFamily: "linux" | "windows";
@@ -80,10 +90,63 @@ export function addImage(img: Omit<ImageRecord, "id" | "createdAt" | "startedAt"
   return record;
 }
 
+/** A snapshot saved as an image: a few seconds to copy, and it does not fail.
+    Its size is the snapshot's, which is also the smallest boot disk a server
+    made from it can have (Glance's min_disk). */
+export function addImageFromSnapshot(input: {
+  name: string;
+  snapshotId: string;
+  snapshotName: string;
+  region: string;
+  osFamily: ImageRecord["osFamily"];
+  sizeGb: number;
+}) {
+  const at = Date.now();
+  const record: ImageRecord = {
+    id: `img-${at.toString(36)}`,
+    name: input.name,
+    source: "snapshot",
+    location: input.snapshotName,
+    snapshotId: input.snapshotId,
+    region: input.region,
+    format: "qcow2",
+    boot: "bios",
+    osFamily: input.osFamily,
+    sizeGb: input.sizeGb,
+    createdAt: at,
+    startedAt: at,
+    durationMs: 5_000,
+  };
+  write([record, ...cache]);
+  return record;
+}
+
+/** Linux or Windows, from what the snapshot's server runs. */
+export function snapshotFamily(serverId: string): ImageRecord["osFamily"] {
+  const imageId = getServers().find((s) => s.id === serverId)?.imageId;
+  return IMAGES.find((i) => i.id === imageId)?.family ?? cache.find((i) => i.id === imageId)?.osFamily ?? "linux";
+}
+
+/** The image a snapshot was saved as, if it still exists. */
+export const imageOfSnapshot = (snapshotId: string, images: ImageRecord[] = cache) =>
+  images.find((i) => i.snapshotId === snapshotId);
+
+/** An image offered to servers and groups made in this region. */
+export const imageInRegion = (i: ImageRecord, region: string) => !i.region || i.region === region;
+
 export const retryImage = (id: string) =>
   write(cache.map((i) => (i.id === id ? { ...i, ...attempt(i.sizeGb) } : i)));
 export const renameImage = (id: string, name: string) => write(cache.map((i) => (i.id === id ? { ...i, name } : i)));
-export const removeImages = (ids: string[]) => write(cache.filter((i) => !ids.includes(i.id)));
+/** Refused while an Auto Scale group makes its instances from one of them:
+    Heat would fail to start the next instance. */
+export function removeImages(ids: string[]) {
+  const users = getGroups().filter((g) => g.imageSource === "custom" && ids.includes(g.imageId));
+  if (users.length) throw new ApiError(409, "ImageInUseByGroup", "", { groups: users.map((g) => g.name).join(", ") });
+  write(cache.filter((i) => !ids.includes(i.id)));
+}
+
+/** Read outside React, for the checks other stores make. */
+export const getImages = () => cache;
 
 /** Progress 0..1 and the state it puts the image in. */
 export function imageProgress(i: ImageRecord, now = Date.now()): { status: ImageStatus; progress: number } {

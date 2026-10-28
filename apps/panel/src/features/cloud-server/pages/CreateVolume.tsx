@@ -80,7 +80,8 @@ export default function CreateVolume() {
   const hosts = useHosts().filter((h) => hostStatus(h) === "active");
 
   const [name, setName] = useState("disk-01");
-  const [serverId, setServerId] = useState("none");
+  /* Opened from a server's Disks tab: that server, already chosen. */
+  const [serverId, setServerId] = useState(() => new URLSearchParams(window.location.search).get("server") ?? "none");
   const [typeId, setTypeId] = useState<DiskTypeId>("ssd");
   const type = DISK_TYPES.find((d) => d.id === typeId)!;
   const [hostId, setHostId] = useState(hosts[0]?.id ?? "");
@@ -320,7 +321,7 @@ export default function CreateVolume() {
             />
             <div className="relative flex items-center justify-end text-xs text-muted-foreground">
               <span className="font-mono text-[11px]" dir="ltr">
-                {path ?? "—"} · {t(type.name)}
+                {path ?? "-"} · {t(type.name)}
               </span>
             </div>
 

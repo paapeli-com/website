@@ -2,16 +2,13 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Camera,
-  CheckCircle2,
   ChevronDown,
   ChevronUp,
   CircleStop,
-  Copy,
   Download,
   Expand,
   Eye,
   Info,
-  Layers,
   Loader2,
   Microchip,
   MoreHorizontal,
@@ -32,7 +29,6 @@ import { ListToolbar, type ActionItem, type FilterField, type SortOption } from 
 import { Button } from "@/features/factory/components/ui/button";
 import { Card, CardContent } from "@/features/factory/components/ui/card";
 import { Checkbox } from "@/features/factory/components/ui/checkbox";
-import { Input } from "@/features/factory/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/features/factory/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/features/factory/components/ui/select";
 import {
@@ -42,42 +38,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/features/factory/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/features/factory/components/ui/dialog";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { formatDateTime } from "@/shared/lib/formatDate";
 import { toast } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
-import { CLOUD_SERVER_BASE } from "@/shell/nav/cloudServerNav";
 import { useT } from "../i18n";
 import { OsLogo } from "../lib/osLogos";
 import { IMAGES } from "../lib/catalog";
-import {
-  CREATING_MS,
-  removeServers,
-  serverStatus,
-  updateServer,
-  useServers,
-  type ServerRecord,
-  type ServerStatus,
-} from "../lib/serverStore";
-import { CREATE_GPU_SERVER_PATH, CREATE_SERVER_PATH, deletePhraseOk, groupPath, PageBreadcrumb, ProgressStatus, SERVERS_PATH, TruncatedText, TypeToConfirm } from "../ui";
+import { powerServer, serverPhase, serverStatus, useServers, type ServerRecord, type ServerStatus } from "../lib/serverStore";
+import { CREATE_GPU_SERVER_PATH, CREATE_SERVER_PATH, groupPath, PageBreadcrumb, SERVERS_PATH, CopyButton, TruncatedText } from "../ui";
+import { serverPath, ServerState } from "../serverUi";
 import { groupInstances, useGroups } from "../lib/autoscaleStore";
-import { detachFrom } from "../lib/ipStore";
-import { releaseFromServers, useFloatingIps } from "../lib/floatingStore";
-import { deleteBackupsOf, useBackups } from "../lib/backupStore";
-import { deleteSnapshotsOf, useSnapshots } from "../lib/snapshotStore";
-import { releaseVolumesOf, useVolumes } from "../lib/volumeStore";
-import { releaseServersFromFirewalls } from "../lib/firewallStore";
-import { releaseServersFromNetworks } from "../lib/networkStore";
-import { releaseServersFromLoadBalancers } from "../lib/loadBalancerStore";
+import { apiCall } from "../lib/openstackErrors";
+import { useFloatingIps } from "../lib/floatingStore";
 import { CreateSnapshotDialog } from "../snapshotDialog";
+import { DeleteServersDialog, deleteServers, RenameDialog } from "../serverDialogs";
 import { useShellT } from "@/shared/i18n/shell";
 
 /* The server list: Smart Factory's device list, piece for piece.
@@ -97,8 +72,6 @@ import { useShellT } from "@/shared/i18n/shell";
  * the GPU wizard straight away, and the plan column names the GPU.
  */
 
-const AUTO_SCALE_PATH = `${CLOUD_SERVER_BASE}/auto-scale`;
-
 type SortKey = "created" | "nameAsc" | "nameDesc" | "status";
 
 export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) {
@@ -110,6 +83,12 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
   const navigate = useNavigate();
   const allServers = useServers();
   const groups = useGroups();
+  const floatingIps = useFloatingIps();
+  /** A server's public addresses past the primary, with what each is. */
+  const moreIps = (s: ServerRecord) => [
+    ...(s.extraIps ?? []).map((ip) => ({ address: ip.address, kind: ip.reservedId ? t("Reserved") : t("Additional") })),
+    ...floatingIps.filter((f) => f.attachedTo?.serverId === s.id && f.attachedTo.kind !== "loadbalancer").map((f) => ({ address: f.address, kind: t("Floating") })),
+  ];
 
   /* Re-read the clock while anything is being created, so its status turns
      over without a refresh. */
@@ -145,12 +124,14 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
   }, [allServers, groups, kind, isGpu, now]);
   /** Ids the list can act on: an Auto Scale instance is its group's to manage. */
   const ownIds = (ids: string[]) => ids.filter((id) => !servers.find((s) => s.id === id)?.groupId);
-  const anyCreating = servers.some((s) => serverStatus(s, now) === "creating");
+  /* Re-read while anything is being made or worked on. */
+  const anyMoving = servers.some((s) => ["creating", "busy"].includes(serverPhase(s, now)));
   useEffect(() => {
-    if (!anyCreating) return;
+    if (!anyMoving) return;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [anyCreating]);
+  }, [anyMoving]);
+  useEffect(() => setNow(Date.now()), [allServers]);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | ServerStatus>("all");
@@ -209,16 +190,18 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
   const endIndex = startIndex + itemsPerPage;
   const pageRows = filtered.slice(startIndex, endIndex);
 
-  const copy = (value: string) =>
-    void navigator.clipboard?.writeText(value).then(
-      () => toast.success(t("Copied")),
-      () => toast.error(t("Could not copy")),
-    );
   const comingSoon = () => toast.info(fx("comingSoon"));
 
-  const setPower = (ids: string[], on: boolean) => {
-    ids.forEach((id) => updateServer(id, { powerOn: on }));
-    toast.success(on ? t("Powering on") : t("Powering off"));
+  /* Each server on its own: one that is locked, busy or already there is
+     refused (and said so) without stopping the rest. */
+  const setPower = async (ids: string[], on: boolean) => {
+    let done = 0;
+    for (const id of ids) {
+      const sv = servers.find((x) => x.id === id);
+      if (!sv || sv.powerOn === on) continue;
+      if (await apiCall(() => (powerServer(id, on), true), t)) done++;
+    }
+    if (done) toast.success(on ? t("Powering on") : t("Shutting down"));
   };
 
   const exportCsv = () => {
@@ -317,8 +300,8 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
 
   const actionItems: ActionItem[] = [
     { key: "export", label: fx("export"), icon: Download, onSelect: exportCsv },
-    { key: "on", label: t("Power on"), icon: Play, onSelect: () => setPower(ownIds(selected), true) },
-    { key: "off", label: t("Power off"), icon: CircleStop, onSelect: () => setPower(ownIds(selected), false) },
+    { key: "on", label: t("Power on"), icon: Play, onSelect: () => void setPower(ownIds(selected), true) },
+    { key: "off", label: t("Power off"), icon: CircleStop, onSelect: () => void setPower(ownIds(selected), false) },
     { key: "delete", label: fx("delete"), icon: Trash2, destructive: true, onSelect: () => setDeleteIds(ownIds(selected)) },
   ];
 
@@ -550,7 +533,20 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
                               )}
                               <div className="min-w-0">
                                 <div className="flex min-w-0 items-center gap-1.5">
-                                  <TruncatedText text={s.name} ltr className="font-medium text-foreground" />
+                                  {s.groupId ? (
+                                    <TruncatedText text={s.name} ltr className="font-medium text-foreground" />
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(serverPath(s));
+                                      }}
+                                      className="min-w-0 text-start hover:text-primary"
+                                    >
+                                      <TruncatedText text={s.name} ltr className="font-medium text-foreground hover:text-primary" />
+                                    </button>
+                                  )}
                                   {/* On one of the account's dedicated servers:
                                       named on hover. */}
                                   {s.hostId && (
@@ -583,7 +579,7 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
                             </div>
                           </TableCell>
                           <TableCell>
-                            <StatusCell status={status} label={statusLabel[status]} startedAt={s.createdAt} now={now} />
+                            <ServerState server={s} now={now} />
                           </TableCell>
                           <TableCell>
                             <TruncatedText text={`${t(s.region)} / ${s.zone}`} />
@@ -592,18 +588,19 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
                             {status === "creating" ? (
                               <span className="text-muted-foreground">-</span>
                             ) : (
-                              <span className="flex min-w-0 items-center gap-1">
-                                <TruncatedText text={s.ipv4} ltr mono className="text-foreground" />
-                                <button
-                                  type="button"
-                                  onClick={() => copy(s.ipv4)}
-                                  aria-label={t("Copy")}
-                                  title={t("Copy")}
-                                  className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                                >
-                                  <Copy className="size-3.5" />
-                                </button>
-                              </span>
+                              <div className="min-w-0">
+                                <span className="flex min-w-0 items-center gap-1">
+                                  <TruncatedText text={s.ipv4} ltr className="text-foreground" />
+                                  <CopyButton text={s.ipv4} />
+                                </span>
+                                {moreIps(s).map((ip) => (
+                                  <span key={ip.address} className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+                                    <TruncatedText text={ip.address} ltr />
+                                    <span className="shrink-0 rounded bg-muted px-1 py-px text-[10px] font-medium">{ip.kind}</span>
+                                    <CopyButton text={ip.address} className="size-6" />
+                                  </span>
+                                ))}
+                              </div>
                             )}
                           </TableCell>
                           <TableCell>
@@ -618,7 +615,12 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
                           </TableCell>
                           <TableCell onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-1">
-                              <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={comingSoon}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 gap-1 text-xs"
+                                onClick={() => navigate(s.groupId ? groupPath(s.groupId) : serverPath(s))}
+                              >
                                 <Eye className="h-3.5 w-3.5" /> {fx("view")}
                               </Button>
                               <RowIcon label={t("Console")} onClick={comingSoon} disabled={status === "creating"}>
@@ -626,8 +628,8 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
                               </RowIcon>
                               <RowIcon
                                 label={s.powerOn ? t("Power off") : t("Power on")}
-                                onClick={() => setPower([s.id], !s.powerOn)}
-                                disabled={status === "creating" || !!s.groupId}
+                                onClick={() => void setPower([s.id], !s.powerOn)}
+                                disabled={!["running", "stopped"].includes(serverPhase(s, now)) || !!s.groupId || !!s.locked}
                               >
                                 <Power className={cn("h-4 w-4", status === "running" && "text-emerald-600")} />
                               </RowIcon>
@@ -645,7 +647,7 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
                                     </DropdownMenuItem>
                                   ) : (
                                     <>
-                                  <DropdownMenuItem onClick={comingSoon}>
+                                  <DropdownMenuItem onClick={() => navigate(serverPath(s))}>
                                     <Info className="me-2 h-4 w-4" />
                                     {t("Server details")}
                                   </DropdownMenuItem>
@@ -657,13 +659,14 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
                                     <Camera className="me-2 h-4 w-4" />
                                     {t("Create snapshot")}
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={comingSoon}>
+                                  <DropdownMenuItem onClick={() => navigate(`${serverPath(s)}?labels=1`)}>
                                     <Tag className="me-2 h-4 w-4" />
-                                    {t("Add tag")}
+                                    {t("Labels")}
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
                                     className="text-destructive focus:text-destructive"
+                                    disabled={!!s.locked}
                                     onClick={() => setDeleteIds([s.id])}
                                   >
                                     <Trash2 className="me-2 h-4 w-4" />
@@ -737,16 +740,9 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
       <DeleteServersDialog
         servers={servers.filter((sv) => deleteIds?.includes(sv.id))}
         onClose={() => setDeleteIds(null)}
-        onDeleted={(ids) => {
-          detachFrom(ids);
-          releaseFromServers(ids);
-          deleteBackupsOf(ids);
-          deleteSnapshotsOf(ids);
-          releaseVolumesOf(ids);
-          releaseServersFromFirewalls(ids);
-          releaseServersFromNetworks(ids);
-          releaseServersFromLoadBalancers(ids);
-          removeServers(ids);
+        onDeleted={async (ids) => {
+          const doomed = servers.filter((sv) => ids.includes(sv.id));
+          if (!(await apiCall(() => (deleteServers(doomed), true), t))) return;
           setSelected((prev) => prev.filter((id) => !ids.includes(id)));
           toast.success(t("Servers deleted"));
           setDeleteIds(null);
@@ -756,189 +752,6 @@ export default function Servers({ kind = "cloud" }: { kind?: "cloud" | "gpu" }) 
       <RenameDialog server={renaming} onClose={() => setRenaming(null)} />
       <CreateSnapshotDialog open={!!snapshotOf} serverId={snapshotOf ?? undefined} onClose={() => setSnapshotOf(null)} />
     </div>
-  );
-}
-
-/** The delete confirmation: per server, the addresses and disks deleted with
-    it, any reserved IP that stays, and a tick before Delete is offered. */
-function DeleteServersDialog({
-  servers,
-  onClose,
-  onDeleted,
-}: {
-  servers: ServerRecord[];
-  onClose: () => void;
-  onDeleted: (ids: string[]) => void;
-}) {
-  const t = useT();
-  const { t: ft, isRTL, formatNumber } = useLanguage();
-  const fx = ft as (k: string) => string;
-  const [phrase, setPhrase] = useState("");
-  const floatingIps = useFloatingIps();
-  const backups = useBackups();
-  const snapshots = useSnapshots();
-  const volumes = useVolumes();
-  const open = servers.length > 0;
-  useEffect(() => setPhrase(""), [open]);
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent data-uniform-type className="max-h-[90vh] sm:max-w-[520px]">
-        <DialogHeader className={isRTL ? "text-right" : ""}>
-          <DialogTitle className={isRTL ? "text-right" : ""}>
-            {servers.length === 1
-              ? t("Delete {name}?", { name: servers[0].name })
-              : t("Delete {n} servers?", { n: formatNumber(servers.length) })}
-          </DialogTitle>
-          <DialogDescription className={isRTL ? "text-right" : ""}>
-            {t("These are deleted with the servers. This cannot be undone.")}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="max-h-[45vh] divide-y divide-border overflow-y-auto rounded-lg border border-border">
-          {servers.map((sv) => {
-            const released = [sv.ipv4, ...(sv.ipv6 ? [sv.ipv6] : []), ...(sv.extraIps ?? []).filter((i) => !i.reservedId).map((i) => i.address)];
-            const kept = (sv.extraIps ?? []).filter((i) => i.reservedId);
-            const keptFloating = floatingIps.filter((f) => f.attachedTo?.serverId === sv.id);
-            const backup = backups.find((b) => b.serverId === sv.id);
-            const serverSnapshots = snapshots.filter((sn) => sn.serverId === sv.id);
-            /* The boot disk and the disks made with the server go; a disk
-               attached from Cloud Disks stays there, detached. Servers saved
-               before disks were volumes keep their own list. */
-            const attached = volumes.filter((v) => v.attachedTo?.serverId === sv.id);
-            const legacy = !volumes.some((v) => v.madeWithServerId === sv.id);
-            const disks = [
-              ...(sv.disks ?? [{ label: "Boot disk", sizeGb: sv.diskGb, path: "" }]).slice(0, legacy ? undefined : 1),
-              ...attached.filter((v) => v.deleteWithServer).map((v) => ({ label: "Additional disk", sizeGb: v.sizeGb, path: v.attachedTo!.path })),
-            ];
-            const keptDisks = attached.filter((v) => !v.deleteWithServer);
-            return (
-              <div key={sv.id} className="space-y-1 px-3 py-2.5 text-xs">
-                <p className="text-sm font-semibold text-foreground" dir="ltr">
-                  {sv.name}
-                </p>
-                <p className="flex flex-wrap items-center gap-x-1.5 text-destructive">
-                  <Trash2 className="size-3 shrink-0" />
-                  <span className="text-muted-foreground">{t("Public IPs")}:</span>
-                  <span dir="ltr" className="font-mono">
-                    {released.join("  ·  ")}
-                  </span>
-                </p>
-                <p className="flex flex-wrap items-center gap-x-1.5 text-destructive">
-                  <Trash2 className="size-3 shrink-0" />
-                  <span className="text-muted-foreground">{t("Disks")}:</span>
-                  <span>
-                    {disks.map((d) => `${t(d.label)} ${formatNumber(d.sizeGb)} ${t("GB")}`).join("  ·  ")}
-                  </span>
-                </p>
-                {kept.length > 0 && (
-                  <p className="flex flex-wrap items-center gap-x-1.5 text-muted-foreground">
-                    <CheckCircle2 className="size-3 shrink-0 text-emerald-600" />
-                    <span dir="ltr" className="font-mono">
-                      {kept.map((k) => k.address).join("  ·  ")}
-                    </span>
-                    <span>{t("reserved, stays under Public IPs")}</span>
-                  </p>
-                )}
-                {keptDisks.length > 0 && (
-                  <p className="flex flex-wrap items-center gap-x-1.5 text-muted-foreground">
-                    <CheckCircle2 className="size-3 shrink-0 text-emerald-600" />
-                    <span dir="ltr">{keptDisks.map((v) => v.name).join("  ·  ")}</span>
-                    <span>{t("detached, stays under Cloud Disks")}</span>
-                  </p>
-                )}
-                {keptFloating.length > 0 && (
-                  <p className="flex flex-wrap items-center gap-x-1.5 text-muted-foreground">
-                    <CheckCircle2 className="size-3 shrink-0 text-emerald-600" />
-                    <span dir="ltr" className="font-mono">
-                      {keptFloating.map((k) => k.address).join("  ·  ")}
-                    </span>
-                    <span>{t("stays under Floating IPs")}</span>
-                  </p>
-                )}
-                {backup && (
-                  <p className="flex flex-wrap items-center gap-x-1.5 text-destructive">
-                    <Trash2 className="size-3 shrink-0" />
-                    <span className="text-muted-foreground">{t("Backup")}:</span>
-                    <span>
-                      {t("{name}, with {n} saved backups", { name: backup.name, n: formatNumber(backup.points.length) })}
-                    </span>
-                  </p>
-                )}
-                {serverSnapshots.length > 0 && (
-                  <p className="flex flex-wrap items-center gap-x-1.5 text-destructive">
-                    <Trash2 className="size-3 shrink-0" />
-                    <span className="text-muted-foreground">{t("Snapshots")}:</span>
-                    <span dir="ltr">{serverSnapshots.map((sn) => sn.name).join("  ·  ")}</span>
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        <TypeToConfirm value={phrase} onChange={setPhrase} />
-
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose}>
-            {fx("cancel")}
-          </Button>
-          <Button variant="destructive" disabled={!deletePhraseOk(phrase)} onClick={() => onDeleted(servers.map((sv) => sv.id))}>
-            {fx("delete")}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/** Create, with the two ways to make a server, as on the empty page. */
-function CreateMenu({
-  onSingle,
-  onGroup,
-  align,
-}: {
-  onSingle: () => void;
-  onGroup: () => void;
-  align: "start" | "center" | "end";
-}) {
-  const t = useT();
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button className="h-10 gap-2 rounded-md bg-primary px-5 text-primary-foreground hover:bg-primary/90">
-          <Plus className="h-4 w-4" />
-          {t("Create server")}
-          <ChevronDown className="h-4 w-4 opacity-80" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align={align} className="w-64">
-        <DropdownMenuItem onClick={onSingle} className="items-start gap-2.5 py-2">
-          <Server className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <span>
-            <span className="block font-medium">{t("Single virtual machine")}</span>
-            <span className="block text-xs text-muted-foreground">{t("One server you configure yourself")}</span>
-          </span>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={onGroup} className="items-start gap-2.5 py-2">
-          <Layers className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <span>
-            <span className="block font-medium">{t("Auto Scale group")}</span>
-            <span className="block text-xs text-muted-foreground">{t("Servers that grow and shrink with load")}</span>
-          </span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-function StatusCell({ status, label, startedAt, now }: { status: ServerStatus; label: string; startedAt: number; now: number }) {
-  if (status === "creating") return <ProgressStatus label={label} startedAt={startedAt} durationMs={CREATING_MS} now={now} />;
-  return (
-    <span className="inline-flex items-center gap-1.5 text-sm">
-      <span className={cn("h-2 w-2 rounded-full", status === "running" ? "bg-emerald-500" : "bg-muted-foreground/50")} />
-      {label}
-    </span>
   );
 }
 
@@ -968,40 +781,5 @@ function ExpandField({ label, value, ltr }: { label: string; value: string; ltr?
         {value}
       </div>
     </div>
-  );
-}
-
-function RenameDialog({ server, onClose }: { server: ServerRecord | null; onClose: () => void }) {
-  const t = useT();
-  const { t: ft } = useLanguage();
-  const fx = ft as (k: string) => string;
-  const [name, setName] = useState("");
-  useEffect(() => setName(server?.name ?? ""), [server]);
-  const ok = /^[a-z][a-z0-9-]{1,61}[a-z0-9]$/.test(name);
-
-  return (
-    <Dialog open={!!server} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent data-uniform-type className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>{t("Rename server")}</DialogTitle>
-          <DialogDescription>{t("Lowercase letters, digits and hyphens; 3 to 63 characters.")}</DialogDescription>
-        </DialogHeader>
-        <Input dir="ltr" value={name} onChange={(e) => setName(e.target.value.toLowerCase())} />
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>
-            {fx("cancel")}
-          </Button>
-          <Button
-            disabled={!ok}
-            onClick={() => {
-              if (server) updateServer(server.id, { name });
-              onClose();
-            }}
-          >
-            {fx("save")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

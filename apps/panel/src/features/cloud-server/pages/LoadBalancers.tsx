@@ -489,7 +489,7 @@ export default function LoadBalancers() {
                                 v.rules.map(({ rule, members }) => (
                                   <div key={rule.id} className="mt-3 rounded-lg border bg-background">
                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-xs text-muted-foreground">
-                                      <span dir="ltr" className="font-mono text-[13px] font-medium text-foreground">
+                                      <span dir="ltr" className="font-medium text-foreground">
                                         {ruleLabel(rule)}
                                       </span>
                                       <span>{text.algorithm[rule.algorithm]}</span>
@@ -532,7 +532,7 @@ export default function LoadBalancers() {
                                                 </button>
                                               </td>
                                               <td>
-                                                <span dir="ltr" className="font-mono text-[13px] text-foreground">
+                                                <span dir="ltr" className="text-foreground">
                                                   {m.ip}:{rule.targetPort}
                                                 </span>
                                               </td>
@@ -643,7 +643,7 @@ export default function LoadBalancers() {
 export function Mono({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <span className={cn("block truncate", className)}>
-      <span dir="ltr" className="font-mono text-[13px]">
+      <span dir="ltr">
         {children}
       </span>
     </span>
@@ -686,7 +686,7 @@ export function PublicIpDialog({ lb, onClose }: { lb: LoadBalancer | null; onClo
           <SelectContent>
             {free.map((f) => (
               <SelectItem key={f.id} value={f.id}>
-                <span dir="ltr" className="font-mono">
+                <span dir="ltr">
                   {f.address}
                 </span>
                 {f.description && <span className="text-muted-foreground"> · {f.description}</span>}

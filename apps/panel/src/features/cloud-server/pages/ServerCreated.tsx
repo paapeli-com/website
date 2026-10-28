@@ -5,7 +5,6 @@ import {
   Camera,
   CheckCircle2,
   ChevronRight,
-  Copy,
   Eye,
   EyeOff,
   HardDrive,
@@ -21,7 +20,6 @@ import { Button } from "@/features/factory/components/ui/button";
 import { Card } from "@/features/factory/components/ui/card";
 import { Skeleton } from "@/features/factory/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/features/factory/components/ui/table";
-import { toast } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
 import { CLOUD_SERVER_BASE } from "@/shell/nav/cloudServerNav";
 import { useT } from "../i18n";
@@ -34,7 +32,7 @@ import {
   GPU_SERVERS_PATH,
   NEW_SERVER_PATH,
   SERVERS_PATH,
-  TruncatedText,
+  CopyButton, TruncatedText,
 } from "../ui";
 
 /* The page a create lands on: the server while it is being built, then the
@@ -130,12 +128,6 @@ function Created({ server }: { server: CreatedServer }) {
   const phase: Phase = ready ? "ready" : "creating";
   const [showPassword, setShowPassword] = useState(false);
 
-  const copy = (value: string) => {
-    void navigator.clipboard?.writeText(value).then(
-      () => toast.success(t("Copied")),
-      () => toast.error(t("Could not copy")),
-    );
-  };
 
   return (
     <CreatePage>
@@ -192,20 +184,20 @@ function Created({ server }: { server: CreatedServer }) {
                   </TableCell>
                   <TableCell>
                     <Pending ready={ipv4}>
-                      <CopyValue value={server.ipv4Address} onCopy={copy} />
+                      <CopyValue value={server.ipv4Address} />
                     </Pending>
                   </TableCell>
                   <TableCell>
                     {server.ipv6 ? (
                       <Pending ready={ipv6}>
-                        <CopyValue value={server.ipv6Address} onCopy={copy} />
+                        <CopyValue value={server.ipv6Address} />
                       </Pending>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell>
-                    <CopyValue value={server.username ?? "root"} onCopy={copy} />
+                    <CopyValue value={server.username ?? "root"} />
                   </TableCell>
                   <TableCell>
                     {server.access === "password" && server.password ? (
@@ -225,9 +217,7 @@ function Created({ server }: { server: CreatedServer }) {
                           >
                             {showPassword ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
                           </IconButton>
-                          <IconButton label={t("Copy")} onClick={() => copy(server.password!)}>
-                            <Copy className="size-3.5" />
-                          </IconButton>
+                          <CopyButton text={server.password!} />
                         </div>
                       </Pending>
                     ) : (
@@ -345,14 +335,11 @@ function Pending({ ready, children }: { ready: boolean; children: ReactNode }) {
   return ready ? <>{children}</> : <Skeleton className="h-4 w-28" />;
 }
 
-function CopyValue({ value, onCopy }: { value: string; onCopy: (v: string) => void }) {
-  const t = useT();
+function CopyValue({ value }: { value: string }) {
   return (
     <span className="flex min-w-0 items-center gap-1">
-      <TruncatedText text={value} ltr mono className="text-foreground" />
-      <IconButton label={t("Copy")} onClick={() => onCopy(value)}>
-        <Copy className="size-3.5" />
-      </IconButton>
+      <TruncatedText text={value} ltr className="text-foreground" />
+      <CopyButton text={value} />
     </span>
   );
 }

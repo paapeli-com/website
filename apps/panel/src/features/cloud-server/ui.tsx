@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/features/factory/components/ui/button";
 import { Checkbox } from "@/features/factory/components/ui/checkbox";
 import { Input } from "@/features/factory/components/ui/input";
-import { Loader2 } from "lucide-react";
+import { Check, Copy, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -198,6 +198,53 @@ export function TruncatedText({
       className={cn("block min-w-0 truncate", mono && "font-mono text-xs", className)}
     >
       {text}
+    </span>
+  );
+}
+
+/** Copy, with "Copied" said beside the button for two seconds instead of a
+    toast, so the eye stays where the value is. Floats over what is next to
+    it, so nothing moves. */
+export function CopyButton({ text, label, className }: { text: string; label?: string; className?: string }) {
+  const t = useT();
+  const [state, setState] = useState<"idle" | "done" | "failed">("idle");
+  useEffect(() => {
+    if (state === "idle") return;
+    const timer = window.setTimeout(() => setState("idle"), 2000);
+    return () => window.clearTimeout(timer);
+  }, [state]);
+  return (
+    <span className="relative inline-flex shrink-0">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!navigator.clipboard) return setState("failed");
+          void navigator.clipboard.writeText(text).then(
+            () => setState("done"),
+            () => setState("failed"),
+          );
+        }}
+        aria-label={label ?? t("Copy")}
+        title={label ?? t("Copy")}
+        className={cn(
+          "flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+          className,
+        )}
+      >
+        {state === "done" ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
+      </button>
+      {state !== "idle" && (
+        <span
+          role="status"
+          className={cn(
+            "pointer-events-none absolute start-full top-1/2 z-10 ms-1 -translate-y-1/2 whitespace-nowrap rounded-md border bg-background px-1.5 py-0.5 text-xs shadow-sm",
+            state === "done" ? "border-emerald-500/30 text-emerald-700 dark:text-emerald-400" : "border-destructive/30 text-destructive",
+          )}
+        >
+          {state === "done" ? t("Copied") : t("Could not copy")}
+        </span>
+      )}
     </span>
   );
 }

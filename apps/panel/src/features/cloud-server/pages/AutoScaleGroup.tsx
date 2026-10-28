@@ -6,7 +6,6 @@ import {
   ArrowDown,
   ArrowUp,
   Clock,
-  Copy,
   Expand,
   Eye,
   HeartPulse,
@@ -17,6 +16,7 @@ import {
   MinusCircle,
   MoreHorizontal,
   Pause,
+  Pencil,
   Play,
   Plus,
   Server,
@@ -45,16 +45,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/features/factory/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/features/factory/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/features/factory/components/ui/dialog";
+import { FieldLabel } from "@/features/factory/components/FieldLabel";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useShellT } from "@/shared/i18n/shell";
 import { formatDateTime } from "@/shared/lib/formatDate";
 import { toast } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
 import { useT } from "../i18n";
-import { IMAGES } from "../lib/catalog";
-import { OsLogo } from "../lib/osLogos";
+import { useFirewalls } from "../lib/firewallStore";
+import { apiCall } from "../lib/openstackErrors";
+import { draftFromGroup, resolveTemplate, TemplateFields, TemplateImage, useTemplateInfo, type TemplateDraft } from "../autoscaleTemplate";
 import {
+  changeTemplate,
   groupHealth,
   groupInstances,
   removeGroups,
@@ -78,7 +81,7 @@ import {
   PageBreadcrumb,
   ProgressStatus,
   SERVERS_PATH,
-  TruncatedText,
+  CopyButton, TruncatedText,
   TypeToConfirm,
 } from "../ui";
 import { ruleLabel, useLoadBalancers } from "../lib/loadBalancerStore";
@@ -287,6 +290,107 @@ function GroupPage({ group: g }: { group: AutoScaleGroup }) {
 
 // ---- Overview ------------------------------------------------------------------
 
+/** A new template for the group: new instances are made from it, and the
+    current ones stay or are replaced one at a time. A password is not kept,
+    so left empty it stays as it was. */
+function ChangeTemplateDialog({ g, open, onClose }: { g: AutoScaleGroup; open: boolean; onClose: () => void }) {
+  const t = useT();
+  const { isRTL } = useLanguage();
+  const firewalls = useFirewalls();
+  const [draft, setDraft] = useState<TemplateDraft>(() => draftFromGroup(g, firewalls));
+  const [replace, setReplace] = useState<"keep" | "replace">("keep");
+  const [showErrors, setShowErrors] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    setDraft(draftFromGroup(g, firewalls));
+    setReplace("keep");
+    setShowErrors(false);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const keepPassword = g.access?.method === "password";
+  const info = useTemplateInfo(draft, g.region, g.zone, { keepPassword });
+
+  const save = async () => {
+    setShowErrors(true);
+    if (!info.ok) {
+      toast.error(t("Fix the highlighted field to continue."));
+      return;
+    }
+    const saved = await apiCall(() => {
+      const { savedImage, ...template } = resolveTemplate(draft, info, g.region);
+      changeTemplate(g.id, template, replace === "replace");
+      return savedImage ?? "";
+    }, t);
+    if (saved === undefined) return;
+    toast.success(
+      replace === "replace" ? t("Template saved. The instances are replaced one at a time.") : t("Template saved. New instances are made from it."),
+    );
+    if (saved) toast.info(t("The snapshot was saved as the image {name}.", { name: saved }));
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent data-uniform-type className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>{t("Change template")}</DialogTitle>
+          <DialogDescription>{t("New instances are made from the new template.")}</DialogDescription>
+        </DialogHeader>
+        <TemplateFields
+          draft={draft}
+          onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
+          info={info}
+          region={g.region}
+          zone={g.zone}
+          showErrors={showErrors}
+          keepPassword={keepPassword}
+        />
+        <div className="border-t border-border pt-4">
+          <FieldLabel>{t("Current instances")}</FieldLabel>
+          <RadioGroup dir={isRTL ? "rtl" : "ltr"} value={replace} onValueChange={(v) => setReplace(v as "keep" | "replace")} className="gap-3">
+            {(
+              [
+                ["keep", t("Keep them as they are"), t("Only instances made from now on use the new template.")],
+                ["replace", t("Replace them one at a time"), t("A new instance starts before an old one is removed, so the service stays up.")],
+              ] as const
+            ).map(([value, title, hint]) => (
+              <Label key={value} htmlFor={`tpl-${value}`} className="flex cursor-pointer items-start gap-2.5 font-normal">
+                <RadioGroupItem id={`tpl-${value}`} value={value} className="mt-0.5" />
+                <span>
+                  <span className="block text-sm font-medium text-foreground">{title}</span>
+                  <span className="block text-xs text-muted-foreground">{hint}</span>
+                </span>
+              </Label>
+            ))}
+          </RadioGroup>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            {t("Cancel")}
+          </Button>
+          <Button onClick={() => void save()}>{t("Save")}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ScriptDialog({ script, open, onClose }: { script: string; open: boolean; onClose: () => void }) {
+  const t = useT();
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent data-uniform-type className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{t("Startup script")}</DialogTitle>
+          <DialogDescription>{t("Runs on every new instance on its first boot.")}</DialogDescription>
+        </DialogHeader>
+        <pre dir="ltr" className="max-h-[60vh] overflow-auto whitespace-pre-wrap break-all rounded-lg bg-muted/50 p-3 text-start font-mono text-xs text-foreground">
+          {script}
+        </pre>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function OverviewTab({ g, now, onShow }: { g: AutoScaleGroup; now: number; onShow: (tab: string) => void }) {
   const t = useT();
   const navigate = useNavigate();
@@ -294,7 +398,8 @@ function OverviewTab({ g, now, onShow }: { g: AutoScaleGroup; now: number; onSho
   const instances = groupInstances(g, now);
   const running = runningCount(g, now);
   const health = groupHealth(g, now);
-  const image = IMAGES.find((i) => i.id === g.imageId);
+  const [changing, setChanging] = useState(false);
+  const [scriptOpen, setScriptOpen] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -404,32 +509,49 @@ function OverviewTab({ g, now, onShow }: { g: AutoScaleGroup; now: number; onSho
             />
           )}
           <DetailLine label={t("Cooldown")} value={t("{n} min", { n: formatNumber(g.cooldownMin) })} />
-          <p className="mb-1 mt-4 text-sm font-semibold text-foreground">{t("Template")}</p>
-          <DetailLine
-            label={t("Image")}
-            value={
-              <span dir="ltr" className="inline-flex items-center gap-1.5">
-                {image && (
-                  <OsLogo
-                    id={image.id}
-                    name={image.name}
-                    color={image.color}
-                    className="flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-bold [&_svg]:size-3.5"
-                  />
-                )}
-                {g.image}
-              </span>
-            }
-          />
+          <div className="mb-1 mt-4 flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-foreground">{t("Template")}</p>
+            <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" onClick={() => setChanging(true)}>
+              <Pencil className="size-3.5" />
+              {t("Change template")}
+            </Button>
+          </div>
+          <DetailLine label={t("Image")} value={<TemplateImage source={g.imageSource} imageId={g.imageId} label={g.image} />} />
           <DetailLine
             label={t("Instance size")}
             value={t("{cpu} vCPU · {ram} GB RAM", { cpu: formatNumber(g.vcpu), ram: formatNumber(g.ramGb) })}
           />
           <DetailLine label={t("Boot disk")} value={`${formatNumber(g.diskGb)} ${t("GB")}`} />
           <DetailLine label={t("Firewall")} value={<span dir="ltr">{g.firewall}</span>} />
+          <DetailLine
+            label={t("Sign-in")}
+            value={
+              g.access?.method === "ssh" ? (
+                <span dir="ltr">{g.access.keyName}</span>
+              ) : g.access?.method === "password" ? (
+                t("Password")
+              ) : (
+                "-"
+              )
+            }
+          />
+          <DetailLine
+            label={t("Startup script")}
+            value={
+              g.script ? (
+                <button type="button" className="hover:text-primary" onClick={() => setScriptOpen(true)}>
+                  {t("{n} lines", { n: formatNumber(g.script.trim().split("\n").length) })}
+                </button>
+              ) : (
+                t("None")
+              )
+            }
+          />
         </Card>
       </div>
 
+      <ChangeTemplateDialog g={g} open={changing} onClose={() => setChanging(false)} />
+      <ScriptDialog script={g.script ?? ""} open={scriptOpen} onClose={() => setScriptOpen(false)} />
     </div>
   );
 }
@@ -497,11 +619,6 @@ function InstancesTab({ g, now }: { g: AutoScaleGroup; now: number }) {
     toast.success(t("Capacity set to {n}", { n: formatNumber(g.desired - pendingRemove) }));
     setPendingRemove(0);
   };
-  const copy = (v: string) =>
-    void navigator.clipboard?.writeText(v).then(
-      () => toast.success(t("Copied")),
-      () => toast.error(t("Could not copy")),
-    );
 
   return (
     <Card className="p-5">
@@ -595,23 +712,15 @@ function InstancesTab({ g, now }: { g: AutoScaleGroup; now: number }) {
                   )}
                 </TableCell>
                 <TableCell>
-                  <TruncatedText text={i.privateIp} ltr mono className="text-foreground" />
+                  <TruncatedText text={i.privateIp} ltr className="text-foreground" />
                 </TableCell>
                 <TableCell>
                   {i.status === "creating" ? (
                     <span className="text-muted-foreground">-</span>
                   ) : (
                     <span className="flex min-w-0 items-center gap-1">
-                      <TruncatedText text={i.publicIp} ltr mono className="text-foreground" />
-                      <button
-                        type="button"
-                        onClick={() => copy(i.publicIp)}
-                        aria-label={t("Copy")}
-                        title={t("Copy")}
-                        className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                      >
-                        <Copy className="size-3.5" />
-                      </button>
+                      <TruncatedText text={i.publicIp} ltr className="text-foreground" />
+                      <CopyButton text={i.publicIp} />
                     </span>
                   )}
                 </TableCell>

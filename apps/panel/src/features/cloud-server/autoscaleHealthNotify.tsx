@@ -109,7 +109,7 @@ export function HealthSettings({
                   dir="ltr"
                   value={check.path}
                   onChange={(e) => set({ path: e.target.value.startsWith("/") ? e.target.value : `/${e.target.value}` })}
-                  className="h-9 w-44 font-mono text-xs"
+                  className="h-9 w-44 text-sm rtl:text-right"
                 />
               </Field>
             )}

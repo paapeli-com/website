@@ -55,6 +55,7 @@ import {
   type ImageStatus,
 } from "../lib/imageStore";
 import { IMAGES_PATH, PageBreadcrumb, SERVERS_PATH, TruncatedText, UPLOAD_IMAGE_PATH } from "../ui";
+import { apiCall } from "../lib/openstackErrors";
 
 /* Images & Operating Systems: the custom images this account has uploaded.
  *
@@ -388,7 +389,11 @@ export default function Images() {
                             </span>
                             <div className="min-w-0">
                               <TruncatedText text={img.name} className="font-medium text-foreground" />
-                              <TruncatedText text={img.location} ltr className="text-xs text-muted-foreground" />
+                              <TruncatedText
+                                text={img.source === "snapshot" ? t("Saved from {name}", { name: img.location }) : img.location}
+                                ltr={img.source !== "snapshot"}
+                                className="text-xs text-muted-foreground"
+                              />
                             </div>
                           </div>
                         </TableCell>
@@ -509,8 +514,15 @@ export default function Images() {
             </Button>
             <Button
               variant="destructive"
-              onClick={() => {
-                removeImages(deleteIds ?? []);
+              onClick={async () => {
+                const done = await apiCall(() => {
+                  removeImages(deleteIds ?? []);
+                  return true;
+                }, t);
+                if (!done) {
+                  setDeleteIds(null);
+                  return;
+                }
                 setSelected((prev) => prev.filter((id) => !deleteIds?.includes(id)));
                 toast.success(t("Images deleted"));
                 setDeleteIds(null);

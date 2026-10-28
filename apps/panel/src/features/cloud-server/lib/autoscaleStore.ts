@@ -71,6 +71,12 @@ export interface ScalingRule {
 
 export type EventType = "created" | "scaleOut" | "scaleIn" | "manual" | "edited" | "repair";
 
+/** The fields a template sets. */
+export type GroupTemplate = Pick<
+  AutoScaleGroup,
+  "imageSource" | "imageId" | "image" | "osFamily" | "planId" | "vcpu" | "ramGb" | "diskGb" | "firewall" | "firewallId" | "access" | "script"
+>;
+
 export interface GroupEvent {
   id: string;
   at: number;
@@ -89,13 +95,26 @@ export interface AutoScaleGroup {
   region: string;
   zone: string;
   mode: ScalingMode;
+  /** A system image by its catalog id, or one of the account's own images
+      (uploaded, or saved from a snapshot) by its id. Groups made before own
+      images were offered carry no source and use a system image. */
+  imageSource?: "os" | "custom";
   imageId: string;
   image: string;
+  /** Decides who signs in and which first-boot agent reads the script. */
+  osFamily?: "linux" | "windows";
   planId: string;
   vcpu: number;
   ramGb: number;
   diskGb: number;
   firewall: string;
+  firewallId?: string;
+  /** How people sign in to the instances: one SSH key for all of them
+      (Nova's key_name), or a password set at creation (adminPass, applied by
+      cloud-init or cloudbase-init). The password itself is not kept here. */
+  access?: { method: "ssh"; keyId: string; keyName: string } | { method: "password" };
+  /** Runs on each new instance's first boot: Nova's user_data. */
+  script?: string;
   min: number;
   desired: number;
   max: number;
@@ -169,7 +188,7 @@ function instanceIp(g: AutoScaleGroup, i: number) {
 
 /** How many instances the latest change added (0 when it removed some). */
 function newCount(g: AutoScaleGroup) {
-  const last = g.events.find((e) => e.type === "scaleOut" || e.type === "manual" || e.type === "created");
+  const last = g.events.find((e) => e.type === "scaleOut" || e.type === "manual" || e.type === "created" || (e.type === "edited" && e.vars?.added !== undefined));
   const added = Number(last?.vars?.added ?? 0);
   return Math.max(0, added);
 }
@@ -276,6 +295,30 @@ export function updateGroup(id: string, changes: Partial<AutoScaleGroup>, detail
         ...g.events,
       ],
     };
+  });
+}
+
+/** A new template (Heat's launch configuration). New instances are made
+    from it; with `replace`, the current ones are replaced one at a time, a
+    new one in before an old one goes (Heat's rolling update). */
+export function changeTemplate(id: string, template: GroupTemplate, replace: boolean) {
+  patch(id, (g) => {
+    const now = Date.now();
+    const events: GroupEvent[] = [
+      { id: eventId(), at: now, type: "edited", trigger: "Changed in the panel", details: "Template changed", ok: true },
+    ];
+    if (replace && g.desired > 0) {
+      events.unshift({
+        id: eventId(),
+        at: now,
+        type: "edited",
+        trigger: "Template changed",
+        details: "Replacing {n} instances one at a time",
+        vars: { n: g.desired, added: g.desired },
+        ok: true,
+      });
+    }
+    return { ...g, ...template, changedAt: replace ? now : g.changedAt, events: [...events, ...g.events] };
   });
 }
 
