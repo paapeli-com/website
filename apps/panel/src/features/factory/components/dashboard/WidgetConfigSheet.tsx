@@ -17,6 +17,7 @@ import { useDevices } from "@/features/factory/hooks/useDevices";
 import { TIME_WINDOW_OPTIONS } from "@/features/factory/lib/dashboardSettings";
 import { compact, replaceWidget, validateWidget } from "@/features/factory/lib/dashboardDefinition";
 import { RowEditor, bindingFromRow, freshRow, isFilled, rowFromBinding, shapeOf, startingRows, type Row } from "./sourceRows";
+import { SCENES, Scene, isScene } from "./widgets/processScenes";
 import type { WidgetLang } from "./widgets/types";
 import { optionLabel, optionValueLabel, widgetDescription, widgetName } from "./widgets/widgetText";
 
@@ -145,6 +146,28 @@ function SchemaField({
           {/* The picker has no alpha channel; an 8-digit colour keeps its alpha when typed. */}
           <Input type="color" className="h-9 w-12 shrink-0 p-1" value={/^#[0-9A-Fa-f]{6}/.test(text) ? text.slice(0, 7) : "#000000"} onChange={(e) => onChange(e.target.value.toUpperCase())} />
           <Input className="h-9 font-mono text-xs" value={text} placeholder="#RRGGBB" onChange={(e) => onChange(e.target.value)} />
+        </div>
+      </div>
+    );
+  }
+  // The sample pictures of a process diagram, chosen by looking at them.
+  if (name === "scene" && schema.enum) {
+    return (
+      <div className="space-y-1.5">
+        <Label className="text-xs">{label}</Label>
+        <div className="grid grid-cols-3 gap-2">
+          {schema.enum.filter(isScene).map((scene) => (
+            <button
+              key={scene}
+              type="button"
+              aria-pressed={value === scene}
+              onClick={() => onChange(scene)}
+              className={`rounded-md border p-1 text-center text-[10px] transition-colors ${value === scene ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
+            >
+              <span className="block aspect-[4/3]" dir="ltr"><Scene name={scene} running={false} level={0.7} travel={0.6} /></span>
+              {SCENES[scene].label[lang]}
+            </button>
+          ))}
         </div>
       </div>
     );

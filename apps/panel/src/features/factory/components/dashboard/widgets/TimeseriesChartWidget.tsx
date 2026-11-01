@@ -7,6 +7,7 @@ import {
   CartesianGrid,
   Legend,
   ReferenceArea,
+  ReferenceLine,
   Tooltip as RTooltip,
   XAxis,
   YAxis,
@@ -35,7 +36,11 @@ const SELECTION_FILL = { fill: "hsl(var(--primary))", fillOpacity: 0.15, stroke:
 const POINT_LIMIT = 5000;
 
 
-type Options = { showLegend?: boolean; yAxis?: { min?: number; max?: number } };
+type Options = {
+  showLegend?: boolean;
+  yAxis?: { min?: number; max?: number };
+  thresholds?: Array<{ value: number; label?: string; color: string }>;
+};
 
 /**
  * The "timeseries-chart" widget: one line per `data` item, read from
@@ -222,6 +227,17 @@ export function TimeseriesChartWidget({ widget, dataSources, window: [start, end
               zIndex={0}
             />
           )}
+          {/* extendDomain keeps a limit in view while the data is far below it. */}
+          {(options.thresholds ?? []).map((th, i) => (
+            <ReferenceLine
+              key={`threshold-${i}`}
+              y={th.value}
+              stroke={th.color}
+              strokeDasharray="6 4"
+              ifOverflow="extendDomain"
+              label={{ value: th.label?.trim() || compactNumber.format(th.value), position: "insideTopRight", ...AXIS_TEXT, fill: th.color }}
+            />
+          ))}
           {series.map((s, i) => {
             const color = SERIES_COLORS[i % SERIES_COLORS.length];
             return (

@@ -98,7 +98,10 @@ import {
   Map as MapIcon,
   Maximize2,
   PieChart,
+  AlignVerticalJustifyEnd,
+  Power,
   Table as TableIcon,
+  Workflow,
   Minimize2,
   Pencil,
   Plus,
@@ -185,6 +188,9 @@ const WIDGET_ICONS: Record<string, LucideIcon> = {
   "device-table": TableIcon,
   "device-map": MapIcon,
   "alarm-list": Bell,
+  "process-diagram": Workflow,
+  "level-bar": AlignVerticalJustifyEnd,
+  "status-panel": Power,
 };
 const WIDGET_ORDER = Object.keys(WIDGET_ICONS);
 const widgetRank = (type: string) => {

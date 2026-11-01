@@ -74,6 +74,30 @@ const WIDGETS: Record<string, { name: Text; description: Text }> = {
       fa: "هشدارهای فعلی، با امکان فیلتر بر اساس شدت و وضعیت.",
     },
   },
+  "process-diagram": {
+    name: { en: "Process diagram", ar: "مخطط العملية", fa: "نمودار فرایندی" },
+    description: {
+      en: "An animated picture of a process, driven by telemetry, with its readings beside it.",
+      ar: "صورة متحركة لعملية تقودها القياسات، مع قراءاتها بجانبها.",
+      fa: "تصویر متحرک یک فرایند که با تله‌متری کار می‌کند، همراه با مقادیر آن.",
+    },
+  },
+  "level-bar": {
+    name: { en: "Level bar", ar: "شريط المستوى", fa: "نوار عمودی" },
+    description: {
+      en: "The latest value of one telemetry key on a vertical scale, with optional colored ranges.",
+      ar: "أحدث قيمة لمفتاح قياس واحد على مقياس رأسي، مع نطاقات ملونة اختيارية.",
+      fa: "آخرین مقدار یک کلید تله‌متری روی مقیاس عمودی، با بازه‌های رنگی اختیاری.",
+    },
+  },
+  "status-panel": {
+    name: { en: "Status panel", ar: "لوحة الحالة", fa: "پنل وضعیت" },
+    description: {
+      en: "The on or off state of equipment. Display only: it sends nothing to a device.",
+      ar: "حالة تشغيل المعدات أو إيقافها. للعرض فقط: لا يرسل شيئًا إلى الجهاز.",
+      fa: "وضعیت روشن یا خاموش تجهیزات. فقط نمایشی است و دستوری به دستگاه نمی‌فرستد.",
+    },
+  },
 };
 
 export const widgetName = (def: Pick<WidgetDefinition, "type" | "name">, lang: WidgetLang): string =>
@@ -109,6 +133,9 @@ const OPTIONS: Record<string, Text> = {
   showLabels: { en: "Show device names", ar: "إظهار أسماء الأجهزة", fa: "نمایش نام دستگاه‌ها" },
   showTotal: { en: "Show total", ar: "إظهار الإجمالي", fa: "نمایش مجموع" },
   showDevice: { en: "Show device", ar: "إظهار الجهاز", fa: "نمایش دستگاه" },
+  thresholds: { en: "Threshold lines", ar: "خطوط الحد", fa: "خطوط آستانه" },
+  label: { en: "Label", ar: "التسمية", fa: "برچسب" },
+  scene: { en: "Picture", ar: "الصورة", fa: "تصویر" },
 };
 
 /** The label of an option, or undefined when the panel has no wording for it. */
