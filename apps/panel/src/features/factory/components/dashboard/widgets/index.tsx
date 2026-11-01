@@ -8,6 +8,9 @@ import { DeviceTableWidget } from "./DeviceTableWidget";
 import { DeviceMapWidget } from "./DeviceMapWidget";
 import { DonutChartWidget } from "./DonutChartWidget";
 import { AlarmListWidget } from "./AlarmListWidget";
+import { ProcessDiagramWidget } from "./ProcessDiagramWidget";
+import { LevelBarWidget } from "./LevelBarWidget";
+import { StatusPanelWidget } from "./StatusPanelWidget";
 
 export type { WidgetRenderProps, WidgetRenderer } from "./types";
 
@@ -25,6 +28,9 @@ export const WIDGET_RENDERERS: Record<string, WidgetRenderer> = {
   "device-map": DeviceMapWidget,
   "donut-chart": DonutChartWidget,
   "alarm-list": AlarmListWidget,
+  "process-diagram": ProcessDiagramWidget,
+  "level-bar": LevelBarWidget,
+  "status-panel": StatusPanelWidget,
 };
 
 const T = {

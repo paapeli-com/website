@@ -80,6 +80,8 @@ export interface WidgetDataItem {
     unit?: string;
     /** Slice colour, for widgets whose data schema has one. */
     color?: string;
+    /** What this reading drives in a process diagram. */
+    role?: "reading" | "motion" | "level" | "travel";
 }
 
 /** An instance of a widget definition placed on a dashboard. */

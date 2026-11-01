@@ -66,6 +66,7 @@ const T = {
   label: { en: "Label", ar: "التسمية", fa: "برچسب" },
   unit: { en: "Unit", ar: "الوحدة", fa: "واحد" },
   color: { en: "Color", ar: "اللون", fa: "رنگ" },
+  role: { en: "Role in the picture", ar: "الدور في الصورة", fa: "نقش در تصویر" },
   remove: { en: "Remove", ar: "إزالة", fa: "حذف" },
   keptSource: { en: "Source kept as it is", ar: "المصدر يبقى كما هو", fa: "این منبع بدون تغییر می‌ماند" },
 };
@@ -85,6 +86,8 @@ export interface Row {
   label: string;
   unit: string;
   color: string;
+  /** What this reading drives, where the widget type has roles. */
+  role: string;
   /** kind "count". */
   count: DeviceCountState;
   /** kinds "count" and "query": the location they are limited to; "" is everywhere. */
@@ -105,6 +108,8 @@ export interface RowShape {
   keyed: boolean;
   hasUnit: boolean;
   hasColor: boolean;
+  /** The roles a binding may take; empty for a widget type without roles. */
+  roles: string[];
   /** The source kinds this widget type can bind, in menu order. */
   kinds: SourceKind[];
 }
@@ -128,6 +133,7 @@ export const shapeOf = (definition: WidgetDefinition | undefined): RowShape => {
     keyed: "key" in itemProps,
     hasUnit: "unit" in itemProps,
     hasColor: "color" in itemProps,
+    roles: (itemProps.role?.enum as string[] | undefined) ?? [],
     kinds: kinds.length ? kinds : ["device"],
   };
 };
@@ -142,6 +148,7 @@ export const newRow = (kind: SourceKind, partial: Partial<Row> = {}): Row => ({
   label: "",
   unit: "",
   color: "",
+  role: "",
   count: "all",
   assetId: "",
   deviceTypeId: "",
@@ -172,7 +179,7 @@ export const startingRows = (shape: RowShape, lang: WidgetLang): Row[] => {
 
 export const rowFromBinding = (d: DashboardWidget["data"][number], sources: Record<string, DashboardDataSource>): Row => {
   const src = sources[d.source];
-  const common = { key: d.key ?? "", label: d.label ?? "", unit: d.unit ?? "", color: d.color ?? "" };
+  const common = { key: d.key ?? "", label: d.label ?? "", unit: d.unit ?? "", color: d.color ?? "", role: d.role ?? "" };
   if (src?.type === "device") return newRow("device", { ...common, deviceId: src.deviceId });
   if (src?.type === "deviceQuery") return newRow("query", { ...common, deviceTypeId: src.deviceTypeId, assetId: src.assetId ?? "" });
   // A count narrowed by device type has no picker here; it is kept as it is.
@@ -251,6 +258,7 @@ export const bindingFromRow = (
     label: row.label.trim(),
     unit: shape.hasUnit ? row.unit.trim() : "",
     color: shape.hasColor ? row.color : "",
+    role: shape.roles.length ? row.role : "",
   }) as DashboardWidget["data"][number];
   return [next, item];
 };
@@ -341,6 +349,13 @@ function Chips<V extends string>({ title, all, labels, value, onChange, lang }: 
     </div>
   );
 }
+
+const ROLE_LABEL: Record<string, Record<WidgetLang, string>> = {
+  reading: { en: "Reading only", ar: "قراءة فقط", fa: "فقط نمایش مقدار" },
+  motion: { en: "Runs the motion (above 0)", ar: "يشغّل الحركة (فوق 0)", fa: "راه‌انداز حرکت (بالای ۰)" },
+  level: { en: "Tank level (0 to 100)", ar: "مستوى الخزان (0 إلى 100)", fa: "سطح مخزن (۰ تا ۱۰۰)" },
+  travel: { en: "Moving part height (0 to 100)", ar: "ارتفاع الجزء المتحرك (0 إلى 100)", fa: "ارتفاع قطعه متحرک (۰ تا ۱۰۰)" },
+};
 
 const SEVERITIES = ["CRITICAL", "MAJOR", "MINOR", "WARNING", "INDETERMINATE"] as const;
 const STATUSES = ["ACTIVE_UNACK", "ACTIVE_ACK", "CLEARED_UNACK", "CLEARED_ACK"] as const;
@@ -512,6 +527,18 @@ export function RowEditor({ row, shape, devices, onChange, onRemove, canRemove, 
           </div>
         )}
       </div>
+
+      {shape.roles.length > 0 && (
+        <div className="space-y-1.5">
+          <Label className="text-xs">{tr("role", lang)}</Label>
+          <Select value={row.role || "reading"} onValueChange={(role) => onChange({ ...row, role })}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {shape.roles.map((r) => <SelectItem key={r} value={r}>{ROLE_LABEL[r]?.[lang] ?? r}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {canRemove && (
         <div className="flex justify-end">
