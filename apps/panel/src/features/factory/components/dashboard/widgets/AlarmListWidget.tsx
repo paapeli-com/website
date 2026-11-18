@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { WorkspaceAlarmItem } from "@paapeli/api";
 import { ChevronLeft, ChevronRight, TriangleAlert } from "lucide-react";
 import { apiErrorMessage } from "@/shared/lib/apiError";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { fmtDateTime } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { Hint } from "./chartKit";
@@ -58,7 +58,7 @@ export function AlarmListWidget({ widget, dataSources, window: [, refreshedAt], 
 
   const query = useQuery({
     // The window's end moves on every dashboard refresh; keying on it re-reads then.
-    queryKey: ["alarmList", workspaceId, PRODUCT_KEY, source, refreshedAt],
+    queryKey: ["alarmList", workspaceId, currentProductKey(), source, refreshedAt],
     queryFn: async () => (source?.type === "alarmQuery" ? matchAlarms(workspaceId, source) : []),
     enabled: !!workspaceId && source?.type === "alarmQuery",
     // Keep the last list on screen while it refreshes.

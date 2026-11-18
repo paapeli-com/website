@@ -1,6 +1,6 @@
 import { useQueries } from "@tanstack/react-query";
 import { telemetryService, type DashboardDataSource, type DashboardWidget } from "@paapeli/api";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 
 /**
@@ -27,8 +27,8 @@ export function useLatestReadings(
 
   const results = useQueries({
     queries: devices.map(({ deviceId, keys }) => ({
-      queryKey: ["latestReadings", workspaceId, PRODUCT_KEY, deviceId, keys.join(","), refreshedAt],
-      queryFn: () => telemetryService.getLatest(workspaceId, PRODUCT_KEY, deviceId, keys),
+      queryKey: ["latestReadings", workspaceId, currentProductKey(), deviceId, keys.join(","), refreshedAt],
+      queryFn: () => telemetryService.getLatest(workspaceId, currentProductKey(), deviceId, keys),
       enabled: !!workspaceId,
       // Keep the last values on screen while they refresh.
       placeholderData: (prev: unknown) => prev,

@@ -13,7 +13,7 @@ import {
 } from "@paapeli/api";
 import { getCurrentUserId } from "@paapeli/brand/session";
 import aiManagersCover from "@/features/factory/assets/ai-managers-dashboard-cover.svg";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { DEFAULT_DASHBOARD_SETTINGS } from "@/features/factory/lib/dashboardSettings";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
@@ -165,8 +165,8 @@ export const copyRequest = (d: DashboardResponse, name: string): CreateDashboard
 export const useDashboards = () => {
   const workspaceId = useWorkspaceId() ?? "";
   const queryClient = useQueryClient();
-  const list = useListDashboardsQuery(workspaceId, PRODUCT_KEY, 1, 100);
-  const categories = useListDashboardCategoriesQuery(workspaceId, PRODUCT_KEY);
+  const list = useListDashboardsQuery(workspaceId, currentProductKey(), 1, 100);
+  const categories = useListDashboardCategoriesQuery(workspaceId, currentProductKey());
   const members = useListWorkspaceMembersQuery(workspaceId, "", 1, 100);
   const { options: locations } = useAssetLocations();
   const deleteMutation = useDeleteDashboardMutation();
@@ -223,7 +223,7 @@ export const useDashboards = () => {
 
   const remove = useCallback(async (id: string) => {
     if (isBuiltInDashboardId(id)) return;
-    await deleteMutation.mutateAsync({ workspaceId, productKey: PRODUCT_KEY, dashboardId: id });
+    await deleteMutation.mutateAsync({ workspaceId, productKey: currentProductKey(), dashboardId: id });
     setPrefs((prev) => {
       const { [id]: _gone, ...rest } = prev;
       return rest;
@@ -233,9 +233,9 @@ export const useDashboards = () => {
   /** Copies a dashboard, widgets included. Resolves to the new dashboard. */
   const duplicate = useCallback(async (id: string) => {
     if (isBuiltInDashboardId(id)) return null;
-    const src = await dashboardService.getDashboard(workspaceId, PRODUCT_KEY, id);
-    const created = await dashboardService.createDashboard(workspaceId, PRODUCT_KEY, copyRequest(src, `${src.name} (Copy)`));
-    queryClient.invalidateQueries({ queryKey: dashboardKeys.all(workspaceId, PRODUCT_KEY) });
+    const src = await dashboardService.getDashboard(workspaceId, currentProductKey(), id);
+    const created = await dashboardService.createDashboard(workspaceId, currentProductKey(), copyRequest(src, `${src.name} (Copy)`));
+    queryClient.invalidateQueries({ queryKey: dashboardKeys.all(workspaceId, currentProductKey()) });
     return created;
   }, [queryClient, workspaceId]);
 

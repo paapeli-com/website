@@ -24,7 +24,7 @@ import { usePageLoad } from "@/shared/hooks/usePageLoad";
 import { LoadFailed } from "@/shared/components/LoadFailed";
 import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
 import { deviceCredentialsService } from "@paapeli/api";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { LocationCell } from "@/features/factory/components/panel/LocationCell";
 import {
@@ -337,7 +337,7 @@ const Devices = () => {
         try {
           const creds = await deviceCredentialsService.getDeviceCredentials(
             workspaceId,
-            PRODUCT_KEY,
+            currentProductKey(),
             created.id,
           );
           apiKey = creds.credentialsId;

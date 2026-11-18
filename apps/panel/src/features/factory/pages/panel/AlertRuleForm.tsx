@@ -15,7 +15,7 @@ import {
 import { AlertRuleWizard } from "@/features/factory/components/alerts/AlertRuleWizard";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { LoadingSpinner } from "@/shared/components/LoadingSpinner";
 import { LoadFailed } from "@/shared/components/LoadFailed";
 
@@ -34,7 +34,7 @@ const AlertRuleForm = () => {
 
   const { alarmRuleId } = useParams();
   const workspaceId = useWorkspaceId();
-  const rulesQuery = useGetWorkspaceAlarmRulesQuery(workspaceId ?? "", PRODUCT_KEY, 0, 100, { enabled: !!alarmRuleId });
+  const rulesQuery = useGetWorkspaceAlarmRulesQuery(workspaceId ?? "", currentProductKey(), 0, 100, { enabled: !!alarmRuleId });
   const editRule = alarmRuleId ? rulesQuery.data?.data.find((r) => r.id === alarmRuleId) : undefined;
   const title = alarmRuleId ? tt("alertEditRule") : tt("alertCreateRule");
 

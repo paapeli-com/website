@@ -46,7 +46,7 @@ import {
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
 import { NoData } from "@/features/factory/components/NoData";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
 import {
   useOtaActions,
@@ -156,7 +156,7 @@ const useStatusBadge = () => {
 
 /* Device type keys are the product's own; the label is what people read. */
 const useDeviceTypeLabel = () => {
-  const { data } = useGetProductDeviceTypesQuery(PRODUCT_KEY);
+  const { data } = useGetProductDeviceTypesQuery(currentProductKey());
   const labels = useMemo(() => new Map((data ?? []).map((d) => [d.deviceType, d.label])), [data]);
   return {
     label: (type: string) => labels.get(type) || type,

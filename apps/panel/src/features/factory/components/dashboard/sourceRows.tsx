@@ -18,7 +18,7 @@ import { Label } from "@/features/factory/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/features/factory/components/ui/select";
 import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { compact, ensureDeviceSource, ensureSource } from "@/features/factory/lib/dashboardDefinition";
 import { SEVERITY_LABEL, STATUS_LABEL } from "./widgets/AlarmListWidget";
 import type { WidgetLang } from "./widgets/types";
@@ -281,7 +281,7 @@ function DevicePicker({ value, devices, onChange, lang }: { value: string; devic
 /** The keys one device has reported, as a picker. */
 function KeyPicker({ deviceId, value, onChange, lang }: { deviceId: string; value: string; onChange: (key: string) => void; lang: WidgetLang }) {
   const workspaceId = useWorkspaceId() ?? "";
-  const keysQuery = useDeviceTelemetryKeysQuery(workspaceId, PRODUCT_KEY, deviceId);
+  const keysQuery = useDeviceTelemetryKeysQuery(workspaceId, currentProductKey(), deviceId);
   const keys = useMemo(() => {
     const list = [...(keysQuery.data ?? [])].sort();
     return value && !list.includes(value) ? [value, ...list] : list;
@@ -377,7 +377,7 @@ export function RowEditor({ row, shape, devices, onChange, onRemove, canRemove, 
   canRemove: boolean;
   lang: WidgetLang;
 }) {
-  const typesQuery = useGetProductDeviceTypesQuery(PRODUCT_KEY, row.kind === "query");
+  const typesQuery = useGetProductDeviceTypesQuery(currentProductKey(), row.kind === "query");
   const deviceTypes = (typesQuery.data ?? []).flatMap((t) => {
     const id = (t as { id?: string }).id;
     return id && t.enabled ? [{ id, label: t.label || t.deviceType }] : [];

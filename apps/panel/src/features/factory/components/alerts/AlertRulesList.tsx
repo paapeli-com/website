@@ -33,7 +33,7 @@ import { SmartPagination } from "@/features/factory/components/SmartPagination";
 import { useDevices } from "@/features/factory/hooks/useDevices";
 import { useToast } from "@/features/factory/hooks/use-toast";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 import { queryLoad, usePageLoad } from "@/shared/hooks/usePageLoad";
 import { LoadFailed } from "@/shared/components/LoadFailed";
@@ -168,7 +168,7 @@ export const AlertRulesList = ({
   // rule is still on its way in or out.
   const [inFlight, setInFlight] = useState(false);
   const rulesQuery = useGetWorkspaceAlarmRulesQuery(
-    workspaceId ?? "", PRODUCT_KEY, RULES_PAGE, RULES_PAGE_SIZE,
+    workspaceId ?? "", currentProductKey(), RULES_PAGE, RULES_PAGE_SIZE,
     { refetchInterval: inFlight ? 5000 : false },
   );
   const { data, isLoading, isError, error, isFetching, refetch } = rulesQuery;
@@ -285,7 +285,7 @@ export const AlertRulesList = ({
     if (!confirmDelete || !workspaceId) return;
     const rule = confirmDelete;
     try {
-      await deleteRule.mutateAsync({ workspaceId, productKey: PRODUCT_KEY, alarmRuleId: rule.id, deviceId: rule.deviceId });
+      await deleteRule.mutateAsync({ workspaceId, productKey: currentProductKey(), alarmRuleId: rule.id, deviceId: rule.deviceId });
       toast({ title: tt("alertRuleDeleted"), description: rule.name });
     } catch (error) {
       toast({ title: tt("error"), description: error instanceof Error ? error.message : tt("error"), variant: "destructive" });

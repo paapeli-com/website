@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useGetDeviceTimeSeriesQuery, type EntityFieldItem } from "@paapeli/api";
 import { useDevices } from "@/features/factory/hooks/useDevices";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import {
   DATA_SOURCES,
   type SeriesPoint, type TableData, type WidgetKind,
@@ -74,7 +74,7 @@ export const noDataSpans = (times: number[], start: number, end: number): [numbe
 /** A device's recent telemetry, keyed by telemetry name. */
 export const useDeviceTelemetry = (deviceId: string | undefined, hours: number) => {
   const workspaceId = useWorkspaceId();
-  return useGetDeviceTimeSeriesQuery(workspaceId ?? "", PRODUCT_KEY, deviceId ?? "", hours);
+  return useGetDeviceTimeSeriesQuery(workspaceId ?? "", currentProductKey(), deviceId ?? "", hours);
 };
 
 /** A telemetry value as a number, or null when it can't be plotted. The spec

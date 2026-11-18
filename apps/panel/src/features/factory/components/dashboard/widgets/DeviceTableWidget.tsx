@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { telemetryService, type TelemetryPoint } from "@paapeli/api";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { fmtDateTime, toNumber } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { Hint } from "./chartKit";
@@ -65,11 +65,11 @@ export function DeviceTableWidget({ widget, dataSources, window: [, refreshedAt]
   const results = useQueries({
     queries: deviceIds.map((deviceId) => ({
       // The window's end moves on every dashboard refresh; keying on it re-reads then.
-      queryKey: ["deviceTable", workspaceId, PRODUCT_KEY, deviceId, keys.join(","), readings, refreshedAt],
+      queryKey: ["deviceTable", workspaceId, currentProductKey(), deviceId, keys.join(","), readings, refreshedAt],
       queryFn: () => {
-        if (!history) return telemetryService.getLatest(workspaceId, PRODUCT_KEY, deviceId, keys);
+        if (!history) return telemetryService.getLatest(workspaceId, currentProductKey(), deviceId, keys);
         const endTs = Date.now();
-        return telemetryService.getHistory(workspaceId, PRODUCT_KEY, deviceId, {
+        return telemetryService.getHistory(workspaceId, currentProductKey(), deviceId, {
           keys,
           startTs: endTs - HISTORY_MS,
           endTs,

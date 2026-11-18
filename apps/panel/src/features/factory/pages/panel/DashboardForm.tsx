@@ -49,7 +49,7 @@ import { ChevronUp, UploadCloud, X, Info, Loader2, Plus } from "lucide-react";
 import { isBuiltInDashboardId } from "@/features/factory/hooks/useDashboards";
 import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import {
   DEFAULT_DASHBOARD_SETTINGS,
   IANA_ZONES,
@@ -305,12 +305,12 @@ const DashboardForm = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEdit, params.id]);
 
-  const existingQuery = useGetDashboardQuery(workspaceId, PRODUCT_KEY, dashboardId);
+  const existingQuery = useGetDashboardQuery(workspaceId, currentProductKey(), dashboardId);
   const existing = existingQuery.data;
-  const grantsQuery = useListDashboardGrantsQuery(workspaceId, PRODUCT_KEY, dashboardId);
+  const grantsQuery = useListDashboardGrantsQuery(workspaceId, currentProductKey(), dashboardId);
   // Grants carry only a membership id; names come from the member list.
   const allMembers = useListWorkspaceMembersQuery(workspaceId, "", 1, 100, isEdit);
-  const categoriesQuery = useListDashboardCategoriesQuery(workspaceId, PRODUCT_KEY);
+  const categoriesQuery = useListDashboardCategoriesQuery(workspaceId, currentProductKey());
   const createCategory = useCreateDashboardCategoryMutation();
   const createDashboard = useCreateDashboardMutation();
   const updateDashboard = useUpdateDashboardMutation();
@@ -381,7 +381,7 @@ const DashboardForm = () => {
     const name = newCategory?.trim();
     if (!name || !workspaceId) return;
     try {
-      const created = await createCategory.mutateAsync({ workspaceId, productKey: PRODUCT_KEY, name });
+      const created = await createCategory.mutateAsync({ workspaceId, productKey: currentProductKey(), name });
       setForm((f) => ({ ...f, categoryId: created.id }));
       setNewCategory(null);
       toast.success(tt("categoryCreated"));
@@ -412,13 +412,13 @@ const DashboardForm = () => {
     const now = new Map(form.share.map((s) => [s.workspaceMembershipId, s.permission]));
     const calls: Promise<unknown>[] = [];
     now.forEach((permission, member) => {
-      if (was.get(member) !== permission) calls.push(dashboardService.putGrant(workspaceId, PRODUCT_KEY, id, member, permission));
+      if (was.get(member) !== permission) calls.push(dashboardService.putGrant(workspaceId, currentProductKey(), id, member, permission));
     });
     was.forEach((_p, member) => {
-      if (!now.has(member)) calls.push(dashboardService.deleteGrant(workspaceId, PRODUCT_KEY, id, member));
+      if (!now.has(member)) calls.push(dashboardService.deleteGrant(workspaceId, currentProductKey(), id, member));
     });
     const results = await Promise.allSettled(calls);
-    queryClient.invalidateQueries({ queryKey: dashboardKeys.grants(workspaceId, PRODUCT_KEY, id) });
+    queryClient.invalidateQueries({ queryKey: dashboardKeys.grants(workspaceId, currentProductKey(), id) });
     if (results.some((r) => r.status === "rejected")) toast.warning(tt("grantsFailed"));
   };
 
@@ -445,7 +445,7 @@ const DashboardForm = () => {
         };
         await updateDashboard.mutateAsync({
           workspaceId,
-          productKey: PRODUCT_KEY,
+          productKey: currentProductKey(),
           dashboardId: existing.id,
           recordVersion: existing.recordVersion,
           ...metadata(definition),
@@ -458,7 +458,7 @@ const DashboardForm = () => {
            dashboard, not the list you came from: you came here to build one. */
         const created = await createDashboard.mutateAsync({
           workspaceId,
-          productKey: PRODUCT_KEY,
+          productKey: currentProductKey(),
           ...metadata(emptyDashboardDefinition(form.settings)),
         });
         await syncGrants(created.id, []);

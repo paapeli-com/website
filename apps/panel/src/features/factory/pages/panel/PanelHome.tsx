@@ -18,7 +18,7 @@ import {
 import { useGetWorkspaceAlarmsQuery, type WorkspaceAlarmItem } from "@paapeli/api";
 import { needsAttention } from "@/shared/lib/alarmStatus";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useDevices } from "@/features/factory/hooks/useDevices";
 import { useDashboards } from "@/features/factory/hooks/useDashboards";
 import { useWorkOrderSummary } from "@/features/factory/hooks/useWorkOrders";
@@ -164,7 +164,7 @@ export default function PanelHome() {
   /* Alarms for this workspace product — the Attention card lists the
      unacknowledged ones, and the alarm count below is how many there are. */
   const workspaceId = useWorkspaceId();
-  const alarmsQuery = useGetWorkspaceAlarmsQuery(workspaceId ?? "", PRODUCT_KEY);
+  const alarmsQuery = useGetWorkspaceAlarmsQuery(workspaceId ?? "", currentProductKey());
   const { data: alarms, isLoading: alarmsLoading } = alarmsQuery;
   const attention = useMemo(
     () => (alarms ?? [])

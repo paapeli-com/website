@@ -10,7 +10,7 @@ import {
   type FormulaDataSource,
   type WorkspaceAlarmItem,
 } from "@paapeli/api";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { useDevices } from "@/features/factory/hooks/useDevices";
 import { toNumber } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
@@ -28,7 +28,7 @@ const MAX_DEVICE_PAGES = 5;
 export async function matchAlarms(workspaceId: string, source: AlarmQueryDataSource): Promise<WorkspaceAlarmItem[]> {
   const all: WorkspaceAlarmItem[] = [];
   for (let page = 1; page <= MAX_ALARM_PAGES; page++) {
-    const res = await alarmService.getWorkspaceAlarms(workspaceId, PRODUCT_KEY, page, PAGE_SIZE);
+    const res = await alarmService.getWorkspaceAlarms(workspaceId, currentProductKey(), page, PAGE_SIZE);
     all.push(...res.data);
     if (!res.hasNext) break;
   }
@@ -51,7 +51,7 @@ export async function evaluateFormula(workspaceId: string, source: FormulaDataSo
   const latest = new Map(
     await Promise.all(
       [...byDevice.entries()].map(
-        async ([deviceId, keys]) => [deviceId, await telemetryService.getLatest(workspaceId, PRODUCT_KEY, deviceId, keys)] as const,
+        async ([deviceId, keys]) => [deviceId, await telemetryService.getLatest(workspaceId, currentProductKey(), deviceId, keys)] as const,
       ),
     ),
   );
@@ -77,7 +77,7 @@ async function devicesOfQuery(workspaceId: string, source: DeviceQueryDataSource
   const { type: _type, ...filters } = source;
   const out: BoundDevice[] = [];
   for (let page = 1; page <= MAX_DEVICE_PAGES; page++) {
-    const res = await queryDevices(workspaceId, PRODUCT_KEY, filters, page, PAGE_SIZE);
+    const res = await queryDevices(workspaceId, currentProductKey(), filters, page, PAGE_SIZE);
     out.push(...res.data.map((d) => ({ id: d.deviceId, name: d.label || d.name, active: d.active === true })));
     if (!res.hasNext) break;
   }
@@ -101,7 +101,7 @@ export function useBoundDevices(
 
   const results = useQueries({
     queries: queryAliases.map((alias) => ({
-      queryKey: ["deviceQuery", workspaceId, PRODUCT_KEY, dataSources[alias], refreshedAt],
+      queryKey: ["deviceQuery", workspaceId, currentProductKey(), dataSources[alias], refreshedAt],
       queryFn: () => devicesOfQuery(workspaceId, dataSources[alias] as DeviceQueryDataSource),
       enabled: !!workspaceId,
       placeholderData: (prev: unknown) => prev,

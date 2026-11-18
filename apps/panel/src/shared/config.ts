@@ -1,3 +1,5 @@
+import { PRODUCTS, type Product } from "@paapeli/brand/config";
+
 /* The gateway origin every API call goes to, from PAAPELI_API_BASE_URL (see
    .env.example; the PAAPELI_ prefix is exposed by envPrefix in vite.config.ts).
    Vite inlines it at build time, so it is the value present when the bundle was
@@ -57,6 +59,16 @@ export const IS_STAGING = stage ? stage === "staging" : import.meta.env.DEV;
    today. Staging opens them; production lists them as "Coming soon" with no
    way in, and has no route to AI Inference, until this flips for them. */
 export const SHOW_UNRELEASED_PRODUCTS = IS_STAGING;
+
+/* @paapeli/brand/config's PRODUCTS as this build shows them: a solution
+   marked unreleased (Smart Greenhouse today) is left out on production, from
+   the switcher, Home, search, Subscriptions and Members alike. Read this
+   rather than PRODUCTS wherever products are listed to people. */
+export const LISTED_PRODUCTS: Product[] = PRODUCTS.map((product) =>
+  product.solutions
+    ? { ...product, solutions: product.solutions.filter((s) => SHOW_UNRELEASED_PRODUCTS || !s.unreleased) }
+    : product,
+);
 
 /* IaaS (Cloud Server) is on production as well as staging for now, by
    request, while staging is down and development goes on against

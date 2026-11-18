@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Check, ChevronDown, ChevronRight, Factory, LayoutGrid, MapPin, Microchip, Server, Sparkles } from "lucide-react";
-import { PRODUCTS, solutionPath, type Product } from "@paapeli/brand/config";
+import { Check, ChevronDown, ChevronRight, Factory, LayoutGrid, MapPin, Microchip, Server, Sparkles, Sprout } from "lucide-react";
+import { solutionPath, type Product } from "@paapeli/brand/config";
 import { AI_INFERENCE_BASE } from "@/shell/nav/aiInferenceNav";
 import { CLOUD_SERVER_BASE, CLOUD_SERVER_GPU_PATH } from "@/shell/nav/cloudServerNav";
 import { HOME_CATEGORY_PATHS } from "@/shell/nav/homeNav";
-import { SHOW_IAAS, SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
+import { SHOW_IAAS, SHOW_UNRELEASED_PRODUCTS, LISTED_PRODUCTS } from "@/shared/config";
 import { cn } from "@/shared/lib/utils";
 import { menuRowIdle, menuRowSelected } from "@/shell/menuRow";
 import { useShellT } from "@/shared/i18n/shell";
@@ -38,6 +38,7 @@ type Row = {
 const SOLUTION_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   GPSTracking: MapPin,
   SmartFactory: Factory,
+  SmartGreenhouse: Sprout,
 };
 
 /* Maturity tags live here rather than in @paapeli/brand/config's PRODUCTS.
@@ -47,6 +48,7 @@ const SOLUTION_ICONS: Record<string, ComponentType<{ className?: string }>> = {
 const SOLUTION_TAGS: Record<string, string> = {
   GPSTracking: "Beta",
   SmartFactory: "Beta",
+  SmartGreenhouse: "Beta",
 };
 
 /* AI Infra's rows, for the same reason: neither can be subscribed to, and
@@ -70,7 +72,7 @@ const AI_INFRA_ROWS: Row[] = SHOW_UNRELEASED_PRODUCTS
    and the search, and none of them should hear about IaaS before it launches. */
 const IAAS_FAMILY: Product = { id: "iaas", name: "IaaS" };
 const IAAS_ROWS: Row[] = [{ id: "CloudServer", name: "Cloud Server", icon: Server, tag: "Alpha", path: CLOUD_SERVER_BASE }];
-const FAMILIES: Product[] = SHOW_IAAS ? [...PRODUCTS, IAAS_FAMILY] : PRODUCTS;
+const FAMILIES: Product[] = SHOW_IAAS ? [...LISTED_PRODUCTS, IAAS_FAMILY] : LISTED_PRODUCTS;
 
 export function ProductSwitcher() {
   const [open, setOpen] = useState(false);
@@ -103,13 +105,13 @@ export function ProductSwitcher() {
     .filter((p) => path === p || path.startsWith(`${p}/`))
     .sort((a, b) => b.length - a.length)[0];
 
-  const allSolutions = PRODUCTS.flatMap((p) => p.solutions ?? []);
+  const allSolutions = LISTED_PRODUCTS.flatMap((p) => p.solutions ?? []);
   const activeSolution = allSolutions.find((s) => location.pathname.startsWith(solutionPath(s.id)))?.id;
 
   const activeProduct =
-    PRODUCTS.find((p) => p.solutions?.some((s) => s.id === activeSolution)) ??
-    PRODUCTS.find((p) => !p.disabled) ??
-    PRODUCTS[0];
+    LISTED_PRODUCTS.find((p) => p.solutions?.some((s) => s.id === activeSolution)) ??
+    LISTED_PRODUCTS.find((p) => !p.disabled) ??
+    LISTED_PRODUCTS[0];
   const activeSolutionName =
     activeProduct.solutions?.find((s) => s.id === activeSolution)?.name ?? activeProduct.name;
 

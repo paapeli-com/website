@@ -29,7 +29,7 @@ import { useToast } from "@/features/factory/hooks/use-toast";
 import { useDevices } from "@/features/factory/hooks/useDevices";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useDeviceTelemetry } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { SEVERITY_RANK, UI_TO_API_SEVERITY, apiSeverityToUi } from "./alarmRuleMapping";
 import { durationMinutes, parseTriggerExpression, severityRuleToCreateRule } from "./ruleExpression";
@@ -435,7 +435,7 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
       try {
         await updateAlarmRule.mutateAsync({
           workspaceId,
-          productKey: PRODUCT_KEY,
+          productKey: currentProductKey(),
           alarmRuleId: editRule.id,
           deviceId: editRule.deviceId,
           name,
@@ -465,7 +465,7 @@ export const AlertRuleWizard = ({ open, onOpenChange, inline, hideActions, onAct
 
     // A rule belongs to exactly one device, so each selected device gets its own.
     const results = await Promise.allSettled(
-      selectedDevices.map(deviceId => createAlarmRule.mutateAsync({ workspaceId, productKey: PRODUCT_KEY, deviceId, ...body })),
+      selectedDevices.map(deviceId => createAlarmRule.mutateAsync({ workspaceId, productKey: currentProductKey(), deviceId, ...body })),
     );
     const failures = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
     const createdCount = results.length - failures.length;

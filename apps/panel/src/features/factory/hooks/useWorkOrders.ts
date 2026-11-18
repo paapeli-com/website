@@ -14,7 +14,7 @@ import {
   type WorkOrderTaskInput,
   type WorkOrderResponse,
 } from "@paapeli/api";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 
@@ -127,7 +127,7 @@ const MAX_PAGES = 5;
 async function fetchAll(workspaceId: string): Promise<WorkOrderResponse[]> {
   const all: WorkOrderResponse[] = [];
   for (let page = 1; page <= MAX_PAGES; page++) {
-    const res = await workOrderService.list(workspaceId, PRODUCT_KEY, {}, page, PAGE_SIZE);
+    const res = await workOrderService.list(workspaceId, currentProductKey(), {}, page, PAGE_SIZE);
     all.push(...res.data);
     if (!res.hasNext) break;
   }
@@ -178,7 +178,7 @@ const createRequest = (wo: NewWorkOrder, tasks?: WorkOrderTaskInput[]) => ({
 });
 
 /** Every cached view of the workspace's orders starts with this. */
-const rootKey = (workspaceId: string) => ["workOrders", workspaceId, PRODUCT_KEY];
+const rootKey = (workspaceId: string) => ["workOrders", workspaceId, currentProductKey()];
 
 /** Names from the workspace roster, for the user IDs an order carries. */
 const useMemberNames = (): NameOf => {
@@ -202,7 +202,7 @@ export const useWorkOrderPage = (filter: WorkOrderListFilter, page: number, size
   const nameOf = useMemberNames();
   const query = useQuery({
     queryKey: [...rootKey(workspaceId), "page", filter, page, size],
-    queryFn: () => workOrderService.list(workspaceId, PRODUCT_KEY, filter, page, size),
+    queryFn: () => workOrderService.list(workspaceId, currentProductKey(), filter, page, size),
     enabled: enabled && !!workspaceId,
     placeholderData: keepPreviousData,
   });
@@ -223,7 +223,7 @@ export const useWorkOrderSummary = () => {
   const workspaceId = useWorkspaceId() ?? "";
   return useQuery({
     queryKey: [...rootKey(workspaceId), "summary"],
-    queryFn: () => workOrderService.summary(workspaceId, PRODUCT_KEY),
+    queryFn: () => workOrderService.summary(workspaceId, currentProductKey()),
     enabled: !!workspaceId,
   });
 };
@@ -234,7 +234,7 @@ export const useWorkOrderSummary = () => {
  * the ones already on screen.
  */
 export const findWorkOrderOfAlarm = async (workspaceId: string, alarmId: string) => {
-  const page = await workOrderService.list(workspaceId, PRODUCT_KEY, { alarmId }, 1, 1);
+  const page = await workOrderService.list(workspaceId, currentProductKey(), { alarmId }, 1, 1);
   return page.data[0];
 };
 
@@ -247,7 +247,7 @@ export const useAlarmWorkOrders = () => {
   const workspaceId = useWorkspaceId() ?? "";
   const query = useQuery({
     queryKey: [...rootKey(workspaceId), "ofAlarms"],
-    queryFn: () => workOrderService.list(workspaceId, PRODUCT_KEY, { source: "ALARM" }, 1, PAGE_SIZE),
+    queryFn: () => workOrderService.list(workspaceId, currentProductKey(), { source: "ALARM" }, 1, PAGE_SIZE),
     enabled: !!workspaceId,
   });
   return useMemo(() => {
@@ -267,13 +267,13 @@ export const useWorkOrder = (id?: string) => {
   const enabled = !!workspaceId && !!id;
   const query = useQuery({
     queryKey: [...rootKey(workspaceId), "one", id],
-    queryFn: () => workOrderService.get(workspaceId, PRODUCT_KEY, id!),
+    queryFn: () => workOrderService.get(workspaceId, currentProductKey(), id!),
     enabled,
     retry: false,
   });
   const events = useQuery({
     queryKey: [...rootKey(workspaceId), "events", id],
-    queryFn: () => workOrderService.listEvents(workspaceId, PRODUCT_KEY, id!),
+    queryFn: () => workOrderService.listEvents(workspaceId, currentProductKey(), id!),
     enabled,
   });
   const workOrder = useMemo(() => (query.data ? toWorkOrder(query.data, nameOf) : undefined), [query.data, nameOf]);
@@ -306,7 +306,7 @@ export const useWorkOrderActions = () => {
   /** `tasks` is what the order starts with, in order. */
   const create = useCallback(
     async (wo: NewWorkOrder, tasks?: WorkOrderTaskInput[]) => {
-      const created = await workOrderService.create(workspaceId, PRODUCT_KEY, createRequest(wo, tasks));
+      const created = await workOrderService.create(workspaceId, currentProductKey(), createRequest(wo, tasks));
       refresh();
       return created;
     },
@@ -316,8 +316,8 @@ export const useWorkOrderActions = () => {
   /** Reads the order as it is now and replaces only what `patch` names. */
   const update = useCallback(
     async (id: string, patch: Partial<WorkOrder>) => {
-      const raw = await workOrderService.get(workspaceId, PRODUCT_KEY, id);
-      const saved = await workOrderService.update(workspaceId, PRODUCT_KEY, id, merged(raw, patch));
+      const raw = await workOrderService.get(workspaceId, currentProductKey(), id);
+      const saved = await workOrderService.update(workspaceId, currentProductKey(), id, merged(raw, patch));
       refresh(saved.status === "DONE" && !!saved.alarmId);
       return saved;
     },
@@ -326,7 +326,7 @@ export const useWorkOrderActions = () => {
 
   const bulk = useCallback(
     async (request: BulkWorkOrderRequest) => {
-      const result = await workOrderService.bulk(workspaceId, PRODUCT_KEY, request);
+      const result = await workOrderService.bulk(workspaceId, currentProductKey(), request);
       refresh(request.status === "DONE");
       return result;
     },
@@ -335,7 +335,7 @@ export const useWorkOrderActions = () => {
 
   const remove = useCallback(
     async (id: string) => {
-      await workOrderService.remove(workspaceId, PRODUCT_KEY, id);
+      await workOrderService.remove(workspaceId, currentProductKey(), id);
       refresh();
     },
     [refresh, workspaceId],
@@ -343,7 +343,7 @@ export const useWorkOrderActions = () => {
 
   const addNote = useCallback(
     async (id: string, note: string) => {
-      const event = await workOrderService.addNote(workspaceId, PRODUCT_KEY, id, note);
+      const event = await workOrderService.addNote(workspaceId, currentProductKey(), id, note);
       void queryClient.invalidateQueries({ queryKey: [...rootKey(workspaceId), "events", id] });
       return event;
     },
@@ -386,7 +386,7 @@ export const useWorkOrders = () => {
 
   const create = useCallback(
     async (wo: NewWorkOrder): Promise<WorkOrder> => {
-      const created = await workOrderService.create(workspaceId, PRODUCT_KEY, createRequest(wo));
+      const created = await workOrderService.create(workspaceId, currentProductKey(), createRequest(wo));
       queryClient.setQueryData<WorkOrderResponse[]>(queryKey, (prev) => [created, ...(prev ?? [])]);
       return toWorkOrder(created, () => "");
     },
@@ -403,7 +403,7 @@ export const useWorkOrders = () => {
         (prev ?? []).map((w) => (w.id === id ? { ...w, ...request } : w)),
       );
       try {
-        const saved = await workOrderService.update(workspaceId, PRODUCT_KEY, id, request);
+        const saved = await workOrderService.update(workspaceId, currentProductKey(), id, request);
         queryClient.setQueryData<WorkOrderResponse[]>(queryKey, (prev) => (prev ?? []).map((w) => (w.id === id ? saved : w)));
         // Finishing an order acknowledges its alarm on the server: show that.
         if (saved.status === "DONE" && saved.alarmId) {
@@ -421,7 +421,7 @@ export const useWorkOrders = () => {
       const previous = queryClient.getQueryData<WorkOrderResponse[]>(queryKey);
       queryClient.setQueryData<WorkOrderResponse[]>(queryKey, (prev) => (prev ?? []).filter((w) => !ids.includes(w.id)));
       try {
-        await Promise.all(ids.map((id) => workOrderService.remove(workspaceId, PRODUCT_KEY, id)));
+        await Promise.all(ids.map((id) => workOrderService.remove(workspaceId, currentProductKey(), id)));
       } catch (error) {
         fail(error, previous);
         // Some may have gone through before one failed: read what is really there.

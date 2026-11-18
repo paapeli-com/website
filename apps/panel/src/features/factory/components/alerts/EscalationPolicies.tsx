@@ -8,7 +8,7 @@ import {
 } from "@paapeli/api";
 import type { EscalationPolicy } from "@/features/factory/types/alerts";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { Card, CardContent } from "@/features/factory/components/ui/card";
 import {
@@ -85,7 +85,7 @@ export const EscalationPolicies = ({ onCreateClick, onEditClick }: EscalationPol
      without a chain, and failed requests, simply contribute no card. */
   const workspaceId = useWorkspaceId();
   const rulesQuery = useGetWorkspaceAlarmRulesQuery(
-    workspaceId ?? "", PRODUCT_KEY, RULES_PAGE, RULES_PAGE_SIZE,
+    workspaceId ?? "", currentProductKey(), RULES_PAGE, RULES_PAGE_SIZE,
   );
   const rulesPage = rulesQuery.data;
   const rulesLoad = queryLoad(rulesQuery);
@@ -93,7 +93,7 @@ export const EscalationPolicies = ({ onCreateClick, onEditClick }: EscalationPol
     () => (rulesPage?.data ?? []).filter((r) => r.provisioningState === "ACTIVE"),
     [rulesPage],
   );
-  const chainQueries = useGetEscalationChainsQueries(workspaceId ?? "", PRODUCT_KEY, activeRules.map((r) => r.id));
+  const chainQueries = useGetEscalationChainsQueries(workspaceId ?? "", currentProductKey(), activeRules.map((r) => r.id));
   const chainsLoading = rulesLoad.loading || !workspaceId || chainQueries.some((q) => q.isLoading);
   // Only the rules list can fail the tab; a failed chain request just drops its card.
   const pageLoad = usePageLoad({
@@ -121,7 +121,7 @@ export const EscalationPolicies = ({ onCreateClick, onEditClick }: EscalationPol
     if (!confirmDelete || !workspaceId) return;
     const policy = confirmDelete;
     try {
-      await deleteChain.mutateAsync({ workspaceId, productKey: PRODUCT_KEY, alarmRuleId: policy.alarmRuleId });
+      await deleteChain.mutateAsync({ workspaceId, productKey: currentProductKey(), alarmRuleId: policy.alarmRuleId });
       toast({ title: tt("escalationDeleted"), description: policy.name });
     } catch (error) {
       const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;

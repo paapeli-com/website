@@ -12,6 +12,7 @@ const fa: Record<string, string> = {
   // Products, solutions and nav sections
   "Smart Factory": "کارخانه هوشمند",
   "Fleet Management": "مدیریت ناوگان",
+  "Smart Greenhouse": "گلخانه هوشمند",
   "Cloud Management": "مدیریت ابری",
   "Cloud management": "مدیریت ابری",
   Overview: "نمای کلی",
@@ -142,6 +143,8 @@ const fa: Record<string, string> = {
     "دارایی‌ها، هشدارها، دستور کارها و به‌روزرسانی از راه دور برای خطوط تولید.",
   "Live fleet positions, geofences and trip history.":
     "موقعیت زندهٔ ناوگان، محدوده‌های جغرافیایی و تاریخچهٔ سفرها.",
+  "Greenhouses, crops, sensors, alarms and work orders.":
+    "گلخانه‌ها، محصولات، حسگرها، هشدارها و دستور کارها.",
   "AI Inference": "مدل‌های هوش مصنوعی",
   "AI Inference (MaaS)": "مدل‌های هوش مصنوعی",
   "Serve open models behind a managed endpoint. Pay per token, autoscaled.":
@@ -727,6 +730,7 @@ const ar: Record<string, string> = {
   // Products, solutions and nav sections
   "Smart Factory": "المصنع الذكي",
   "Fleet Management": "إدارة الأسطول",
+  "Smart Greenhouse": "الدفيئة الذكية",
   "Cloud Management": "الإدارة السحابية",
   "Cloud management": "الإدارة السحابية",
   Overview: "نظرة عامة",
@@ -857,6 +861,8 @@ const ar: Record<string, string> = {
     "الأصول والإنذارات وأوامر العمل والتحديث عن بُعد لخطوط الإنتاج.",
   "Live fleet positions, geofences and trip history.":
     "مواقع الأسطول المباشرة والأسيجة الجغرافية وسجل الرحلات.",
+  "Greenhouses, crops, sensors, alarms and work orders.":
+    "الدفيئات والمحاصيل والمستشعرات والإنذارات وأوامر العمل.",
   "AI Inference": "نماذج الذكاء الاصطناعي",
   "AI Inference (MaaS)": "نماذج الذكاء الاصطناعي",
   "Serve open models behind a managed endpoint. Pay per token, autoscaled.":

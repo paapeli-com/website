@@ -13,7 +13,7 @@ import {
 } from "@paapeli/api";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useDevices } from "@/features/factory/hooks/useDevices";
 import { useIsMobile } from "@/features/factory/hooks/use-mobile";
 import { AI_EXECUTIVE_DASHBOARD_ID, AI_MANAGERS_DASHBOARD_ID } from "@/features/factory/hooks/useDashboards";
@@ -224,9 +224,9 @@ const DashboardCanvas = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboardId]);
 
-  const query = useGetDashboardQuery(workspaceId, PRODUCT_KEY, dashboardId);
+  const query = useGetDashboardQuery(workspaceId, currentProductKey(), dashboardId);
   const record = query.data;
-  const defsQuery = useListWidgetDefinitionsQuery(workspaceId, PRODUCT_KEY);
+  const defsQuery = useListWidgetDefinitionsQuery(workspaceId, currentProductKey());
   const defs = defsQuery.data;
   const creatable = useMemo(() => creatableDefinitions(defs), [defs]);
   const updateDashboard = useUpdateDashboardMutation();
@@ -299,7 +299,7 @@ const DashboardCanvas = () => {
       const base = overwrite ? (await query.refetch()).data ?? record : record;
       await updateDashboard.mutateAsync({
         workspaceId,
-        productKey: PRODUCT_KEY,
+        productKey: currentProductKey(),
         dashboardId: record.id,
         recordVersion: base.recordVersion,
         name: base.name,

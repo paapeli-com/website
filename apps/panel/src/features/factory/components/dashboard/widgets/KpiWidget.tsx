@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { countDevices, telemetryService } from "@paapeli/api";
 import { TriangleAlert } from "lucide-react";
 import { apiErrorMessage } from "@/shared/lib/apiError";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { toNumber } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { Hint } from "./chartKit";
@@ -44,15 +44,15 @@ export function KpiWidget({ widget, dataSources, window: [, refreshedAt], lang }
 
   const query = useQuery({
     // The window's end moves on every dashboard refresh; keying on it re-reads then.
-    queryKey: ["kpi", workspaceId, PRODUCT_KEY, source, item?.key, refreshedAt],
+    queryKey: ["kpi", workspaceId, currentProductKey(), source, item?.key, refreshedAt],
     queryFn: async (): Promise<unknown> => {
       if (source?.type === "device") {
-        const latest = await telemetryService.getLatest(workspaceId, PRODUCT_KEY, source.deviceId, [item.key]);
+        const latest = await telemetryService.getLatest(workspaceId, currentProductKey(), source.deviceId, [item.key]);
         return latest[item.key]?.[0]?.value;
       }
       if (source?.type === "deviceCount") {
         const { type: _type, ...filters } = source;
-        return countDevices(workspaceId, PRODUCT_KEY, filters);
+        return countDevices(workspaceId, currentProductKey(), filters);
       }
       if (source?.type === "alarmQuery") return (await matchAlarms(workspaceId, source)).length;
       if (source?.type === "formula") return (await evaluateFormula(workspaceId, source)) ?? undefined;

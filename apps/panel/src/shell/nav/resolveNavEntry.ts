@@ -1,6 +1,7 @@
 import { cloudManagementNav } from "./cloudManagementNav";
 import { factoryNav } from "./factoryNav";
 import { trackNav } from "./trackNav";
+import { greenhouseNav } from "./greenhouseNav";
 import type { NavItem, NavSection } from "./types";
 
 /* Turns a URL back into the name the sidebar gives it, so a recorded visit
@@ -34,7 +35,7 @@ function leaves(section: NavSection): NavEntry[] {
 }
 
 /* Built once: the tables are module constants, so this can't go stale. */
-const ENTRIES: NavEntry[] = [factoryNav, trackNav, cloudManagementNav].flatMap(leaves);
+const ENTRIES: NavEntry[] = [factoryNav, greenhouseNav, trackNav, cloudManagementNav].flatMap(leaves);
 
 /** Trailing slashes and casing are the browser's business, not ours. */
 const normalise = (path: string) => path.replace(/\/+$/, "").toLowerCase();
@@ -71,7 +72,7 @@ export interface NavCrumb {
 /* The product pages the sidebar names directly, each with the trail down to
    it: "Smart Factory › Assets › Devices". Only those pages: a detail or form
    page draws its own breadcrumb, which knows the record it is showing. */
-const TRAILS: { path: string; crumbs: NavCrumb[] }[] = [factoryNav, trackNav].flatMap((section) => {
+const TRAILS: { path: string; crumbs: NavCrumb[] }[] = [factoryNav, greenhouseNav, trackNav].flatMap((section) => {
   const home = section.items.find((i) => i.path)?.path;
   const out: { path: string; crumbs: NavCrumb[] }[] = [];
   const walk = (items: NavItem[], parents: NavCrumb[]) => {
@@ -86,7 +87,7 @@ const TRAILS: { path: string; crumbs: NavCrumb[] }[] = [factoryNav, trackNav].fl
   return out;
 });
 
-/* Smart Factory can carry the language in its URLs (/AIoT/SmartFactory/fa/devices). */
+/* Smart Factory and Smart Greenhouse can carry the language in their URLs (/AIoT/SmartFactory/fa/devices). */
 const withoutLanguage = (path: string) => path.replace(/^(\/aiot\/[^/]+)\/(en|fa|ar)(?=\/|$)/, "$1");
 
 /** The breadcrumb for a page the sidebar names, or null for any other page. */

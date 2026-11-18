@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { LISTED_PRODUCTS } from "@/shared/config";
 import { useNavigate } from "react-router-dom";
 import { Bell, Box, ClipboardList, History, LayoutDashboard, Loader2, MapPin, Search, X, type LucideIcon } from "lucide-react";
 import { useListWorkspaceProductsQuery, useSearchProductsQueries, type SearchHit, type SearchHitType } from "@paapeli/api";
-import { PRODUCTS, solutionPath } from "@paapeli/brand/config";
+import { solutionPath } from "@paapeli/brand/config";
 import { useActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { useShellT } from "@/shared/i18n/shell";
 
@@ -38,7 +39,7 @@ function writeRecent(list: string[]) {
 }
 
 /** Every solution with an API scope, in the product switcher's order. */
-const SOLUTIONS = PRODUCTS.flatMap((p) => p.solutions ?? []).filter((s) => !!s.productKey);
+const SOLUTIONS = LISTED_PRODUCTS.flatMap((p) => p.solutions ?? []).filter((s) => !!s.productKey);
 
 const TYPE_ORDER: SearchHitType[] = ["DEVICE", "LOCATION", "ALARM_RULE", "WORK_ORDER", "DASHBOARD"];
 

@@ -11,6 +11,7 @@ import { useAccountAccent } from "./useAccountAccent";
 import { SidebarContent } from "./Sidebar";
 import { factoryNav } from "@/shell/nav/factoryNav";
 import { trackNav } from "@/shell/nav/trackNav";
+import { greenhouseNav } from "@/shell/nav/greenhouseNav";
 import { cloudManagementNav } from "@/shell/nav/cloudManagementNav";
 import { AI_INFERENCE_BASE, aiInferenceNav } from "@/shell/nav/aiInferenceNav";
 import { CLOUD_SERVER_BASE, cloudServerNav } from "@/shell/nav/cloudServerNav";
@@ -80,7 +81,9 @@ export function Layout() {
           ? cloudServerNav
           : location.pathname.startsWith(solutionPath("GPSTracking"))
             ? trackNav
-            : factoryNav;
+            : location.pathname.startsWith(solutionPath("SmartGreenhouse"))
+              ? greenhouseNav
+              : factoryNav;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">

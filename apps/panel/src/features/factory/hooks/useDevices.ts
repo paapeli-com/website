@@ -6,7 +6,7 @@ import {
   type CreateDeviceRequest,
   type DeviceResponse,
 } from "@paapeli/api";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { useAssetLocations } from "./useAssetLocations";
 import { queryLoad } from "@/shared/hooks/usePageLoad";
@@ -96,7 +96,7 @@ export const useDevices = () => {
 
   const query = useGetTenantDevicesQuery(
     workspaceId ?? "",
-    PRODUCT_KEY,
+    currentProductKey(),
     0,
     DEVICE_PAGE_SIZE,
   );
@@ -115,7 +115,7 @@ export const useDevices = () => {
       if (!workspaceId) throw new Error("No workspace selected");
       return createDevice.mutateAsync({
         workspaceId,
-        productKey: PRODUCT_KEY,
+        productKey: currentProductKey(),
         ...req,
       });
     },
@@ -127,7 +127,7 @@ export const useDevices = () => {
       if (!workspaceId) throw new Error("No workspace selected");
       return deleteDevice.mutateAsync({
         workspaceId,
-        productKey: PRODUCT_KEY,
+        productKey: currentProductKey(),
         deviceId,
       });
     },

@@ -1,5 +1,5 @@
 import { productAssetTypesService } from "@paapeli/api";
-import { PRODUCT_KEY } from "./product";
+import { currentProductKey } from "./product";
 
 /* One-shot seed of the product's asset-type graph, so the Locations tree has
    something to offer in its "Add …" menu and the Add dialog.
@@ -16,7 +16,7 @@ import { PRODUCT_KEY } from "./product";
 
    Dev only. This writes to a real product on the gateway, so it must never
    fire from a production build. */
-const SEED_FLAG = `paapeli.assetTypes.seeded.${PRODUCT_KEY}`;
+const SEED_FLAG = `paapeli.assetTypes.seeded.${currentProductKey()}`;
 
 interface SeedType {
     assetType: string;
@@ -78,7 +78,7 @@ export async function seedAssetTypes(rootAssetType: string): Promise<void> {
     for (const type of TYPES) {
         results.push(
             await tolerateConflict(`create ${type.assetType}`, () =>
-                productAssetTypesService.createProductAssetType(PRODUCT_KEY, type),
+                productAssetTypesService.createProductAssetType(currentProductKey(), type),
             ),
         );
     }
@@ -90,7 +90,7 @@ export async function seedAssetTypes(rootAssetType: string): Promise<void> {
     for (const [parent, child] of links) {
         results.push(
             await tolerateConflict(`allow ${parent} → ${child}`, () =>
-                productAssetTypesService.allowChild(PRODUCT_KEY, parent, child),
+                productAssetTypesService.allowChild(currentProductKey(), parent, child),
             ),
         );
     }
@@ -99,6 +99,6 @@ export async function seedAssetTypes(rootAssetType: string): Promise<void> {
     console.info(
         failed
             ? `[seedAssetTypes] finished with ${failed}/${results.length} failures — clear localStorage["${SEED_FLAG}"] to retry`
-            : `[seedAssetTypes] asset types ready for ${PRODUCT_KEY}`,
+            : `[seedAssetTypes] asset types ready for ${currentProductKey()}`,
     );
 }

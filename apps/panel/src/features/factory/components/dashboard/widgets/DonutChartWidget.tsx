@@ -3,7 +3,7 @@ import { countDevices } from "@paapeli/api";
 import { Cell, Pie, PieChart, Tooltip as RTooltip } from "recharts";
 import { TriangleAlert } from "lucide-react";
 import { apiErrorMessage } from "@/shared/lib/apiError";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { Hint, SERIES_COLORS, TOOLTIP_STYLE, useBoxSize } from "./chartKit";
 import { matchAlarms } from "./sources";
@@ -36,11 +36,11 @@ export function DonutChartWidget({ widget, dataSources, window: [, refreshedAt],
   const results = useQueries({
     queries: slices.map((s) => ({
       // The window's end moves on every dashboard refresh; keying on it re-reads then.
-      queryKey: ["sliceCount", workspaceId, PRODUCT_KEY, s.source, refreshedAt],
+      queryKey: ["sliceCount", workspaceId, currentProductKey(), s.source, refreshedAt],
       queryFn: async () => {
         if (s.source.type === "alarmQuery") return (await matchAlarms(workspaceId, s.source)).length;
         const { type: _type, ...filters } = s.source;
-        return countDevices(workspaceId, PRODUCT_KEY, filters);
+        return countDevices(workspaceId, currentProductKey(), filters);
       },
       enabled: !!workspaceId,
       placeholderData: (prev: unknown) => prev,

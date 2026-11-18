@@ -4,7 +4,7 @@ import { useCreateProductMutation } from "@paapeli/api";
 import { TooltipProvider } from "@/features/factory/components/ui/tooltip";
 import { LanguageProvider } from "@/features/factory/contexts/LanguageContext";
 import { ProtectedRoute } from "@/features/factory/components/ProtectedRoute";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -87,7 +87,7 @@ export default function FactoryRoutes() {
   // useEffect(() => {
   //   if (didCreateProduct.current) return;
   //   didCreateProduct.current = true;
-  //   createProduct.mutate({ productKey: PRODUCT_KEY, name: "Smart Factory" });
+  //   createProduct.mutate({ productKey: currentProductKey(), name: "Smart Factory" });
   // }, []); // eslint-disable-line
 
   return (

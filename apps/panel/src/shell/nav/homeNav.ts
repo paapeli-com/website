@@ -1,4 +1,4 @@
-import { Bot, Cloud, Code2, Cpu, Factory, HardDrive, House, MapPin, Microchip, Server, Users } from "lucide-react";
+import { Bot, Cloud, Code2, Cpu, Factory, HardDrive, House, MapPin, Microchip, Server, Sprout, Users } from "lucide-react";
 import { solutionPath } from "@paapeli/brand/config";
 import { AI_INFERENCE_BASE } from "./aiInferenceNav";
 import { CLOUD_SERVER_BASE, CLOUD_SERVER_GPU_PATH } from "./cloudServerNav";
@@ -32,6 +32,10 @@ const items: NavItem[] = [
     children: [
       { title: "Smart Factory", icon: Factory, path: solutionPath("SmartFactory") },
       { title: "Fleet Management", icon: MapPin, path: solutionPath("GPSTracking") },
+      /* Staging only until it launches. */
+      ...(SHOW_UNRELEASED_PRODUCTS
+        ? [{ title: "Smart Greenhouse", icon: Sprout, path: solutionPath("SmartGreenhouse") }]
+        : []),
     ],
   },
   {

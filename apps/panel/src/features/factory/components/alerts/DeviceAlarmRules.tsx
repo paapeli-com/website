@@ -15,7 +15,7 @@ import { TableRowsSkeleton } from "@/features/factory/components/panel/DetailPag
 import { LoadFailed } from "@/shared/components/LoadFailed";
 import { useToast } from "@/features/factory/hooks/use-toast";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { AlertRuleWizard } from "./AlertRuleWizard";
 import {
   severityColors, stateColors, stateLabelKeys, toRow, triggerIcons, triggerLabelKeys, type RuleRow,
@@ -41,7 +41,7 @@ export const DeviceAlarmRules = ({ deviceId }: { deviceId: string }) => {
   // rule is still on its way in or out.
   const [inFlight, setInFlight] = useState(false);
   const rulesQuery = useGetAlarmRulesQuery(
-    workspaceId ?? "", PRODUCT_KEY, deviceId, RULES_PAGE, RULES_PAGE_SIZE, true, inFlight ? 5000 : false,
+    workspaceId ?? "", currentProductKey(), deviceId, RULES_PAGE, RULES_PAGE_SIZE, true, inFlight ? 5000 : false,
   );
   const { data, isLoading, isError, isFetching, refetch } = rulesQuery;
   const rules = useMemo(() => (data?.data ?? []).map(toRow), [data]);
@@ -57,7 +57,7 @@ export const DeviceAlarmRules = ({ deviceId }: { deviceId: string }) => {
     if (!confirmDelete || !workspaceId) return;
     const rule = confirmDelete;
     try {
-      await deleteRule.mutateAsync({ workspaceId, productKey: PRODUCT_KEY, alarmRuleId: rule.id, deviceId });
+      await deleteRule.mutateAsync({ workspaceId, productKey: currentProductKey(), alarmRuleId: rule.id, deviceId });
       toast({ title: tt("alertRuleDeleted"), description: rule.name });
     } catch (error) {
       toast({ title: tt("error"), description: error instanceof Error ? error.message : tt("error"), variant: "destructive" });

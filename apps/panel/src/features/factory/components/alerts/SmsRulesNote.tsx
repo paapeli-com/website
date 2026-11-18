@@ -1,7 +1,7 @@
 import { useGetSmsUsageQuery } from "@paapeli/api";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { InfoNote } from "@/shared/components/InfoNote";
 
 /* The rules an alarm text is held to, read from the gateway's own limits
@@ -11,7 +11,7 @@ export const SmsRulesNote = ({ className }: { className?: string }) => {
   const { t, formatNumber } = useLanguage();
   const tt = t as (k: string) => string;
   const workspaceId = useWorkspaceId();
-  const { data: usage } = useGetSmsUsageQuery(workspaceId ?? "", PRODUCT_KEY);
+  const { data: usage } = useGetSmsUsageQuery(workspaceId ?? "", currentProductKey());
 
   const cooldown = usage?.cooldownMinutes ?? 30;
   const limit = usage?.dailyLimit ?? 100;

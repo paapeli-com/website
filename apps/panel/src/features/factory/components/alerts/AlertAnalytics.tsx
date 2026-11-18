@@ -9,7 +9,7 @@ import { Skeleton } from "@/features/factory/components/ui/skeleton";
 import { NoData, NoDataValue } from "@/features/factory/components/NoData";
 import { AXIS_TEXT, TOOLTIP_STYLE, compactNumber, useBoxSize } from "@/features/factory/components/dashboard/widgets/chartKit";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { LoadFailed } from "@/shared/components/LoadFailed";
 import { cn } from "@/shared/lib/utils";
@@ -121,7 +121,7 @@ export const AlertAnalytics = () => {
     const from = new Date(to.getTime() - rangeHours * 3_600_000);
     return { from: from.toISOString(), to: to.toISOString(), timeZone: viewerZone, limit: 8 };
   }, [rangeHours]);
-  const query = useGetAlarmAnalyticsQuery(workspaceId ?? "", PRODUCT_KEY, params);
+  const query = useGetAlarmAnalyticsQuery(workspaceId ?? "", currentProductKey(), params);
   const data = query.data;
 
   const formatDuration = (seconds: number | null | undefined) => {

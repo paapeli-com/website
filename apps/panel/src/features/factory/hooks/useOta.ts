@@ -6,14 +6,14 @@ import {
   type OtaFirmwareRequest,
   type OtaSettings,
 } from "@paapeli/api";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 
 /* The OTA page's data, all from the gateway (/ota/{ws}/{pk}). Every write
    invalidates the whole OTA cache: one rollout changes the firmware's status,
    the deployments list and the fleet at once. */
 
-const rootKey = (workspaceId: string | null) => ["ota", workspaceId, PRODUCT_KEY] as const;
+const rootKey = (workspaceId: string | null) => ["ota", workspaceId, currentProductKey()] as const;
 
 /** A rollout under way moves on its own; poll while one is. */
 const LIVE_REFRESH_MS = 10_000;
@@ -29,7 +29,7 @@ export const useOtaFirmware = () => {
   const { workspaceId, enabled, ws } = useScope();
   return useQuery({
     queryKey: [...rootKey(workspaceId), "firmware"],
-    queryFn: () => otaService.listFirmware(ws, PRODUCT_KEY),
+    queryFn: () => otaService.listFirmware(ws, currentProductKey()),
     enabled,
   });
 };
@@ -38,7 +38,7 @@ export const useOtaFirmwareOne = (firmwareId: string | undefined) => {
   const { workspaceId, enabled, ws } = useScope();
   return useQuery({
     queryKey: [...rootKey(workspaceId), "firmware", firmwareId],
-    queryFn: () => otaService.getFirmware(ws, PRODUCT_KEY, firmwareId!),
+    queryFn: () => otaService.getFirmware(ws, currentProductKey(), firmwareId!),
     enabled: enabled && !!firmwareId,
   });
 };
@@ -47,7 +47,7 @@ export const useOtaDeployments = () => {
   const { workspaceId, enabled, ws } = useScope();
   return useQuery({
     queryKey: [...rootKey(workspaceId), "deployments"],
-    queryFn: () => otaService.listDeployments(ws, PRODUCT_KEY),
+    queryFn: () => otaService.listDeployments(ws, currentProductKey()),
     enabled,
     refetchInterval: (q) => ((q.state.data ?? []).some(isLive) ? LIVE_REFRESH_MS : false),
   });
@@ -57,7 +57,7 @@ export const useOtaDeploymentEvents = (deploymentId: string | undefined) => {
   const { workspaceId, enabled, ws } = useScope();
   return useQuery({
     queryKey: [...rootKey(workspaceId), "deployments", deploymentId, "events"],
-    queryFn: () => otaService.deploymentEvents(ws, PRODUCT_KEY, deploymentId!),
+    queryFn: () => otaService.deploymentEvents(ws, currentProductKey(), deploymentId!),
     enabled: enabled && !!deploymentId,
     refetchInterval: LIVE_REFRESH_MS,
   });
@@ -67,7 +67,7 @@ export const useOtaDevices = () => {
   const { workspaceId, enabled, ws } = useScope();
   return useQuery({
     queryKey: [...rootKey(workspaceId), "devices"],
-    queryFn: () => otaService.listDevices(ws, PRODUCT_KEY),
+    queryFn: () => otaService.listDevices(ws, currentProductKey()),
     enabled,
     refetchInterval: (q) =>
       (q.state.data ?? []).some((d) => d.status === "UPDATING" || d.status === "PENDING") ? LIVE_REFRESH_MS : false,
@@ -78,7 +78,7 @@ export const useOtaDeviceHistory = (deviceId: string | undefined) => {
   const { workspaceId, enabled, ws } = useScope();
   return useQuery({
     queryKey: [...rootKey(workspaceId), "devices", deviceId, "history"],
-    queryFn: () => otaService.deviceHistory(ws, PRODUCT_KEY, deviceId!),
+    queryFn: () => otaService.deviceHistory(ws, currentProductKey(), deviceId!),
     enabled: enabled && !!deviceId,
   });
 };
@@ -87,7 +87,7 @@ export const useOtaSettings = () => {
   const { workspaceId, enabled, ws } = useScope();
   return useQuery({
     queryKey: [...rootKey(workspaceId), "settings"],
-    queryFn: () => otaService.getSettings(ws, PRODUCT_KEY),
+    queryFn: () => otaService.getSettings(ws, currentProductKey()),
     enabled,
   });
 };
@@ -99,7 +99,7 @@ export const useOtaDeploymentPreview = (
   const { workspaceId, enabled, ws } = useScope();
   return useQuery({
     queryKey: [...rootKey(workspaceId), "preview", request],
-    queryFn: () => otaService.previewDeployment(ws, PRODUCT_KEY, request!),
+    queryFn: () => otaService.previewDeployment(ws, currentProductKey(), request!),
     enabled: enabled && !!request,
     retry: false,
   });
@@ -119,39 +119,39 @@ export const useOtaActions = () => {
 
   const createFirmware = useMutation({
     mutationFn: (a: { request: OtaFirmwareRequest; file: File }) =>
-      scoped(() => otaService.createFirmware(ws, PRODUCT_KEY, a.request, a.file)),
+      scoped(() => otaService.createFirmware(ws, currentProductKey(), a.request, a.file)),
     onSuccess,
   });
   const updateFirmware = useMutation({
     mutationFn: (a: { id: string; request: OtaFirmwareRequest; file?: File | null }) =>
-      scoped(() => otaService.updateFirmware(ws, PRODUCT_KEY, a.id, a.request, a.file)),
+      scoped(() => otaService.updateFirmware(ws, currentProductKey(), a.id, a.request, a.file)),
     onSuccess,
   });
   const deleteFirmware = useMutation({
-    mutationFn: (id: string) => scoped(() => otaService.deleteFirmware(ws, PRODUCT_KEY, id)),
+    mutationFn: (id: string) => scoped(() => otaService.deleteFirmware(ws, currentProductKey(), id)),
     onSuccess,
   });
   const createDeployment = useMutation({
     mutationFn: (request: OtaCreateDeploymentRequest) =>
-      scoped(() => otaService.createDeployment(ws, PRODUCT_KEY, request)),
+      scoped(() => otaService.createDeployment(ws, currentProductKey(), request)),
     onSuccess,
   });
   const deploymentAction = useMutation({
     mutationFn: (a: { id: string; action: DeploymentAction }) =>
-      scoped(() => otaService.deploymentAction(ws, PRODUCT_KEY, a.id, a.action)),
+      scoped(() => otaService.deploymentAction(ws, currentProductKey(), a.id, a.action)),
     onSuccess,
   });
   const updateDevice = useMutation({
     mutationFn: (a: { id: string; firmwareId?: string }) =>
-      scoped(() => otaService.updateDevice(ws, PRODUCT_KEY, a.id, a.firmwareId)),
+      scoped(() => otaService.updateDevice(ws, currentProductKey(), a.id, a.firmwareId)),
     onSuccess,
   });
   const retryDevice = useMutation({
-    mutationFn: (id: string) => scoped(() => otaService.retryDevice(ws, PRODUCT_KEY, id)),
+    mutationFn: (id: string) => scoped(() => otaService.retryDevice(ws, currentProductKey(), id)),
     onSuccess,
   });
   const saveSettings = useMutation({
-    mutationFn: (settings: OtaSettings) => scoped(() => otaService.saveSettings(ws, PRODUCT_KEY, settings)),
+    mutationFn: (settings: OtaSettings) => scoped(() => otaService.saveSettings(ws, currentProductKey(), settings)),
     onSuccess,
   });
 

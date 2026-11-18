@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { PRODUCTS } from "@paapeli/brand/config";
+import { LISTED_PRODUCTS } from "@/shared/config";
+
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/features/factory/components/ui/table";
 import { ListToolbar, type FilterField, type SortOption, type ViewMode } from "@/features/factory/components/panel/ListToolbar";
 import { Badge, Card, NoData } from "@/features/cloud-management/ui";
@@ -23,7 +24,7 @@ export default function RolesTab() {
   const [sort, setSort] = useState("nameAsc");
   const [view, setView] = useState<ViewMode>("table");
 
-  const solutions = PRODUCTS.flatMap((p) => p.solutions ?? []);
+  const solutions = LISTED_PRODUCTS.flatMap((p) => p.solutions ?? []);
   const all = { value: "all", label: tr("optAll") };
   const filterFields: FilterField[] = [
     {

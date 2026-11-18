@@ -18,7 +18,7 @@ import {
   useListDashboardCategoriesQuery,
 } from "@paapeli/api";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { DEFAULT_DASHBOARD_SETTINGS } from "@/features/factory/lib/dashboardSettings";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 import { toast } from "@/shared/lib/toast";
@@ -123,7 +123,7 @@ const DashboardTemplates = () => {
   const lp = (p: string) => localizedPath(p, language);
   const workspaceId = useWorkspaceId() ?? "";
   const createDashboard = useCreateDashboardMutation();
-  const { data: categories } = useListDashboardCategoriesQuery(workspaceId, PRODUCT_KEY);
+  const { data: categories } = useListDashboardCategoriesQuery(workspaceId, currentProductKey());
 
   /* A template is a named, empty dashboard shared with the workspace. Its
      category is set when the workspace has a category of that name; its
@@ -133,7 +133,7 @@ const DashboardTemplates = () => {
     try {
       const created = await createDashboard.mutateAsync({
         workspaceId,
-        productKey: PRODUCT_KEY,
+        productKey: currentProductKey(),
         name: tpl.nameEn,
         description: tpl.descEn,
         categoryId: categories?.find((c) => c.name.toLowerCase() === tpl.category.toLowerCase())?.id ?? null,

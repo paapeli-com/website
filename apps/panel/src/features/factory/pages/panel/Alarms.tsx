@@ -12,7 +12,7 @@ import { PageHeader } from "@/features/factory/components/PageHeader";
 import { BarChart3, Bell, Plus, SlidersHorizontal, Settings2 } from "lucide-react";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 
 /* Four tabs, not six.
  *
@@ -68,7 +68,7 @@ const Alarms = () => {
 
   const workspaceId = useWorkspaceId();
   const { data: rulesData } = useGetWorkspaceAlarmRulesQuery(
-    workspaceId ?? "", PRODUCT_KEY, RULES_PAGE, RULES_PAGE_SIZE,
+    workspaceId ?? "", currentProductKey(), RULES_PAGE, RULES_PAGE_SIZE,
   );
   const ruleCount = rulesData?.totalElements ?? rulesData?.data?.length ?? null;
 

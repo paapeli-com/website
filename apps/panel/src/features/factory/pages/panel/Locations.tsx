@@ -33,7 +33,7 @@ import { toast } from "@/shared/lib/toast";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { queryLoad, usePageLoad } from "@/shared/hooks/usePageLoad";
 import { LoadFailed } from "@/shared/components/LoadFailed";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { nodeDisplayName } from "@/features/factory/lib/locationLabels";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
@@ -166,7 +166,7 @@ const Locations = () => {
   // keeps the queries below disabled (see @paapeli/brand/workspace).
   const workspaceId = useWorkspaceId();
 
-  const treeQuery = useGetProductAssetTreeQuery(workspaceId ?? "", PRODUCT_KEY);
+  const treeQuery = useGetProductAssetTreeQuery(workspaceId ?? "", currentProductKey());
   const { data: apiTree, error: treeErrorObj, refetch: refetchTree } = treeQuery;
 
   // The backend returns this code when the product simply has no asset tree
@@ -196,7 +196,7 @@ const Locations = () => {
   //   if (didRegisterAssetType.current) return;
   //   didRegisterAssetType.current = true;
   //   createProductAssetType.mutate({
-  //     productKey: PRODUCT_KEY,
+  //     productKey: currentProductKey(),
   //     assetType: "moosdss",
   //     label: "Default",
   //   });
@@ -270,7 +270,7 @@ const Locations = () => {
      GET /api/v1/aiot/devices/{workspaceId}/{productKey}/asset/{assetId}. */
   const { data: selectedDevicesPage } = useGetAssetDevicesQuery(
     workspaceId ?? "",
-    PRODUCT_KEY,
+    currentProductKey(),
     selectedNode?.id ?? "",
     0,
     ASSET_DEVICE_PAGE_SIZE,
@@ -384,7 +384,7 @@ const Locations = () => {
       const copySubtree = async (parentAssetId: string, src: TreeNode, name: string) => {
         const created = await createAssetChild.mutateAsync({
           workspaceId,
-          productKey: PRODUCT_KEY,
+          productKey: currentProductKey(),
           parentAssetId,
           name,
           // The raw server-side asset type, not the canonical UI kind — the
@@ -420,7 +420,7 @@ const Locations = () => {
   const handleProvisionRoot = () => {
     if (provisionRoot.isPending) return;
     if (!workspaceId) return void toast.error(t("noWorkspaceSelected"));
-    provisionRoot.mutate({ workspaceId, productKey: PRODUCT_KEY }, {
+    provisionRoot.mutate({ workspaceId, productKey: currentProductKey() }, {
       onSuccess: async () => {
         /* The mutation invalidates ['assetRoot', ...] — a different query from
            the one this page reads (['productAssetTree', ...], defined in
@@ -523,7 +523,7 @@ const Locations = () => {
             ) : (
               <LocationTreeNode
                 node={tree}
-                productKey={PRODUCT_KEY}
+                productKey={currentProductKey()}
                 expandedNodes={expandedNodes}
                 selectedNodeId={selectedNode?.id || null}
                 searchQuery={searchQuery}
@@ -585,7 +585,7 @@ const Locations = () => {
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
         workspaceId={workspaceId ?? ""}
-        productKey={PRODUCT_KEY}
+        productKey={currentProductKey()}
         parentId={addParentId}
         parentName={(() => {
           const parent = addParentId ? findNode(tree, addParentId) : null;
@@ -599,7 +599,7 @@ const Locations = () => {
         open={renameDialogOpen}
         onOpenChange={setRenameDialogOpen}
         workspaceId={workspaceId ?? ""}
-        productKey={PRODUCT_KEY}
+        productKey={currentProductKey()}
         nodeId={renameTarget?.id}
         parentId={renameTarget ? findParent(tree, renameTarget.id)?.id : undefined}
         currentName={renameTarget?.name || ""}
@@ -610,7 +610,7 @@ const Locations = () => {
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         workspaceId={workspaceId ?? ""}
-        productKey={PRODUCT_KEY}
+        productKey={currentProductKey()}
         nodeId={deleteTarget?.id}
         parentId={deleteTarget ? findParent(tree, deleteTarget.id)?.id : undefined}
         nodeName={deleteTarget?.name || ""}
@@ -620,7 +620,7 @@ const Locations = () => {
         open={labelDialogOpen}
         onOpenChange={setLabelDialogOpen}
         workspaceId={workspaceId ?? ""}
-        productKey={PRODUCT_KEY}
+        productKey={currentProductKey()}
         nodeId={labelTarget?.id}
         parentId={labelTarget ? findParent(tree, labelTarget.id)?.id : undefined}
         nodeName={labelTarget?.name || ""}

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { telemetryService } from "@paapeli/api";
 import { TriangleAlert } from "lucide-react";
 import { apiErrorMessage } from "@/shared/lib/apiError";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { toNumber } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { Hint } from "./chartKit";
@@ -44,8 +44,8 @@ export function GaugeWidget({ widget, dataSources, window: [, refreshedAt], lang
 
   const query = useQuery({
     // The window's end moves on every dashboard refresh; keying on it re-reads then.
-    queryKey: ["gauge", workspaceId, PRODUCT_KEY, deviceId, item?.key, refreshedAt],
-    queryFn: async () => (await telemetryService.getLatest(workspaceId, PRODUCT_KEY, deviceId, [item.key]))[item.key]?.[0]?.value,
+    queryKey: ["gauge", workspaceId, currentProductKey(), deviceId, item?.key, refreshedAt],
+    queryFn: async () => (await telemetryService.getLatest(workspaceId, currentProductKey(), deviceId, [item.key]))[item.key]?.[0]?.value,
     enabled: !!workspaceId && !!deviceId && !!item?.key,
     // Keep the last value on screen while it refreshes.
     placeholderData: (prev: unknown) => prev,

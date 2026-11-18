@@ -93,7 +93,7 @@ import { alarmStateOf, type AlarmState } from "@/shared/lib/alarmStatus";
 import { useAlarmActions, type AlarmAction } from "@/shared/hooks/useAlarmActions";
 import { DeviceAlarmRules } from "@/features/factory/components/alerts/DeviceAlarmRules";
 import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { toNumber } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
@@ -229,7 +229,7 @@ const toAlarmRow = (a: PaapeliAlarmListItem): AlarmRow => ({
 const useDeviceAlarmRows = (deviceId: string | undefined, enabled = true) => {
   const workspaceId = useWorkspaceId();
   const { data, isLoading } = useGetDeviceAlarmsQuery(
-    workspaceId ?? "", PRODUCT_KEY, deviceId ?? "", 0, ALARM_PAGE_SIZE, enabled,
+    workspaceId ?? "", currentProductKey(), deviceId ?? "", 0, ALARM_PAGE_SIZE, enabled,
   );
   const rows = useMemo(() => (data?.data ?? []).map(toAlarmRow), [data]);
   return { rows, isLoading };
@@ -250,13 +250,13 @@ const DeviceDetails = () => {
   const { options: locationOptions } = useAssetLocations();
   // The device's own audit trail.
   const { data: activityPage, isLoading: activitiesLoading } = useGetDeviceActivitiesQuery(
-    workspaceId ?? "", PRODUCT_KEY, deviceId ?? "", 0, ACTIVITY_PAGE_SIZE,
+    workspaceId ?? "", currentProductKey(), deviceId ?? "", 0, ACTIVITY_PAGE_SIZE,
   );
   const events = activityPage?.data ?? [];
   const { rows: alarms } = useDeviceAlarmRows(deviceId);
 
   const { data: credentials } = useGetDeviceCredentialsQuery(
-    workspaceId ?? "", PRODUCT_KEY, deviceId ?? "",
+    workspaceId ?? "", currentProductKey(), deviceId ?? "",
   );
   const lp = (p: string) => localizedPath(p, language);
 
@@ -265,7 +265,7 @@ const DeviceDetails = () => {
   const listed = devices.find((d) => d.id === deviceId || d.deviceId === deviceId);
   const deviceQuery = useGetDeviceByIdQuery(
     workspaceId ?? "",
-    PRODUCT_KEY,
+    currentProductKey(),
     deviceId ?? "",
     !listed,
   );
@@ -1042,7 +1042,7 @@ const DeviceCredentialsCard = ({ deviceId, credentials }: { deviceId: string; cr
     try {
       await updateCredentials.mutateAsync({
         workspaceId,
-        productKey: PRODUCT_KEY,
+        productKey: currentProductKey(),
         deviceId,
         ...credentialsRequestFor(security),
       });
@@ -1155,7 +1155,7 @@ export interface TelemetryRow {
 const useLatestTelemetryRows = (deviceId: string | undefined, hours: number) => {
   const workspaceId = useWorkspaceId();
   const { data, isLoading, isError } = useGetDeviceTimeSeriesQuery(
-    workspaceId ?? "", PRODUCT_KEY, deviceId ?? "", hours,
+    workspaceId ?? "", currentProductKey(), deviceId ?? "", hours,
   );
   const rows = useMemo<TelemetryRow[]>(
     () => Object.entries(data ?? {}).flatMap(([key, points]) => {
@@ -1647,7 +1647,7 @@ const DeviceAlarms = ({ device }: { device: UserDevice }) => {
   const { t, isRTL, formatNumber } = useLanguage();
   const workspaceId = useWorkspaceId();
   const { rows, isLoading } = useDeviceAlarmRows(device?.id);
-  const alarmActions = useAlarmActions(workspaceId, PRODUCT_KEY);
+  const alarmActions = useAlarmActions(workspaceId, currentProductKey());
   const filtered = rows.filter(a =>
     (severity === "all" || a.severity.toLowerCase() === severity) &&
     (status === "all" || a.status.toLowerCase() === status)
@@ -1852,7 +1852,7 @@ export const EditDeviceDialog = ({ open, onOpenChange, device }: any) => {
               try {
                 await editDevice.mutateAsync({
                   workspaceId,
-                  productKey: PRODUCT_KEY,
+                  productKey: currentProductKey(),
                   id: device.id,
                   name: name.trim(),
                   // Sent even when empty, so removing every tag clears them.
@@ -1989,9 +1989,9 @@ const CommandCatalogManager = ({ deviceType, commands }: { deviceType: string; c
     };
     try {
       if (editingKey) {
-        await editCommand.mutateAsync({ productKey: PRODUCT_KEY, deviceType, commandKey: editingKey, ...body });
+        await editCommand.mutateAsync({ productKey: currentProductKey(), deviceType, commandKey: editingKey, ...body });
       } else {
-        await createCommand.mutateAsync({ productKey: PRODUCT_KEY, deviceType, commandKey: form.commandKey.trim(), ...body });
+        await createCommand.mutateAsync({ productKey: currentProductKey(), deviceType, commandKey: form.commandKey.trim(), ...body });
       }
       toast({ title: t("commandSaved"), description: body.label });
       setFormOpen(false);
@@ -2004,7 +2004,7 @@ const CommandCatalogManager = ({ deviceType, commands }: { deviceType: string; c
     if (!confirmDelete) return;
     const c = confirmDelete;
     try {
-      await deleteCommand.mutateAsync({ productKey: PRODUCT_KEY, deviceType, commandKey: c.commandKey });
+      await deleteCommand.mutateAsync({ productKey: currentProductKey(), deviceType, commandKey: c.commandKey });
       toast({ title: t("commandDeleted"), description: c.label });
     } catch (error) {
       fail(error);
@@ -2129,7 +2129,7 @@ export const SendCommandDialog = ({ open, onOpenChange, device }: any) => {
   /* The picker is the device type's command catalog, not a fixed list: the
      gateway rejects any key the catalog does not define. */
   const { data: catalog, isLoading: catalogLoading, isError: catalogError } = useGetProductDeviceCommandsQuery(
-    PRODUCT_KEY, device?.type ?? "", open,
+    currentProductKey(), device?.type ?? "", open,
   );
   const commands = (catalog ?? []).filter((c) => c.enabled);
   const selected = commands.find((c) => c.commandKey === cmd);
@@ -2151,7 +2151,7 @@ export const SendCommandDialog = ({ open, onOpenChange, device }: any) => {
      activity feed, so the history is that feed filtered to the COMMAND_*
      types. */
   const { data: activityPage, isLoading: historyLoading } = useGetDeviceActivitiesQuery(
-    workspaceId ?? "", PRODUCT_KEY, device?.id ?? "", 0, ACTIVITY_PAGE_SIZE, open,
+    workspaceId ?? "", currentProductKey(), device?.id ?? "", 0, ACTIVITY_PAGE_SIZE, open,
   );
   const commandHistory = (activityPage?.data ?? []).filter((a) => COMMAND_ACTIVITY_TYPES.has(a.type));
 
@@ -2181,7 +2181,7 @@ export const SendCommandDialog = ({ open, onOpenChange, device }: any) => {
     try {
       const result = await sendCommand.mutateAsync({
         workspaceId,
-        productKey: PRODUCT_KEY,
+        productKey: currentProductKey(),
         deviceId: device.id,
         command: selected.commandKey,
         params: parsedParams,

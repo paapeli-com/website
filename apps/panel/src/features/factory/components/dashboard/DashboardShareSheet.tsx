@@ -7,7 +7,7 @@ import { Button } from "@/features/factory/components/ui/button";
 import { Badge } from "@/features/factory/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/features/factory/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/features/factory/components/ui/sheet";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { fmtDateTime } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { apiErrorMessage } from "@/shared/lib/apiError";
@@ -81,17 +81,17 @@ export function DashboardShareSheet({ open, onOpenChange, dashboard, timeZone, l
   const [copied, setCopied] = useState(false);
   const [revoking, setRevoking] = useState<string | null>(null);
 
-  const queryKey = ["dashboardShareLinks", workspaceId, PRODUCT_KEY, dashboard.id];
+  const queryKey = ["dashboardShareLinks", workspaceId, currentProductKey(), dashboard.id];
   const links = useQuery({
     queryKey,
-    queryFn: () => dashboardShareService.list(workspaceId, PRODUCT_KEY, dashboard.id),
+    queryFn: () => dashboardShareService.list(workspaceId, currentProductKey(), dashboard.id),
     enabled: open && !!workspaceId,
   });
 
   const create = async () => {
     setCreating(true);
     try {
-      const link = await dashboardShareService.create(workspaceId, PRODUCT_KEY, dashboard.id, hours);
+      const link = await dashboardShareService.create(workspaceId, currentProductKey(), dashboard.id, hours);
       setFresh(link);
       setCopied(false);
       toast.success(tr("created", lang));
@@ -115,7 +115,7 @@ export function DashboardShareSheet({ open, onOpenChange, dashboard, timeZone, l
   const revoke = async (id: string) => {
     setRevoking(id);
     try {
-      await dashboardShareService.revoke(workspaceId, PRODUCT_KEY, dashboard.id, id);
+      await dashboardShareService.revoke(workspaceId, currentProductKey(), dashboard.id, id);
       if (fresh?.id === id) setFresh(null);
       toast.success(tr("revokeDone", lang));
       await queryClient.invalidateQueries({ queryKey });

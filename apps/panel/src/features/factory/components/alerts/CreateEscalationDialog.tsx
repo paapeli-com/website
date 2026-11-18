@@ -7,7 +7,7 @@ import {
 } from "@paapeli/api";
 import { getCurrentUser, getCurrentUserId } from "@paapeli/brand/session";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { Button } from "@/features/factory/components/ui/button";
 import { Input } from "@/features/factory/components/ui/input";
@@ -71,7 +71,7 @@ export const CreateEscalationDialog = ({ open, onOpenChange, inline, hideActions
 
   /* A chain hangs off an alarm rule, and only an active rule accepts one. */
   const { data: rulesPage } = useGetWorkspaceAlarmRulesQuery(
-    workspaceId ?? "", PRODUCT_KEY, RULES_PAGE, RULES_PAGE_SIZE,
+    workspaceId ?? "", currentProductKey(), RULES_PAGE, RULES_PAGE_SIZE,
   );
   const activeRules = useMemo(
     () => (rulesPage?.data ?? []).filter((r) => r.provisioningState === "ACTIVE"),
@@ -95,7 +95,7 @@ export const CreateEscalationDialog = ({ open, onOpenChange, inline, hideActions
      so a later refetch doesn't overwrite what the user has typed. Saving is
      the same PUT as creating — it replaces the chain atomically. */
   const [editChainQuery] = useGetEscalationChainsQueries(
-    workspaceId ?? "", PRODUCT_KEY, editAlarmRuleId ? [editAlarmRuleId] : [],
+    workspaceId ?? "", currentProductKey(), editAlarmRuleId ? [editAlarmRuleId] : [],
   );
   const editChain = editChainQuery?.data;
   const seeded = useRef(false);
@@ -153,7 +153,7 @@ export const CreateEscalationDialog = ({ open, onOpenChange, inline, hideActions
       // Steps run in the order listed; each step's delay is the wait before it.
       await putChain.mutateAsync({
         workspaceId,
-        productKey: PRODUCT_KEY,
+        productKey: currentProductKey(),
         alarmRuleId,
         enabled: true,
         steps: levels.map((l) => ({

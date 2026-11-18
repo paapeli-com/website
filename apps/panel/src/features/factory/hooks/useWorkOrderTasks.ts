@@ -7,7 +7,7 @@ import {
   type WorkOrderTaskInput,
   type WorkOrderTemplateRequest,
 } from "@paapeli/api";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 
 /** A task while a form is editing it: `key` only tells the rows apart. */
@@ -33,8 +33,8 @@ export const toTaskInputs = (drafts: DraftTask[]): WorkOrderTaskInput[] =>
     .filter((d) => d.title.trim())
     .map((d) => ({ ...(d.id ? { id: d.id } : {}), title: d.title.trim(), required: d.required }));
 
-const templatesKey = (workspaceId: string) => ["workOrderTemplates", workspaceId, PRODUCT_KEY];
-const tasksKey = (workspaceId: string, workOrderId?: string) => ["workOrders", workspaceId, PRODUCT_KEY, "tasks", workOrderId];
+const templatesKey = (workspaceId: string) => ["workOrderTemplates", workspaceId, currentProductKey()];
+const tasksKey = (workspaceId: string, workOrderId?: string) => ["workOrders", workspaceId, currentProductKey(), "tasks", workOrderId];
 
 /** The workspace product's templates: named lists of tasks to raise orders with. */
 export const useWorkOrderTemplates = (enabled = true) => {
@@ -42,7 +42,7 @@ export const useWorkOrderTemplates = (enabled = true) => {
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: templatesKey(workspaceId),
-    queryFn: () => workOrderTemplateService.list(workspaceId, PRODUCT_KEY),
+    queryFn: () => workOrderTemplateService.list(workspaceId, currentProductKey()),
     enabled: enabled && !!workspaceId,
   });
   const refresh = useCallback(
@@ -54,8 +54,8 @@ export const useWorkOrderTemplates = (enabled = true) => {
   const save = useCallback(
     async (request: WorkOrderTemplateRequest, templateId?: string) => {
       const saved = templateId
-        ? await workOrderTemplateService.update(workspaceId, PRODUCT_KEY, templateId, request)
-        : await workOrderTemplateService.create(workspaceId, PRODUCT_KEY, request);
+        ? await workOrderTemplateService.update(workspaceId, currentProductKey(), templateId, request)
+        : await workOrderTemplateService.create(workspaceId, currentProductKey(), request);
       await refresh();
       return saved;
     },
@@ -64,7 +64,7 @@ export const useWorkOrderTemplates = (enabled = true) => {
 
   const remove = useCallback(
     async (templateId: string) => {
-      await workOrderTemplateService.remove(workspaceId, PRODUCT_KEY, templateId);
+      await workOrderTemplateService.remove(workspaceId, currentProductKey(), templateId);
       await refresh();
     },
     [refresh, workspaceId],
@@ -80,7 +80,7 @@ export const useWorkOrderTasks = (workOrderId?: string) => {
   const queryKey = tasksKey(workspaceId, workOrderId);
   const query = useQuery({
     queryKey,
-    queryFn: () => workOrderTaskService.list(workspaceId, PRODUCT_KEY, workOrderId!),
+    queryFn: () => workOrderTaskService.list(workspaceId, currentProductKey(), workOrderId!),
     enabled: !!workspaceId && !!workOrderId,
   });
 
@@ -92,7 +92,7 @@ export const useWorkOrderTasks = (workOrderId?: string) => {
         (tasks ?? []).map((task) => (task.id === taskId ? { ...task, done } : task)),
       );
       try {
-        const saved = await workOrderTaskService.setDone(workspaceId, PRODUCT_KEY, workOrderId!, taskId, done);
+        const saved = await workOrderTaskService.setDone(workspaceId, currentProductKey(), workOrderId!, taskId, done);
         queryClient.setQueryData<WorkOrderTask[]>(queryKey, (tasks) =>
           (tasks ?? []).map((task) => (task.id === taskId ? saved : task)),
         );
@@ -107,7 +107,7 @@ export const useWorkOrderTasks = (workOrderId?: string) => {
 
   const replace = useCallback(
     async (id: string, tasks: WorkOrderTaskInput[]) => {
-      const saved = await workOrderTaskService.replace(workspaceId, PRODUCT_KEY, id, tasks);
+      const saved = await workOrderTaskService.replace(workspaceId, currentProductKey(), id, tasks);
       queryClient.setQueryData(tasksKey(workspaceId, id), saved);
       return saved;
     },

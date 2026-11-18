@@ -5,7 +5,7 @@ import { History, Loader2, RotateCcw, TriangleAlert } from "lucide-react";
 import { dashboardVersionService, useListWorkspaceMembersQuery, type DashboardResponse } from "@paapeli/api";
 import { Button } from "@/features/factory/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/features/factory/components/ui/sheet";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { fmtDateTime } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { apiErrorMessage } from "@/shared/lib/apiError";
@@ -70,8 +70,8 @@ export function DashboardHistorySheet({ open, onOpenChange, dashboard, dirty, ti
 
   const versions = useQuery({
     // Keyed on the record version: a save or a restore changes the list.
-    queryKey: ["dashboardVersions", workspaceId, PRODUCT_KEY, dashboard.id, dashboard.recordVersion],
-    queryFn: () => dashboardVersionService.list(workspaceId, PRODUCT_KEY, dashboard.id, 1, 50),
+    queryKey: ["dashboardVersions", workspaceId, currentProductKey(), dashboard.id, dashboard.recordVersion],
+    queryFn: () => dashboardVersionService.list(workspaceId, currentProductKey(), dashboard.id, 1, 50),
     enabled: open && !!workspaceId,
   });
   // Who saved a version is a user id; the roster turns it into a name.
@@ -85,7 +85,7 @@ export function DashboardHistorySheet({ open, onOpenChange, dashboard, dirty, ti
   const restore = async (recordVersion: number) => {
     setRestoring(true);
     try {
-      await dashboardVersionService.restore(workspaceId, PRODUCT_KEY, dashboard.id, recordVersion, dashboard.recordVersion);
+      await dashboardVersionService.restore(workspaceId, currentProductKey(), dashboard.id, recordVersion, dashboard.recordVersion);
       toast.success(tr("restored", lang));
       setConfirming(null);
       onRestored();

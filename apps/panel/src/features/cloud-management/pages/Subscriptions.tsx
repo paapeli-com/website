@@ -1,6 +1,7 @@
 import { Check, Cpu, Loader2, Package, Plus } from "lucide-react";
+import { LISTED_PRODUCTS } from "@/shared/config";
 import { toast } from "@/shared/lib/toast";
-import { PRODUCTS } from "@paapeli/brand/config";
+
 import {
   useListWorkspaceProductsQuery,
   useSubscribeWorkspaceProductMutation,
@@ -21,7 +22,7 @@ import { apiErrorMessage } from "@/shared/lib/apiError";
 /** The products this panel knows how to open. Deliberately the brand config
     rather than GET /api/v1/aiot/products — the panel only routes to the
     solutions it actually ships, and this keeps the page to one request. */
-const SUBSCRIBABLE = PRODUCTS.flatMap((p) => p.solutions ?? []);
+const SUBSCRIBABLE = LISTED_PRODUCTS.flatMap((p) => p.solutions ?? []);
 /* A named plan tier, a subscription id, a base fee, four entitlement meters,
    four priced add-ons and a next-invoice estimate — all invented, and all of
    it describes a commercial agreement. Empty until a subscriptions module

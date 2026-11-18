@@ -54,7 +54,7 @@ import {
   deviceCredentialsService,
   type DeviceCredentialType,
 } from "@paapeli/api";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { apiErrorMessage } from "@/shared/lib/apiError";
@@ -173,7 +173,7 @@ const DeviceForm = () => {
   /* The product's device-type catalog (GET .../products/{key}/device-types).
      Its entries carry the provisioning profile, so the key selected here is
      exactly what the create-device call sends as `type`. */
-  const { data: catalogTypes, isLoading: deviceTypesLoading } = useGetProductDeviceTypesQuery(PRODUCT_KEY);
+  const { data: catalogTypes, isLoading: deviceTypesLoading } = useGetProductDeviceTypesQuery(currentProductKey());
   const deviceTypeOptions = useMemo(
     () => (catalogTypes ?? []).filter((dt) => dt.enabled),
     [catalogTypes],
@@ -275,7 +275,7 @@ const DeviceForm = () => {
       const trimmedDescription = description.trim();
       const created = await createDevice.mutateAsync({
         workspaceId,
-        productKey: PRODUCT_KEY,
+        productKey: currentProductKey(),
         name: trimmedName,
         ...(label ? { label } : {}),
         type: apiDeviceType,
@@ -290,7 +290,7 @@ const DeviceForm = () => {
       let accessToken = security.method === "accessToken" ? security.accessToken : undefined;
       if (newDeviceId && security.method === "accessToken") {
         try {
-          const creds = await deviceCredentialsService.getDeviceCredentials(workspaceId, PRODUCT_KEY, newDeviceId);
+          const creds = await deviceCredentialsService.getDeviceCredentials(workspaceId, currentProductKey(), newDeviceId);
           accessToken = creds.credentialsId || accessToken;
         } catch (error) {
           console.warn("Unable to read the new device credentials", error);

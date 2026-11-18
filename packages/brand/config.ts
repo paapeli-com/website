@@ -22,6 +22,9 @@ export type Solution = {
    *  subscribe before mounting the solution's remote, and the remote reads
    *  it for its own API calls, so the two can't drift apart on the string. */
   productKey?: string;
+  /** Built but not launched: a host shows it only where it opens unreleased
+   *  products (the panel's staging). */
+  unreleased?: boolean;
 };
 export type Product = { id: string; name: string; href?: string; disabled?: boolean; solutions?: Solution[] };
 
@@ -32,6 +35,7 @@ export const PRODUCTS: Product[] = [
     solutions: [
       { id: "GPSTracking", name: "Fleet Management", productKey: "gpsTracking" },
       { id: "SmartFactory", name: "Smart Factory", productKey: "smartFactory" },
+      { id: "SmartGreenhouse", name: "Smart Greenhouse", productKey: "smartGreenhouse", unreleased: true },
     ],
   },
   { id: "ai", name: "AI Infra", disabled: true },

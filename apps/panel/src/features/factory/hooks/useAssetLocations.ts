@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useGetProductAssetTreeQuery, type ProductAssetTreeNode } from "./useProductAssetTree";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 
 export interface AssetLocationOption {
@@ -27,7 +27,7 @@ export const useAssetLocations = () => {
   // Workspace selected in the host's account menu; empty until it has one,
   // which leaves the query disabled (see @paapeli/brand/workspace).
   const workspaceId = useWorkspaceId();
-  const { data, isLoading, isError } = useGetProductAssetTreeQuery(workspaceId ?? "", PRODUCT_KEY);
+  const { data, isLoading, isError } = useGetProductAssetTreeQuery(workspaceId ?? "", currentProductKey());
 
   const options = useMemo(() => {
     const out: AssetLocationOption[] = [];

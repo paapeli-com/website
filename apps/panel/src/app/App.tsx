@@ -87,9 +87,27 @@ export default function App() {
               <Route
                 path="AIoT/SmartFactory/*"
                 element={
-                  <Feature name="Smart Factory" productKey={productKeyFor("SmartFactory")} routes={factoryRoutes} />
+                  <Feature key="SmartFactory" name="Smart Factory" productKey={productKeyFor("SmartFactory")} routes={factoryRoutes} />
                 }
               />
+              {/* Smart Greenhouse is drawn with Smart Factory's pages over
+                  its own workspace product (see features/factory/lib/product.ts).
+                  The key keeps React from carrying one solution's page state
+                  into the other when switching between them. Staging only
+                  until it launches. */}
+              {SHOW_UNRELEASED_PRODUCTS && (
+                <Route
+                  path="AIoT/SmartGreenhouse/*"
+                  element={
+                    <Feature
+                      key="SmartGreenhouse"
+                      name="Smart Greenhouse"
+                      productKey={productKeyFor("SmartGreenhouse")}
+                      routes={factoryRoutes}
+                    />
+                  }
+                />
+              )}
               <Route
                 path="AIoT/GPSTracking/*"
                 element={<Feature name="Fleet Management" productKey={productKeyFor("GPSTracking")} routes={trackRoutes} />}

@@ -58,7 +58,7 @@ import {
 } from "recharts";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
 import { aiService, type AiCopilotChart, type AiCopilotMessage } from "@paapeli/api";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 
 // ---------- Types & storage ----------
@@ -385,7 +385,7 @@ const AIoTCoPilot = () => {
         ),
       );
     aiService
-      .copilotChat(workspaceId, PRODUCT_KEY, toConversation(messages), language)
+      .copilotChat(workspaceId, currentProductKey(), toConversation(messages), language)
       .then((res) =>
         append({
           id: `m-${Date.now()}-r`,

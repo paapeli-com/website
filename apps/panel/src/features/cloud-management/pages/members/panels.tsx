@@ -1,8 +1,8 @@
 import { useState } from "react";
+import { LISTED_PRODUCTS } from "@/shared/config";
 import { toast } from "@/shared/lib/toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, Loader2 } from "lucide-react";
-import { PRODUCTS } from "@paapeli/brand/config";
 import { useInviteWorkspaceMemberMutation, type WorkspaceRole } from "@paapeli/api";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/features/factory/components/ui/sheet";
 import { Button } from "@/features/factory/components/ui/button";
@@ -42,7 +42,7 @@ export function InviteMemberPanel({
   const [role, setRole] = useState<WorkspaceRole>("MEMBER");
   const [products, setProducts] = useState<Record<string, boolean>>({});
 
-  const solutions = PRODUCTS.flatMap((p) => p.solutions ?? []);
+  const solutions = LISTED_PRODUCTS.flatMap((p) => p.solutions ?? []);
   const toggle = (id: string) => setProducts((p) => ({ ...p, [id]: !p[id] }));
 
   const send = () => {
@@ -180,7 +180,7 @@ export function NewRolePanel({
   const [basedOn, setBasedOn] = useState<WorkspaceRole>("VIEWER");
   const [access, setAccess] = useState<Record<string, string>>({});
 
-  const solutions = PRODUCTS.flatMap((p) => p.solutions ?? []);
+  const solutions = LISTED_PRODUCTS.flatMap((p) => p.solutions ?? []);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

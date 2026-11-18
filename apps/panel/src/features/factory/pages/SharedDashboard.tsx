@@ -13,7 +13,7 @@ import { overrideActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { LanguageProvider } from "@/features/factory/contexts/LanguageContext";
 import { TooltipProvider } from "@/features/factory/components/ui/tooltip";
 import { Card } from "@/features/factory/components/ui/card";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useIsMobile } from "@/features/factory/hooks/use-mobile";
 import {
   DEFAULT_DASHBOARD_SETTINGS,
@@ -66,7 +66,7 @@ function SharedDashboardView({ token }: { token: string }) {
     queryFn: () => sharedDashboardService.open(token),
     retry: false,
   });
-  const defs = useListWidgetDefinitionsQuery(SHARED_WORKSPACE, PRODUCT_KEY, dashboard.isSuccess).data;
+  const defs = useListWidgetDefinitionsQuery(SHARED_WORKSPACE, currentProductKey(), dashboard.isSuccess).data;
   const definition = useMemo(
     () => (dashboard.data ? normalizeDefinition(dashboard.data.definition) : null),
     [dashboard.data],

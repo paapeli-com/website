@@ -12,6 +12,7 @@ import {
   Microchip,
   Server,
   Sparkles,
+  Sprout,
   TriangleAlert,
   Users,
   type LucideIcon,
@@ -72,6 +73,8 @@ import { CLOUD_SERVER_BASE, CLOUD_SERVER_GPU_PATH } from "@/shell/nav/cloudServe
 
 const FACTORY = "SmartFactory";
 const TRACKING = "GPSTracking";
+/* Staging only until it launches (see LISTED_PRODUCTS). */
+const GREENHOUSE = "SmartGreenhouse";
 
 /** How many attention rows fit before the card starts scrolling the rest off. */
 const ATTENTION_ROWS = 4;
@@ -144,12 +147,15 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
 
   const factoryKey = productKeyFor(FACTORY) ?? "";
   const trackingKey = productKeyFor(TRACKING) ?? "";
+  const greenhouseKey = productKeyFor(GREENHOUSE) ?? "";
   const hasFactory = owned.has(factoryKey);
   const hasTracking = owned.has(trackingKey);
+  const hasGreenhouse = SHOW_UNRELEASED_PRODUCTS && owned.has(greenhouseKey);
 
   /* One row is enough: only `totalElements` is read from these. */
   const factoryDevices = useGetTenantDevicesQuery(workspaceId, factoryKey, 0, 1, hasFactory);
   const trackingDevices = useGetTenantDevicesQuery(workspaceId, trackingKey, 0, 1, hasTracking);
+  const greenhouseDevices = useGetTenantDevicesQuery(workspaceId, greenhouseKey, 0, 1, hasGreenhouse);
 
   /* The asset hierarchy has no count endpoint; the root's direct children are
      the top-level locations, which is what the card reports. */
@@ -165,7 +171,9 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
 
   /* Alarms for every product the workspace holds. Same query keys the
      header's notifications menu uses, so the two share one fetch. */
-  const alarmKeys = [factoryKey, trackingKey].filter((key) => owned.has(key));
+  const alarmKeys = [factoryKey, trackingKey, ...(SHOW_UNRELEASED_PRODUCTS ? [greenhouseKey] : [])].filter((key) =>
+    owned.has(key),
+  );
   const alarmQueries = useGetWorkspaceAlarmsQueries(workspaceId, alarmKeys, !!workspaceId);
   const alarmsOf = (key: string) => {
     const index = alarmKeys.indexOf(key);
@@ -190,6 +198,17 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
   const pendingWorkOrders = workOrderCounts.data
     ? workOrderCounts.data.open + workOrderCounts.data.inProgress + workOrderCounts.data.onHold
     : 0;
+  const greenhouseWorkOrderCounts = useQuery({
+    queryKey: ["workOrders", workspaceId, greenhouseKey, "summary"],
+    queryFn: () => workOrderService.summary(workspaceId, greenhouseKey),
+    enabled: hasGreenhouse && !!workspaceId,
+  });
+  const greenhousePendingWorkOrders = greenhouseWorkOrderCounts.data
+    ? greenhouseWorkOrderCounts.data.open +
+      greenhouseWorkOrderCounts.data.inProgress +
+      greenhouseWorkOrderCounts.data.onHold
+    : 0;
+  const greenhouseAssets = hasGreenhouse ? (greenhouseDevices.data?.totalElements ?? 0) : 0;
   /* Nothing in the panel stores a geofence yet. Kept as a tag so the card
      reads the same once the gateway serves them. */
   const geofenceCount = 0;
@@ -210,16 +229,20 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
   const [waitlistFor, setWaitlistFor] = useState<string | null>(null);
   const activeWorkspaceName = workspaces?.find((w) => w.workspaceId === workspaceId)?.workspaceName;
 
-  const productOf = (key: string) => (key === trackingKey ? t("Fleet Management") : t("Smart Factory"));
+  const productOf = (key: string) =>
+    key === trackingKey ? t("Fleet Management") : key === greenhouseKey ? t("Smart Greenhouse") : t("Smart Factory");
   const attention = alarmKeys
     .flatMap((key) => alarmsOf(key).filter(isUnacknowledged).map((alarm) => ({ alarm, key })))
     .sort((a, b) => new Date(b.alarm.createdAt).getTime() - new Date(a.alarm.createdAt).getTime());
 
   const deviceTotal =
     (hasFactory ? (factoryDevices.data?.totalElements ?? 0) : 0) +
-    (hasTracking ? (trackingDevices.data?.totalElements ?? 0) : 0);
+    (hasTracking ? (trackingDevices.data?.totalElements ?? 0) : 0) +
+    greenhouseAssets;
   const deviceTotalKnown =
-    (hasFactory && factoryDevices.isSuccess) || (hasTracking && trackingDevices.isSuccess);
+    (hasFactory && factoryDevices.isSuccess) ||
+    (hasTracking && trackingDevices.isSuccess) ||
+    (hasGreenhouse && greenhouseDevices.isSuccess);
 
   const welcome = returning ? t("Welcome back") : t("Welcome");
   const greeting = user?.name ? `${welcome}${isRTLLanguage(lang) ? "، " : ", "}${user.name}` : welcome;
@@ -297,6 +320,28 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
                     },
                   ]}
                 />
+                {SHOW_UNRELEASED_PRODUCTS && (
+                  <ProductCard
+                    icon={Sprout}
+                    title={t("Smart Greenhouse")}
+                    description={t("Greenhouses, crops, sensors, alarms and work orders.")}
+                    action={t("Open")}
+                    onAction={() => navigate(`${solutionPath(GREENHOUSE)}/`)}
+                    opens
+                    pending={subscriptionsUnknown || (hasGreenhouse && greenhouseDevices.isPending)}
+                    pills={[
+                      { text: `${n(greenhouseAssets)} ${t("assets")}` },
+                      {
+                        text: `${n(greenhousePendingWorkOrders)} ${t("pending orders")}`,
+                        tone: greenhousePendingWorkOrders > 0 ? ("bad" as const) : ("gray" as const),
+                      },
+                      openAlarmsOf(greenhouseKey) > 0 && {
+                        text: `${n(openAlarmsOf(greenhouseKey))} ${t("open alarms")}`,
+                        tone: "bad" as const,
+                      },
+                    ]}
+                  />
+                )}
               </div>
             </section>
             )}

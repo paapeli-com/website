@@ -20,7 +20,7 @@ import {
 import { useToast } from "@/features/factory/hooks/use-toast";
 import { useWorkOrderTemplates } from "@/features/factory/hooks/useWorkOrderTasks";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 
 /* Select needs a non-empty value for "none of them". */
@@ -53,7 +53,7 @@ const wholeNumber = (text: string, min: number, max: number): number | null => {
 };
 
 export const ruleWorkOrderQueryKey = (workspaceId: string, alarmRuleId: string) =>
-  ["alarmWorkOrderRule", workspaceId, PRODUCT_KEY, alarmRuleId];
+  ["alarmWorkOrderRule", workspaceId, currentProductKey(), alarmRuleId];
 
 interface RuleWorkOrderDialogProps {
   /** The alarm rule being set up; null keeps the dialog closed. */
@@ -72,7 +72,7 @@ export const RuleWorkOrderDialog = ({ rule, onClose }: RuleWorkOrderDialogProps)
 
   const setting = useQuery({
     queryKey: ruleWorkOrderQueryKey(workspaceId, rule?.id ?? ""),
-    queryFn: () => alarmWorkOrderRuleService.get(workspaceId, PRODUCT_KEY, rule!.id),
+    queryFn: () => alarmWorkOrderRuleService.get(workspaceId, currentProductKey(), rule!.id),
     enabled: open && !!workspaceId,
   });
   const members = useListWorkspaceMembersQuery(workspaceId, "", 1, 100, open);
@@ -112,7 +112,7 @@ export const RuleWorkOrderDialog = ({ rule, onClose }: RuleWorkOrderDialogProps)
     try {
       // Turning it off for a rule that never had it leaves nothing to store.
       if (enabled || setting.data) {
-        await alarmWorkOrderRuleService.put(workspaceId, PRODUCT_KEY, rule.id, {
+        await alarmWorkOrderRuleService.put(workspaceId, currentProductKey(), rule.id, {
           enabled,
           priority: priority === AUTO ? null : (priority as WorkOrderApiPriority),
           assigneeUserId: assignee === NOBODY ? null : assignee,

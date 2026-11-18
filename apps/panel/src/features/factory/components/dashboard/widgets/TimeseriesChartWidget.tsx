@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import { TriangleAlert } from "lucide-react";
 import { apiErrorMessage } from "@/shared/lib/apiError";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { fmtDateTime, fmtTimeTick, noDataSpans, toNumber } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { AXIS_TEXT, Hint, SERIES_COLORS, compactNumber, useBoxSize } from "./chartKit";
@@ -76,9 +76,9 @@ export function TimeseriesChartWidget({ widget, dataSources, window: [start, end
 
   const results = useQueries({
     queries: byDevice.map(({ deviceId, keys }) => ({
-      queryKey: ["telemetryHistory", workspaceId, PRODUCT_KEY, deviceId, keys.join(","), start, end, POINT_LIMIT],
+      queryKey: ["telemetryHistory", workspaceId, currentProductKey(), deviceId, keys.join(","), start, end, POINT_LIMIT],
       queryFn: () =>
-        telemetryService.getHistory(workspaceId, PRODUCT_KEY, deviceId, {
+        telemetryService.getHistory(workspaceId, currentProductKey(), deviceId, {
           keys,
           startTs: Math.floor(start),
           endTs: Math.ceil(end),

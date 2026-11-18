@@ -4,7 +4,7 @@ import { telemetryService, type TelemetryAggregation, type TelemetryPoint } from
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Tooltip as RTooltip, XAxis, YAxis } from "recharts";
 import { TriangleAlert } from "lucide-react";
 import { apiErrorMessage } from "@/shared/lib/apiError";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { fmtDateTime, fmtTimeTick, toNumber } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { AXIS_TEXT, Hint, SERIES_COLORS, TOOLTIP_STYLE, compactNumber, useBoxSize } from "./chartKit";
@@ -61,9 +61,9 @@ export function BarChartWidget({ widget, dataSources, window: [start, end], time
     queries: drawable.map((s) => {
       const deviceId = s.source?.type === "device" ? s.source.deviceId : "";
       return {
-        queryKey: ["telemetryAggregate", workspaceId, PRODUCT_KEY, deviceId, s.item.key, start, end, aggregation, interval],
+        queryKey: ["telemetryAggregate", workspaceId, currentProductKey(), deviceId, s.item.key, start, end, aggregation, interval],
         queryFn: () =>
-          telemetryService.getHistory(workspaceId, PRODUCT_KEY, deviceId, {
+          telemetryService.getHistory(workspaceId, currentProductKey(), deviceId, {
             keys: [s.item.key],
             startTs: Math.floor(start),
             endTs: Math.ceil(end),

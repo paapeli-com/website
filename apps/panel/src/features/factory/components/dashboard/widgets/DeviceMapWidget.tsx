@@ -3,7 +3,7 @@ import { useQueries } from "@tanstack/react-query";
 import { telemetryService, type TelemetryPoint } from "@paapeli/api";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { toNumber } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { addBaseLayer, DEFAULT_CENTER, DEFAULT_ZOOM } from "@/features/track/components/map/baseLayer";
@@ -46,8 +46,8 @@ export function DeviceMapWidget({ widget, dataSources, window: [, refreshedAt], 
   const results = useQueries({
     queries: bound.map(({ deviceId }) => ({
       // The window's end moves on every dashboard refresh; keying on it re-reads then.
-      queryKey: ["telemetryLatest", workspaceId, PRODUCT_KEY, deviceId, `${latitudeKey},${longitudeKey}`, refreshedAt],
-      queryFn: () => telemetryService.getLatest(workspaceId, PRODUCT_KEY, deviceId, [latitudeKey, longitudeKey]),
+      queryKey: ["telemetryLatest", workspaceId, currentProductKey(), deviceId, `${latitudeKey},${longitudeKey}`, refreshedAt],
+      queryFn: () => telemetryService.getLatest(workspaceId, currentProductKey(), deviceId, [latitudeKey, longitudeKey]),
       enabled: !!workspaceId,
       placeholderData: (prev: unknown) => prev,
     })),

@@ -26,7 +26,7 @@ import {
 } from "@/features/factory/components/ui/breadcrumb";
 import { Upload, Package, Lock } from "lucide-react";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useOtaActions, useOtaFirmwareOne } from "@/features/factory/hooks/useOta";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 
@@ -102,7 +102,7 @@ const FirmwareForm = () => {
   const lp = (p: string) => localizedPath(p, language);
   const { createFirmware, updateFirmware } = useOtaActions();
   const source = useOtaFirmwareOne(id ?? copyFrom);
-  const { data: deviceTypes } = useGetProductDeviceTypesQuery(PRODUCT_KEY);
+  const { data: deviceTypes } = useGetProductDeviceTypesQuery(currentProductKey());
 
   const [name, setName] = useState("");
   const [version, setVersion] = useState("");

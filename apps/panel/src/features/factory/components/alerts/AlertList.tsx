@@ -39,7 +39,7 @@ import { useGetWorkspaceAlarmsQuery, type WorkspaceAlarmItem } from "@paapeli/ap
 import { alarmStateOf } from "@/shared/lib/alarmStatus";
 import { useAlarmActions, type AlarmAction } from "@/shared/hooks/useAlarmActions";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { PRODUCT_KEY } from "@/features/factory/lib/product";
+import { currentProductKey } from "@/features/factory/lib/product";
 import { useToast } from "@/features/factory/hooks/use-toast";
 import { TableRowsSkeleton } from "@/features/factory/components/panel/DetailPageSkeleton";
 import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
@@ -196,7 +196,7 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
   /* One workspace-product list covers every device's alarms. Every filter,
      KPI and export below works off this one array. Without a workspace the
      query is disabled, which still counts as loading. */
-  const alarmsQuery = useGetWorkspaceAlarmsQuery(workspaceId ?? "", PRODUCT_KEY);
+  const alarmsQuery = useGetWorkspaceAlarmsQuery(workspaceId ?? "", currentProductKey());
   const alarmsLoad = queryLoad(alarmsQuery);
   const pageLoad = usePageLoad({
     loading: alarmsLoad.loading || !workspaceId,
@@ -215,7 +215,7 @@ export const AlertList = ({ ruleCount = null, onViewRules }: AlertListProps = {}
     return (alarmsQuery.data ?? []).map((a) => toAlert(a, a.assetId ? pathById.get(a.assetId) : undefined));
   }, [alarmsQuery.data, assetLocations]);
 
-  const alarmActions = useAlarmActions(workspaceId, PRODUCT_KEY);
+  const alarmActions = useAlarmActions(workspaceId, currentProductKey());
   const runAlarmAction = async (kind: AlarmAction, alert: Alert) => {
     if (!workspaceId) {
       toast({ title: tt("error"), description: tt("noWorkspaceSelected"), variant: "destructive" });
