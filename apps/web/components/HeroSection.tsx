@@ -11,7 +11,7 @@ import { HOW_IT_WORKS_ID, glideToSection } from "@/lib/scroll-to-section";
 
 /* ------------------------------------------------------------------ */
 /* Hero section: full-bleed network photo, centred copy on top. The    */
-/* announcement pill links to the BRICS 2026 final blog post, and      */
+/* announcement pill links to the BRICS 2026 gold medal blog post, and */
 /* "Learn More" glides down to the product video.                      */
 /* ------------------------------------------------------------------ */
 
@@ -28,7 +28,7 @@ const COPY: Record<
 > = {
   en: {
     badge: "BRICS 2026",
-    announcement: "Paapeli in the international final in Russia",
+    announcement: "Paapeli wins gold in Artificial Intelligence",
     title: "Build, Connect, and Manage IoT Infrastructure Intelligently",
     description:
       "Paapeli is an AI-powered cloud IoT (AIoT) that helps you connect devices, collect insights, and control your infrastructure from anywhere.",
@@ -37,7 +37,7 @@ const COPY: Record<
   },
   fa: {
     badge: "بریکس ۲۰۲۶",
-    announcement: "پاپلی در فینال بین‌المللی روسیه",
+    announcement: "پاپلی مدال طلای هوش مصنوعی را گرفت",
     title: "ساخت، اتصال و مدیریت هوشمند زیرساخت‌های اینترنت اشیا",
     description:
       "با پلتفرم ابری AIoT پاپلی، دستگاه‌ها و تجهیزات خود را به یک پلتفرم ابری متصل کنید، داده‌های عملیاتی را به بینش تبدیل کنید و همه‌چیز را با کمک هوش مصنوعی، یکپارچه پایش و کنترل کنید.",
@@ -46,7 +46,7 @@ const COPY: Record<
   },
   ar: {
     badge: "بريكس 2026",
-    announcement: "بابيلي في النهائي الدولي في روسيا",
+    announcement: "بابيلي تفوز بذهبية الذكاء الاصطناعي",
     title: "اربط كل جهاز، وحوّل كل بيانات إلى قرار",
     description:
       "مع منصة بابيلي السحابية AIoT، اربط أجهزتك ومعداتك بمنصة سحابية واحدة، وحوّل البيانات التشغيلية إلى رؤى، وراقب كل شيء وتحكم فيه بمساعدة الذكاء الاصطناعي.",
