@@ -53,6 +53,8 @@ import { StartCycleDialog } from "../components/StartCycleDialog";
 import { AddPlaceDialog, ConfirmDialog, GreenhouseDetailsDialog, GreenhouseDetailsForm, ZoneSettingsDialog } from "../components/GreenhouseDialogs";
 import { daysSince, daysUntil, useGreenhouses, useGreenhouseWorkspace } from "../hooks";
 import { summarize, useEnvironment, useGreenhouseOps, type EnvMetric, type Reading } from "../operations";
+import { evaluate, type Finding } from "../evaluation";
+import { useFindingText } from "../components/FindingText";
 import { useGreenhouseText, type GreenhouseTextKey } from "../i18n";
 
 const TABS = ["overview", "zones", "devices", "settings"] as const;
@@ -117,7 +119,8 @@ export default function GreenhouseDetail() {
   }
 
   const cycles = cyclesOf(house);
-  const health = healthOf(ops, devicesKnown && alarmsKnown);
+  const findings = evaluate(house, ops, env.readings);
+  const health = findings.length && devicesKnown ? "attention" : healthOf(ops, devicesKnown && alarmsKnown);
   const lastReading = env.readings.reduce((latest, r) => Math.max(latest, r.ts), 0);
   const facts = [
     house.areaM2 != null ? `${formatNumber(house.areaM2)} ${g("m2")}` : null,
@@ -233,7 +236,7 @@ export default function GreenhouseDetail() {
               <Card className="xl:col-span-2">
                 <CardContent className="pt-5">
                   <SectionTitle icon={Sprout} title={g("layout")} />
-                  <ZoneLayout house={house} devicesByPlace={ops?.devicesByPlace} readings={env.readings} alarmDevices={new Set(ops?.alarms.map((a) => a.deviceId))} {...zoneActions} />
+                  <ZoneLayout house={house} devicesByPlace={ops?.devicesByPlace} readings={env.readings} alarmDevices={new Set(ops?.alarms.map((a) => a.deviceId))} outOfRange={new Set(findings.map((f) => f.zoneId))} {...zoneActions} />
                 </CardContent>
               </Card>
               <Card>
@@ -244,6 +247,7 @@ export default function GreenhouseDetail() {
                     alarms={ops?.alarms ?? []}
                     offline={(ops?.devices ?? []).filter((d) => !d.active)}
                     workOrders={ops?.workOrders ?? []}
+                    findings={findings}
                   />
                 </CardContent>
               </Card>
@@ -363,9 +367,10 @@ function ZoneLayout({
   devicesByPlace,
   readings,
   alarmDevices,
+  outOfRange,
   onOpenCycle,
   onPlant,
-}: { house: Greenhouse; devicesByPlace?: Map<string, DeviceResponse[]>; readings: Reading[]; alarmDevices: Set<string> } & ZoneActions) {
+}: { house: Greenhouse; devicesByPlace?: Map<string, DeviceResponse[]>; readings: Reading[]; alarmDevices: Set<string>; outOfRange: Set<string> } & ZoneActions) {
   const { g, named } = useGreenhouseText();
   const reading = useReadingText();
   if (!house.zones.length) return <p className="py-8 text-center text-sm text-muted-foreground">{g("noZonesYet")}</p>;
@@ -378,7 +383,7 @@ function ZoneLayout({
           const summary = summarize(readings.filter((r) => ids.has(r.deviceId)));
           const temp = summary.TEMPERATURE && !summary.TEMPERATURE.stale ? reading(summary.TEMPERATURE, "°C") : null;
           const hum = summary.HUMIDITY && !summary.HUMIDITY.stale ? reading(summary.HUMIDITY, "%") : null;
-          const alert = devices.some((d) => alarmDevices.has(d.id));
+          const alert = devices.some((d) => alarmDevices.has(d.id)) || outOfRange.has(zone.id);
           const cycle = zone.cycle;
           const fruit = cycle ? fruitOf(cycle.crop.icon) : null;
           return (
@@ -603,8 +608,10 @@ function Attention({
   alarms,
   offline,
   workOrders,
+  findings,
 }: {
   known: boolean;
+  findings: Finding[];
   alarms: { id: string; alarmName: string; deviceName?: string; createdAt: string }[];
   offline: DeviceResponse[];
   workOrders: { id: string; title: string }[];
@@ -612,7 +619,19 @@ function Attention({
   const { g, language } = useGreenhouseText();
   const navigate = useNavigate();
   const lp = (p: string) => localizedPath(p, language);
+  const describe = useFindingText();
   const items = [
+    ...findings.map((f) => ({
+      key: `f${f.zoneId}${f.metric}`,
+      icon: AlertTriangle,
+      tone: "text-orange-500",
+      text: describe(f),
+      sub: g("createWorkOrder"),
+      go: () =>
+        navigate(
+          lp(`/work-orders/new?${new URLSearchParams({ title: describe(f), assetId: f.zoneId, location: f.zoneName, priority: "High" }).toString()}`),
+        ),
+    })),
     ...alarms.map((a) => ({ key: `a${a.id}`, icon: Bell, tone: "text-red-500", text: a.alarmName, sub: a.deviceName, go: () => navigate(lp("/alarms")) })),
     ...offline.map((d) => ({ key: `d${d.id}`, icon: WifiOff, tone: "text-amber-500", text: g("deviceOffline", { name: d.name }), sub: undefined, go: () => navigate(lp(`/devices/${d.id}`)) })),
     ...workOrders.map((w) => ({ key: `w${w.id}`, icon: ClipboardList, tone: "text-sky-500", text: g("workOrderItem", { title: w.title }), sub: undefined, go: () => navigate(lp(`/work-orders/${w.id}`)) })),

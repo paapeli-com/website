@@ -272,6 +272,9 @@ const en = {
   sortGrowing: "Most planted",
   sortNewest: "Newest",
   noCropsMatch: "No crops match these filters",
+  findingHigh: "{zone}: {metric} {value} is above the {stage} target ({range})",
+  findingLow: "{zone}: {metric} {value} is below the {stage} target ({range})",
+  createWorkOrder: "Create a work order",
 };
 
 export type GreenhouseTextKey = keyof typeof en;
@@ -541,6 +544,9 @@ const fa: Record<GreenhouseTextKey, string> = {
   sortGrowing: "بیشترین کشت",
   sortNewest: "جدیدترین",
   noCropsMatch: "محصولی با این فیلترها نیست",
+  findingHigh: "{zone}: {metric} {value} از هدف مرحله {stage} ({range}) بالاتر است",
+  findingLow: "{zone}: {metric} {value} از هدف مرحله {stage} ({range}) پایین‌تر است",
+  createWorkOrder: "ساخت دستور کار",
 };
 
 const ar: Record<GreenhouseTextKey, string> = {
@@ -808,6 +814,9 @@ const ar: Record<GreenhouseTextKey, string> = {
   sortGrowing: "الأكثر زراعة",
   sortNewest: "الأحدث",
   noCropsMatch: "لا توجد محاصيل مطابقة لهذه المرشحات",
+  findingHigh: "{zone}: {metric} {value} أعلى من هدف مرحلة {stage} ({range})",
+  findingLow: "{zone}: {metric} {value} أدنى من هدف مرحلة {stage} ({range})",
+  createWorkOrder: "إنشاء أمر عمل",
 };
 
 const TEXT = { en, fa, ar } as const;

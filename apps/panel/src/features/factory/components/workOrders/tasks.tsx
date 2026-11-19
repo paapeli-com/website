@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { currentSolution } from "@/features/factory/lib/product";
+import { GreenhouseTemplateSuggestions } from "@/features/greenhouse/workOrderTemplates";
 import { ArrowDown, ArrowUp, ListChecks, Pencil, Plus, Trash2 } from "lucide-react";
 import type { WorkOrderTask, WorkOrderTemplate } from "@paapeli/api";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
@@ -214,6 +216,9 @@ export const TemplatesDialog = ({ open, onClose }: { open: boolean; onClose: () 
           <DialogTitle>{editing ? (editing === "new" ? t("woNewTemplate") : editing.name) : t("woTemplates")}</DialogTitle>
           <DialogDescription>{t("woTemplatesDesc")}</DialogDescription>
         </DialogHeader>
+
+        {/* Smart Greenhouse offers its growers' usual rounds, ready to add. */}
+        {!editing && currentSolution() === "SmartGreenhouse" && <GreenhouseTemplateSuggestions />}
 
         {editing ? (
           <div className="space-y-4">

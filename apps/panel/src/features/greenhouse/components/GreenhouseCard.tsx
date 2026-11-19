@@ -13,6 +13,7 @@ import { cn } from "@/shared/lib/utils";
 import { CropIcon } from "./CropIcon";
 import { GreenhouseCover, fruitOf } from "./GreenhouseCover";
 import { summarize, useEnvironment, type GreenhouseOps, type MetricSummary } from "../operations";
+import { evaluate } from "../evaluation";
 import { useGreenhouseText, type GreenhouseTextKey } from "../i18n";
 
 export type Health = "attention" | "offline" | "nosensors" | "ok" | "unknown";
@@ -113,8 +114,9 @@ export function GreenhouseCard({
 }) {
   const { g, formatNumber } = useGreenhouseText();
   const cycles = cyclesOf(house);
-  const health = healthOf(ops, known);
   const env = useEnvironment(ops?.devices ?? [], !!ops?.devices.length);
+  // A zone outside its crop's targets needs attention as much as an alarm does.
+  const health = known && evaluate(house, ops, env.readings).length ? "attention" : healthOf(ops, known);
   const summary = summarize(env.readings);
   const reading = useReadingText();
   const temp = reading(summary.TEMPERATURE?.stale ? undefined : summary.TEMPERATURE, "°C");

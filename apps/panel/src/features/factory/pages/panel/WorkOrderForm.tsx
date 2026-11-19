@@ -83,7 +83,7 @@ const WorkOrderForm = () => {
 
   const [action, setAction] = useState(params.get("title") ?? "");
   const [deviceId, setDeviceId] = useState(params.get("deviceId") ?? "");
-  const [assetId, setAssetId] = useState("");
+  const [assetId, setAssetId] = useState(params.get("assetId") ?? "");
   /* What the order was saved with, kept for an order whose device or location
      has since been deleted: the names still read, though nothing is selected. */
   const [assetLabel, setAssetLabel] = useState(params.get("asset") ?? "");
