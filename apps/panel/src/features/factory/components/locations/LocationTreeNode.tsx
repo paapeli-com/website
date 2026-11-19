@@ -19,9 +19,13 @@ import {
   Trash2,
   Copy,
   Tag,
+  Warehouse,
+  LayoutGrid,
+  Sprout,
 } from "lucide-react";
 import { Button } from "@/features/factory/components/ui/button";
 import { nodeDisplayName } from "@/features/factory/lib/locationLabels";
+import { assetTypeLabel } from "@/features/factory/i18n/solutionText";
 import { useAllowedChildTypes } from "@/features/factory/hooks/useAllowedChildTypes";
 
 export interface TreeNode {
@@ -88,6 +92,9 @@ const getNodeIcon = (type: string, isSelected: boolean) => {
 // this matches on the well-known words rather than an exhaustive list.
 const iconForAssetType = (assetType: string) => {
   const s = assetType.toLowerCase();
+  if (s === "greenhouse") return <Warehouse className="h-3.5 w-3.5" />;
+  if (s === "zone") return <LayoutGrid className="h-3.5 w-3.5" />;
+  if (s === "bed") return <Sprout className="h-3.5 w-3.5" />;
   if (s.includes("location") || s.includes("site")) return <MapPin className="h-3.5 w-3.5" />;
   if (s.includes("unit") || s.includes("area") || s.includes("line")) return <Factory className="h-3.5 w-3.5" />;
   if (s.includes("asset") || s.includes("device") || s.includes("machine")) return <Cpu className="h-3.5 w-3.5" />;
@@ -107,7 +114,7 @@ const AddChildMenuItems = ({
   /** Whether entries follow these in the menu, and so need a divider. */
   showSeparator: boolean;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { options, isLoading } = useAllowedChildTypes(productKey, node.assetType);
 
   if (isLoading) {
@@ -120,7 +127,7 @@ const AddChildMenuItems = ({
       {options.map((opt) => (
         <DropdownMenuItem key={opt.assetType} onClick={() => onAddChild(node, opt.assetType)}>
           {iconForAssetType(opt.assetType)}
-          {`${t("add")} ${opt.label}`}
+          {`${t("add")} ${assetTypeLabel(opt.assetType, opt.label, language)}`}
         </DropdownMenuItem>
       ))}
       {showSeparator && <DropdownMenuSeparator />}

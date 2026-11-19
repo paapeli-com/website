@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useCreateProductMutation } from "@paapeli/api";
 import { TooltipProvider } from "@/features/factory/components/ui/tooltip";
-import { LanguageProvider } from "@/features/factory/contexts/LanguageContext";
+import { LanguageProvider, useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { ProtectedRoute } from "@/features/factory/components/ProtectedRoute";
-import { currentProductKey } from "@/features/factory/lib/product";
+import { currentProductKey, currentSolution } from "@/features/factory/lib/product";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -78,6 +79,15 @@ import WorkOrderDetails from "./pages/panel/WorkOrderDetails";
    against the whole app root, and would drop the language too. */
 const HomeRedirect = () => <Navigate to=".." relative="path" replace />;
 
+/* A page only Smart Factory offers: its overview, OTA and failure forecasts
+   are about machines on a production line. Smart Greenhouse sends the visitor
+   to its greenhouses instead, until it has its own overview. */
+const FactoryOnly = ({ children }: { children: ReactNode }) => {
+  const { language } = useLanguage();
+  if (currentSolution() === "SmartFactory") return <>{children}</>;
+  return <Navigate to={localizedPath("/locations", language)} replace />;
+};
+
 export default function FactoryRoutes() {
   // Register this solution's product once per mount. Safe to no-op/409 on
   // repeat visits — the backend treats re-creation as idempotent — so we
@@ -99,8 +109,8 @@ export default function FactoryRoutes() {
         <div data-panel-headings className="contents">
         <Routes>
                       {/* Solution root shows the dashboard (clean /AIoT/SmartFactory URL). */}
-                      <Route path="/" element={<ProtectedRoute><PanelHome /></ProtectedRoute>} />
-                      <Route path="/:lang" element={<ProtectedRoute><PanelHome /></ProtectedRoute>} />
+                      <Route path="/" element={<ProtectedRoute><FactoryOnly><PanelHome /></FactoryOnly></ProtectedRoute>} />
+                      <Route path="/:lang" element={<ProtectedRoute><FactoryOnly><PanelHome /></FactoryOnly></ProtectedRoute>} />
                       {/* Login is product-agnostic (host /login). These just bounce to
                           the dashboard, which is gated and sends you to /login if needed. */}
                       <Route path="/login" element={<Navigate to=".." replace />} />
@@ -200,12 +210,12 @@ export default function FactoryRoutes() {
 
                       <Route path="/locations" element={<ProtectedRoute><Locations /></ProtectedRoute>} />
                       <Route path="/:lang/locations" element={<ProtectedRoute><Locations /></ProtectedRoute>} />
-                      <Route path="/firmware" element={<ProtectedRoute><OTA /></ProtectedRoute>} />
-                      <Route path="/:lang/firmware" element={<ProtectedRoute><OTA /></ProtectedRoute>} />
-                      <Route path="/firmware/new" element={<ProtectedRoute><FirmwareForm /></ProtectedRoute>} />
-                      <Route path="/:lang/firmware/new" element={<ProtectedRoute><FirmwareForm /></ProtectedRoute>} />
-                      <Route path="/firmware/:id/edit" element={<ProtectedRoute><FirmwareForm /></ProtectedRoute>} />
-                      <Route path="/:lang/firmware/:id/edit" element={<ProtectedRoute><FirmwareForm /></ProtectedRoute>} />
+                      <Route path="/firmware" element={<ProtectedRoute><FactoryOnly><OTA /></FactoryOnly></ProtectedRoute>} />
+                      <Route path="/:lang/firmware" element={<ProtectedRoute><FactoryOnly><OTA /></FactoryOnly></ProtectedRoute>} />
+                      <Route path="/firmware/new" element={<ProtectedRoute><FactoryOnly><FirmwareForm /></FactoryOnly></ProtectedRoute>} />
+                      <Route path="/:lang/firmware/new" element={<ProtectedRoute><FactoryOnly><FirmwareForm /></FactoryOnly></ProtectedRoute>} />
+                      <Route path="/firmware/:id/edit" element={<ProtectedRoute><FactoryOnly><FirmwareForm /></FactoryOnly></ProtectedRoute>} />
+                      <Route path="/:lang/firmware/:id/edit" element={<ProtectedRoute><FactoryOnly><FirmwareForm /></FactoryOnly></ProtectedRoute>} />
 
                       <Route path="/members" element={<ProtectedRoute><Members /></ProtectedRoute>} />
                       <Route path="/:lang/members" element={<ProtectedRoute><Members /></ProtectedRoute>} />
@@ -213,10 +223,10 @@ export default function FactoryRoutes() {
                       <Route path="/:lang/members/invite" element={<ProtectedRoute><InviteMemberForm /></ProtectedRoute>} />
               
                       {/* AIoT Routes */}
-                      <Route path="/aiot/forecast-failures" element={<ProtectedRoute><AIoTForecastFailures /></ProtectedRoute>} />
-                      <Route path="/:lang/aiot/forecast-failures" element={<ProtectedRoute><AIoTForecastFailures /></ProtectedRoute>} />
-                      <Route path="/aiot/forecast-failures/:id" element={<ProtectedRoute><AIoTForecastDetails /></ProtectedRoute>} />
-                      <Route path="/:lang/aiot/forecast-failures/:id" element={<ProtectedRoute><AIoTForecastDetails /></ProtectedRoute>} />
+                      <Route path="/aiot/forecast-failures" element={<ProtectedRoute><FactoryOnly><AIoTForecastFailures /></FactoryOnly></ProtectedRoute>} />
+                      <Route path="/:lang/aiot/forecast-failures" element={<ProtectedRoute><FactoryOnly><AIoTForecastFailures /></FactoryOnly></ProtectedRoute>} />
+                      <Route path="/aiot/forecast-failures/:id" element={<ProtectedRoute><FactoryOnly><AIoTForecastDetails /></FactoryOnly></ProtectedRoute>} />
+                      <Route path="/:lang/aiot/forecast-failures/:id" element={<ProtectedRoute><FactoryOnly><AIoTForecastDetails /></FactoryOnly></ProtectedRoute>} />
                       <Route path="/aiot/analyze-trends" element={<ProtectedRoute><AIoTAnalyzeTrends /></ProtectedRoute>} />
                       <Route path="/:lang/aiot/analyze-trends" element={<ProtectedRoute><AIoTAnalyzeTrends /></ProtectedRoute>} />
                       <Route path="/aiot/analyze-trends/opportunities/:id" element={<ProtectedRoute><AIoTOpportunityDetails /></ProtectedRoute>} />

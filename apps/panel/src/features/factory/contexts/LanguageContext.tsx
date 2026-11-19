@@ -2,6 +2,8 @@ import React, { createContext, useContext } from 'react';
 import { DirectionProvider } from '@radix-ui/react-direction';
 import { translations, Language, TranslationKey } from '@/features/factory/i18n/translations';
 import { isRTLLanguage, setAppLanguage, useAppLanguage } from '@/shared/i18n/appLanguage';
+import { solutionText } from '@/features/factory/i18n/solutionText';
+import { currentSolution } from '@/features/factory/lib/product';
 
 interface LanguageContextType {
   language: Language;
@@ -22,8 +24,12 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const isRTL = isRTLLanguage(language);
   const setLanguage = setAppLanguage;
 
+  /* A solution's own wording comes first (see i18n/solutionText.ts), then
+     the shared table. */
   const t = (key: TranslationKey): string => {
-    return translations[language][key] || translations.en[key] || key;
+    return (
+      solutionText(currentSolution(), language, key) || translations[language][key] || translations.en[key] || key
+    );
   };
 
   const formatNumber = (n: number | string): string => {

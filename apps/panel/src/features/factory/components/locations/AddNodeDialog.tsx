@@ -21,6 +21,7 @@ import { useCreateAssetChildMutation } from "@paapeli/api";
 import { useAllowedChildTypes } from "@/features/factory/hooks/useAllowedChildTypes";
 import { toast } from "@/shared/lib/toast";
 import { apiErrorMessage } from "@/shared/lib/apiError";
+import { assetTypeLabel } from "@/features/factory/i18n/solutionText";
 
 interface AddNodeDialogProps {
   open: boolean;
@@ -37,7 +38,7 @@ interface AddNodeDialogProps {
 }
 
 export const AddNodeDialog = ({ open, onOpenChange, workspaceId, productKey, parentId, parentName, parentAssetType, defaultType, onAdd }: AddNodeDialogProps) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [name, setName] = useState("");
   const [type, setType] = useState("");
   const [label, setLabel] = useState("");
@@ -108,7 +109,7 @@ export const AddNodeDialog = ({ open, onOpenChange, workspaceId, productKey, par
               <SelectContent>
                 {allowedTypes.map((opt) => (
                   <SelectItem key={opt.assetType} value={opt.assetType}>
-                    {opt.label}
+                    {assetTypeLabel(opt.assetType, opt.label, language)}
                   </SelectItem>
                 ))}
               </SelectContent>
