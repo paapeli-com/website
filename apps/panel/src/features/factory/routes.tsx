@@ -93,6 +93,7 @@ const FactoryOnly = ({ children }: { children: ReactNode }) => {
    crops and crop cycles. Loaded on first visit, so Smart Factory's chunk does
    not carry them; Smart Factory sends the visitor home. */
 const Greenhouses = lazy(() => import("@/features/greenhouse/pages/Greenhouses"));
+const GreenhouseDetail = lazy(() => import("@/features/greenhouse/pages/GreenhouseDetail"));
 const Crops = lazy(() => import("@/features/greenhouse/pages/Crops"));
 const CropProfileEditor = lazy(() => import("@/features/greenhouse/pages/CropProfileEditor"));
 const CropCycles = lazy(() => import("@/features/greenhouse/pages/CropCycles"));
@@ -225,6 +226,8 @@ export default function FactoryRoutes() {
 
                       <Route path="/greenhouses" element={<ProtectedRoute><GreenhouseOnly><Greenhouses /></GreenhouseOnly></ProtectedRoute>} />
                       <Route path="/:lang/greenhouses" element={<ProtectedRoute><GreenhouseOnly><Greenhouses /></GreenhouseOnly></ProtectedRoute>} />
+                      <Route path="/greenhouses/:greenhouseId" element={<ProtectedRoute><GreenhouseOnly><GreenhouseDetail /></GreenhouseOnly></ProtectedRoute>} />
+                      <Route path="/:lang/greenhouses/:greenhouseId" element={<ProtectedRoute><GreenhouseOnly><GreenhouseDetail /></GreenhouseOnly></ProtectedRoute>} />
                       <Route path="/crops" element={<ProtectedRoute><GreenhouseOnly><Crops /></GreenhouseOnly></ProtectedRoute>} />
                       <Route path="/:lang/crops" element={<ProtectedRoute><GreenhouseOnly><Crops /></GreenhouseOnly></ProtectedRoute>} />
                       <Route path="/crops/:cropId" element={<ProtectedRoute><GreenhouseOnly><CropProfileEditor /></GreenhouseOnly></ProtectedRoute>} />

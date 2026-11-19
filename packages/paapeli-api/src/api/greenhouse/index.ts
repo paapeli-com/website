@@ -146,6 +146,8 @@ export interface GreenhouseDetail {
     timeZone?: string | null;
     structureType?: GreenhouseStructure | null;
     cultivationMethod?: CultivationMethod | null;
+    /** The panel illustration its card is drawn with; null for the one its structure suggests. */
+    cover?: string | null;
 }
 
 export interface GreenhouseDetailRequest {
@@ -154,6 +156,7 @@ export interface GreenhouseDetailRequest {
     timeZone?: string | null;
     structureType?: GreenhouseStructure | null;
     cultivationMethod?: CultivationMethod | null;
+    cover?: string | null;
 }
 
 export interface GreenhouseBed {
@@ -169,6 +172,7 @@ export interface GreenhouseZone {
     name: string;
     label?: string | null;
     areaM2?: number | null;
+    cultivationMethod?: CultivationMethod | null;
     /** The zone's own devices and its beds'. */
     devices: number;
     cycle?: CropCycle | null;
@@ -184,6 +188,7 @@ export interface Greenhouse {
     timeZone?: string | null;
     structureType?: GreenhouseStructure | null;
     cultivationMethod?: CultivationMethod | null;
+    cover?: string | null;
     /** Every device on the greenhouse, its zones and their beds. */
     devices: number;
     zones: GreenhouseZone[];

@@ -18,6 +18,8 @@ import { toast } from "@/shared/lib/toast";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 import { cn } from "@/shared/lib/utils";
 import { CropIcon } from "./CropIcon";
+import { CoverPicker, GreenhouseCover, coverOf, fruitOf, type CoverKey } from "./GreenhouseCover";
+import { useCoverLabels } from "./GreenhouseDialogs";
 import { CropPicker, choiceKey, profileFor, type CropChoice } from "./CropPicker";
 import { DayPicker } from "./DayPicker";
 import { stagesOf } from "./StartCycleDialog";
@@ -38,7 +40,8 @@ export function timeZoneOptions(): string[] {
   return [...new Set([own, "Asia/Tehran", "Asia/Dubai", "Asia/Riyadh", "Asia/Baghdad", "Asia/Kabul", "Europe/Istanbul", "UTC"])].filter(Boolean);
 }
 
-const STEPS: GreenhouseTextKey[] = ["stepBasics", "stepCultivation", "stepZones", "stepCrops", "stepReview"];
+const STEPS: GreenhouseTextKey[] = ["stepBasics", "stepSetup", "stepCrops", "stepReview"];
+const REVIEW = STEPS.length - 1;
 const MAX_ZONES = 12;
 const MAX_BEDS = 20;
 
@@ -67,7 +70,18 @@ async function ensureRoot(workspaceId: string): Promise<string> {
  * each zone grows, and a last look. Every step after the first can be skipped;
  * what is skipped is added later from the greenhouse's card.
  */
-export function AddGreenhouseWizard({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+export function AddGreenhouseWizard({
+  open,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Called with the new greenhouse's id once it is made. */
+  onCreated?: (greenhouseId: string) => void;
+}) {
+  const coverLabels = useCoverLabels();
+  const [cover, setCover] = useState<CoverKey | null>(null);
   const { g, named, formatNumber } = useGreenhouseText();
   const { workspaceId, refresh } = useGreenhouseWorkspace();
   const profiles = useCropProfiles();
@@ -93,6 +107,7 @@ export function AddGreenhouseWizard({ open, onOpenChange }: { open: boolean; onO
     setArea("");
     setTimeZone(timeZoneOptions()[0]);
     setStructure(null);
+    setCover(null);
     setCultivation(null);
     setZoneCount(4);
     setBedsPerZone(0);
@@ -116,6 +131,10 @@ export function AddGreenhouseWizard({ open, onOpenChange }: { open: boolean; onO
     updateZone(index, { choice, stageId: stagesOf(choice)[0]?.id ?? "" });
 
   const planted = zones.filter((z) => z.choice);
+  /* The review's picture shows the first crop chosen. */
+  const firstChoice = planted[0]?.choice;
+  const reviewIcon =
+    !firstChoice || firstChoice.kind === "custom" ? null : firstChoice.kind === "profile" ? firstChoice.profile.icon : firstChoice.template.icon;
   const busy = progress?.some((p) => p.state === "working") ?? false;
   const finished = progress?.every((p) => p.state === "done") ?? false;
   const canNext = step !== 0 || !!name.trim();
@@ -139,13 +158,14 @@ export function AddGreenhouseWizard({ open, onOpenChange }: { open: boolean; onO
         type: "GREENHOUSE",
         label: name.trim(),
       });
-      if (location.trim() || area || structure || cultivation || timeZone) {
+      if (location.trim() || area || structure || cultivation || timeZone || cover) {
         await greenhouseService.saveDetail(workspaceId, pk, house.id, {
           location: location.trim() || null,
           areaM2: area ? Number(area) : null,
           timeZone: timeZone || null,
           structureType: structure,
           cultivationMethod: cultivation,
+          cover: coverOf(cover, structure),
         });
       }
       mark(0, "done");
@@ -189,6 +209,7 @@ export function AddGreenhouseWizard({ open, onOpenChange }: { open: boolean; onO
       await refresh();
       toast.success(g("createdToast", { name: name.trim() }));
       onOpenChange(false);
+      onCreated?.(house.id);
     } catch (error) {
       mark(at, "failed");
       await refresh();
@@ -206,7 +227,7 @@ export function AddGreenhouseWizard({ open, onOpenChange }: { open: boolean; onO
             onClick={() => setStep(index)}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors",
-              index === step ? "bg-emerald-600 text-white" : index < step ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300" : "text-muted-foreground",
+              index === step ? "bg-primary text-primary-foreground" : index < step ? "bg-primary/10 text-primary" : "text-muted-foreground",
             )}
           >
             <span className="h-4 w-4 rounded-full border border-current inline-flex items-center justify-center text-[10px] tabular-nums">
@@ -266,7 +287,7 @@ export function AddGreenhouseWizard({ open, onOpenChange }: { open: boolean; onO
                       onClick={() => setStructure(structure === s ? null : s)}
                       className={cn(
                         "rounded-full border px-3 py-1.5 text-sm transition-colors",
-                        structure === s ? "border-emerald-500 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300" : "hover:border-emerald-300",
+                        structure === s ? "border-primary bg-primary/10 text-primary" : "hover:border-primary/40",
                       )}
                     >
                       {g(`structure_${s}` as GreenhouseTextKey)}
@@ -274,10 +295,15 @@ export function AddGreenhouseWizard({ open, onOpenChange }: { open: boolean; onO
                   ))}
                 </div>
               </div>
+              <div className="space-y-2 sm:col-span-2">
+                <FieldLabel className="mb-0">{g("picture")}</FieldLabel>
+                <CoverPicker value={coverOf(cover, structure)} onChange={setCover} labels={coverLabels} />
+              </div>
             </div>
           )}
 
           {step === 1 && (
+            <div className="space-y-6">
             <div className="grid gap-3 sm:grid-cols-2">
               {CULTIVATIONS.map(({ key, icon: Icon }) => (
                 <button
@@ -285,8 +311,8 @@ export function AddGreenhouseWizard({ open, onOpenChange }: { open: boolean; onO
                   type="button"
                   onClick={() => setCultivation(cultivation === key ? null : key)}
                   className={cn(
-                    "flex items-start gap-3 rounded-xl border bg-card p-4 text-start transition-all hover:border-emerald-400",
-                    cultivation === key && "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-950/20",
+                    "flex items-start gap-3 rounded-xl border bg-card p-4 text-start transition-all hover:border-primary/40",
+                    cultivation === key && "border-primary ring-2 ring-primary/20 bg-primary/5",
                   )}
                 >
                   <span className="h-10 w-10 shrink-0 rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 inline-flex items-center justify-center">
@@ -299,10 +325,7 @@ export function AddGreenhouseWizard({ open, onOpenChange }: { open: boolean; onO
                 </button>
               ))}
             </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-5">
+            <div className="space-y-5 border-t pt-5">
               <p className="text-sm text-muted-foreground">{g("zoneHint")}</p>
               <div className="flex flex-wrap gap-8">
                 <Counter label={g("zoneCount")} value={zoneCount} min={1} max={MAX_ZONES} onChange={setZoneCount} />
@@ -320,9 +343,10 @@ export function AddGreenhouseWizard({ open, onOpenChange }: { open: boolean; onO
                 ))}
               </div>
             </div>
+            </div>
           )}
 
-          {step === 3 && (
+          {step === 2 && (
             <div className="space-y-4">
               <p className="text-xs text-muted-foreground rounded-lg bg-muted/50 px-3 py-2">{g("targetsDisclaimer")}</p>
               {zones.map((zone, index) => {
@@ -371,9 +395,11 @@ export function AddGreenhouseWizard({ open, onOpenChange }: { open: boolean; onO
             </div>
           )}
 
-          {step === 4 && (
+          {step === REVIEW && (
             <div className="space-y-4">
-              <div className="rounded-xl border bg-gradient-to-br from-emerald-50 to-transparent dark:from-emerald-950/30 p-4">
+              <div className="overflow-hidden rounded-xl border">
+                <div className="aspect-[16/6]"><GreenhouseCover cover={coverOf(cover, structure)} fruit={reviewIcon ? fruitOf(reviewIcon) : null} /></div>
+                <div className="p-4">
                 <div className="text-lg font-semibold">{name}</div>
                 <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                   {location && <span>{location}</span>}
@@ -383,6 +409,7 @@ export function AddGreenhouseWizard({ open, onOpenChange }: { open: boolean; onO
                   {timeZone && <span dir="ltr">{timeZone}</span>}
                 </div>
                 <div className="mt-3 text-sm">{g("reviewZonesLine", { n: zones.length, b: bedsPerZone })}</div>
+                </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {zones.map((zone, index) => {
@@ -427,12 +454,12 @@ export function AddGreenhouseWizard({ open, onOpenChange }: { open: boolean; onO
             {step === 0 ? g("cancel") : g("back")}
           </Button>
           <div className="flex flex-wrap gap-2">
-            {step > 0 && step < 4 && (
-              <Button variant="ghost" disabled={busy} onClick={() => setStep(4)}>
+            {step > 0 && step < REVIEW && (
+              <Button variant="ghost" disabled={busy} onClick={() => setStep(REVIEW)}>
                 {g("skipForNow")}
               </Button>
             )}
-            {step < 4 ? (
+            {step < REVIEW ? (
               <Button disabled={!canNext} onClick={() => setStep(step + 1)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 {g("next")}
               </Button>

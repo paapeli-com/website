@@ -7331,7 +7331,12 @@
       "GreenhouseDetailRequest": {
         "type": "object",
         "properties": {
-          "location": {
+          "cover": {
+          "type": "string",
+          "pattern": "[a-z0-9-]{1,64}",
+          "description": "The panel illustration its card is drawn with"
+        },
+        "location": {
             "type": "string",
             "maxLength": 255
           },
@@ -7369,7 +7374,12 @@
       "GreenhouseDetail": {
         "type": "object",
         "properties": {
-          "assetId": {
+          "cover": {
+          "type": "string",
+          "pattern": "[a-z0-9-]{1,64}",
+          "description": "The panel illustration its card is drawn with"
+        },
+        "assetId": {
             "type": "string",
             "format": "uuid"
           },
@@ -7415,7 +7425,12 @@
       "GreenhouseResponse": {
         "type": "object",
         "properties": {
-          "id": {
+          "cover": {
+          "type": "string",
+          "pattern": "[a-z0-9-]{1,64}",
+          "description": "The panel illustration its card is drawn with"
+        },
+        "id": {
             "type": "string",
             "format": "uuid"
           },

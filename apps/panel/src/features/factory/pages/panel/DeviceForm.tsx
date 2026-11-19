@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useToast } from "@/features/factory/hooks/use-toast";
 import { Button } from "@/features/factory/components/ui/button";
@@ -185,8 +185,10 @@ const DeviceForm = () => {
   const [selectedSensors, setSelectedSensors] = useState<string[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [deviceName, setDeviceName] = useState("");
-  // Location defaults to the tree root, so the user never has to pick one.
-  const [assetId, setAssetId] = useState("");
+  // Location defaults to the tree root, so the user never has to pick one;
+  // ?assetId= (a greenhouse or zone sending the user here) chooses it instead.
+  const [searchParams] = useSearchParams();
+  const [assetId, setAssetId] = useState(() => searchParams.get("assetId") ?? "");
   const [protocol, setProtocol] = useState("MQTT");
   const [sharedUsers, setSharedUsers] = useState<string[]>([]);
   const [security, setSecurity] = useState<SecurityValue>(() => emptySecurity());

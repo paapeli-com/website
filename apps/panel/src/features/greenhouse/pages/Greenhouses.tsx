@@ -1,94 +1,186 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Cpu, LayoutGrid, MapPin, MoreHorizontal, Pencil, Plus, Sprout, Warehouse } from "lucide-react";
-import type { CropCycle, Greenhouse, GreenhouseZone } from "@paapeli/api";
+import { Bell, Cpu, Plus, Sprout, Warehouse } from "lucide-react";
+import { assetsService, type Greenhouse } from "@paapeli/api";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
+import { ListToolbar, type ViewMode } from "@/features/factory/components/panel/ListToolbar";
 import { DataState } from "@/features/factory/components/DataState";
 import { LoadFailed } from "@/shared/components/LoadFailed";
+import { UniformPage } from "@/features/factory/components/UniformPage";
 import { Button } from "@/features/factory/components/ui/button";
 import { Card, CardContent } from "@/features/factory/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/features/factory/components/ui/dropdown-menu";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/features/factory/components/ui/table";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
-import { cn } from "@/shared/lib/utils";
-import { UniformPage } from "@/features/factory/components/UniformPage";
-import { CropIcon } from "../components/CropIcon";
+import { currentProductKey } from "@/features/factory/lib/product";
+import { toast } from "@/shared/lib/toast";
+import { apiErrorMessage } from "@/shared/lib/apiError";
 import { AddGreenhouseWizard } from "../components/AddGreenhouseWizard";
-import { CropCycleSheet } from "../components/CropCycleSheet";
-import { StartCycleDialog } from "../components/StartCycleDialog";
-import { AddPlaceDialog, GreenhouseDetailsDialog } from "../components/GreenhouseDialogs";
-import { daysSince, daysUntil, useGreenhouses } from "../hooks";
-import { useGreenhouseText, type GreenhouseTextKey } from "../i18n";
+import { GreenhouseDetailsDialog, ConfirmDialog } from "../components/GreenhouseDialogs";
+import { GreenhouseCover } from "../components/GreenhouseCover";
+import { CropChips, GreenhouseCard, HealthBadge, cyclesOf, healthOf } from "../components/GreenhouseCard";
+import { useGreenhouses, useGreenhouseWorkspace } from "../hooks";
+import { useGreenhouseOps } from "../operations";
+import { useGreenhouseText } from "../i18n";
+
+const VIEW_KEY = "paapeli.greenhouses.view";
 
 /**
- * Smart Greenhouse's home: every greenhouse as a card, its zones as tiles
- * showing what grows in each and how far along it is. A grower plants an
- * empty zone, opens a growing one, or adds a greenhouse from here.
+ * Smart Greenhouse's greenhouses, as a grower picks one: a card each, with
+ * its picture, what grows in it and how it is doing. Zones, crops and devices
+ * are managed inside a greenhouse (GreenhouseDetail); the location tree they
+ * are kept in stays behind the scenes.
  */
 export default function Greenhouses() {
-  const { g, language, formatNumber } = useGreenhouseText();
+  const { g, named, language, formatNumber } = useGreenhouseText();
   const navigate = useNavigate();
+  const { workspaceId, refresh } = useGreenhouseWorkspace();
   const greenhouses = useGreenhouses();
-  const [wizardOpen, setWizardOpen] = useState(false);
-  const [plantIn, setPlantIn] = useState<string | null>(null);
-  const [openCycle, setOpenCycle] = useState<CropCycle | null>(null);
-  const [editing, setEditing] = useState<Greenhouse | null>(null);
-  const [addingTo, setAddingTo] = useState<{ id: string; kind: "ZONE" | "BED"; nextNumber: number } | null>(null);
-
   const houses = greenhouses.data ?? [];
-  const kpis = useMemo(() => {
-    const zones = houses.flatMap((h) => h.zones);
-    const places = zones.flatMap((z) => [z, ...z.beds]);
-    const cycles = places.map((p) => p.cycle).filter(Boolean) as CropCycle[];
-    return [
-      { key: "houses", label: g("greenhouses"), value: houses.length, icon: Warehouse },
-      { key: "zones", label: g("zones"), value: zones.length, icon: LayoutGrid },
-      { key: "growing", label: g("growing"), value: cycles.length, icon: Sprout },
-      { key: "devices", label: g("devices"), value: houses.reduce((n, h) => n + h.devices, 0), icon: Cpu },
-    ];
-  }, [houses, g]);
+  const { byHouse, devicesKnown, alarmsKnown } = useGreenhouseOps(houses);
+
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [editing, setEditing] = useState<Greenhouse | null>(null);
+  const [deleting, setDeleting] = useState<Greenhouse | null>(null);
+  const [search, setSearch] = useState("");
+  const [crop, setCrop] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [sort, setSort] = useState("name");
+  const [view, setView] = useState<ViewMode>(() => {
+    try {
+      return localStorage.getItem(VIEW_KEY) === "table" ? "table" : "grid";
+    } catch {
+      return "grid";
+    }
+  });
+  const changeView = (next: ViewMode) => {
+    setView(next);
+    try {
+      localStorage.setItem(VIEW_KEY, next);
+    } catch {
+      /* the view is a convenience; without storage it resets */
+    }
+  };
+
+  const lp = (path: string) => localizedPath(path, language);
+  const open = (house: Greenhouse, tab?: string) => navigate(lp(`/greenhouses/${house.id}${tab ? `?tab=${tab}` : ""}`));
+
+  const crops = useMemo(() => {
+    const all = new Map<string, string>();
+    houses.forEach((h) => cyclesOf(h).forEach((c) => all.set(c.crop.id, named(c.crop.names, c.crop.name))));
+    return [...all.entries()];
+  }, [houses, named]);
+
+  const known = devicesKnown && alarmsKnown;
+  const rows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const list = houses.filter((h) => {
+      if (q && !`${h.name} ${h.location ?? ""}`.toLowerCase().includes(q)) return false;
+      if (crop !== "all" && !cyclesOf(h).some((c) => c.crop.id === crop)) return false;
+      if (status !== "all" && healthOf(byHouse.get(h.id), known) !== status) return false;
+      return true;
+    });
+    const alerts = (h: Greenhouse) => byHouse.get(h.id)?.alarms.length ?? 0;
+    const devices = (h: Greenhouse) => byHouse.get(h.id)?.devices.length ?? h.devices;
+    return [...list].sort((a, b) =>
+      sort === "alerts" ? alerts(b) - alerts(a) : sort === "devices" ? devices(b) - devices(a) : a.name.localeCompare(b.name, language),
+    );
+  }, [houses, search, crop, status, sort, byHouse, known, language]);
+
+  const totals = useMemo(() => {
+    let zones = 0;
+    let online = 0;
+    let devices = 0;
+    let alerts = 0;
+    houses.forEach((h) => {
+      zones += h.zones.filter((z) => z.cycle || z.beds.some((b) => b.cycle)).length;
+      const ops = byHouse.get(h.id);
+      online += ops?.online ?? 0;
+      devices += ops?.devices.length ?? 0;
+      alerts += ops?.alarms.length ?? 0;
+    });
+    return { zones, online, devices, alerts };
+  }, [houses, byHouse]);
+
+  const kpis = [
+    { key: "houses", label: g("greenhouses"), value: formatNumber(houses.length), icon: Warehouse, tone: "from-orange-50 dark:from-orange-950/20", accent: "text-primary" },
+    { key: "zones", label: g("kpiZones"), value: formatNumber(totals.zones), icon: Sprout, tone: "from-emerald-50 dark:from-emerald-950/20", accent: "text-emerald-600" },
+    {
+      key: "online",
+      label: g("kpiOnline"),
+      value: devicesKnown ? `${formatNumber(totals.online)} / ${formatNumber(totals.devices)}` : "…",
+      icon: Cpu,
+      tone: "from-sky-50 dark:from-sky-950/20",
+      accent: "text-sky-600",
+    },
+    { key: "alerts", label: g("kpiAlerts"), value: alarmsKnown ? formatNumber(totals.alerts) : "…", icon: Bell, tone: "from-red-50 dark:from-red-950/20", accent: "text-red-500" },
+  ];
+
+  const statuses = ["attention", "offline", "nosensors", "ok"] as const;
+  const filterFields = [
+    {
+      key: "crop",
+      label: g("crop"),
+      value: crop,
+      onChange: setCrop,
+      options: [{ value: "all", label: g("allCrops") }, ...crops.map(([value, label]) => ({ value, label }))],
+    },
+    {
+      key: "status",
+      label: g("statusLabel"),
+      value: status,
+      onChange: setStatus,
+      options: [{ value: "all", label: g("allStatuses") }, ...statuses.map((s) => ({ value: s, label: g(`health_${s}`) }))],
+    },
+  ];
+
+  const remove = async () => {
+    if (!deleting) return;
+    try {
+      await assetsService.deleteAsset(workspaceId, currentProductKey(), deleting.id);
+      await refresh();
+      toast.success(g("deleted"));
+    } catch (error) {
+      toast.error(apiErrorMessage(error, g("deleteGreenhouse")));
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   return (
     <UniformPage>
       <div className="space-y-4">
-        <PageHeader
-          title={g("greenhouses")}
-          count={greenhouses.data ? houses.length : null}
-          countLabel={g("greenhousesCount")}
-          actions={
-            <>
-              <Button variant="outline" className="h-10 gap-2 rounded-md" onClick={() => navigate(localizedPath("/locations", language))}>
-                <LayoutGrid className="h-4 w-4" /> {g("layout")}
-              </Button>
+        <div>
+          <PageHeader
+            title={g("greenhouses")}
+            count={greenhouses.data ? houses.length : null}
+            countLabel={g("greenhousesCount")}
+            actions={
               <Button onClick={() => setWizardOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-5 gap-2 rounded-md">
                 <Plus className="h-4 w-4" /> {g("addGreenhouse")}
               </Button>
-            </>
-          }
-        />
+            }
+          />
+          <p className="-mt-2 mb-2 text-sm text-muted-foreground">{g("greenhousesSubtitle")}</p>
+        </div>
 
         {greenhouses.isLoading ? (
           <DataState loading size="lg" />
         ) : greenhouses.isError ? (
           <LoadFailed onRetry={() => void greenhouses.refetch()} />
         ) : houses.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-              <span className="h-16 w-16 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 inline-flex items-center justify-center">
-                <Warehouse className="h-8 w-8 text-emerald-600" />
-              </span>
-              <div>
-                <p className="font-medium">{g("noGreenhousesTitle")}</p>
-                <p className="text-sm text-muted-foreground mt-1 max-w-md">{g("noGreenhousesDesc")}</p>
+          <Card className="overflow-hidden">
+            <CardContent className="grid items-center gap-6 p-6 md:grid-cols-2 md:p-10">
+              <div className="overflow-hidden rounded-2xl border aspect-[16/9]">
+                <GreenhouseCover cover="tunnel" fruit="#E5484D" />
               </div>
-              <Button onClick={() => setWizardOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
-                <Plus className="h-4 w-4" /> {g("addGreenhouse")}
-              </Button>
+              <div className="space-y-4 text-start">
+                <h2 className="text-xl font-bold">{g("onboardTitle")}</h2>
+                <p className="text-sm text-muted-foreground leading-relaxed">{g("onboardDesc")}</p>
+                <Button onClick={() => setWizardOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-5 gap-2">
+                  <Plus className="h-4 w-4" /> {g("createGreenhouse")}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ) : (
@@ -96,250 +188,121 @@ export default function Greenhouses() {
             <KpiSection storageKey="greenhouses">
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {kpis.map((k) => (
-                  <div key={k.key} className="rounded-lg border bg-card px-3 py-2.5 bg-gradient-to-br from-emerald-50/70 to-transparent dark:from-emerald-950/20">
+                  <div key={k.key} className={`rounded-lg border bg-card px-3 py-2.5 bg-gradient-to-br ${k.tone} to-transparent`}>
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs font-medium text-muted-foreground truncate">{k.label}</span>
-                      <k.icon className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                      <k.icon className={`h-3.5 w-3.5 shrink-0 ${k.accent}`} />
                     </div>
-                    <div className="mt-1 text-xl font-bold leading-none">{formatNumber(k.value)}</div>
+                    <div className="mt-1 text-xl font-bold leading-none tabular-nums">{k.value}</div>
                   </div>
                 ))}
               </div>
             </KpiSection>
 
-            <div className="space-y-4">
-              {houses.map((house) => (
-                <GreenhouseCard
-                  key={house.id}
-                  house={house}
-                  onPlant={setPlantIn}
-                  onOpenCycle={setOpenCycle}
-                  onEdit={() => setEditing(house)}
-                  onAddZone={() => setAddingTo({ id: house.id, kind: "ZONE", nextNumber: house.zones.length + 1 })}
-                  onAddBed={(zone) => setAddingTo({ id: zone.id, kind: "BED", nextNumber: zone.beds.length + 1 })}
-                  onLayout={() => navigate(localizedPath("/locations", language))}
+            <Card>
+              <CardContent className="pt-6">
+                <ListToolbar
+                  search={{ value: search, onChange: setSearch, placeholder: g("searchGreenhouses") }}
+                  view={{ value: view, onChange: changeView, available: ["grid", "table"] }}
+                  onRefresh={() => void refresh()}
+                  isRefreshing={greenhouses.isFetching}
+                  filter={{
+                    fields: filterFields,
+                    activeCount: (crop !== "all" ? 1 : 0) + (status !== "all" ? 1 : 0),
+                    onClear: () => {
+                      setCrop("all");
+                      setStatus("all");
+                    },
+                  }}
+                  sort={{
+                    options: [
+                      { key: "name", label: g("sortName") },
+                      { key: "alerts", label: g("sortAlerts") },
+                      { key: "devices", label: g("sortDevices") },
+                    ],
+                    value: sort,
+                    onChange: setSort,
+                  }}
                 />
-              ))}
-            </div>
+
+                {rows.length === 0 ? (
+                  <p className="py-12 text-center text-muted-foreground">{g("noGreenhousesMatch")}</p>
+                ) : view === "table" ? (
+                  <div className="rounded-lg border overflow-x-auto text-sm [&_th]:text-xs [&_th]:h-10 [&_td]:p-3">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40 hover:bg-muted/40">
+                          <TableHead>{g("greenhouseCol")}</TableHead>
+                          <TableHead>{g("crops")}</TableHead>
+                          <TableHead>{g("zones")}</TableHead>
+                          <TableHead>{g("devices")}</TableHead>
+                          <TableHead>{g("kpiAlerts")}</TableHead>
+                          <TableHead>{g("statusLabel")}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {rows.map((h) => {
+                          const ops = byHouse.get(h.id);
+                          return (
+                            <TableRow key={h.id} className="cursor-pointer hover:bg-muted/30" onClick={() => open(h)}>
+                              <TableCell>
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <span className="h-10 w-16 shrink-0 overflow-hidden rounded-md border">
+                                    <GreenhouseCover cover={h.cover} structure={h.structureType} />
+                                  </span>
+                                  <div className="min-w-0">
+                                    <div className="font-medium truncate">{h.name}</div>
+                                    {h.location && <div className="text-xs text-muted-foreground truncate">{h.location}</div>}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell><CropChips cycles={cyclesOf(h)} /></TableCell>
+                              <TableCell className="tabular-nums">{formatNumber(h.zones.length)}</TableCell>
+                              <TableCell className="whitespace-nowrap">
+                                {!devicesKnown ? g("unknown") : ops?.devices.length ? g("devicesOnline", { n: ops.online, m: ops.devices.length }) : g("noSensors")}
+                              </TableCell>
+                              <TableCell className="tabular-nums">{alarmsKnown ? formatNumber(ops?.alarms.length ?? 0) : g("unknown")}</TableCell>
+                              <TableCell><HealthBadge health={healthOf(ops, known)} /></TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+                    {rows.map((h) => (
+                      <GreenhouseCard
+                        key={h.id}
+                        house={h}
+                        ops={byHouse.get(h.id)}
+                        known={known}
+                        onOpen={() => open(h)}
+                        onEdit={() => setEditing(h)}
+                        onManageZones={() => open(h, "zones")}
+                        onAssignDevices={() => navigate(lp(`/devices/new?assetId=${h.id}`))}
+                        onDelete={() => setDeleting(h)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </>
         )}
       </div>
 
-      <AddGreenhouseWizard open={wizardOpen} onOpenChange={setWizardOpen} />
-      <StartCycleDialog
-        open={!!plantIn}
-        onOpenChange={(open) => !open && setPlantIn(null)}
-        greenhouses={houses}
-        assetId={plantIn ?? undefined}
+      <AddGreenhouseWizard open={wizardOpen} onOpenChange={setWizardOpen} onCreated={(id) => navigate(lp(`/greenhouses/${id}`))} />
+      <GreenhouseDetailsDialog greenhouse={editing} onOpenChange={(o) => !o && setEditing(null)} />
+      <ConfirmDialog
+        open={!!deleting}
+        title={g("deleteGreenhouse")}
+        description={deleting ? g("deleteGreenhouseConfirm", { name: deleting.name }) : ""}
+        confirmLabel={g("deleteGreenhouse")}
+        destructive
+        onConfirm={remove}
+        onOpenChange={(o) => !o && setDeleting(null)}
       />
-      <CropCycleSheet cycle={openCycle} open={!!openCycle} onOpenChange={(open) => !open && setOpenCycle(null)} />
-      <GreenhouseDetailsDialog greenhouse={editing} onOpenChange={(open) => !open && setEditing(null)} />
-      <AddPlaceDialog parent={addingTo} onOpenChange={(open) => !open && setAddingTo(null)} />
     </UniformPage>
-  );
-}
-
-function GreenhouseCard({
-  house,
-  onPlant,
-  onOpenCycle,
-  onEdit,
-  onAddZone,
-  onAddBed,
-  onLayout,
-}: {
-  house: Greenhouse;
-  onPlant: (assetId: string) => void;
-  onOpenCycle: (cycle: CropCycle) => void;
-  onEdit: () => void;
-  onAddZone: () => void;
-  onAddBed: (zone: GreenhouseZone) => void;
-  onLayout: () => void;
-}) {
-  const { g, formatNumber } = useGreenhouseText();
-  const facts = [
-    house.areaM2 != null ? `${formatNumber(house.areaM2)} ${g("m2")}` : null,
-    house.structureType ? g(`structure_${house.structureType}` as GreenhouseTextKey) : null,
-    house.cultivationMethod ? g(`cultivation_${house.cultivationMethod}` as GreenhouseTextKey) : null,
-  ].filter(Boolean) as string[];
-
-  return (
-    <Card className="overflow-hidden">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b bg-gradient-to-b from-emerald-50/80 to-transparent dark:from-emerald-950/25 px-4 py-3">
-        <div className="flex items-start gap-3 min-w-0">
-          <span className="h-10 w-10 shrink-0 rounded-xl bg-emerald-600 text-white inline-flex items-center justify-center shadow-sm">
-            <Warehouse className="h-5 w-5" />
-          </span>
-          <div className="min-w-0">
-            <h2 className="text-base font-semibold truncate">{house.name}</h2>
-            <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              {house.location && (
-                <span className="inline-flex items-center gap-1">
-                  <MapPin className="h-3.5 w-3.5" />
-                  {house.location}
-                </span>
-              )}
-              {facts.map((f) => <span key={f}>{f}</span>)}
-              <span className="inline-flex items-center gap-1">
-                <Cpu className="h-3.5 w-3.5" />
-                {`${formatNumber(house.devices)} ${g("devices")}`}
-              </span>
-            </div>
-          </div>
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onEdit} className="gap-2">
-              <Pencil className="h-4 w-4" /> {g("editDetails")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onAddZone} className="gap-2">
-              <Plus className="h-4 w-4" /> {g("addZone")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onLayout} className="gap-2">
-              <LayoutGrid className="h-4 w-4" /> {g("layout")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      <CardContent className="p-4">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {house.zones.map((zone) => (
-            <ZoneTile key={zone.id} zone={zone} onPlant={onPlant} onOpenCycle={onOpenCycle} onAddBed={() => onAddBed(zone)} />
-          ))}
-          <button
-            type="button"
-            onClick={onAddZone}
-            className="flex min-h-[140px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed text-sm text-muted-foreground transition-colors hover:border-emerald-400 hover:text-foreground"
-          >
-            <Plus className="h-5 w-5" />
-            {g("addZone")}
-          </button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ZoneTile({
-  zone,
-  onPlant,
-  onOpenCycle,
-  onAddBed,
-}: {
-  zone: GreenhouseZone;
-  onPlant: (assetId: string) => void;
-  onOpenCycle: (cycle: CropCycle) => void;
-  onAddBed: () => void;
-}) {
-  const { g, named, formatNumber } = useGreenhouseText();
-  const cycle = zone.cycle;
-
-  return (
-    <div
-      className={cn(
-        "group flex min-h-[140px] flex-col rounded-xl border bg-card p-3 transition-all",
-        cycle ? "border-emerald-200 dark:border-emerald-900 hover:shadow-md cursor-pointer" : "border-dashed",
-      )}
-      onClick={() => cycle && onOpenCycle(cycle)}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold truncate">{zone.name}</span>
-        <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground" title={g("devices")}>
-          <Cpu className="h-3 w-3" />
-          {formatNumber(zone.devices)}
-        </span>
-      </div>
-
-      {cycle ? (
-        <CycleSummary cycle={cycle} />
-      ) : (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 py-2">
-          <span className="text-xs text-muted-foreground">{g("empty")}</span>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-8 gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
-            onClick={(e) => {
-              e.stopPropagation();
-              onPlant(zone.id);
-            }}
-          >
-            <Sprout className="h-4 w-4" /> {g("plant")}
-          </Button>
-        </div>
-      )}
-
-      {(zone.beds.length > 0 || cycle) && (
-        <div className="mt-2 flex flex-wrap items-center gap-1 border-t pt-2" onClick={(e) => e.stopPropagation()}>
-          {zone.beds.map((bed) => (
-            <button
-              key={bed.id}
-              type="button"
-              onClick={() => (bed.cycle ? onOpenCycle(bed.cycle) : onPlant(bed.id))}
-              title={bed.cycle ? named(bed.cycle.crop.names, bed.cycle.crop.name) : `${bed.name}: ${g("plant")}`}
-              className={cn(
-                "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] transition-colors",
-                bed.cycle ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900" : "border-dashed text-muted-foreground hover:border-emerald-400",
-              )}
-            >
-              {bed.cycle ? <CropIcon icon={bed.cycle.crop.icon} className="h-3.5 w-3.5" /> : <Plus className="h-3 w-3" />}
-              {bed.name}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={onAddBed}
-            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 focus:opacity-100"
-          >
-            <Plus className="h-3 w-3" /> {g("addBed")}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** What grows in a place, its stage, and how far the cycle has come. */
-function CycleSummary({ cycle }: { cycle: CropCycle }) {
-  const { g, named } = useGreenhouseText();
-  const age = daysSince(cycle.plantedOn);
-  const toHarvest = cycle.expectedHarvestOn ? daysUntil(cycle.expectedHarvestOn) : null;
-  const span = cycle.expectedHarvestOn ? age + Math.max(toHarvest ?? 0, 0) : null;
-  const progress = span ? Math.min(100, Math.round((age / span) * 100)) : null;
-
-  return (
-    <div className="mt-2 flex flex-1 flex-col gap-2">
-      <div className="flex items-center gap-2.5">
-        <span className="h-11 w-11 shrink-0 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 inline-flex items-center justify-center">
-          <CropIcon icon={cycle.crop.icon} className="h-8 w-8" />
-        </span>
-        <div className="min-w-0">
-          <div className="text-sm font-medium truncate">
-            {named(cycle.crop.names, cycle.crop.name)}
-            {cycle.variety && <span className="text-muted-foreground font-normal"> · {cycle.variety}</span>}
-          </div>
-          <span className="mt-0.5 inline-block rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 px-2 py-0.5 text-[11px] font-medium">
-            {named(cycle.stage.names, cycle.stage.name)}
-          </span>
-        </div>
-      </div>
-      <div className="mt-auto space-y-1">
-        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-          <span>{g("dayN", { n: age + 1 })}</span>
-          {toHarvest != null && <span>{toHarvest > 0 ? g("daysToHarvest", { n: toHarvest }) : g("harvestDue")}</span>}
-        </div>
-        {progress != null && (
-          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600" style={{ width: `${progress}%` }} />
-          </div>
-        )}
-      </div>
-    </div>
   );
 }
