@@ -1,14 +1,13 @@
 import { useMemo, useState } from "react";
-import { CalendarRange, Plus, Search } from "lucide-react";
+import { CalendarRange, Plus } from "lucide-react";
 import type { CropCycle, CropCycleStatus } from "@paapeli/api";
 import { PageHeader } from "@/features/factory/components/PageHeader";
+import { ListToolbar } from "@/features/factory/components/panel/ListToolbar";
 import { LoadFailed } from "@/shared/components/LoadFailed";
 import { DataState } from "@/features/factory/components/DataState";
 import { UniformPage } from "@/features/factory/components/UniformPage";
 import { Button } from "@/features/factory/components/ui/button";
 import { Card, CardContent } from "@/features/factory/components/ui/card";
-import { Input } from "@/features/factory/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/features/factory/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/features/factory/components/ui/table";
 import { formatDate } from "@/shared/lib/formatDate";
 import { cn } from "@/shared/lib/utils";
@@ -74,49 +73,45 @@ export default function CropCycles() {
 
         <Card>
           <CardContent className="pt-6 space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex rounded-lg border p-0.5">
-                {STATUSES.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setStatus(s)}
-                    className={cn(
-                      "rounded-md px-3 py-1.5 text-sm transition-colors",
-                      status === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {s === "ALL" ? g("all") : g(`status_${s}` as GreenhouseTextKey)}
-                  </button>
-                ))}
-              </div>
-              <div className="relative flex-1 min-w-[200px] max-w-sm">
-                <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={g("searchCycles")} className="ps-9 h-10" />
-              </div>
-              <Select value={greenhouseId} onValueChange={setGreenhouseId}>
-                <SelectTrigger className="h-10 w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{g("allGreenhouses")}</SelectItem>
-                  {(greenhouses.data ?? []).map((h) => (
-                    <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={cropId} onValueChange={setCropId}>
-                <SelectTrigger className="h-10 w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{g("allCrops")}</SelectItem>
-                  {(profiles.data ?? []).map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{named(p.names, p.name)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <ListToolbar
+              search={{ value: search, onChange: setSearch, placeholder: g("searchCycles") }}
+              onRefresh={() => {
+                void cycles.refetch();
+                void everything.refetch();
+              }}
+              isRefreshing={cycles.isFetching}
+              filter={{
+                fields: [
+                  {
+                    key: "status",
+                    label: g("statusLabel"),
+                    value: status,
+                    onChange: (v) => setStatus(v as CropCycleStatus | "ALL"),
+                    options: STATUSES.map((s) => ({ value: s, label: s === "ALL" ? g("all") : g(`status_${s}` as GreenhouseTextKey) })),
+                  },
+                  {
+                    key: "greenhouse",
+                    label: g("greenhouseCol"),
+                    value: greenhouseId,
+                    onChange: setGreenhouseId,
+                    options: [{ value: "all", label: g("allGreenhouses") }, ...(greenhouses.data ?? []).map((h) => ({ value: h.id, label: h.name }))],
+                  },
+                  {
+                    key: "crop",
+                    label: g("crop"),
+                    value: cropId,
+                    onChange: setCropId,
+                    options: [{ value: "all", label: g("allCrops") }, ...(profiles.data ?? []).map((p) => ({ value: p.id, label: named(p.names, p.name) }))],
+                  },
+                ],
+                activeCount: (status !== "ACTIVE" ? 1 : 0) + (greenhouseId !== "all" ? 1 : 0) + (cropId !== "all" ? 1 : 0),
+                onClear: () => {
+                  setStatus("ACTIVE");
+                  setGreenhouseId("all");
+                  setCropId("all");
+                },
+              }}
+            />
 
             {cycles.isError ? (
               <LoadFailed onRetry={() => void cycles.refetch()} />

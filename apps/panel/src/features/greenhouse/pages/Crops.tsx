@@ -1,15 +1,15 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Info, Plus, Sprout } from "lucide-react";
+import { Plus, Sprout } from "lucide-react";
 import { PageHeader } from "@/features/factory/components/PageHeader";
+import { ListToolbar } from "@/features/factory/components/panel/ListToolbar";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/features/factory/components/ui/table";
 import { DataState } from "@/features/factory/components/DataState";
 import { LoadFailed } from "@/shared/components/LoadFailed";
 import { UniformPage } from "@/features/factory/components/UniformPage";
 import { Button } from "@/features/factory/components/ui/button";
 import { Card, CardContent } from "@/features/factory/components/ui/card";
 import { Input } from "@/features/factory/components/ui/input";
-import { Switch } from "@/features/factory/components/ui/switch";
-import { Label } from "@/features/factory/components/ui/label";
 import { FieldLabel } from "@/features/factory/components/FieldLabel";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/features/factory/components/ui/dialog";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
@@ -19,14 +19,17 @@ import { cn } from "@/shared/lib/utils";
 import { CropIcon } from "../components/CropIcon";
 import { CropPicker, profileFor, type CropChoice } from "../components/CropPicker";
 import { useCropCycles, useCropLibrary, useCropProfiles, useGreenhouseWorkspace } from "../hooks";
-import { useGreenhouseText, type GreenhouseTextKey } from "../i18n";
+import { useGreenhouseText } from "../i18n";
 
-/** The crops a workspace grows, each with its stages and how many of them have targets. */
+/** The crops a workspace grows, as a table like the rest of the panel's lists; a row opens the crop's profile. */
 export default function Crops() {
   const { g, named, language, formatNumber } = useGreenhouseText();
   const navigate = useNavigate();
-  const [showArchived, setShowArchived] = useState(false);
-  const profiles = useCropProfiles(showArchived);
+  const { refresh } = useGreenhouseWorkspace();
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("active");
+  const [sort, setSort] = useState("name");
+  const profiles = useCropProfiles(status !== "active");
   const growing = useCropCycles({ status: "ACTIVE" });
   const [adding, setAdding] = useState(false);
 
@@ -35,114 +38,176 @@ export default function Crops() {
     (growing.data ?? []).forEach((c) => counts.set(c.crop.id, (counts.get(c.crop.id) ?? 0) + 1));
     return counts;
   }, [growing.data]);
-  const crops = profiles.data ?? [];
+  const all = useMemo(() => profiles.data ?? [], [profiles.data]);
+  const rows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return all
+      .filter((c) => status === "all" || (status === "archived" ? c.archived : !c.archived))
+      .filter((c) => !q || `${named(c.names, c.name)} ${c.variety ?? ""}`.toLowerCase().includes(q))
+      .sort((a, b) =>
+        sort === "growing"
+          ? (growingBy.get(b.id) ?? 0) - (growingBy.get(a.id) ?? 0)
+          : sort === "newest"
+            ? b.createdAt.localeCompare(a.createdAt)
+            : named(a.names, a.name).localeCompare(named(b.names, b.name), language),
+      );
+  }, [all, search, status, sort, growingBy, named, language]);
+  const nothingAtAll = !profiles.isLoading && all.length === 0 && status === "active";
+  const COLUMNS = 5;
 
   return (
     <UniformPage>
       <div className="space-y-4">
         <PageHeader
           title={g("crops")}
-          count={profiles.data ? crops.length : null}
+          count={profiles.data ? rows.length : null}
           countLabel={g("cropsCount")}
           actions={
-            <>
-              <div className="flex items-center gap-2 px-1">
-                <Switch id="show-archived" checked={showArchived} onCheckedChange={setShowArchived} />
-                <Label htmlFor="show-archived" className="text-sm text-muted-foreground">{g("showArchived")}</Label>
-              </div>
-              <Button onClick={() => setAdding(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-5 gap-2 rounded-md">
-                <Plus className="h-4 w-4" /> {g("addCrop")}
-              </Button>
-            </>
+            <Button onClick={() => setAdding(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-5 gap-2 rounded-md">
+              <Plus className="h-4 w-4" /> {g("addCrop")}
+            </Button>
           }
         />
 
-        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-200">
-          <Info className="h-4 w-4 shrink-0 mt-0.5" />
-          <span>{g("targetsDisclaimer")}</span>
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <ListToolbar
+              search={{ value: search, onChange: setSearch, placeholder: g("searchCrops") }}
+              onRefresh={() => void refresh()}
+              isRefreshing={profiles.isFetching}
+              filter={{
+                fields: [
+                  {
+                    key: "status",
+                    label: g("statusLabel"),
+                    value: status,
+                    onChange: setStatus,
+                    options: [
+                      { value: "active", label: g("cropActive") },
+                      { value: "archived", label: g("archivedBadge") },
+                      { value: "all", label: g("all") },
+                    ],
+                  },
+                ],
+                activeCount: status !== "active" ? 1 : 0,
+                onClear: () => setStatus("active"),
+              }}
+              sort={{
+                options: [
+                  { key: "name", label: g("sortName") },
+                  { key: "growing", label: g("sortGrowing") },
+                  { key: "newest", label: g("sortNewest") },
+                ],
+                value: sort,
+                onChange: setSort,
+              }}
+            />
 
-        {profiles.isLoading ? (
-          <DataState loading size="lg" />
-        ) : profiles.isError ? (
-          <LoadFailed onRetry={() => void profiles.refetch()} />
-        ) : crops.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-              <span className="h-16 w-16 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 inline-flex items-center justify-center">
-                <Sprout className="h-8 w-8 text-emerald-600" />
-              </span>
-              <div>
-                <p className="font-medium">{g("noCropsTitle")}</p>
-                <p className="text-sm text-muted-foreground mt-1 max-w-md">{g("noCropsDesc")}</p>
+            {profiles.isError ? (
+              <LoadFailed onRetry={() => void profiles.refetch()} />
+            ) : (
+              <div className="rounded-lg border overflow-x-auto text-sm [&_th]:text-xs [&_td]:text-sm [&_th]:h-10 [&_td]:p-3">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40 hover:bg-muted/40">
+                      <TableHead>{g("crop")}</TableHead>
+                      <TableHead>{g("growthStages")}</TableHead>
+                      <TableHead>{g("growing")}</TableHead>
+                      <TableHead>{g("cycleDays")}</TableHead>
+                      <TableHead>{g("statusLabel")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {profiles.isLoading ? (
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={COLUMNS}>
+                          <DataState loading />
+                        </TableCell>
+                      </TableRow>
+                    ) : rows.length === 0 ? (
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={COLUMNS}>
+                          {nothingAtAll ? (
+                            <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+                              <Sprout className="h-12 w-12 text-muted-foreground/50" />
+                              <div>
+                                <p className="font-medium">{g("noCropsTitle")}</p>
+                                <p className="text-xs text-muted-foreground mt-1 max-w-md">{g("noCropsDesc")}</p>
+                              </div>
+                              <Button onClick={() => setAdding(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
+                                <Plus className="h-4 w-4" /> {g("addCrop")}
+                              </Button>
+                            </div>
+                          ) : (
+                            <p className="py-12 text-center text-muted-foreground">{g("noCropsMatch")}</p>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      rows.map((crop) => {
+                        const withTargets = crop.stages.filter((s) => s.targets.length > 0).length;
+                        const count = growingBy.get(crop.id) ?? 0;
+                        return (
+                          <TableRow
+                            key={crop.id}
+                            className="cursor-pointer hover:bg-muted/30"
+                            onClick={() => navigate(localizedPath(`/crops/${crop.id}`, language))}
+                          >
+                            <TableCell>
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className="h-8 w-8 shrink-0 rounded-md bg-emerald-50 dark:bg-emerald-950/30 inline-flex items-center justify-center">
+                                  <CropIcon icon={crop.icon} className="h-6 w-6" />
+                                </span>
+                                <div className="min-w-0">
+                                  <div className="font-medium truncate">{named(crop.names, crop.name)}</div>
+                                  {crop.variety && <div className="text-xs text-muted-foreground truncate">{crop.variety}</div>}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="w-40 space-y-1">
+                                <div className="flex gap-0.5">
+                                  {crop.stages.map((stage) => (
+                                    <span
+                                      key={stage.id}
+                                      title={named(stage.names, stage.name)}
+                                      className={cn("h-1.5 flex-1 rounded-full", stage.targets.length ? "bg-emerald-500" : "bg-muted")}
+                                    />
+                                  ))}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {withTargets ? g("targetsSetN", { n: withTargets, m: crop.stages.length }) : g("noTargetsYet")}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="tabular-nums">
+                              {count ? g("growingInN", { n: count }) : <span className="text-muted-foreground">-</span>}
+                            </TableCell>
+                            <TableCell className="tabular-nums">
+                              {crop.cycleDays ? formatNumber(crop.cycleDays) : <span className="text-muted-foreground">-</span>}
+                            </TableCell>
+                            <TableCell>
+                              <span
+                                className={cn(
+                                  "rounded px-1.5 py-0.5 text-[11px] font-medium",
+                                  crop.archived
+                                    ? "bg-muted text-muted-foreground"
+                                    : "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+                                )}
+                              >
+                                {crop.archived ? g("archivedBadge") : g("cropActive")}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
               </div>
-              <Button onClick={() => setAdding(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
-                <Plus className="h-4 w-4" /> {g("addCrop")}
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {crops.map((crop) => {
-              const withTargets = crop.stages.filter((s) => s.targets.length > 0).length;
-              const count = growingBy.get(crop.id) ?? 0;
-              return (
-                <button
-                  key={crop.id}
-                  type="button"
-                  onClick={() => navigate(localizedPath(`/crops/${crop.id}`, language))}
-                  className={cn(
-                    "flex flex-col gap-3 rounded-xl border bg-card p-4 text-start transition-all hover:border-emerald-300 hover:shadow-md",
-                    crop.archived && "opacity-60",
-                  )}
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="h-14 w-14 shrink-0 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 inline-flex items-center justify-center">
-                      <CropIcon icon={crop.icon} className="h-10 w-10" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold truncate">{named(crop.names, crop.name)}</span>
-                        {crop.archived && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">{g("archivedBadge")}</span>}
-                      </div>
-                      {crop.variety && <div className="text-xs text-muted-foreground truncate">{crop.variety}</div>}
-                      {count > 0 && (
-                        <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-                          <Sprout className="h-3 w-3" />
-                          {g("growingInN", { n: count })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* The stages in order, filled in where targets are set. */}
-                  <div className="flex gap-1">
-                    {crop.stages.map((stage) => (
-                      <span
-                        key={stage.id}
-                        title={named(stage.names, stage.name)}
-                        className={cn("h-1.5 flex-1 rounded-full", stage.targets.length ? "bg-emerald-500" : "bg-muted")}
-                      />
-                    ))}
-                  </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <span>{g("stagesN", { n: crop.stages.length })}</span>
-                    <span>{withTargets ? g("targetsSetN", { n: withTargets, m: crop.stages.length }) : g("noTargetsYet")}</span>
-                  </div>
-                  {crop.cultivationMethods.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {crop.cultivationMethods.map((m) => (
-                        <span key={m} className="rounded-full border px-2 py-0.5 text-[11px]">
-                          {g(`cultivation_${m}` as GreenhouseTextKey)}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
+            )}
+          </CardContent>
+        </Card>
       </div>
       <AddCropDialog open={adding} onOpenChange={setAdding} />
     </UniformPage>

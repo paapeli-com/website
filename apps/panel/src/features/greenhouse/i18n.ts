@@ -101,7 +101,7 @@ const en = {
   growingInN: "Growing in {n} places",
   alreadyAdded: "Added",
   targetsDisclaimer:
-    "The library names each crop's stages but sets no target values. Targets depend on the variety, the cultivation system and your site, so set them with your agronomist.",
+    "Each stage starts with typical values for the crop. Adjust them to your variety, cultivation system and site.",
   archivedBadge: "Archived",
   showArchived: "Show archived",
 
@@ -267,6 +267,11 @@ const en = {
   alarmsN: "{n} alerts",
   savedDetails: "Details saved",
   noGreenhousesMatch: "No greenhouses match these filters",
+  searchCrops: "Search crops",
+  cropActive: "Active",
+  sortGrowing: "Most planted",
+  sortNewest: "Newest",
+  noCropsMatch: "No crops match these filters",
 };
 
 export type GreenhouseTextKey = keyof typeof en;
@@ -365,7 +370,7 @@ const fa: Record<GreenhouseTextKey, string> = {
   growingInN: "در {n} محل کشت شده",
   alreadyAdded: "اضافه شده",
   targetsDisclaimer:
-    "کتابخانه فقط مراحل رشد هر محصول را نام می‌برد و عددی برای اهداف تعیین نمی‌کند. اهداف به رقم، روش کشت و منطقه شما بستگی دارند؛ آن‌ها را با کارشناس کشاورزی‌تان تعیین کنید.",
+    "هر مرحله با مقادیر معمول این محصول شروع می‌شود. آن‌ها را متناسب با رقم، روش کشت و منطقه خودتان تغییر دهید.",
   archivedBadge: "بایگانی",
   showArchived: "نمایش بایگانی‌شده‌ها",
 
@@ -531,6 +536,11 @@ const fa: Record<GreenhouseTextKey, string> = {
   alarmsN: "{n} هشدار",
   savedDetails: "مشخصات ذخیره شد",
   noGreenhousesMatch: "گلخانه‌ای با این فیلترها نیست",
+  searchCrops: "جست‌وجوی محصول",
+  cropActive: "فعال",
+  sortGrowing: "بیشترین کشت",
+  sortNewest: "جدیدترین",
+  noCropsMatch: "محصولی با این فیلترها نیست",
 };
 
 const ar: Record<GreenhouseTextKey, string> = {
@@ -627,7 +637,7 @@ const ar: Record<GreenhouseTextKey, string> = {
   growingInN: "مزروع في {n} مواقع",
   alreadyAdded: "مضاف",
   targetsDisclaimer:
-    "تسمّي المكتبة مراحل كل محصول ولا تحدد قيمًا للأهداف. تعتمد الأهداف على الصنف ونظام الزراعة وموقعك، فحددها مع مهندسك الزراعي.",
+    "تبدأ كل مرحلة بالقيم المعتادة لهذا المحصول. عدّلها بما يناسب الصنف ونظام الزراعة وموقعك.",
   archivedBadge: "مؤرشف",
   showArchived: "إظهار المؤرشفة",
 
@@ -793,6 +803,11 @@ const ar: Record<GreenhouseTextKey, string> = {
   alarmsN: "{n} تنبيهات",
   savedDetails: "تم حفظ التفاصيل",
   noGreenhousesMatch: "لا توجد دفيئات مطابقة لهذه المرشحات",
+  searchCrops: "ابحث عن محصول",
+  cropActive: "نشط",
+  sortGrowing: "الأكثر زراعة",
+  sortNewest: "الأحدث",
+  noCropsMatch: "لا توجد محاصيل مطابقة لهذه المرشحات",
 };
 
 const TEXT = { en, fa, ar } as const;

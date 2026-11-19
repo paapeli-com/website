@@ -14,8 +14,6 @@ import { UniformPage } from "@/features/factory/components/UniformPage";
 import { Button } from "@/features/factory/components/ui/button";
 import { Card, CardContent } from "@/features/factory/components/ui/card";
 import { Input } from "@/features/factory/components/ui/input";
-import { Textarea } from "@/features/factory/components/ui/textarea";
-import { Switch } from "@/features/factory/components/ui/switch";
 import { FieldLabel } from "@/features/factory/components/FieldLabel";
 import {
   AlertDialog,
@@ -33,7 +31,6 @@ import { toast } from "@/shared/lib/toast";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 import { cn } from "@/shared/lib/utils";
 import { CropIcon } from "../components/CropIcon";
-import { CULTIVATIONS } from "../components/AddGreenhouseWizard";
 import { METRICS, METRIC_UNITS, useCropProfiles, useGreenhouseWorkspace } from "../hooks";
 import { useGreenhouseText, type GreenhouseTextKey } from "../i18n";
 
@@ -48,7 +45,6 @@ interface StageDraft {
   durationDays: string;
   irrigation: string;
   notes: string;
-  split: boolean;
   targets: Record<CropMetric, MetricDraft>;
 }
 
@@ -63,8 +59,14 @@ function toDraft(profile: CropProfile): StageDraft[] {
   return profile.stages.map((stage) => {
     const targets = blankTargets();
     stage.targets.forEach((t) => {
-      const slot = t.period === "DAY" ? "day" : t.period === "NIGHT" ? "night" : "all";
-      targets[t.metric][slot] = { min: text(t.min), max: text(t.max) };
+      const bounds = { min: text(t.min), max: text(t.max) };
+      if (t.metric === "TEMPERATURE") {
+        // Temperature is kept by day and night; one range for both fills both.
+        if (t.period !== "NIGHT") targets[t.metric].day = bounds;
+        if (t.period !== "DAY") targets[t.metric].night = bounds;
+      } else if (t.period === "ALL" || !targets[t.metric].all.min && !targets[t.metric].all.max) {
+        targets[t.metric].all = bounds;
+      }
     });
     return {
       key: `s${++draftCounter}`,
@@ -74,7 +76,6 @@ function toDraft(profile: CropProfile): StageDraft[] {
       durationDays: text(stage.durationDays),
       irrigation: stage.irrigation ?? "",
       notes: stage.notes ?? "",
-      split: stage.targets.some((t) => t.period !== "ALL"),
       targets,
     };
   });
@@ -83,7 +84,7 @@ function toDraft(profile: CropProfile): StageDraft[] {
 function toInput(stage: StageDraft): CropStageInput {
   const targets: CropTarget[] = [];
   METRICS.forEach((metric) => {
-    const slots: [keyof MetricDraft, CropTarget["period"]][] = stage.split ? [["day", "DAY"], ["night", "NIGHT"]] : [["all", "ALL"]];
+    const slots: [keyof MetricDraft, CropTarget["period"]][] = metric === "TEMPERATURE" ? [["day", "DAY"], ["night", "NIGHT"]] : [["all", "ALL"]];
     slots.forEach(([slot, period]) => {
       const { min, max } = stage.targets[metric][slot];
       if (num(min) != null || num(max) != null) targets.push({ metric, period, min: num(min), max: num(max) });
@@ -98,6 +99,24 @@ function toInput(stage: StageDraft): CropStageInput {
     targets,
   };
 }
+
+/* What a grower sets for each stage: day and night temperature, humidity and
+   substrate moisture. Any other measurement shows only when it has a value
+   already (one set through the API), so nothing stored is hidden. */
+const ESSENTIAL: { metric: CropMetric; slot: keyof MetricDraft }[] = [
+  { metric: "TEMPERATURE", slot: "day" },
+  { metric: "TEMPERATURE", slot: "night" },
+  { metric: "HUMIDITY", slot: "all" },
+  { metric: "SUBSTRATE_MOISTURE", slot: "all" },
+];
+const hasBounds = (b: Bounds) => b.min.trim() !== "" || b.max.trim() !== "";
+const rowsOf = (stage: StageDraft) => [
+  ...ESSENTIAL,
+  ...METRICS.filter((m) => m !== "TEMPERATURE" && m !== "HUMIDITY" && m !== "SUBSTRATE_MOISTURE" && hasBounds(stage.targets[m].all)).map((metric) => ({
+    metric,
+    slot: "all" as const,
+  })),
+];
 
 const reversed = (b: Bounds) => num(b.min) != null && num(b.max) != null && (num(b.min) as number) > (num(b.max) as number);
 
@@ -155,7 +174,7 @@ export default function CropProfileEditor() {
     (!profile?.templateKey && !name.trim()) ||
     stages.length === 0 ||
     stages.some((s) => !s.name.trim() && !named(s.names)) ||
-    stages.some((s) => METRICS.some((m) => (s.split ? reversed(s.targets[m].day) || reversed(s.targets[m].night) : reversed(s.targets[m].all))));
+    stages.some((s) => METRICS.some((m) => reversed(s.targets[m].day) || reversed(s.targets[m].night) || reversed(s.targets[m].all)));
 
   const updateStage = (key: string, patch: Partial<StageDraft>) =>
     setStages((all) => all.map((s) => (s.key === key ? { ...s, ...patch } : s)));
@@ -182,7 +201,6 @@ export default function CropProfileEditor() {
       durationDays: "",
       irrigation: "",
       notes: "",
-      split: false,
       targets: blankTargets(),
     };
     setStages((all) => [...all, stage]);
@@ -277,32 +295,6 @@ export default function CropProfileEditor() {
                 <Input type="number" min="1" dir="ltr" value={cycleDays} onChange={(e) => setCycleDays(e.target.value)} />
               </div>
             </div>
-            <div className="space-y-2">
-              <FieldLabel optional className="mb-0">{g("cultivationMethods")}</FieldLabel>
-              <div className="flex flex-wrap gap-2">
-                {CULTIVATIONS.map(({ key, icon: Icon }) => {
-                  const on = methods.includes(key);
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setMethods(on ? methods.filter((m) => m !== key) : [...methods, key])}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors",
-                        on ? "border-emerald-500 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300" : "hover:border-emerald-300",
-                      )}
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                      {g(`cultivation_${key}` as GreenhouseTextKey)}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <FieldLabel optional className="mb-0">{g("notes")}</FieldLabel>
-              <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={4000} />
-            </div>
           </CardContent>
         </Card>
 
@@ -317,11 +309,7 @@ export default function CropProfileEditor() {
         <ol className="space-y-2">
           {stages.map((stage, index) => {
             const isOpen = openStage === stage.key;
-            const set = METRICS.filter((m) =>
-              stage.split
-                ? num(stage.targets[m].day.min) != null || num(stage.targets[m].day.max) != null || num(stage.targets[m].night.min) != null || num(stage.targets[m].night.max) != null
-                : num(stage.targets[m].all.min) != null || num(stage.targets[m].all.max) != null,
-            ).length;
+            const set = rowsOf(stage).filter((r) => hasBounds(stage.targets[r.metric][r.slot])).length;
             return (
               <li key={stage.key} className="rounded-xl border bg-card">
                 <div className="flex items-center gap-2 px-3 py-2.5">
@@ -367,62 +355,20 @@ export default function CropProfileEditor() {
                     </div>
 
                     <div className="space-y-2">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <FieldLabel className="mb-0">{g("targets")}</FieldLabel>
-                        <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Switch checked={stage.split} onCheckedChange={(split) => updateStage(stage.key, { split })} />
-                          {g("splitDayNight")}
-                        </label>
-                      </div>
-                      <div className="overflow-x-auto rounded-lg border">
-                        <table className="w-full text-sm">
-                          <thead className="bg-muted/40 text-xs text-muted-foreground">
-                            <tr>
-                              <th className="px-3 py-2 text-start font-medium">{g("targets")}</th>
-                              {stage.split ? (
-                                <>
-                                  <th className="px-3 py-2 text-start font-medium">
-                                    <span className="inline-flex items-center gap-1"><Sun className="h-3.5 w-3.5 text-amber-500" />{g("day")}</span>
-                                  </th>
-                                  <th className="px-3 py-2 text-start font-medium">
-                                    <span className="inline-flex items-center gap-1"><Moon className="h-3.5 w-3.5 text-indigo-400" />{g("night")}</span>
-                                  </th>
-                                </>
-                              ) : (
-                                <th className="px-3 py-2 text-start font-medium">{g("range")}</th>
-                              )}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {METRICS.map((metric) => (
-                              <tr key={metric} className="border-t">
-                                <td className="px-3 py-1.5 whitespace-nowrap">
-                                  {g(`metric_${metric}` as GreenhouseTextKey)}
-                                  {METRIC_UNITS[metric] && <span className="text-xs text-muted-foreground" dir="ltr"> ({METRIC_UNITS[metric]})</span>}
-                                </td>
-                                {(stage.split ? (["day", "night"] as const) : (["all"] as const)).map((slot) => (
-                                  <td key={slot} className="px-3 py-1.5">
-                                    <RangeInput
-                                      value={stage.targets[metric][slot]}
-                                      onChange={(bound, value) => setBound(stage.key, metric, slot, bound, value)}
-                                    />
-                                  </td>
-                                ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <FieldLabel optional className="mb-0">{g("irrigation")}</FieldLabel>
-                        <Textarea rows={2} value={stage.irrigation} onChange={(e) => updateStage(stage.key, { irrigation: e.target.value })} placeholder={g("irrigationPh")} maxLength={2000} />
-                      </div>
-                      <div className="space-y-2">
-                        <FieldLabel optional className="mb-0">{g("notes")}</FieldLabel>
-                        <Textarea rows={2} value={stage.notes} onChange={(e) => updateStage(stage.key, { notes: e.target.value })} maxLength={2000} />
+                      <FieldLabel className="mb-0">{g("targets")}</FieldLabel>
+                      <div className="divide-y rounded-lg border">
+                        {rowsOf(stage).map(({ metric, slot }) => (
+                          <div key={`${metric}-${slot}`} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                            <span className="inline-flex items-center gap-1.5 text-sm">
+                              {slot === "day" && <Sun className="h-3.5 w-3.5 text-amber-500" />}
+                              {slot === "night" && <Moon className="h-3.5 w-3.5 text-indigo-400" />}
+                              {g(`metric_${metric}` as GreenhouseTextKey)}
+                              {slot !== "all" && <span className="text-muted-foreground">({g(slot)})</span>}
+                              {METRIC_UNITS[metric] && <span className="text-xs text-muted-foreground" dir="ltr">{METRIC_UNITS[metric]}</span>}
+                            </span>
+                            <RangeInput value={stage.targets[metric][slot]} onChange={(bound, value) => setBound(stage.key, metric, slot, bound, value)} />
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
