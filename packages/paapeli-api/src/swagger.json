@@ -9,6 +9,18 @@
   "security": [{ "bearerAuth": [] }],
   "tags": [
     {
+      "name": "Greenhouses",
+      "description": "Greenhouses with their zones and beds, what grows in each, and their details"
+    },
+    {
+      "name": "Greenhouse crops",
+      "description": "The crops a greenhouse grows: the library, crop profiles, growth stages and their targets"
+    },
+    {
+      "name": "Greenhouse crop cycles",
+      "description": "A crop grown in a zone or bed from planting to harvest: stages, observations, harvests"
+    },
+    {
       "name": "Work orders",
       "description": "Work to be done on equipment: raising, assigning, progress and history"
     },
@@ -64,6 +76,937 @@
     }
   ],
   "paths": {
+    "/api/v1/aiot/crops/{workspaceId}/{productKey}/library": {
+      "get": {
+        "tags": [
+          "Greenhouse crops"
+        ],
+        "summary": "List the crop library",
+        "description": "The built-in crops a profile can start from, each with its usual growth stages, named in en, fa and ar. The library sets no target values: those depend on the variety, the cultivation system and the site.",
+        "operationId": "listCropLibrary",
+        "responses": {
+          "200": {
+            "description": "Library returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CropTemplate"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/crops/{workspaceId}/{productKey}": {
+      "get": {
+        "tags": [
+          "Greenhouse crops"
+        ],
+        "summary": "List crop profiles",
+        "description": "The crops this workspace product grows, oldest first. Archived ones only with includeArchived.",
+        "operationId": "listCropProfiles",
+        "parameters": [
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Crops returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CropProfileResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "READ product access required"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Greenhouse crops"
+        ],
+        "summary": "Create a crop profile",
+        "description": "From the library (templateKey) or custom (a name). Made from the library with no stages listed, it takes the library's stages with no targets set. A stage sent with a library stage's key as its id keeps that stage's names in every language; one without an id is a new stage of the grower's own and needs a name. A target bounds one measurement (TEMPERATURE in °C, HUMIDITY in %, VPD in kPa, CO2 in ppm, DLI in mol/m²/d, SUBSTRATE_MOISTURE in %, PH, EC in mS/cm) by DAY, NIGHT or ALL.",
+        "operationId": "createCropProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CropProfileRequest"
+              },
+              "example": {
+                "templateKey": "tomato",
+                "variety": "Cherry",
+                "cultivationMethods": [
+                  "SUBSTRATE"
+                ],
+                "cycleDays": 150,
+                "stages": [
+                  {
+                    "id": "seedling",
+                    "durationDays": 21
+                  },
+                  {
+                    "id": "vegetative",
+                    "durationDays": 30,
+                    "targets": [
+                      {
+                        "metric": "TEMPERATURE",
+                        "period": "DAY",
+                        "min": 22,
+                        "max": 26
+                      },
+                      {
+                        "metric": "TEMPERATURE",
+                        "period": "NIGHT",
+                        "min": 16,
+                        "max": 18
+                      },
+                      {
+                        "metric": "HUMIDITY",
+                        "min": 60,
+                        "max": 80
+                      }
+                    ]
+                  },
+                  {
+                    "id": "flowering"
+                  },
+                  {
+                    "id": "fruiting"
+                  },
+                  {
+                    "name": "Topping",
+                    "irrigation": "Cut back as the last trusses set"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Crop created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CropProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid field, stage or target"
+          },
+          "403": {
+            "description": "ADMINISTER product access required"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/crops/{workspaceId}/{productKey}/{cropProfileId}": {
+      "get": {
+        "tags": [
+          "Greenhouse crops"
+        ],
+        "summary": "Get a crop profile",
+        "operationId": "getCropProfile",
+        "parameters": [
+          {
+            "name": "cropProfileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Crop returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CropProfileResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Crop not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Greenhouse crops"
+        ],
+        "summary": "Replace a crop profile",
+        "description": "Replaces everything but the library crop it came from. With stages left out the stages stay as they are. A stage a growing crop cycle is in cannot be removed.",
+        "operationId": "updateCropProfile",
+        "parameters": [
+          {
+            "name": "cropProfileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CropProfileRequest"
+              },
+              "example": {
+                "templateKey": "tomato",
+                "variety": "Cherry",
+                "cultivationMethods": [
+                  "SUBSTRATE"
+                ],
+                "cycleDays": 150,
+                "stages": [
+                  {
+                    "id": "seedling",
+                    "durationDays": 21
+                  },
+                  {
+                    "id": "vegetative",
+                    "durationDays": 30,
+                    "targets": [
+                      {
+                        "metric": "TEMPERATURE",
+                        "period": "DAY",
+                        "min": 22,
+                        "max": 26
+                      },
+                      {
+                        "metric": "TEMPERATURE",
+                        "period": "NIGHT",
+                        "min": 16,
+                        "max": 18
+                      },
+                      {
+                        "metric": "HUMIDITY",
+                        "min": 60,
+                        "max": 80
+                      }
+                    ]
+                  },
+                  {
+                    "id": "flowering"
+                  },
+                  {
+                    "id": "fruiting"
+                  },
+                  {
+                    "name": "Topping",
+                    "irrigation": "Cut back as the last trusses set"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Crop updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CropProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid field, or removes a stage in use"
+          },
+          "403": {
+            "description": "ADMINISTER product access required"
+          },
+          "404": {
+            "description": "Crop not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Greenhouse crops"
+        ],
+        "summary": "Delete a crop profile",
+        "description": "A crop no cycle has grown is deleted. One with crop cycles is archived instead, so their history stays; no new cycle starts with it.",
+        "operationId": "deleteCropProfile",
+        "parameters": [
+          {
+            "name": "cropProfileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Crop deleted or archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaapeliMessage"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ADMINISTER product access required"
+          },
+          "404": {
+            "description": "Crop not found"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/crop-cycles/{workspaceId}/{productKey}": {
+      "get": {
+        "tags": [
+          "Greenhouse crop cycles"
+        ],
+        "summary": "List crop cycles",
+        "description": "Newest planting first. Filter by status, the zone or bed, the greenhouse, or the crop.",
+        "operationId": "listCropCycles",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACTIVE",
+                "COMPLETED",
+                "ARCHIVED"
+              ]
+            }
+          },
+          {
+            "name": "assetId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "A zone or bed"
+          },
+          {
+            "name": "greenhouseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cropProfileId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cycles returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CropCycleResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "READ product access required"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Greenhouse crop cycles"
+        ],
+        "summary": "Start a crop cycle",
+        "description": "Plants a crop in a zone or growing bed. A zone or bed grows one crop at a time: start another there once the one growing is completed or archived. The cycle starts in the stage given, or the crop's first.",
+        "operationId": "startCropCycle",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartCropCycleRequest"
+              },
+              "example": {
+                "cropProfileId": "6f0c8a0e-3c1b-4b8e-9f0a-2a7d3f1c5e11",
+                "assetId": "0d6b2f4a-7e3c-4a9b-8c1d-5e2f3a4b6c7d",
+                "variety": "Cherry",
+                "plantedOn": "2026-11-01",
+                "expectedHarvestOn": "2027-03-15",
+                "stageId": "seedling"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Cycle started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CropCycleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a zone or bed, archived crop, or unknown stage"
+          },
+          "403": {
+            "description": "OPERATE product access required"
+          },
+          "404": {
+            "description": "Crop or zone not found"
+          },
+          "409": {
+            "description": "Something is already growing there"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/crop-cycles/{workspaceId}/{productKey}/{cropCycleId}": {
+      "get": {
+        "tags": [
+          "Greenhouse crop cycles"
+        ],
+        "summary": "Get a crop cycle",
+        "description": "With the stage it is in and that stage's targets.",
+        "operationId": "getCropCycle",
+        "parameters": [
+          {
+            "name": "cropCycleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cycle returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CropCycleResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cycle not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Greenhouse crop cycles"
+        ],
+        "summary": "Edit a crop cycle",
+        "description": "Its variety, planting date, expected harvest and notes. The stage changes through /stage.",
+        "operationId": "updateCropCycle",
+        "parameters": [
+          {
+            "name": "cropCycleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCropCycleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Cycle updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CropCycleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid field, or the cycle is archived"
+          },
+          "404": {
+            "description": "Cycle not found"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/crop-cycles/{workspaceId}/{productKey}/{cropCycleId}/events": {
+      "get": {
+        "tags": [
+          "Greenhouse crop cycles"
+        ],
+        "summary": "List a crop cycle's history",
+        "description": "Oldest first: STARTED, STAGE, OBSERVATION, HARVEST, COMPLETED, ARCHIVED.",
+        "operationId": "listCropCycleEvents",
+        "parameters": [
+          {
+            "name": "cropCycleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "History returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CropCycleEventResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cycle not found"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/crop-cycles/{workspaceId}/{productKey}/{cropCycleId}/stage": {
+      "post": {
+        "tags": [
+          "Greenhouse crop cycles"
+        ],
+        "summary": "Record a stage change",
+        "description": "Moves a growing cycle to another of its crop's stages, from occurredAt (default now). The stage's targets then apply. A cycle never changes stage by itself.",
+        "operationId": "changeCropCycleStage",
+        "parameters": [
+          {
+            "name": "cropCycleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CropCycleStageRequest"
+              },
+              "example": {
+                "stageId": "flowering",
+                "note": "First trusses open"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Stage changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CropCycleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not growing, same stage, or unknown stage"
+          },
+          "404": {
+            "description": "Cycle not found"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/crop-cycles/{workspaceId}/{productKey}/{cropCycleId}/observations": {
+      "post": {
+        "tags": [
+          "Greenhouse crop cycles"
+        ],
+        "summary": "Record an observation",
+        "operationId": "observeCropCycle",
+        "parameters": [
+          {
+            "name": "cropCycleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CropCycleNoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Observation recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CropCycleEventResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty note, or the cycle is archived"
+          },
+          "404": {
+            "description": "Cycle not found"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/crop-cycles/{workspaceId}/{productKey}/{cropCycleId}/harvests": {
+      "post": {
+        "tags": [
+          "Greenhouse crop cycles"
+        ],
+        "summary": "Record a harvest",
+        "description": "How much was picked, in the unit the grower counts in (kg, crates, heads...).",
+        "operationId": "harvestCropCycle",
+        "parameters": [
+          {
+            "name": "cropCycleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CropCycleHarvestRequest"
+              },
+              "example": {
+                "quantity": 42.5,
+                "unit": "kg"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Harvest recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CropCycleEventResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid quantity, or the cycle is archived"
+          },
+          "404": {
+            "description": "Cycle not found"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/crop-cycles/{workspaceId}/{productKey}/{cropCycleId}/complete": {
+      "post": {
+        "tags": [
+          "Greenhouse crop cycles"
+        ],
+        "summary": "Complete a crop cycle",
+        "description": "The crop is done; the zone or bed is free for the next one. Harvests can still be recorded on it.",
+        "operationId": "completeCropCycle",
+        "parameters": [
+          {
+            "name": "cropCycleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CropCycleEndRequest"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "description": "Cycle completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CropCycleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The cycle is not growing"
+          },
+          "404": {
+            "description": "Cycle not found"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/crop-cycles/{workspaceId}/{productKey}/{cropCycleId}/archive": {
+      "post": {
+        "tags": [
+          "Greenhouse crop cycles"
+        ],
+        "summary": "Archive a crop cycle",
+        "description": "Closes it for good, keeping its history; for a finished cycle, or one that was given up.",
+        "operationId": "archiveCropCycle",
+        "parameters": [
+          {
+            "name": "cropCycleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CropCycleEndRequest"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "description": "Cycle archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CropCycleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Already archived"
+          },
+          "404": {
+            "description": "Cycle not found"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/greenhouses/{workspaceId}/{productKey}": {
+      "get": {
+        "tags": [
+          "Greenhouses"
+        ],
+        "summary": "List greenhouses",
+        "description": "Every greenhouse of the location tree, by name, with its details, its zones and their growing beds, the crop cycle growing in each, and how many devices are placed on it. Greenhouses, zones and beds themselves are created and renamed through the asset tree (types GREENHOUSE, ZONE, BED).",
+        "operationId": "listGreenhouses",
+        "responses": {
+          "200": {
+            "description": "Greenhouses returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GreenhouseResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "READ product access required"
+          }
+        }
+      }
+    },
+    "/api/v1/aiot/greenhouses/{workspaceId}/{productKey}/{assetId}/details": {
+      "get": {
+        "tags": [
+          "Greenhouses"
+        ],
+        "summary": "Get a greenhouse's or zone's details",
+        "operationId": "getGreenhouseDetail",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Details returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GreenhouseDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "None recorded"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Greenhouses"
+        ],
+        "summary": "Set a greenhouse's or zone's details",
+        "description": "Replaces them; a field left out is cleared. For a zone only the area is shown.",
+        "operationId": "saveGreenhouseDetail",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GreenhouseDetailRequest"
+              },
+              "example": {
+                "location": "Varamin",
+                "areaM2": 2400,
+                "timeZone": "Asia/Tehran",
+                "structureType": "POLY_FILM",
+                "cultivationMethod": "HYDROPONIC"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Details saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GreenhouseDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a greenhouse or zone, or an unknown value"
+          },
+          "403": {
+            "description": "ADMINISTER product access required"
+          },
+          "404": {
+            "description": "Greenhouse not found"
+          }
+        }
+      }
+    },
     "/api/v1/aiot/users/me/preferences": {
       "put": {
         "tags": [
@@ -5835,6 +6778,739 @@
   },
   "components": {
     "schemas": {
+      "CropTarget": {
+        "type": "object",
+        "properties": {
+          "metric": {
+            "type": "string",
+            "enum": [
+              "TEMPERATURE",
+              "HUMIDITY",
+              "VPD",
+              "CO2",
+              "DLI",
+              "SUBSTRATE_MOISTURE",
+              "PH",
+              "EC"
+            ]
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "DAY",
+              "NIGHT",
+              "ALL"
+            ]
+          },
+          "min": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          }
+        }
+      },
+      "CropStage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "names": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "By language code: en, fa, ar"
+          },
+          "name": {
+            "type": "string"
+          },
+          "durationDays": {
+            "type": "integer",
+            "description": "For planning only: a cycle changes stage when someone records it"
+          },
+          "irrigation": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CropTarget"
+            }
+          }
+        }
+      },
+      "CropTemplate": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "names": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "By language code: en, fa, ar"
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "names": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "description": "By language code: en, fa, ar"
+                }
+              }
+            }
+          }
+        }
+      },
+      "CropTargetInput": {
+        "type": "object",
+        "required": [
+          "metric"
+        ],
+        "properties": {
+          "metric": {
+            "type": "string",
+            "enum": [
+              "TEMPERATURE",
+              "HUMIDITY",
+              "VPD",
+              "CO2",
+              "DLI",
+              "SUBSTRATE_MOISTURE",
+              "PH",
+              "EC"
+            ]
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "DAY",
+              "NIGHT",
+              "ALL"
+            ],
+            "default": "ALL"
+          },
+          "min": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          }
+        }
+      },
+      "CropStageInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Keeps a stage the profile has, or names a library stage; left out for a new one"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "durationDays": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "irrigation": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "targets": {
+            "type": "array",
+            "maxItems": 40,
+            "items": {
+              "$ref": "#/components/schemas/CropTargetInput"
+            }
+          }
+        }
+      },
+      "CropProfileRequest": {
+        "type": "object",
+        "properties": {
+          "templateKey": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "On create only: the library crop to start from"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Required for a custom crop"
+          },
+          "variety": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "icon": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "cultivationMethods": {
+            "type": "array",
+            "maxItems": 4,
+            "items": {
+              "type": "string",
+              "enum": [
+                "SOIL",
+                "HYDROPONIC",
+                "SUBSTRATE",
+                "OTHER"
+              ]
+            }
+          },
+          "cycleDays": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "stages": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/CropStageInput"
+            }
+          }
+        }
+      },
+      "CropProfileResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "templateKey": {
+            "type": "string"
+          },
+          "names": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The library crop's names; empty for a custom crop"
+          },
+          "name": {
+            "type": "string"
+          },
+          "variety": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "cultivationMethods": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "SOIL",
+                "HYDROPONIC",
+                "SUBSTRATE",
+                "OTHER"
+              ]
+            }
+          },
+          "cycleDays": {
+            "type": "integer"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CropStage"
+            }
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "StartCropCycleRequest": {
+        "type": "object",
+        "required": [
+          "cropProfileId",
+          "assetId",
+          "plantedOn"
+        ],
+        "properties": {
+          "cropProfileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "assetId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A zone or growing bed"
+          },
+          "variety": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "plantedOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "expectedHarvestOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "stageId": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 4000
+          }
+        }
+      },
+      "UpdateCropCycleRequest": {
+        "type": "object",
+        "required": [
+          "plantedOn"
+        ],
+        "properties": {
+          "variety": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "plantedOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "expectedHarvestOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 4000
+          }
+        }
+      },
+      "CropCycleStageRequest": {
+        "type": "object",
+        "required": [
+          "stageId"
+        ],
+        "properties": {
+          "stageId": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CropCycleNoteRequest": {
+        "type": "object",
+        "required": [
+          "note"
+        ],
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CropCycleHarvestRequest": {
+        "type": "object",
+        "required": [
+          "quantity",
+          "unit"
+        ],
+        "properties": {
+          "quantity": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CropCycleEndRequest": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        }
+      },
+      "CropCycleResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "crop": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "templateKey": {
+                "type": "string"
+              },
+              "names": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "By language code: en, fa, ar"
+              },
+              "name": {
+                "type": "string"
+              },
+              "icon": {
+                "type": "string"
+              }
+            }
+          },
+          "assetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "assetName": {
+            "type": "string"
+          },
+          "greenhouseAssetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "greenhouseName": {
+            "type": "string"
+          },
+          "variety": {
+            "type": "string"
+          },
+          "plantedOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "expectedHarvestOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/CropStage"
+          },
+          "stageSince": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "COMPLETED",
+              "ARCHIVED"
+            ]
+          },
+          "notes": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CropCycleEventResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "STARTED",
+              "STAGE",
+              "OBSERVATION",
+              "HARVEST",
+              "COMPLETED",
+              "ARCHIVED"
+            ]
+          },
+          "stageId": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "GreenhouseDetailRequest": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "areaM2": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "timeZone": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "An IANA zone, e.g. Asia/Tehran"
+          },
+          "structureType": {
+            "type": "string",
+            "enum": [
+              "GLASS",
+              "POLY_FILM",
+              "POLYCARBONATE",
+              "NET_HOUSE",
+              "TUNNEL",
+              "OTHER"
+            ]
+          },
+          "cultivationMethod": {
+            "type": "string",
+            "enum": [
+              "SOIL",
+              "HYDROPONIC",
+              "SUBSTRATE",
+              "OTHER"
+            ]
+          }
+        }
+      },
+      "GreenhouseDetail": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workspaceProductId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "location": {
+            "type": "string"
+          },
+          "areaM2": {
+            "type": "number"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "structureType": {
+            "type": "string",
+            "enum": [
+              "GLASS",
+              "POLY_FILM",
+              "POLYCARBONATE",
+              "NET_HOUSE",
+              "TUNNEL",
+              "OTHER"
+            ]
+          },
+          "cultivationMethod": {
+            "type": "string",
+            "enum": [
+              "SOIL",
+              "HYDROPONIC",
+              "SUBSTRATE",
+              "OTHER"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "GreenhouseResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "areaM2": {
+            "type": "number"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "structureType": {
+            "type": "string",
+            "enum": [
+              "GLASS",
+              "POLY_FILM",
+              "POLYCARBONATE",
+              "NET_HOUSE",
+              "TUNNEL",
+              "OTHER"
+            ]
+          },
+          "cultivationMethod": {
+            "type": "string",
+            "enum": [
+              "SOIL",
+              "HYDROPONIC",
+              "SUBSTRATE",
+              "OTHER"
+            ]
+          },
+          "devices": {
+            "type": "integer",
+            "description": "Every device on the greenhouse, its zones and their beds"
+          },
+          "zones": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "areaM2": {
+                  "type": "number"
+                },
+                "devices": {
+                  "type": "integer"
+                },
+                "cycle": {
+                  "$ref": "#/components/schemas/CropCycleResponse"
+                },
+                "beds": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "devices": {
+                        "type": "integer"
+                      },
+                      "cycle": {
+                        "$ref": "#/components/schemas/CropCycleResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "WorkOrderTaskInput": {
         "type": "object",
         "required": [

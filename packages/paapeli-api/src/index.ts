@@ -9,6 +9,7 @@ export * from './api/timeseries';
 export * from './api/telemetry';
 export * from './api/dashboards';
 export * from './api/workOrders';
+export * from './api/greenhouse';
 export * from './api/ota';
 export * from './api/ai';
 export * from './api/notifications';

@@ -1,4 +1,5 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useRef, type ReactNode } from "react";
+import { DataState } from "@/features/factory/components/DataState";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useCreateProductMutation } from "@paapeli/api";
 import { TooltipProvider } from "@/features/factory/components/ui/tooltip";
@@ -85,7 +86,21 @@ const HomeRedirect = () => <Navigate to=".." relative="path" replace />;
 const FactoryOnly = ({ children }: { children: ReactNode }) => {
   const { language } = useLanguage();
   if (currentSolution() === "SmartFactory") return <>{children}</>;
-  return <Navigate to={localizedPath("/locations", language)} replace />;
+  return <Navigate to={localizedPath("/greenhouses", language)} replace />;
+};
+
+/* Smart Greenhouse's own pages (src/features/greenhouse): its greenhouses,
+   crops and crop cycles. Loaded on first visit, so Smart Factory's chunk does
+   not carry them; Smart Factory sends the visitor home. */
+const Greenhouses = lazy(() => import("@/features/greenhouse/pages/Greenhouses"));
+const Crops = lazy(() => import("@/features/greenhouse/pages/Crops"));
+const CropProfileEditor = lazy(() => import("@/features/greenhouse/pages/CropProfileEditor"));
+const CropCycles = lazy(() => import("@/features/greenhouse/pages/CropCycles"));
+
+const GreenhouseOnly = ({ children }: { children: ReactNode }) => {
+  const { language } = useLanguage();
+  if (currentSolution() !== "SmartGreenhouse") return <Navigate to={localizedPath("/", language)} replace />;
+  return <Suspense fallback={<DataState loading size="lg" />}>{children}</Suspense>;
 };
 
 export default function FactoryRoutes() {
@@ -208,6 +223,14 @@ export default function FactoryRoutes() {
                       <Route path="/:lang/alarms/channels/new" element={<ProtectedRoute><ChannelForm /></ProtectedRoute>} />
 
 
+                      <Route path="/greenhouses" element={<ProtectedRoute><GreenhouseOnly><Greenhouses /></GreenhouseOnly></ProtectedRoute>} />
+                      <Route path="/:lang/greenhouses" element={<ProtectedRoute><GreenhouseOnly><Greenhouses /></GreenhouseOnly></ProtectedRoute>} />
+                      <Route path="/crops" element={<ProtectedRoute><GreenhouseOnly><Crops /></GreenhouseOnly></ProtectedRoute>} />
+                      <Route path="/:lang/crops" element={<ProtectedRoute><GreenhouseOnly><Crops /></GreenhouseOnly></ProtectedRoute>} />
+                      <Route path="/crops/:cropId" element={<ProtectedRoute><GreenhouseOnly><CropProfileEditor /></GreenhouseOnly></ProtectedRoute>} />
+                      <Route path="/:lang/crops/:cropId" element={<ProtectedRoute><GreenhouseOnly><CropProfileEditor /></GreenhouseOnly></ProtectedRoute>} />
+                      <Route path="/crop-cycles" element={<ProtectedRoute><GreenhouseOnly><CropCycles /></GreenhouseOnly></ProtectedRoute>} />
+                      <Route path="/:lang/crop-cycles" element={<ProtectedRoute><GreenhouseOnly><CropCycles /></GreenhouseOnly></ProtectedRoute>} />
                       <Route path="/locations" element={<ProtectedRoute><Locations /></ProtectedRoute>} />
                       <Route path="/:lang/locations" element={<ProtectedRoute><Locations /></ProtectedRoute>} />
                       <Route path="/firmware" element={<ProtectedRoute><FactoryOnly><OTA /></FactoryOnly></ProtectedRoute>} />
