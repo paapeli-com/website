@@ -1,3 +1,4 @@
+import { Leaf } from "lucide-react";
 import { GreenhousesSkeleton } from "@/features/greenhouse/components/GreenhousesSkeleton";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -156,9 +157,14 @@ export default function Greenhouses() {
             count={greenhouses.data ? houses.length : null}
             countLabel={g("greenhousesCount")}
             actions={
-              <Button onClick={() => setWizardOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-5 gap-2 rounded-md">
-                <Plus className="h-4 w-4" /> {g("addGreenhouse")}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => navigate(lp("/crops"))} className="h-10 px-4 gap-2 rounded-md">
+                  <Leaf className="h-4 w-4" /> {g("cropSettings")}
+                </Button>
+                <Button onClick={() => setWizardOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-5 gap-2 rounded-md">
+                  <Plus className="h-4 w-4" /> {g("addGreenhouse")}
+                </Button>
+              </div>
             }
           />
           <p className="-mt-2 mb-2 text-sm text-muted-foreground">{g("greenhousesSubtitle")}</p>

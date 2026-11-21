@@ -1,3 +1,4 @@
+import { BackToGreenhouses } from "../components/BackToGreenhouses";
 import { TableRowsSkeleton } from "@/features/factory/components/panel/DetailPageSkeleton";
 import { useMemo, useState } from "react";
 import { CalendarRange, Plus } from "lucide-react";
@@ -60,6 +61,7 @@ export default function CropCycles() {
   return (
     <UniformPage>
       <div className="space-y-4">
+        <BackToGreenhouses />
         <PageHeader
           title={g("cropCycles")}
           count={everything.data ? everything.data.length : null}

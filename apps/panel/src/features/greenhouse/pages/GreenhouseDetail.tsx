@@ -233,6 +233,22 @@ export default function GreenhouseDetail() {
           </TabsList>
 
           <TabsContent value="overview" className="mt-4 space-y-4">
+            {devicesKnown && !ops?.devices.length && (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
+                  <span className="h-12 w-12 shrink-0 rounded-xl bg-primary/10 inline-flex items-center justify-center">
+                    <Cpu className="h-6 w-6 text-primary" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold">{g("connectSensorsTitle")}</div>
+                    <p className="mt-1 text-sm text-muted-foreground">{g("connectSensorsDesc")}</p>
+                  </div>
+                  <Button className="h-10 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => zoneActions.onAddDevice(house.zones[0]?.id ?? house.id)}>
+                    <Plus className="h-4 w-4" /> {g("addSensor")}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
             <div className="grid gap-4 xl:grid-cols-3">
               <Card className="xl:col-span-2">
                 <CardContent className="pt-5">
@@ -263,7 +279,12 @@ export default function GreenhouseDetail() {
 
             <Card>
               <CardContent className="pt-5">
-                <SectionTitle icon={Leaf} title={g("cropsGrowing")} />
+                <div className="flex items-start justify-between gap-2">
+                  <SectionTitle icon={Leaf} title={g("cropsGrowing")} />
+                  <button type="button" onClick={() => navigate(lp("/crop-cycles"))} className="text-xs text-primary hover:underline">
+                    {g("cycleHistory")}
+                  </button>
+                </div>
                 {cycles.length === 0 ? (
                   <p className="py-6 text-center text-sm text-muted-foreground">{g("nothingGrowing")}</p>
                 ) : (
@@ -280,7 +301,7 @@ export default function GreenhouseDetail() {
           <TabsContent value="zones" className="mt-4">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {house.zones.map((zone) => (
-                <ZoneCard key={zone.id} zone={zone} devices={ops?.devicesByPlace.get(zone.id) ?? []} {...zoneActions} />
+                <ZoneCard key={zone.id} zone={zone} devices={ops?.devicesByPlace.get(zone.id) ?? []} readings={env.readings} {...zoneActions} />
               ))}
               <button
                 type="button"
@@ -300,6 +321,16 @@ export default function GreenhouseDetail() {
             <Card>
               <CardContent className="pt-6">
                 <GreenhouseDetailsForm greenhouse={house} />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
+                <div className="flex items-center gap-2 text-sm">
+                  <Leaf className="h-4 w-4 text-primary" /> {g("cropSettings")}
+                </div>
+                <Button variant="outline" className="gap-2" onClick={() => navigate(lp("/crops"))}>
+                  {g("cropSettings")}
+                </Button>
               </CardContent>
             </Card>
             <Card className="border-destructive/30">
@@ -371,8 +402,9 @@ function ZoneLayout({
   outOfRange,
   onOpenCycle,
   onPlant,
+  onAddDevice,
 }: { house: Greenhouse; devicesByPlace?: Map<string, DeviceResponse[]>; readings: Reading[]; alarmDevices: Set<string>; outOfRange: Set<string> } & ZoneActions) {
-  const { g, named } = useGreenhouseText();
+  const { g, named, formatNumber } = useGreenhouseText();
   const reading = useReadingText();
   if (!house.zones.length) return <p className="py-8 text-center text-sm text-muted-foreground">{g("noZonesYet")}</p>;
   return (
@@ -388,15 +420,14 @@ function ZoneLayout({
           const cycle = zone.cycle;
           const fruit = cycle ? fruitOf(cycle.crop.icon) : null;
           return (
-            <button
+            <div
               key={zone.id}
-              type="button"
-              onClick={() => (cycle ? onOpenCycle(cycle) : onPlant(zone.id))}
               className={cn(
                 "relative overflow-hidden rounded-lg border bg-card text-start transition-all hover:shadow-md",
                 alert ? "border-red-300 dark:border-red-900" : cycle ? "border-emerald-200 dark:border-emerald-900" : "border-dashed",
               )}
             >
+              <button type="button" onClick={() => (cycle ? onOpenCycle(cycle) : onPlant(zone.id))} className="block w-full text-start">
               {/* The bed: soil with rows of the crop, or bare when empty. */}
               <div className="relative h-14 bg-[#E8C9A8] dark:bg-[#5c4330]">
                 {cycle &&
@@ -416,7 +447,7 @@ function ZoneLayout({
                   </span>
                 )}
               </div>
-              <div className="flex items-start justify-between gap-2 p-2.5">
+              <div className="p-2.5 pb-1">
                 <div className="min-w-0">
                   <div className="text-sm font-semibold truncate">{zone.name}</div>
                   {cycle ? (
@@ -431,13 +462,24 @@ function ZoneLayout({
                     <div className="mt-0.5 text-xs text-primary">{g("plantCrop")}</div>
                   )}
                 </div>
-                <div className="shrink-0 text-end text-[11px] text-muted-foreground tabular-nums" dir="ltr">
-                  {temp && <div>{temp}</div>}
-                  {hum && <div>{hum}</div>}
-                  {!temp && !hum && devices.length === 0 && <div>{g("noSensors")}</div>}
-                </div>
               </div>
-            </button>
+              </button>
+              <div className="flex items-center justify-between gap-2 px-2.5 pb-2.5 text-[11px] text-muted-foreground">
+                {devices.length === 0 ? (
+                  <button type="button" onClick={() => onAddDevice(zone.id)} className="inline-flex items-center gap-1 rounded-md border border-dashed px-2 py-1 text-primary hover:border-primary/50">
+                    <Plus className="h-3 w-3" /> {g("addSensor")}
+                  </button>
+                ) : (
+                  <span className="inline-flex items-center gap-1">
+                    <Cpu className="h-3 w-3" /> {formatNumber(devices.length)}
+                  </span>
+                )}
+                <span className="flex gap-2 tabular-nums" dir="ltr">
+                  {temp && <span>{temp}</span>}
+                  {hum && <span>{hum}</span>}
+                </span>
+              </div>
+            </div>
           );
         })}
       </div>
@@ -445,10 +487,14 @@ function ZoneLayout({
   );
 }
 
-function ZoneCard({ zone, devices, onOpenCycle, onPlant, onSettings, onChangeCrop, onAddBed, onAddDevice, onDelete }: { zone: GreenhouseZone; devices: DeviceResponse[] } & ZoneActions) {
+function ZoneCard({ zone, devices, readings, onOpenCycle, onPlant, onSettings, onChangeCrop, onAddBed, onAddDevice, onDelete }: { zone: GreenhouseZone; devices: DeviceResponse[]; readings: Reading[] } & ZoneActions) {
   const { g, named, formatNumber, language } = useGreenhouseText();
+  const reading = useReadingText();
   const cycle = zone.cycle;
   const online = devices.filter((d) => d.active).length;
+  const ids = new Set(devices.map((d) => d.id));
+  const summary = summarize(readings.filter((r) => ids.has(r.deviceId)));
+  const live = ENV.slice(0, 3).filter((e) => summary[e.metric]);
   return (
     <div className="flex flex-col rounded-xl border bg-card">
       <div className="flex items-start justify-between gap-2 border-b px-4 py-3">
@@ -517,6 +563,31 @@ function ZoneCard({ zone, devices, onOpenCycle, onPlant, onSettings, onChangeCro
             <Button size="sm" className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => onPlant(zone.id)}>
               <Sprout className="h-4 w-4" /> {g("plantCrop")}
             </Button>
+          </div>
+        )}
+      </div>
+
+      <div className="border-t px-4 py-3">
+        {devices.length === 0 ? (
+          <Button variant="outline" size="sm" className="w-full gap-1.5 border-dashed text-primary" onClick={() => onAddDevice(zone.id)}>
+            <Cpu className="h-4 w-4" /> {g("addSensor")}
+          </Button>
+        ) : live.length === 0 ? (
+          <p className="text-xs text-muted-foreground">{g("noReadings")}</p>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            {live.map(({ metric, icon: Icon, unit }) => {
+              const s = summary[metric]!;
+              return (
+                <div key={metric} className={cn("rounded-md bg-muted/40 px-2 py-1.5", s.stale && "opacity-60")}>
+                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <Icon className="h-3 w-3 text-primary" />
+                    <span className="truncate">{g(`metric_${metric}` as GreenhouseTextKey)}</span>
+                  </div>
+                  <div className="text-sm font-semibold tabular-nums" dir="ltr">{reading(s, unit)}</div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

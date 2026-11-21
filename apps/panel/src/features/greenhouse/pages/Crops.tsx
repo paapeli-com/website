@@ -1,3 +1,4 @@
+import { BackToGreenhouses } from "../components/BackToGreenhouses";
 import { TableRowsSkeleton } from "@/features/factory/components/panel/DetailPageSkeleton";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -58,6 +59,7 @@ export default function Crops() {
   return (
     <UniformPage>
       <div className="space-y-4">
+        <BackToGreenhouses />
         <PageHeader
           title={g("crops")}
           count={profiles.data ? rows.length : null}

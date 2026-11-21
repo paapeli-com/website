@@ -14,8 +14,6 @@ import {
   Activity,
   TrendingUp,
   Bot,
-  Leaf,
-  CalendarRange,
 } from "lucide-react";
 import { solutionPath } from "@paapeli/brand/config";
 import type { NavSection } from "./types";
@@ -23,8 +21,10 @@ import type { NavSection } from "./types";
 const base = solutionPath("SmartGreenhouse");
 const p = (path: string) => `${base}${path}`;
 
-/* Smart Greenhouse's own pages (its greenhouses, crops and crop cycles) come
-   first; the rest are Smart Factory's pages (see
+/* Smart Greenhouse's own page, its greenhouses, comes first. Crops and crop
+   cycles are reached from the greenhouses (each zone's crop, and the crop
+   settings), not from the menu: a grower thinks greenhouse, zone, sensor. The
+   rest are Smart Factory's pages (see
    features/factory/lib/product.ts), over this product's own data and worded
    for a grower. Greenhouses, zones and beds are kept in the location tree,
    but are managed from each greenhouse's own page; the tree itself, with its
@@ -35,8 +35,6 @@ const p = (path: string) => `${base}${path}`;
    nowhere. */
 const items = [
   { title: "Greenhouses", icon: Warehouse, path: p("/greenhouses") },
-  { title: "Crops", icon: Leaf, path: p("/crops") },
-  { title: "Crop cycles", icon: CalendarRange, path: p("/crop-cycles") },
   { title: "Dashboards", icon: LayoutDashboard, path: p("/dashboard") },
   {
     title: "Devices",
