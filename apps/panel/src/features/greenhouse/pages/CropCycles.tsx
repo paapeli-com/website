@@ -1,10 +1,10 @@
+import { TableRowsSkeleton } from "@/features/factory/components/panel/DetailPageSkeleton";
 import { useMemo, useState } from "react";
 import { CalendarRange, Plus } from "lucide-react";
 import type { CropCycle, CropCycleStatus } from "@paapeli/api";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { ListToolbar } from "@/features/factory/components/panel/ListToolbar";
 import { LoadFailed } from "@/shared/components/LoadFailed";
-import { DataState } from "@/features/factory/components/DataState";
 import { UniformPage } from "@/features/factory/components/UniformPage";
 import { Button } from "@/features/factory/components/ui/button";
 import { Card, CardContent } from "@/features/factory/components/ui/card";
@@ -131,11 +131,7 @@ export default function CropCycles() {
                   </TableHeader>
                   <TableBody>
                     {cycles.isLoading ? (
-                      <TableRow className="hover:bg-transparent">
-                        <TableCell colSpan={COLUMNS}>
-                          <DataState loading />
-                        </TableCell>
-                      </TableRow>
+                      <TableRowsSkeleton rows={8} columns={COLUMNS} />
                     ) : rows.length === 0 ? (
                       <TableRow className="hover:bg-transparent">
                         <TableCell colSpan={COLUMNS}>

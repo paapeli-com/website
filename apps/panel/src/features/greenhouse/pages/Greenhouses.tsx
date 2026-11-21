@@ -1,3 +1,4 @@
+import { GreenhousesSkeleton } from "@/features/greenhouse/components/GreenhousesSkeleton";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Cpu, Plus, Sprout, Warehouse } from "lucide-react";
@@ -5,7 +6,6 @@ import { assetsService, type Greenhouse } from "@paapeli/api";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { KpiSection } from "@/features/factory/components/panel/KpiSection";
 import { ListToolbar, type ViewMode } from "@/features/factory/components/panel/ListToolbar";
-import { DataState } from "@/features/factory/components/DataState";
 import { LoadFailed } from "@/shared/components/LoadFailed";
 import { UniformPage } from "@/features/factory/components/UniformPage";
 import { Button } from "@/features/factory/components/ui/button";
@@ -165,7 +165,7 @@ export default function Greenhouses() {
         </div>
 
         {greenhouses.isLoading ? (
-          <DataState loading size="lg" />
+          <GreenhousesSkeleton />
         ) : greenhouses.isError ? (
           <LoadFailed onRetry={() => void greenhouses.refetch()} />
         ) : houses.length === 0 ? (

@@ -1,3 +1,4 @@
+import { DetailPageSkeleton } from "@/features/factory/components/panel/DetailPageSkeleton";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowDown, ArrowUp, ChevronDown, ChevronLeft, ChevronRight, Moon, Plus, Sun, Trash2 } from "lucide-react";
@@ -9,7 +10,6 @@ import {
   type CropTarget,
   type CultivationMethod,
 } from "@paapeli/api";
-import { DataState } from "@/features/factory/components/DataState";
 import { UniformPage } from "@/features/factory/components/UniformPage";
 import { Button } from "@/features/factory/components/ui/button";
 import { Card, CardContent } from "@/features/factory/components/ui/card";
@@ -244,7 +244,7 @@ export default function CropProfileEditor() {
   const title = useMemo(() => (profile ? named(profile.names, name || profile.name) : ""), [profile, name, named]);
   const Back = isRTL ? ChevronRight : ChevronLeft;
 
-  if (profiles.isLoading) return <DataState loading size="lg" />;
+  if (profiles.isLoading) return <DetailPageSkeleton stats={0} rows={6} />;
   if (!profile) {
     return (
       <UniformPage>

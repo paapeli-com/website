@@ -1,3 +1,4 @@
+import { DetailPageSkeleton } from "@/features/factory/components/panel/DetailPageSkeleton";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
@@ -106,7 +107,7 @@ export default function GreenhouseDetail() {
   const lp = (path: string) => localizedPath(path, language);
   const Back = isRTL ? ChevronRight : ChevronLeft;
 
-  if (greenhouses.isLoading) return <DataState loading size="lg" />;
+  if (greenhouses.isLoading) return <DetailPageSkeleton stats={4} rows={6} />;
   if (greenhouses.isError) return <LoadFailed onRetry={() => void greenhouses.refetch()} />;
   if (!house) {
     return (

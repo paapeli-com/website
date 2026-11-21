@@ -94,7 +94,7 @@ export function AddGreenhouseWizard({
   const [timeZone, setTimeZone] = useState(timeZoneOptions()[0]);
   const [structure, setStructure] = useState<GreenhouseStructure | null>(null);
   const [cultivation, setCultivation] = useState<CultivationMethod | null>(null);
-  const [zoneCount, setZoneCount] = useState(4);
+  const [zoneCount, setZoneCount] = useState(1);
   const [bedsPerZone, setBedsPerZone] = useState(0);
   const [zones, setZones] = useState<ZonePlan[]>([]);
   const [progress, setProgress] = useState<Progress | null>(null);
@@ -109,7 +109,7 @@ export function AddGreenhouseWizard({
     setStructure(null);
     setCover(null);
     setCultivation(null);
-    setZoneCount(4);
+    setZoneCount(1);
     setBedsPerZone(0);
     setZones([]);
     setProgress(null);

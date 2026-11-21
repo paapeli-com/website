@@ -1,10 +1,10 @@
+import { TableRowsSkeleton } from "@/features/factory/components/panel/DetailPageSkeleton";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Sprout } from "lucide-react";
 import { PageHeader } from "@/features/factory/components/PageHeader";
 import { ListToolbar } from "@/features/factory/components/panel/ListToolbar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/features/factory/components/ui/table";
-import { DataState } from "@/features/factory/components/DataState";
 import { LoadFailed } from "@/shared/components/LoadFailed";
 import { UniformPage } from "@/features/factory/components/UniformPage";
 import { Button } from "@/features/factory/components/ui/button";
@@ -119,11 +119,7 @@ export default function Crops() {
                   </TableHeader>
                   <TableBody>
                     {profiles.isLoading ? (
-                      <TableRow className="hover:bg-transparent">
-                        <TableCell colSpan={COLUMNS}>
-                          <DataState loading />
-                        </TableCell>
-                      </TableRow>
+                      <TableRowsSkeleton rows={8} columns={COLUMNS} />
                     ) : rows.length === 0 ? (
                       <TableRow className="hover:bg-transparent">
                         <TableCell colSpan={COLUMNS}>
