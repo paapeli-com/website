@@ -16,6 +16,10 @@ stages:
 variables:
   DOCKER_HOST: unix:///var/run/docker.sock
   DOCKER_PLATFORM: linux/amd64
+  # Shell-job image from paapeli/infra (ci/images/ci-tools): the docker CLI with
+  # bash and flock baked in. The deploy jobs used to `apk add` bash from
+  # dl-cdn.alpinelinux.org at start-up, which fails from here now and then.
+  CI_TOOLS_IMAGE: registry.paapeli.me/paapeli/ci-tools:1.0.0
 
 default:
   image: registry.paapeli.me/docker:28-cli
@@ -111,7 +115,7 @@ build-panel:
 
 .deploy:
   stage: deploy
-  image: registry.paapeli.me/docker:28-cli
+  image: $CI_TOOLS_IMAGE                  # bash for the redeploy script
   # tb-mini01 is the DEPLOY runner (cd, stage, deploy, mini).
   tags:
     - cd
@@ -119,7 +123,6 @@ build-panel:
   variables:
     GIT_STRATEGY: none
   before_script:
-    - apk add --no-cache bash
     - |
       if [ -n "${DOCKER_AUTH_CONFIG:-}" ]; then
         mkdir -p "$HOME/.docker"
