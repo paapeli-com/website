@@ -1,3 +1,4 @@
+import { CropContextChip } from "@/features/greenhouse/components/CropContext";
 import { UniformPage } from "@/features/factory/components/UniformPage";
 import { useMemo, useState } from "react";
 import { formatDateTime } from "@/shared/lib/formatDate";
@@ -182,6 +183,7 @@ const AIoTAnomalyDetails = () => {
           </Button>
           <div>
             <h1 className="text-lg font-bold">{anomaly.deviceName}</h1>
+            <CropContextChip deviceId={anomaly.deviceId} className="text-xs" />
             <p className="text-xs text-muted-foreground">
               {ai.kind(anomaly.kind)} · {anomaly.key} · {anomaly.deviceType} · {location || "—"}
             </p>

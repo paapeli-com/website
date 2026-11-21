@@ -132,7 +132,7 @@ export type EnvMetric = "TEMPERATURE" | "HUMIDITY" | "SUBSTRATE_MOISTURE" | "CO2
 
 /** Which telemetry key a reading of each measurement goes by; devices name them their own way. */
 const MATCHERS: [EnvMetric, RegExp, RegExp?][] = [
-  ["SUBSTRATE_MOISTURE", /(soil|substrate|media|vwc|moist)/i],
+  ["SUBSTRATE_MOISTURE", /(moist|vwc|(soil|substrate|media).*(hum|water)|(hum|water).*(soil|substrate|media))/i],
   ["CO2", /co2/i],
   ["VPD", /vpd/i],
   ["TEMPERATURE", /temp/i, /(soil|substrate|water|leaf|media|cpu|board)/i],

@@ -1,3 +1,4 @@
+import { alarmRuleName } from "@/features/factory/i18n/solutionText";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bar, BarChart, CartesianGrid, Tooltip as RTooltip, XAxis, YAxis } from "recharts";
@@ -258,7 +259,7 @@ export const AlertAnalytics = () => {
               <RankList
                 rows={data.topRules.map((r) => ({
                   key: r.alarmName,
-                  label: r.alarmName,
+                  label: alarmRuleName(r.alarmName),
                   value: r.count,
                   sub: tr("devicesSub", r.deviceCount),
                 }))}

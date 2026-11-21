@@ -1,3 +1,4 @@
+import { alarmRuleName } from "@/features/factory/i18n/solutionText";
 import { useEffect, useMemo, useState } from "react";
 import { formatDateTime } from "@/shared/lib/formatDate";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
@@ -113,7 +114,7 @@ const toAlert = (a: WorkspaceAlarmItem, locationPath: string | undefined): Alert
   return {
     id: a.id,
     ruleId: "",
-    ruleName: a.alarmName,
+    ruleName: alarmRuleName(a.alarmName),
     severity: apiSeverityToUi(a.severity),
     status,
     deviceId: a.deviceId,

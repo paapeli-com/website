@@ -1,3 +1,4 @@
+import { alarmRuleName } from "@/features/factory/i18n/solutionText";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -126,7 +127,7 @@ export const toRow = (r: AlarmRuleItem): RuleRow => {
   return {
     id: r.id,
     deviceId: r.deviceId,
-    name: r.name,
+    name: alarmRuleName(r.name),
     description: r.description ?? "",
     severity: top?.severity ?? null,
     triggerType: top?.rule.triggerType ?? null,

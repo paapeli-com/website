@@ -1,3 +1,4 @@
+import { getAppLanguage } from "@/shared/i18n/appLanguage";
 import type { Language } from "@/features/factory/i18n/translations";
 import type { FactorySolution } from "@/features/factory/lib/product";
 
@@ -46,3 +47,12 @@ const ASSET_TYPES: Record<string, Record<Language, string>> = {
 
 export const assetTypeLabel = (assetType: string, serverLabel: string, language: Language): string =>
   ASSET_TYPES[assetType]?.[language] ?? serverLabel;
+
+/* Alarm rules the platform keeps itself go by a fixed English name, so it can
+   find them again; a reader sees it in their language. */
+const MANAGED_RULE_NAMES: Record<string, Partial<Record<Language, string>>> = {
+  "Crop targets": { fa: "اهداف محصول", ar: "أهداف المحصول" },
+};
+
+export const alarmRuleName = (name: string, language: Language = getAppLanguage() as Language): string =>
+  MANAGED_RULE_NAMES[name]?.[language] ?? name;

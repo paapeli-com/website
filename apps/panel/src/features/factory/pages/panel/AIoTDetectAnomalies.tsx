@@ -1,3 +1,4 @@
+import { CropContextChip } from "@/features/greenhouse/components/CropContext";
 import { UniformPage } from "@/features/factory/components/UniformPage";
 import { useMemo, useState } from "react";
 import { formatDateTime } from "@/shared/lib/formatDate";
@@ -223,6 +224,7 @@ const AIoTDetectAnomalies = () => {
                         <Badge className={`${SEV_BADGE[a.severity]} text-[10px]`}>{a.severity}</Badge>
                       </div>
                       <div className="text-xs text-muted-foreground truncate">{a.title} · {a.key}</div>
+                      <CropContextChip deviceId={a.deviceId} />
                     </div>
                     <div className="text-end shrink-0">
                       <div className="text-[10px] text-muted-foreground">{t("detectedLabel")}</div>
@@ -266,6 +268,7 @@ const AIoTDetectAnomalies = () => {
                     <span className="text-xs font-medium truncate">{a.deviceName}</span>
                     <Badge className={`${SEV_BADGE[a.severity]} text-[10px]`}>{a.severity}</Badge>
                   </div>
+                  <CropContextChip deviceId={a.deviceId} className="mb-1" />
                   <p className="text-xs text-muted-foreground leading-snug line-clamp-2">{ai.anomalyText(a).explanation}</p>
                   {a.causes.length > 1 && (
                     <p className="text-[11px] text-muted-foreground mt-1 truncate">
@@ -453,6 +456,7 @@ const AIoTDetectAnomalies = () => {
                   <td className="px-3 py-2.5">
                     <div className="font-medium">{r.deviceName}</div>
                     <div className="text-xs text-muted-foreground">{r.deviceType}</div>
+                    <CropContextChip deviceId={r.deviceId} />
                   </td>
                   <td className="px-3 py-2.5 hidden md:table-cell">
                     {r.location ? <LocationCell path={r.location} /> : "—"}
