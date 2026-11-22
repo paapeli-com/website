@@ -12,7 +12,8 @@ import { PageHeader } from "@/features/factory/components/PageHeader";
 import { BarChart3, Bell, Plus, SlidersHorizontal, Settings2 } from "lucide-react";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
-import { currentProductKey } from "@/features/factory/lib/product";
+import { currentProductKey, currentSolution } from "@/features/factory/lib/product";
+import { GreenhouseAlarmCenter } from "@/features/greenhouse/components/GreenhouseAlarmCenter";
 
 /* Four tabs, not six.
  *
@@ -136,7 +137,11 @@ const Alarms = () => {
         </div>
 
         <TabsContent value="all">
-          <AlertList ruleCount={ruleCount} onViewRules={() => setActiveTab("rules")} />
+          {currentSolution() === "SmartGreenhouse" ? (
+            <GreenhouseAlarmCenter />
+          ) : (
+            <AlertList ruleCount={ruleCount} onViewRules={() => setActiveTab("rules")} />
+          )}
         </TabsContent>
 
         <TabsContent value="rules">

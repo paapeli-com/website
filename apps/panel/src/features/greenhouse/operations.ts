@@ -159,9 +159,9 @@ export interface Reading {
 }
 
 /** The latest environmental readings of these devices, one per device and measurement. */
-export function useEnvironment(devices: DeviceResponse[], enabled = true) {
+export function useEnvironment(devices: DeviceResponse[], enabled = true, max = MAX_DEVICES) {
   const { workspaceId } = useGreenhouseWorkspace();
-  const watched = devices.slice(0, MAX_DEVICES);
+  const watched = devices.slice(0, max);
   const queries = useQueries({
     queries: watched.map((device) => ({
       queryKey: ["greenhouse", workspaceId, currentProductKey(), "env", device.id],
@@ -189,7 +189,7 @@ export function useEnvironment(devices: DeviceResponse[], enabled = true) {
   });
   const readings = queries.flatMap((q) => q.data ?? []);
   const loading = queries.some((q) => q.isLoading);
-  return { readings, loading, partial: devices.length > MAX_DEVICES };
+  return { readings, loading, partial: devices.length > max };
 }
 
 export interface MetricSummary {

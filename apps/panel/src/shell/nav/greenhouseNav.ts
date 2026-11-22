@@ -11,8 +11,7 @@ import {
   Sprout,
   Warehouse,
   Sparkles,
-  Activity,
-  TrendingUp,
+  Lightbulb,
   Bot,
 } from "lucide-react";
 import { solutionPath } from "@paapeli/brand/config";
@@ -49,15 +48,17 @@ const items = [
     title: "AI & Analytics",
     icon: Sparkles,
     children: [
-      { title: "Detect Anomalies", icon: Activity, path: p("/aiot/detect-anomalies") },
-      { title: "Analyze Trends", icon: TrendingUp, path: p("/aiot/analyze-trends") },
+      { title: "Insights", icon: Lightbulb, path: p("/aiot/insights") },
       { title: "AI Co-Pilot", icon: Bot, path: p("/aiot/co-pilot") },
     ],
   },
   {
     title: "Operations",
     icon: Wrench,
-    children: [{ title: "Work Orders", icon: ClipboardList, path: p("/work-orders") }],
+    children: [
+      { title: "Greenhouse work", icon: Sprout, path: p("/greenhouse-work") },
+      { title: "Work Orders", icon: ClipboardList, path: p("/work-orders") },
+    ],
   },
 ];
 

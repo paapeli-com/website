@@ -97,6 +97,8 @@ const GreenhouseDetail = lazy(() => import("@/features/greenhouse/pages/Greenhou
 const Crops = lazy(() => import("@/features/greenhouse/pages/Crops"));
 const CropProfileEditor = lazy(() => import("@/features/greenhouse/pages/CropProfileEditor"));
 const CropCycles = lazy(() => import("@/features/greenhouse/pages/CropCycles"));
+const GreenhouseInsights = lazy(() => import("@/features/greenhouse/pages/GreenhouseInsights"));
+const GreenhouseWork = lazy(() => import("@/features/greenhouse/pages/GreenhouseWork"));
 
 const GreenhouseOnly = ({ children }: { children: ReactNode }) => {
   const { language } = useLanguage();
@@ -234,6 +236,10 @@ export default function FactoryRoutes() {
                       <Route path="/:lang/crops/:cropId" element={<ProtectedRoute><GreenhouseOnly><CropProfileEditor /></GreenhouseOnly></ProtectedRoute>} />
                       <Route path="/crop-cycles" element={<ProtectedRoute><GreenhouseOnly><CropCycles /></GreenhouseOnly></ProtectedRoute>} />
                       <Route path="/:lang/crop-cycles" element={<ProtectedRoute><GreenhouseOnly><CropCycles /></GreenhouseOnly></ProtectedRoute>} />
+                      <Route path="/aiot/insights" element={<ProtectedRoute><GreenhouseOnly><GreenhouseInsights /></GreenhouseOnly></ProtectedRoute>} />
+                      <Route path="/:lang/aiot/insights" element={<ProtectedRoute><GreenhouseOnly><GreenhouseInsights /></GreenhouseOnly></ProtectedRoute>} />
+                      <Route path="/greenhouse-work" element={<ProtectedRoute><GreenhouseOnly><GreenhouseWork /></GreenhouseOnly></ProtectedRoute>} />
+                      <Route path="/:lang/greenhouse-work" element={<ProtectedRoute><GreenhouseOnly><GreenhouseWork /></GreenhouseOnly></ProtectedRoute>} />
                       <Route path="/locations" element={<ProtectedRoute><Locations /></ProtectedRoute>} />
                       <Route path="/:lang/locations" element={<ProtectedRoute><Locations /></ProtectedRoute>} />
                       <Route path="/firmware" element={<ProtectedRoute><FactoryOnly><OTA /></FactoryOnly></ProtectedRoute>} />

@@ -146,3 +146,6 @@ export function GreenhouseTemplateSuggestions() {
     </div>
   );
 }
+
+/** The ready-made rounds' names, for starting one as a work order. */
+export const READY_ROUNDS: { key: string; name: Record<Lang, string> }[] = READY.map(({ key, name }) => ({ key, name }));
