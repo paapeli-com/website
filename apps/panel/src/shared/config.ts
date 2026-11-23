@@ -61,7 +61,7 @@ export const IS_STAGING = stage ? stage === "staging" : import.meta.env.DEV;
 export const SHOW_UNRELEASED_PRODUCTS = IS_STAGING;
 
 /* @paapeli/brand/config's PRODUCTS as this build shows them: a solution
-   marked unreleased (Smart Greenhouse today) is left out on production, from
+   marked unreleased (none today) is left out on production, from
    the switcher, Home, search, Subscriptions and Members alike. Read this
    rather than PRODUCTS wherever products are listed to people. */
 export const LISTED_PRODUCTS: Product[] = PRODUCTS.map((product) =>
@@ -70,8 +70,11 @@ export const LISTED_PRODUCTS: Product[] = PRODUCTS.map((product) =>
     : product,
 );
 
-/* IaaS (Cloud Server) is on production as well as staging for now, by
-   request, while staging is down and development goes on against
-   production. Set this back to SHOW_UNRELEASED_PRODUCTS to make it staging
-   only again. */
+/* IaaS (Cloud Server) is listed on production as well as staging: the
+   family, its sidebar row, its switcher row and its Home cards all show. */
 export const SHOW_IAAS = true;
+
+/* Whether Cloud Server can be opened. Staging opens it; production lists it
+   as "Coming soon" with no route, the way AI Inference waits, until it
+   launches. */
+export const OPEN_CLOUD_SERVER = IS_STAGING;

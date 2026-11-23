@@ -44,7 +44,7 @@ import { WaitlistDialog } from "@/features/home/WaitlistDialog";
 import { TopoBackdrop } from "@/shared/components/TopoBackdrop";
 import { AI_INFERENCE_BASE } from "@/shell/nav/aiInferenceNav";
 import { HOME_CATEGORY_PATHS } from "@/shell/nav/homeNav";
-import { SHOW_IAAS, SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
+import { OPEN_CLOUD_SERVER, SHOW_IAAS, SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
 import { CLOUD_SERVER_BASE, CLOUD_SERVER_GPU_PATH } from "@/shell/nav/cloudServerNav";
 
 /* The account's front door: every product on the account in one place, plus
@@ -150,7 +150,7 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
   const greenhouseKey = productKeyFor(GREENHOUSE) ?? "";
   const hasFactory = owned.has(factoryKey);
   const hasTracking = owned.has(trackingKey);
-  const hasGreenhouse = SHOW_UNRELEASED_PRODUCTS && owned.has(greenhouseKey);
+  const hasGreenhouse = owned.has(greenhouseKey);
 
   /* One row is enough: only `totalElements` is read from these. */
   const factoryDevices = useGetTenantDevicesQuery(workspaceId, factoryKey, 0, 1, hasFactory);
@@ -171,7 +171,7 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
 
   /* Alarms for every product the workspace holds. Same query keys the
      header's notifications menu uses, so the two share one fetch. */
-  const alarmKeys = [factoryKey, trackingKey, ...(SHOW_UNRELEASED_PRODUCTS ? [greenhouseKey] : [])].filter((key) =>
+  const alarmKeys = [factoryKey, trackingKey, greenhouseKey].filter((key) =>
     owned.has(key),
   );
   const alarmQueries = useGetWorkspaceAlarmsQueries(workspaceId, alarmKeys, !!workspaceId);
@@ -227,6 +227,18 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
 
   const [recent] = useState(() => getRecentVisits(4));
   const [waitlistFor, setWaitlistFor] = useState<string | null>(null);
+
+  /* IaaS cards open where OPEN_CLOUD_SERVER says (staging). On production
+     they are listed as coming soon and offer the waitlist, like AI Infra's. */
+  const iaasCard = (title: string, path: string) =>
+    OPEN_CLOUD_SERVER
+      ? { tag: t("Alpha"), action: t("Open"), onAction: () => navigate(path), opens: true }
+      : {
+          tag: t("Coming soon"),
+          action: t("Join waitlist"),
+          onAction: () => setWaitlistFor(title),
+          variant: "planned" as const,
+        };
   const activeWorkspaceName = workspaces?.find((w) => w.workspaceId === workspaceId)?.workspaceName;
 
   const productOf = (key: string) =>
@@ -320,28 +332,26 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
                     },
                   ]}
                 />
-                {SHOW_UNRELEASED_PRODUCTS && (
-                  <ProductCard
-                    icon={Sprout}
-                    title={t("Smart Greenhouse")}
-                    description={t("Greenhouses, crops, sensors, alarms and work orders.")}
-                    action={t("Open")}
-                    onAction={() => navigate(`${solutionPath(GREENHOUSE)}/`)}
-                    opens
-                    pending={subscriptionsUnknown || (hasGreenhouse && greenhouseDevices.isPending)}
-                    pills={[
-                      { text: `${n(greenhouseAssets)} ${t("assets")}` },
-                      {
-                        text: `${n(greenhousePendingWorkOrders)} ${t("pending orders")}`,
-                        tone: greenhousePendingWorkOrders > 0 ? ("bad" as const) : ("gray" as const),
-                      },
-                      openAlarmsOf(greenhouseKey) > 0 && {
-                        text: `${n(openAlarmsOf(greenhouseKey))} ${t("open alarms")}`,
-                        tone: "bad" as const,
-                      },
-                    ]}
-                  />
-                )}
+                <ProductCard
+                  icon={Sprout}
+                  title={t("Smart Greenhouse")}
+                  description={t("Greenhouses, crops, sensors, alarms and work orders.")}
+                  action={t("Open")}
+                  onAction={() => navigate(`${solutionPath(GREENHOUSE)}/`)}
+                  opens
+                  pending={subscriptionsUnknown || (hasGreenhouse && greenhouseDevices.isPending)}
+                  pills={[
+                    { text: `${n(greenhouseAssets)} ${t("assets")}` },
+                    {
+                      text: `${n(greenhousePendingWorkOrders)} ${t("pending orders")}`,
+                      tone: greenhousePendingWorkOrders > 0 ? ("bad" as const) : ("gray" as const),
+                    },
+                    openAlarmsOf(greenhouseKey) > 0 && {
+                      text: `${n(openAlarmsOf(greenhouseKey))} ${t("open alarms")}`,
+                      tone: "bad" as const,
+                    },
+                  ]}
+                />
               </div>
             </section>
             )}
@@ -381,32 +391,23 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
                 <ProductCard
                   icon={Server}
                   title={t("Cloud Server")}
-                  tag={t("Alpha")}
                   description={t("Virtual machines on Linux or Windows, with disks, networking and backups.")}
-                  action={t("Open")}
-                  onAction={() => navigate(CLOUD_SERVER_BASE)}
-                  opens
                   pills={[{ text: t("Linux and Windows") }, { text: t("Auto Scale") }]}
+                  {...iaasCard("Cloud Server", CLOUD_SERVER_BASE)}
                 />
                 <ProductCard
                   icon={Microchip}
                   title={t("GPU Servers")}
-                  tag={t("Alpha")}
                   description={t("Virtual machines with a dedicated NVIDIA GPU, billed by the hour.")}
-                  action={t("Open")}
-                  onAction={() => navigate(CLOUD_SERVER_GPU_PATH)}
-                  opens
                   pills={[{ text: "RTX 4060 · 4080" }, { text: "A100 · V100" }]}
+                  {...iaasCard("GPU Servers", CLOUD_SERVER_GPU_PATH)}
                 />
                 <ProductCard
                   icon={Server}
                   title={t("Dedicated Servers")}
-                  tag={t("Alpha")}
                   description={t("A whole physical server for you, to run your own cloud servers on.")}
-                  action={t("Open")}
-                  onAction={() => navigate(`${CLOUD_SERVER_BASE}/dedicated-servers`)}
-                  opens
                   pills={[{ text: t("Monthly or yearly") }, { text: t("Clusters") }]}
+                  {...iaasCard("Dedicated Servers", `${CLOUD_SERVER_BASE}/dedicated-servers`)}
                 />
               </div>
             </section>

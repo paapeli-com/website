@@ -8,7 +8,7 @@ import { solutionPath, productKeyFor } from "@paapeli/brand/config";
 import { BrandProvider } from "@/shell/BrandProvider";
 import { Layout } from "@/shell/Layout";
 import { RequireAuth } from "@/shell/RequireAuth";
-import { PAAPELI_API_BASE_URL, SHOW_IAAS, SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
+import { OPEN_CLOUD_SERVER, PAAPELI_API_BASE_URL, SHOW_IAAS, SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
 import { isRTLLanguage, useAppLanguage } from "@/shared/i18n/appLanguage";
 import { Feature } from "./Feature";
 import {
@@ -93,21 +93,18 @@ export default function App() {
               {/* Smart Greenhouse is drawn with Smart Factory's pages over
                   its own workspace product (see features/factory/lib/product.ts).
                   The key keeps React from carrying one solution's page state
-                  into the other when switching between them. Staging only
-                  until it launches. */}
-              {SHOW_UNRELEASED_PRODUCTS && (
-                <Route
-                  path="AIoT/SmartGreenhouse/*"
-                  element={
-                    <Feature
-                      key="SmartGreenhouse"
-                      name="Smart Greenhouse"
-                      productKey={productKeyFor("SmartGreenhouse")}
-                      routes={factoryRoutes}
-                    />
-                  }
-                />
-              )}
+                  into the other when switching between them. */}
+              <Route
+                path="AIoT/SmartGreenhouse/*"
+                element={
+                  <Feature
+                    key="SmartGreenhouse"
+                    name="Smart Greenhouse"
+                    productKey={productKeyFor("SmartGreenhouse")}
+                    routes={factoryRoutes}
+                  />
+                }
+              />
               <Route
                 path="AIoT/GPSTracking/*"
                 element={<Feature name="Fleet Management" productKey={productKeyFor("GPSTracking")} routes={trackRoutes} />}
@@ -123,9 +120,10 @@ export default function App() {
                   element={<Feature name="AI Inference" routes={aiInferenceRoutes} />}
                 />
               )}
-              {/* IaaS's first product. Shown where SHOW_IAAS says, and
-                  no productKey for the same reason. */}
-              {SHOW_IAAS && (
+              {/* IaaS's first product. Opens where OPEN_CLOUD_SERVER says
+                  (staging); production lists it as coming soon with no
+                  route. No productKey for the same reason as above. */}
+              {SHOW_IAAS && OPEN_CLOUD_SERVER && (
                 <Route
                   path="IaaS/CloudServer/*"
                   element={<Feature name="Cloud Server" routes={cloudServerRoutes} />}

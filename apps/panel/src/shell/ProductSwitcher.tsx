@@ -5,7 +5,7 @@ import { solutionPath, type Product } from "@paapeli/brand/config";
 import { AI_INFERENCE_BASE } from "@/shell/nav/aiInferenceNav";
 import { CLOUD_SERVER_BASE, CLOUD_SERVER_GPU_PATH } from "@/shell/nav/cloudServerNav";
 import { HOME_CATEGORY_PATHS } from "@/shell/nav/homeNav";
-import { SHOW_IAAS, SHOW_UNRELEASED_PRODUCTS, LISTED_PRODUCTS } from "@/shared/config";
+import { OPEN_CLOUD_SERVER, SHOW_IAAS, SHOW_UNRELEASED_PRODUCTS, LISTED_PRODUCTS } from "@/shared/config";
 import { cn } from "@/shared/lib/utils";
 import { menuRowIdle, menuRowSelected } from "@/shell/menuRow";
 import { useShellT } from "@/shared/i18n/shell";
@@ -67,11 +67,15 @@ const AI_INFRA_ROWS: Row[] = SHOW_UNRELEASED_PRODUCTS
       { id: "AIAgentMaker", name: "AI Agent Maker", icon: Sparkles, tag: "Coming soon" },
     ];
 
-/* IaaS, staging only. A family of the switcher's own rather than an entry in
+/* IaaS. A family of the switcher's own rather than an entry in
    @paapeli/brand/config's PRODUCTS: that list also feeds Subscriptions, Members
-   and the search, and none of them should hear about IaaS before it launches. */
+   and the search, and none of them should hear about IaaS before it launches.
+   Cloud Server opens on staging; production lists it as an inert
+   "Coming soon" row, like AI Infra's. */
 const IAAS_FAMILY: Product = { id: "iaas", name: "IaaS" };
-const IAAS_ROWS: Row[] = [{ id: "CloudServer", name: "Cloud Server", icon: Server, tag: "Alpha", path: CLOUD_SERVER_BASE }];
+const IAAS_ROWS: Row[] = OPEN_CLOUD_SERVER
+  ? [{ id: "CloudServer", name: "Cloud Server", icon: Server, tag: "Alpha", path: CLOUD_SERVER_BASE }]
+  : [{ id: "CloudServer", name: "Cloud Server", icon: Server, tag: "Coming soon" }];
 const FAMILIES: Product[] = SHOW_IAAS ? [...LISTED_PRODUCTS, IAAS_FAMILY] : LISTED_PRODUCTS;
 
 export function ProductSwitcher() {
@@ -95,7 +99,7 @@ export function ProductSwitcher() {
   const path = location.pathname.toLowerCase();
   const onHome = path.startsWith("/home");
   const onAiInference = SHOW_UNRELEASED_PRODUCTS && path.startsWith(AI_INFERENCE_BASE.toLowerCase());
-  const onCloudServer = SHOW_IAAS && path.startsWith(CLOUD_SERVER_BASE.toLowerCase());
+  const onCloudServer = SHOW_IAAS && OPEN_CLOUD_SERVER && path.startsWith(CLOUD_SERVER_BASE.toLowerCase());
 
   /* The one row the page belongs to. Rows can nest (GPU Servers is a page
      inside Cloud Server), so the longest matching path wins, as in the

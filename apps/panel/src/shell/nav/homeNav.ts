@@ -2,7 +2,7 @@ import { Bot, Cloud, Code2, Cpu, Factory, HardDrive, House, MapPin, Microchip, S
 import { solutionPath } from "@paapeli/brand/config";
 import { AI_INFERENCE_BASE } from "./aiInferenceNav";
 import { CLOUD_SERVER_BASE, CLOUD_SERVER_GPU_PATH } from "./cloudServerNav";
-import { SHOW_IAAS, SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
+import { OPEN_CLOUD_SERVER, SHOW_IAAS, SHOW_UNRELEASED_PRODUCTS } from "@/shared/config";
 import type { NavItem, NavSection } from "./types";
 
 /* Home's sidebar is the product list and nothing else.
@@ -36,10 +36,7 @@ const items: NavItem[] = [
     children: [
       { title: "Smart Factory", icon: Factory, path: solutionPath("SmartFactory") },
       { title: "Fleet Management", icon: MapPin, path: solutionPath("GPSTracking") },
-      /* Staging only until it launches. */
-      ...(SHOW_UNRELEASED_PRODUCTS
-        ? [{ title: "Smart Greenhouse", icon: Sprout, path: solutionPath("SmartGreenhouse") }]
-        : []),
+      { title: "Smart Greenhouse", icon: Sprout, path: solutionPath("SmartGreenhouse") },
     ],
   },
   {
@@ -64,7 +61,12 @@ const items: NavItem[] = [
           icon: HardDrive,
           path: IAAS_PATH,
           defaultOpen: true,
-          children: [{ title: "Cloud Server", icon: Server, path: CLOUD_SERVER_BASE }],
+          /* Listed everywhere, opens only where OPEN_CLOUD_SERVER says. */
+          children: [
+            OPEN_CLOUD_SERVER
+              ? { title: "Cloud Server", icon: Server, path: CLOUD_SERVER_BASE }
+              : { title: "Cloud Server", icon: Server, comingSoon: true },
+          ],
         },
       ]
     : []),
