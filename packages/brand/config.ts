@@ -86,7 +86,9 @@ export const DEFAULT_BRAND: BrandConfig = {
   appName: "Paapeli",
   primary: "28 100% 50%",
   primaryForeground: "0 0% 100%",
-  defaultLang: "en",
+  /* Persian first, as on paapeli.com: most of our users are in Iran. A
+     saved choice or ?lang= still wins. */
+  defaultLang: "fa",
   features: { geofences: true, playback: true, alerts: true, health: true, attendance: true },
 };
 
