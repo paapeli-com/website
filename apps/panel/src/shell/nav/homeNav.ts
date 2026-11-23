@@ -17,7 +17,10 @@ import type { NavItem, NavSection } from "./types";
  * than a link that lands on nothing.
  *
  * AI Inference is open on staging only; production lists it as coming soon
- * too, until it launches. */
+ * too, until it launches.
+ *
+ * Every family starts open, so the whole product list is visible on arrival
+ * without a click per family. */
 /* Each family's own page under Home. A family row in the sidebar opens it as
    well as its products, as the header switcher's family headings do. */
 const AIOT_PATH = "/Home/aiot";
@@ -29,6 +32,7 @@ const items: NavItem[] = [
     title: "AIoT",
     icon: Cpu,
     path: AIOT_PATH,
+    defaultOpen: true,
     children: [
       { title: "Smart Factory", icon: Factory, path: solutionPath("SmartFactory") },
       { title: "Fleet Management", icon: MapPin, path: solutionPath("GPSTracking") },
@@ -42,6 +46,7 @@ const items: NavItem[] = [
     title: "AI Infra",
     icon: Server,
     path: AI_INFRA_PATH,
+    defaultOpen: true,
     children: [
       SHOW_UNRELEASED_PRODUCTS
         ? { title: "AI Inference (MaaS)", icon: Server, path: AI_INFERENCE_BASE }
@@ -58,6 +63,7 @@ const items: NavItem[] = [
           title: "IaaS",
           icon: HardDrive,
           path: IAAS_PATH,
+          defaultOpen: true,
           children: [{ title: "Cloud Server", icon: Server, path: CLOUD_SERVER_BASE }],
         },
       ]
