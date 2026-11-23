@@ -20,6 +20,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
+import { HomeCrumb } from "@/shell/HomeCrumb";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useShellT } from "@/shared/i18n/shell";
 import { cn } from "@/shared/lib/utils";
@@ -85,6 +86,7 @@ export function CreateHeader({
           page, then this one, as Alarms > Rules > Create rule is. */}
       <Breadcrumb className="mb-3">
         <BreadcrumbList>
+          <HomeCrumb />
           <BreadcrumbItem>
             <BreadcrumbLink onClick={() => navigate(listPath)} className="cursor-pointer">
               {shellT("Compute")}
@@ -118,6 +120,7 @@ export function PageBreadcrumb({ items }: { items: { label: string; path?: strin
   return (
     <Breadcrumb className="mb-3">
       <BreadcrumbList>
+        <HomeCrumb />
         {items.map((item, i) => (
           <Fragment key={item.label}>
             {i > 0 && <BreadcrumbSeparator />}

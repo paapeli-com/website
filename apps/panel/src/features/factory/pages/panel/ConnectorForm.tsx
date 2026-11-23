@@ -36,6 +36,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
+import { HomeCrumb } from "@/shell/HomeCrumb";
 import { Cpu, Radio, Network, Plus, Trash2, Server, Shield, ListTree } from "lucide-react";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 
@@ -176,6 +177,7 @@ const ConnectorForm = () => {
     <>
       <Breadcrumb className="mb-3">
         <BreadcrumbList>
+          <HomeCrumb />
           <BreadcrumbItem>
             <BreadcrumbLink className="cursor-default text-muted-foreground">{t("assetsLabel")}</BreadcrumbLink>
           </BreadcrumbItem>

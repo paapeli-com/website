@@ -24,6 +24,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
+import { HomeCrumb } from "@/shell/HomeCrumb";
 import { Upload, Package, Lock } from "lucide-react";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { currentProductKey } from "@/features/factory/lib/product";
@@ -184,6 +185,7 @@ const FirmwareForm = () => {
     <>
       <Breadcrumb className="mb-3">
         <BreadcrumbList>
+          <HomeCrumb />
           <BreadcrumbItem>
             <BreadcrumbLink onClick={() => navigate(lp("/firmware"))} className="cursor-pointer">
               {t("otaBreadcrumb")}

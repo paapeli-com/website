@@ -16,6 +16,7 @@ import {
   Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
   BreadcrumbPage, BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
+import { HomeCrumb } from "@/shell/HomeCrumb";
 import {
   Search, RefreshCw, Calendar, ChevronRight,
   ChevronUp, FileText, Users, Settings, Sparkles,
@@ -174,6 +175,7 @@ const Activities = () => {
       <div dir={isRTL ? "rtl" : "ltr"}>
       <Breadcrumb className="mb-3">
         <BreadcrumbList>
+          <HomeCrumb />
           <BreadcrumbItem>
             <BreadcrumbLink onClick={() => navigate(lp("/home"))} className="cursor-pointer">{tr("overview")}</BreadcrumbLink>
           </BreadcrumbItem>

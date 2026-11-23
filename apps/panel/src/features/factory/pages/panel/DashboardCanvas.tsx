@@ -58,6 +58,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
+import { HomeCrumb } from "@/shell/HomeCrumb";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -583,6 +584,7 @@ const DashboardCanvas = () => {
             {!fullscreen && (
               <Breadcrumb className="mb-2">
                 <BreadcrumbList>
+                  <HomeCrumb />
                   <BreadcrumbItem><BreadcrumbLink onClick={() => go("/dashboard")} className="cursor-pointer">{tt("dashboards")}</BreadcrumbLink></BreadcrumbItem>
                   <BreadcrumbSeparator />
                   <BreadcrumbItem><BreadcrumbPage>{record.name}</BreadcrumbPage></BreadcrumbItem>

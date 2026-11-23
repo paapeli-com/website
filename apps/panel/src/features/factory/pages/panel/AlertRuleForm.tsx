@@ -12,6 +12,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
+import { HomeCrumb } from "@/shell/HomeCrumb";
 import { AlertRuleWizard } from "@/features/factory/components/alerts/AlertRuleWizard";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
@@ -70,6 +71,7 @@ const AlertRuleForm = () => {
     <div data-uniform-type>
       <Breadcrumb className="mb-3">
         <BreadcrumbList>
+          <HomeCrumb />
           <BreadcrumbItem>
             <BreadcrumbLink onClick={() => navigate(lp("/alarms"))} className="cursor-pointer">
               {tt("alarms")}

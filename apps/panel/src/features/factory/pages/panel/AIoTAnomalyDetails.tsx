@@ -19,6 +19,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
+import { HomeCrumb } from "@/shell/HomeCrumb";
 import {
   ChevronLeft,
   Check,
@@ -157,6 +158,7 @@ const AIoTAnomalyDetails = () => {
       <div className="mb-4">
         <Breadcrumb>
           <BreadcrumbList>
+            <HomeCrumb />
             <BreadcrumbItem>
               <BreadcrumbLink onClick={() => navigate(lp("/aiot/detect-anomalies"))} className="cursor-pointer">
                 {t("detectAnomalies")}

@@ -15,6 +15,7 @@ import {
   Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
+import { HomeCrumb } from "@/shell/HomeCrumb";
 import { Send, X, Mail, ShieldCheck, MessageSquare } from "lucide-react";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { INVITES_STORAGE_KEY } from "@/features/factory/data/workspaceMembers";
@@ -135,6 +136,7 @@ const InviteMemberForm = () => {
     <>
       <Breadcrumb className="mb-4">
         <BreadcrumbList>
+          <HomeCrumb />
           <BreadcrumbItem>
             <BreadcrumbLink onClick={() => navigate(lp("/members"))} className="cursor-pointer">
               {t("members")}

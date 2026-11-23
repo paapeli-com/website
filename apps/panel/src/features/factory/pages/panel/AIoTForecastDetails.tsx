@@ -21,6 +21,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
+import { HomeCrumb } from "@/shell/HomeCrumb";
 import {
   ChevronLeft,
   Check,
@@ -150,6 +151,7 @@ const AIoTForecastDetails = () => {
       <div className="mb-4">
         <Breadcrumb>
           <BreadcrumbList>
+            <HomeCrumb />
             <BreadcrumbItem>
               <BreadcrumbLink onClick={() => navigate(lp("/aiot/forecast-failures"))} className="cursor-pointer">
                 {t("forecastTitle")}

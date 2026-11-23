@@ -20,6 +20,7 @@ import {
   Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
   BreadcrumbPage, BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
+import { HomeCrumb } from "@/shell/HomeCrumb";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
   DialogHeader, DialogTitle,
@@ -424,6 +425,7 @@ const DeviceDetails = () => {
         {/* Breadcrumb */}
         <Breadcrumb className="mb-4">
           <BreadcrumbList>
+            <HomeCrumb />
             <BreadcrumbItem>
               <BreadcrumbLink onClick={() => navigate(lp("/devices"))} className="cursor-pointer">{t("assets")}</BreadcrumbLink>
             </BreadcrumbItem>

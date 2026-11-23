@@ -11,6 +11,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
+import { HomeCrumb } from "@/shell/HomeCrumb";
 import { CreateChannelDialog } from "@/features/factory/components/alerts/CreateChannelDialog";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 
@@ -30,6 +31,7 @@ const ChannelForm = () => {
     <div data-uniform-type>
       <Breadcrumb className="mb-3">
         <BreadcrumbList>
+          <HomeCrumb />
           <BreadcrumbItem>
             <BreadcrumbLink onClick={() => navigate(lp("/alarms"))} className="cursor-pointer">
               {tt("alarms")}

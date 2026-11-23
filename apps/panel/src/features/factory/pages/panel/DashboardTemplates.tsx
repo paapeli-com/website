@@ -11,6 +11,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
+import { HomeCrumb } from "@/shell/HomeCrumb";
 import { ArrowLeft, Plus, LayoutGrid } from "lucide-react";
 import {
   emptyDashboardDefinition,
@@ -152,6 +153,7 @@ const DashboardTemplates = () => {
     <>
       <Breadcrumb className="mb-4">
         <BreadcrumbList>
+          <HomeCrumb />
           <BreadcrumbItem>
             <BreadcrumbLink onClick={() => navigate(lp("/dashboard"))} className="cursor-pointer">
               {tt("dashboards")}

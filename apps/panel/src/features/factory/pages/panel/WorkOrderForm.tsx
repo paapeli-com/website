@@ -27,6 +27,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
+import { HomeCrumb } from "@/shell/HomeCrumb";
 import { BellRing, ChevronLeft, Wrench } from "lucide-react";
 import {
   useWorkOrder,
@@ -241,6 +242,7 @@ const WorkOrderForm = () => {
       <div className="mb-4">
         <Breadcrumb>
           <BreadcrumbList>
+            <HomeCrumb />
             <BreadcrumbItem>
               <BreadcrumbLink onClick={() => navigate(lp("/work-orders"))} className="cursor-pointer">
                 {t("workOrders")}

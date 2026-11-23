@@ -2,6 +2,7 @@ import { Fragment } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { navTrail } from "@/shell/nav/resolveNavEntry";
+import { HomeCrumb } from "@/shell/HomeCrumb";
 import { useShellT } from "@/shared/i18n/shell";
 import { cn } from "@/shared/lib/utils";
 
@@ -18,6 +19,7 @@ export function PageBreadcrumb({ className }: { className?: string }) {
   return (
     <nav aria-label="breadcrumb" className={cn("mb-3", className)}>
       <ol className="flex flex-wrap items-center gap-1.5 break-words text-sm text-muted-foreground sm:gap-2.5">
+        <HomeCrumb />
         {trail.map((crumb, i) => {
           const last = i === trail.length - 1;
           return (

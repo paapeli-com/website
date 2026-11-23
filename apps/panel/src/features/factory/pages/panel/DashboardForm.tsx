@@ -45,6 +45,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
+import { HomeCrumb } from "@/shell/HomeCrumb";
 import { ChevronUp, UploadCloud, X, Info, Loader2, Plus } from "lucide-react";
 import { isBuiltInDashboardId } from "@/features/factory/hooks/useDashboards";
 import { useAssetLocations } from "@/features/factory/hooks/useAssetLocations";
@@ -499,6 +500,7 @@ const DashboardForm = () => {
     <>
       <Breadcrumb className="mb-3">
         <BreadcrumbList>
+          <HomeCrumb />
           <BreadcrumbItem>
             <BreadcrumbLink onClick={() => navigate(lp("/dashboard"))} className="cursor-pointer">{tt("dashboards")}</BreadcrumbLink>
           </BreadcrumbItem>

@@ -11,6 +11,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
+import { HomeCrumb } from "@/shell/HomeCrumb";
 import { CreateEscalationDialog } from "@/features/factory/components/alerts/CreateEscalationDialog";
 import { localizedPath } from "@/features/factory/lib/localizedPath";
 
@@ -31,6 +32,7 @@ const EscalationForm = () => {
     <>
       <Breadcrumb className="mb-3">
         <BreadcrumbList>
+          <HomeCrumb />
           <BreadcrumbItem>
             <BreadcrumbLink onClick={() => navigate(lp("/alarms"))} className="cursor-pointer">
               {tt("alarms")}

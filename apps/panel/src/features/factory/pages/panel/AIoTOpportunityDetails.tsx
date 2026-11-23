@@ -16,6 +16,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/features/factory/components/ui/breadcrumb";
+import { HomeCrumb } from "@/shell/HomeCrumb";
 import {
   Dialog,
   DialogContent,
@@ -132,6 +133,7 @@ const AIoTOpportunityDetails = () => {
       <div className="mb-4">
         <Breadcrumb>
           <BreadcrumbList>
+            <HomeCrumb />
             <BreadcrumbItem>
               <BreadcrumbLink onClick={() => navigate(lp("/aiot/analyze-trends"))} className="cursor-pointer">
                 {t("analyzeTrendsLabel")}

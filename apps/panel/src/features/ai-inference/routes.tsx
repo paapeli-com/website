@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { HomeCrumb } from "@/shell/HomeCrumb";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { LanguageProvider } from "@/features/factory/contexts/LanguageContext";
@@ -55,6 +56,9 @@ function Breadcrumbs() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 px-4 pt-4 lg:px-6">
       <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <ol className="contents">
+          <HomeCrumb />
+        </ol>
         <button
           type="button"
           onClick={() => navigate(AI_INFERENCE_BASE)}
