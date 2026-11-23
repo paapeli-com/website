@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Language } from '@/src/i18n/translations';
+import { localePath, routeOf } from '@/lib/seo';
 
 const languages = [
   { code: 'en' as Language, name: 'English', nativeName: 'English' },
@@ -21,19 +22,11 @@ export const LanguageSwitcher = () => {
   /* The same page in another language, which means dropping the locale
      prefix the current path carries and putting the new one on.
 
-     The lookahead matters: without it "/energy-monitoring" starts with
-     "/en" and gets chopped down to "ergy-monitoring". Only a whole path
-     segment is a locale.
-
-     English lives at the bare path. Linking it to "/en/..." would point
-     every page at a 301 to its own bare address, which spends a
-     crawler's budget on a URL that only sends it somewhere else. */
-  const getPathForLanguage = (lang: Language) => {
-    const pathWithoutLang = pathname.replace(/^\/(en|ar|fa)(?=\/|$)/, '');
-    return lang === 'en'
-      ? pathWithoutLang || '/'
-      : `/${lang}${pathWithoutLang || ''}`;
-  };
+     routeOf only strips a whole path segment, so "/energy-monitoring"
+     is not mistaken for "/en" + "ergy-monitoring". localePath leaves the
+     default locale at the bare path: linking it to "/fa/..." would point
+     every page at a 301 to its own bare address. */
+  const getPathForLanguage = (lang: Language) => localePath(lang, routeOf(pathname));
 
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);

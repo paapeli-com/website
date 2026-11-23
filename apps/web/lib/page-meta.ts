@@ -122,23 +122,6 @@ export const PAGE_META: Record<string, Partial<Record<Locale, PageMeta>>> = {
         "معالجة البيانات بجوار الأجهزة التي تنتجها: زمن استجابة أقل، واستهلاك أقل للنطاق، وتحكم محلي يستمر عند انقطاع الاتصال بالسحابة.",
     },
   },
-  "/edge-hub": {
-    en: {
-      title: "Edge Hub: connect and manage devices at the edge",
-      description:
-        "Onboard, monitor, and update industrial assets and edge devices across every site, with support for the protocols your equipment already speaks.",
-    },
-    fa: {
-      title: "Edge Hub: اتصال و مدیریت دستگاه‌های لبه و گیت‌وی",
-      description:
-        "تجهیزات صنعتی و دستگاه‌های لبه را در همهٔ سایت‌ها راه‌اندازی، پایش و با OTA به‌روزرسانی کنید؛ با پشتیبانی از MQTT، OPC-UA و Modbus.",
-    },
-    ar: {
-      title: "Edge Hub: ربط الأجهزة الطرفية والبوابات وإدارتها",
-      description:
-        "أضف الأصول الصناعية والأجهزة الطرفية وراقبها وحدّثها عبر OTA في كل المواقع، مع دعم MQTT وOPC-UA وModbus.",
-    },
-  },
   "/energy-monitoring": {
     en: {
       title: "AIoT technology for energy monitoring",
@@ -309,57 +292,6 @@ export const PAGE_META: Record<string, Partial<Record<Locale, PageMeta>>> = {
         "بابيلي مزوّد لتقنية AIoT. يستطيع مالكو الأساطيل ومزوّدو التيليماتكس والمقاولون الذين يخدمونهم استخدام بنيتنا السحابية والحوسبة الطرفية وإنترنت الأشياء لتتبّع المركبات والمعدات والشحنات على نطاق واسع.",
     },
   },
-  "/gps-tracking": {
-    en: {
-      title: "Real-time GPS tracking for pets, kids and vehicles",
-      description:
-        "One app to locate your pets, kids, and vehicles in real time, with geofencing, instant alerts, and full location history, powered by the Paapeli AIoT platform.",
-    },
-    fa: {
-      title: "ردیاب GPS لحظه‌ای برای خودرو، کودک و حیوان خانگی",
-      description:
-        "با یک اپلیکیشن، موقعیت خودرو، فرزند و حیوان خانگی‌تان را لحظه‌ای ببینید؛ با حصار جغرافیایی، هشدار فوری، دکمهٔ SOS و تاریخچهٔ کامل مسیر.",
-    },
-    ar: {
-      title: "تتبّع GPS لحظي للسيارات والأطفال والحيوانات الأليفة",
-      description:
-        "تطبيق واحد لمعرفة موقع سيارتك وأطفالك وحيوانك الأليف لحظياً، مع سياج جغرافي وتنبيهات فورية وزر SOS وسجل كامل للمسارات.",
-    },
-  },
-  "/infrastructure-hub": {
-    en: {
-      title: "Infrastructure Hub: mission-critical monitoring",
-      description:
-        "Monitor and manage the systems the world depends on: energy, utilities and critical facilities, with the reliability and security they demand.",
-    },
-    fa: {
-      title: "Infrastructure Hub: پایش زیرساخت‌های حیاتی",
-      description:
-        "پایش و مدیریت سامانه‌های حیاتی مثل انرژی، تأسیسات شهری و اماکن حساس، با پایداری و امنیتی که این زیرساخت‌ها لازم دارند.",
-    },
-    ar: {
-      title: "Infrastructure Hub: مراقبة البنية التحتية الحرجة",
-      description:
-        "راقب وأدِر الأنظمة الحيوية مثل الطاقة والمرافق والمنشآت الحساسة، بالموثوقية والأمان اللذين تتطلبهما.",
-    },
-  },
-  "/intelligence-hub": {
-    en: {
-      title: "Intelligence Hub: predict, detect and optimize",
-      description:
-        "Turn operational data into foresight: predict failures before they happen, detect anomalies in real time, and continuously optimize performance.",
-    },
-    fa: {
-      title: "Intelligence Hub: نگهداری پیش‌بینانه و تشخیص ناهنجاری",
-      description:
-        "دادهٔ عملیاتی را به آینده‌نگری تبدیل کنید: خرابی را پیش از وقوع پیش‌بینی کنید، ناهنجاری را لحظه‌ای تشخیص دهید و عملکرد را پیوسته بهینه کنید.",
-    },
-    ar: {
-      title: "Intelligence Hub: الصيانة التنبؤية وكشف الشذوذ",
-      description:
-        "حوّل البيانات التشغيلية إلى استشراف: تنبّأ بالأعطال قبل وقوعها، واكتشف الشذوذ لحظياً، وحسّن الأداء باستمرار.",
-    },
-  },
   "/intelligence-insight": {
     en: {
       title: "Intelligence Insight: AI analytics on device data",
@@ -392,23 +324,6 @@ export const PAGE_META: Record<string, Partial<Record<Locale, PageMeta>>> = {
       title: "تقنية AIoT للنفط والغاز",
       description:
         "بابيلي مزوّد لتقنية AIoT. يمكن لمشغّلي النفط والغاز ولمقاولي EPC والخدمات الميدانية الاعتماد على بنيتنا السحابية والحوسبة الطرفية وإنترنت الأشياء لتقديم خدمات طاقة أذكى وأكثر أماناً.",
-    },
-  },
-  "/operations-hub": {
-    en: {
-      title: "Operations Hub: unified operational visibility",
-      description:
-        "Monitor every asset, process, and site in real time, with AI-driven insight that turns raw data into operational decisions.",
-    },
-    fa: {
-      title: "Operations Hub: پایش یکپارچهٔ عملیات صنعتی",
-      description:
-        "همهٔ دارایی‌ها، فرایندها و سایت‌ها را لحظه‌ای پایش کنید و با تحلیل هوش مصنوعی، دادهٔ خام را به تصمیم عملیاتی تبدیل کنید.",
-    },
-    ar: {
-      title: "Operations Hub: رؤية تشغيلية موحّدة للصناعة",
-      description:
-        "راقب كل أصل وعملية وموقع لحظياً، مع تحليلات بالذكاء الاصطناعي تحوّل البيانات الخام إلى قرارات تشغيلية.",
     },
   },
   "/pricing": {

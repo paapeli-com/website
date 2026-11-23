@@ -302,8 +302,8 @@ export function LinkedText({
       if (m.start > cursor) {
         out.push(<Fragment key={"t" + i}>{text.slice(cursor, m.start)}</Fragment>);
       }
-      /* localePath, not "/" + language: English has no prefix, and
-         "/en/..." only 301s back to the address this should have been. */
+      /* localePath, not "/" + language: Persian has no prefix, and
+         "/fa/..." only 301s back to the address this should have been. */
       out.push(
         <Link key={"l" + i} href={localePath(language, m.href)} className={linkClass}>
           {text.slice(m.start, m.end)}

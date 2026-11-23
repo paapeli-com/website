@@ -91,9 +91,9 @@ export function FeatureLanding({ config }: { config: FeatureConfig }) {
 
   const copy = config.copy[language] ?? config.copy.en;
   const self = featureHref(config.slug);
-  /* localePath, not "/" + language + href: English lives at the bare
+  /* localePath, not "/" + language + href: Persian lives at the bare
      path, so the hand-rolled version pointed every in-page link at
-     /en/..., which 301s to the address it should have used in the first
+     /fa/..., which 301s to the address it should have used in the first
      place. Google logs those as "page with redirect" and spends a crawl
      on each one to be told to go somewhere else. */
   const localize = (href: string) => localePath(language, href);

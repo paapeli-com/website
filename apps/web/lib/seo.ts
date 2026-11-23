@@ -1,8 +1,8 @@
 /* ------------------------------------------------------------------ */
 /* Addresses, as search engines see them.                              */
 /*                                                                     */
-/* Every page is served in three languages, and the English one is     */
-/* served at two addresses: its bare path, and the /en prefix the      */
+/* Every page is served in three languages, and the Persian one is     */
+/* served at two addresses: its bare path, and the /fa prefix the      */
 /* middleware rewrites to. Google has to be told which of those is the */
 /* page's real address (canonical) and which are the same page in      */
 /* another language (hreflang) — left alone it folds them together and */
@@ -14,8 +14,10 @@ export const SITE_URL = "https://www.paapeli.com";
 export const LOCALES = ["en", "fa", "ar"] as const;
 export type Locale = (typeof LOCALES)[number];
 
-/** English is the default locale, and it lives at the bare path. */
-export const DEFAULT_LOCALE: Locale = "en";
+/** Persian is the default locale, and it lives at the bare path. Most
+ *  readers are in Iran, so paapeli.com opens in their language; English
+ *  and Arabic keep their /en and /ar prefixes. */
+export const DEFAULT_LOCALE: Locale = "fa";
 
 /**
  * The locale a request path is in. Read it from the path rather than
@@ -32,8 +34,8 @@ export function localeOf(pathname: string): Locale {
 
 /**
  * The route behind a request path, with any locale prefix removed:
- * "/fa/gps-tracking" and "/en/gps-tracking" and "/gps-tracking" are all
- * the route "/gps-tracking".
+ * "/fa/fleet-tracking" and "/en/fleet-tracking" and "/fleet-tracking" are all
+ * the route "/fleet-tracking".
  */
 export function routeOf(pathname: string): string {
   const stripped = pathname.replace(
@@ -46,11 +48,11 @@ export function routeOf(pathname: string): string {
 /**
  * An in-site link to a route, in one language.
  *
- * English lives at the bare path, so "/pricing" is an English reader's
- * address and "/en/pricing" is a second address for the same page. Both
+ * Persian lives at the bare path, so "/pricing" is a Persian reader's
+ * address and "/fa/pricing" is a second address for the same page. Both
  * resolve, but only the bare one is canonical and only the bare one is
  * in the sitemap — so every internal link has to use it. A menu that
- * points at /en/... spends crawl budget on a URL whose own canonical
+ * points at /fa/... spends crawl budget on a URL whose own canonical
  * sends the crawler somewhere else.
  */
 export function localePath(language: string, route: string): string {
@@ -58,7 +60,7 @@ export function localePath(language: string, route: string): string {
   return language === DEFAULT_LOCALE ? path || "/" : `/${language}${path}`;
 }
 
-/** Where a route lives in one language. English keeps the bare path. */
+/** Where a route lives in one language. Persian keeps the bare path. */
 export function localeUrl(locale: Locale, route: string): string {
   const path = route === "/" ? "" : route;
   return locale === DEFAULT_LOCALE
@@ -68,8 +70,8 @@ export function localeUrl(locale: Locale, route: string): string {
 
 /**
  * The canonical address of a route in one language, plus the full set of
- * hreflang alternates. x-default points at English, which is what a
- * reader with no matching language gets.
+ * hreflang alternates. x-default points at English (under /en), which
+ * is what a reader with no matching language gets.
  */
 export function alternatesFor(locale: Locale, route: string) {
   return {
@@ -104,7 +106,6 @@ export const ROUTES: readonly string[] = [
   "/contact",
   "/ddos-protection",
   "/edge-computing",
-  "/edge-hub",
   "/energy-monitoring",
   "/features/alerts-events",
   "/features/anomaly-detection",
@@ -115,12 +116,8 @@ export const ROUTES: readonly string[] = [
   "/features/realtime-monitoring",
   "/features/solution-templates",
   "/fleet-tracking",
-  "/gps-tracking",
-  "/infrastructure-hub",
-  "/intelligence-hub",
   "/intelligence-insight",
   "/oil-gas",
-  "/operations-hub",
   "/pricing",
   "/request-demo",
   "/smart-agriculture",

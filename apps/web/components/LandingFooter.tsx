@@ -32,12 +32,13 @@ import { localePath } from "@/lib/seo";
    only body link to it anywhere on the site. */
 const COLUMN_HREFS: string[][] = [
   [
+    /* The header's Products menu, link for link, so the two never
+       disagree about what Paapeli sells. */
     "/aiot-platform",
-    "/operations-hub",
-    "/edge-hub",
-    "/intelligence-hub",
-    "/infrastructure-hub",
-    "/gps-tracking",
+    "/edge-computing",
+    "/features/ota-updates",
+    "/ddos-protection",
+    "/intelligence-insight",
   ],
   [
     "/smart-manufacturing",
@@ -67,7 +68,7 @@ const COPY: Record<string, Copy> = {
       "Paapeli is an AI-powered industrial IoT platform that helps organizations monitor assets, optimize operations, and unlock real-time insights from their data.",
     rights: (year) => `© ${year} Paapeli, Inc. All rights reserved.`,
     columns: [
-      { title: "Platform", labels: ["AIoT Platform", "Operations Hub", "Edge Hub", "Intelligence Hub", "Infrastructure Hub", "Tracking Hub"] },
+      { title: "Products", labels: ["AIoT Platform", "Edge Computing", "OTA", "DDoS Protection", "Intelligence Insight"] },
       { title: "Solutions", labels: ["Smart Manufacturing", "Smart Buildings", "Smart Agriculture", "Oil & Gas", "Energy Monitoring"] },
       { title: "Developers", labels: ["Documentation", "SDKs", "GitHub", "Platform Status"] },
       { title: "Resources", labels: ["Blog", "AI Readiness Assessment", "Pricing", "Request a Demo", "Contact", "Careers"] },
@@ -78,7 +79,7 @@ const COPY: Record<string, Copy> = {
       "پاپلی یک پلتفرم صنعتی اینترنت اشیا مبتنی بر هوش مصنوعی است که به سازمان‌ها کمک می‌کند دارایی‌ها را پایش کنند، عملیات را بهینه کنند و از داده‌های خود بینش لحظه‌ای بگیرند",
     rights: (year) => `© ${year} پاپلی. تمامی حقوق محفوظ است.`,
     columns: [
-      { title: "پلتفرم", labels: ["پلتفرم AIoT", "هاب عملیات", "هاب لبه", "هاب هوشمندی", "هاب زیرساخت", "هاب ردیابی"] },
+      { title: "محصولات", labels: ["پلتفرم AIoT", "رایانش لبه", "به‌روزرسانی OTA", "حفاظت در برابر DDoS", "بینش هوشمند"] },
       { title: "راهکارها", labels: ["تولید هوشمند", "ساختمان‌های هوشمند", "کشاورزی هوشمند", "نفت و گاز", "پایش انرژی"] },
       { title: "توسعه‌دهندگان", labels: ["مستندات", "SDK ها", "گیت‌هاب", "وضعیت پلتفرم"] },
       { title: "منابع", labels: ["بلاگ", "ارزیابی آمادگی هوش مصنوعی", "تعرفه‌ها", "درخواست دمو", "تماس با ما", "فرصت‌های شغلی"] },
@@ -89,7 +90,7 @@ const COPY: Record<string, Copy> = {
       "بابيلي منصة إنترنت أشياء صناعية مدعومة بالذكاء الاصطناعي تساعد المؤسسات على مراقبة أصولها وتحسين عملياتها واستخلاص رؤى لحظية من بياناتها",
     rights: (year) => `© ${year} بابيلي. جميع الحقوق محفوظة.`,
     columns: [
-      { title: "المنصة", labels: ["منصة AIoT", "مركز العمليات", "مركز الحافة", "مركز الذكاء", "مركز البنية التحتية", "مركز التتبع"] },
+      { title: "المنتجات", labels: ["منصة AIoT", "الحوسبة الطرفية", "تحديثات OTA", "الحماية من DDoS", "رؤى ذكية"] },
       { title: "الحلول", labels: ["التصنيع الذكي", "المباني الذكية", "الزراعة الذكية", "النفط والغاز", "مراقبة الطاقة"] },
       { title: "المطورون", labels: ["التوثيق", "حِزم SDK", "GitHub", "حالة المنصة"] },
       { title: "المصادر", labels: ["المدونة", "تقييم الجاهزية للذكاء الاصطناعي", "الأسعار", "اطلب عرضاً توضيحياً", "اتصل بنا", "الوظائف"] },

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { translations, Language, TranslationKey } from '@/lib/i18n/translations';
+import { DEFAULT_LOCALE, localePath, routeOf } from '@/lib/seo';
 
 interface LanguageContextType {
   language: Language;
@@ -29,7 +30,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode; lang?: Lang
       }
     }
 
-    return 'en';
+    return DEFAULT_LOCALE;
   };
 
   const [language, setLanguageState] = useState<Language>(getInitialLanguage());
@@ -41,10 +42,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode; lang?: Lang
       localStorage.setItem('lang', lang);
     }
 
-    const currentPath = pathname || '/';
-    const pathWithoutLang = currentPath.replace(/^\/(en|ar|fa)/, '');
-    const newPath = lang === 'en' ? (pathWithoutLang || '/') : `/${lang}${pathWithoutLang || ''}`;
-    router.push(newPath);
+    /* Same page, new language; the default locale keeps the bare path. */
+    router.push(localePath(lang, routeOf(pathname || '/')));
   };
 
   useEffect(() => {

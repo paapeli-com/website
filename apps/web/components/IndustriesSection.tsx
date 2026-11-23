@@ -35,7 +35,7 @@ const TAB_IMAGES: StaticImageData[] = [
 const TAB_HREFS: string[] = [
   "/smart-manufacturing",
   "/oil-gas",
-  "/infrastructure-hub",
+  "/smart-buildings",
   "/fleet-tracking",
   "/smart-agriculture",
 ];

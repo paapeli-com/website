@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronRight, ChevronsDown } from "lucide-react";
 
 import { useLanguage } from "@/contexts/LanguageContext";
 import { BRICS_2026_POST, blogPostHref } from "@/lib/blog-link";
@@ -24,6 +24,7 @@ const COPY: Record<
     description: string;
     primary: string;
     secondary: string;
+    scroll: string;
   }
 > = {
   en: {
@@ -34,6 +35,7 @@ const COPY: Record<
       "Paapeli is an AI-powered cloud IoT (AIoT) that helps you connect devices, collect insights, and control your infrastructure from anywhere.",
     primary: "Start Free",
     secondary: "Learn More",
+    scroll: "Scroll down",
   },
   fa: {
     badge: "بریکس ۲۰۲۶",
@@ -43,6 +45,7 @@ const COPY: Record<
       "با پلتفرم ابری AIoT پاپلی، دستگاه‌ها و تجهیزات خود را به یک پلتفرم ابری متصل کنید، داده‌های عملیاتی را به بینش تبدیل کنید و همه‌چیز را با کمک هوش مصنوعی، یکپارچه پایش و کنترل کنید.",
     primary: "شروع رایگان",
     secondary: "بیشتر بدانید",
+    scroll: "رفتن به پایین صفحه",
   },
   ar: {
     badge: "بريكس 2026",
@@ -52,12 +55,14 @@ const COPY: Record<
       "مع منصة بابيلي السحابية AIoT، اربط أجهزتك ومعداتك بمنصة سحابية واحدة، وحوّل البيانات التشغيلية إلى رؤى، وراقب كل شيء وتحكم فيه بمساعدة الذكاء الاصطناعي.",
     primary: "ابدأ مجانًا",
     secondary: "اعرف المزيد",
+    scroll: "انتقل إلى الأسفل",
   },
 };
 
 export const HeroSection = () => {
   const { isRTL, language } = useLanguage();
   const copy = COPY[language] ?? COPY.en;
+  const heroRef = useRef<HTMLElement>(null);
   const headlineRef = useRef<HTMLHeadingElement>(null);
   const pillRef = useRef<HTMLAnchorElement>(null);
   const [pillOffset, setPillOffset] = useState(0);
@@ -89,6 +94,7 @@ export const HeroSection = () => {
 
   return (
     <section
+      ref={heroRef}
       dir={isRTL ? "rtl" : "ltr"}
       className="relative isolate flex min-h-svh w-full items-center justify-center overflow-hidden bg-[#0a1420] px-6 pb-24 pt-32 sm:pb-32 sm:pt-40"
     >
@@ -172,6 +178,23 @@ export const HeroSection = () => {
           </a>
         </div>
       </div>
+
+      {/* Scroll cue. The hero fills the screen, so nothing below it peeks in
+          to say the page goes on; this does, breathing softly in the corner,
+          and a click carries the reader to the first section under it. */}
+      <button
+        type="button"
+        aria-label={copy.scroll}
+        onClick={() => {
+          const hero = heroRef.current;
+          if (!hero) return;
+          const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          window.scrollTo({ top: hero.offsetTop + hero.offsetHeight - 72, behavior: reduce ? "auto" : "smooth" });
+        }}
+        className="absolute bottom-8 end-8 hidden size-12 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20 sm:flex"
+      >
+        <ChevronsDown className="size-6 motion-safe:animate-pulse" />
+      </button>
     </section>
   );
 };
