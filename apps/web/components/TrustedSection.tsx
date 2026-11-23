@@ -40,7 +40,7 @@ const COPY: Record<string, Copy> = {
     slides: [
       {
         heading: "Easy",
-        description: "Deploy industrial AIoT solutions faster with a platform designed for simplicity and operational efficiency.",
+        description: "Deploy AIoT solutions for your factory, farm or fleet faster, with a platform designed for simplicity and efficiency.",
         items: [
           { title: "Fast Onboarding", description: "Connect devices and gateways in minutes." },
           { title: "Ready-to-Use Templates", description: "Accelerate deployment using industrial solution templates." },
@@ -75,7 +75,7 @@ const COPY: Record<string, Copy> = {
     slides: [
       {
         heading: "ساده",
-        description: "راهکارهای AIoT صنعتی را سریع‌تر مستقر کنید، با پلتفرمی که برای سادگی و بهره‌وری عملیاتی طراحی شده",
+        description: "راهکارهای AIoT را برای کارخانه، مزرعه یا ناوگان خود سریع‌تر مستقر کنید، با پلتفرمی که برای سادگی و بهره‌وری طراحی شده",
         items: [
           { title: "راه‌اندازی سریع", description: "دستگاه‌ها و گیت‌وی‌ها را در چند دقیقه متصل کنید" },
           { title: "قالب‌های آمادهٔ استفاده", description: "با قالب‌های راهکار صنعتی، استقرار را سریع‌تر کنید" },
@@ -109,7 +109,7 @@ const COPY: Record<string, Copy> = {
     slides: [
       {
         heading: "سهل",
-        description: "انشر حلول AIoT الصناعية بسرعة أكبر عبر منصة مصممة للبساطة والكفاءة التشغيلية",
+        description: "انشر حلول AIoT لمصنعك أو مزرعتك أو أسطولك بسرعة أكبر عبر منصة مصممة للبساطة والكفاءة",
         items: [
           { title: "إعداد سريع", description: "اربط الأجهزة والبوابات في دقائق" },
           { title: "قوالب جاهزة للاستخدام", description: "سرّع النشر باستخدام قوالب الحلول الصناعية" },
@@ -158,7 +158,7 @@ export const TrustedSection = () => {
   return (
     <section
       dir={isRTL ? "rtl" : "ltr"}
-      className="flex w-full flex-col items-center bg-white px-6 pb-10 pt-10 sm:pb-16 sm:pt-14"
+      className="flex w-full flex-col items-center bg-white dark:bg-card px-6 pb-10 pt-10 sm:pb-16 sm:pt-14"
     >
       <div className="flex w-full max-w-[1280px] flex-col items-center gap-12">
         {/* Block heading */}
@@ -175,7 +175,7 @@ export const TrustedSection = () => {
           <div
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
-            className="relative flex h-[448px] w-full max-w-[384px] shrink-0 flex-col items-center justify-end overflow-hidden rounded-xl border border-[#e5e7eb] py-8 shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)]"
+            className="relative flex h-[448px] w-full max-w-[384px] shrink-0 flex-col items-center justify-end overflow-hidden rounded-xl border border-[#e5e7eb] dark:border-border py-8 shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)]"
           >
             {/* The card is 384x448 but the photos are landscape, so object-cover
                 scales them by height: 448 x (1280/896) is about 640px of image
@@ -231,10 +231,10 @@ export const TrustedSection = () => {
               <p className="text-base text-muted-foreground rtl:text-sm">{slide.description}</p>
             </div>
 
-            <ul className="flex w-full flex-col gap-8 border-t border-[#f3f4f6] pt-8">
+            <ul className="flex w-full flex-col gap-8 border-t border-[#f3f4f6] dark:border-border pt-8">
               {slide.items.map((item) => (
                 <li key={item.title} className="flex items-start gap-4">
-                  <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#fff6ef]">
+                  <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#fff6ef] dark:bg-primary/10">
                     <Check className="size-7 text-primary" />
                   </span>
                   <div className="flex flex-col gap-2">

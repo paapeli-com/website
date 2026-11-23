@@ -134,7 +134,7 @@ export const DeviceDetailsContent = ({ deviceId, onBack }: DeviceDetailsContentP
           return (
             <div className="space-y-6">
             {/* Header with Back Button and Title */}
-            <div className="flex items-center justify-between pb-4 border-b">
+            <div className="flex items-center justify-between pb-4 border-[#e5e7eb] dark:border-border">
               <div className="flex items-center gap-4">
                 <Button
                   variant="ghost"
@@ -155,7 +155,7 @@ export const DeviceDetailsContent = ({ deviceId, onBack }: DeviceDetailsContentP
             </div>
 
             {/* Tabs */}
-            <div className="border-b border-border">
+            <div className="border-[#e5e7eb] dark:border-border border-border">
               <div className="flex gap-0">
                 <button
                   onClick={() => setActiveTab("details")}

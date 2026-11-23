@@ -18,10 +18,10 @@ export default function NotFound() {
   return (
     <html lang="en" dir="ltr" className={poppins.variable}>
       <body className={poppins.className}>
-        <main className="flex min-h-screen items-center justify-center bg-[#f9fafb] px-6">
+        <main className="flex min-h-screen items-center justify-center bg-[#f9fafb] dark:bg-background px-6">
           <div className="flex flex-col items-center gap-4 text-center">
-            <p className="text-5xl font-bold text-[#101828]">404</p>
-            <p className="text-lg text-[#4a5565]">
+            <p className="text-5xl font-bold text-[#101828] dark:text-foreground">404</p>
+            <p className="text-lg text-[#4a5565] dark:text-muted-foreground">
               We could not find the page you were looking for.
             </p>
             <Link

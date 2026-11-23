@@ -62,7 +62,7 @@ type Copy = {
 const COPY: Record<string, Copy> = {
   en: {
     heading: "Explore insights, real-world use cases, and best practices in AIoT.",
-    subheading: "Learn how to turn data into operational value and scale your industrial systems.",
+    subheading: "Learn how to turn data into operational value, from the factory and the farm to the fleet.",
     viewMore: "Read Blog",
     readMore: "Read more",
     date: "September 23, 2026",
@@ -78,7 +78,7 @@ const COPY: Record<string, Copy> = {
   },
   fa: {
     heading: "بینش‌ها، کاربردهای واقعی و بهترین شیوه‌ها در AIoT را کشف کنید",
-    subheading: "یاد بگیرید چطور داده را به ارزش عملیاتی تبدیل کنید و سامانه‌های صنعتی خود را مقیاس دهید",
+    subheading: "یاد بگیرید چطور داده را به ارزش عملیاتی تبدیل کنید، از کارخانه و مزرعه تا ناوگان حمل‌ونقل",
     viewMore: "بلاگ پاپلی را بخوانید",
     readMore: "ادامهٔ مطلب",
     date: "۱ مهر ۱۴۰۵",
@@ -94,7 +94,7 @@ const COPY: Record<string, Copy> = {
   },
   ar: {
     heading: "استكشف الرؤى وحالات الاستخدام الواقعية وأفضل الممارسات في AIoT",
-    subheading: "تعلّم كيف تحوّل البيانات إلى قيمة تشغيلية وتوسّع أنظمتك الصناعية",
+    subheading: "تعلّم كيف تحوّل البيانات إلى قيمة تشغيلية، من المصنع والمزرعة إلى أسطول النقل",
     viewMore: "اقرأ مدونة بابيلي",
     readMore: "اقرأ المزيد",
     date: "23 سبتمبر 2026",
@@ -110,7 +110,7 @@ const COPY: Record<string, Copy> = {
   },
 };
 const READ_MORE_BTN =
-  "inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-[0px_1px_0.25px_rgba(29,41,61,0.02)] transition-colors hover:bg-[#f3f4f6]";
+  "inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-[#e5e7eb] dark:border-border bg-[#f9fafb] dark:bg-background px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-[0px_1px_0.25px_rgba(29,41,61,0.02)] transition-colors hover:bg-[#f3f4f6] dark:hover:bg-muted";
 
 /* The blog is on the docs host, so these are plain anchors and full
    navigations rather than client-side routes. */
@@ -162,7 +162,7 @@ export const BlogSection = () => {
   return (
     <section
       dir={isRTL ? "rtl" : "ltr"}
-      className="flex w-full flex-col items-center border-y border-[#eef0f3] bg-[#f8fafc] px-6 pb-12 pt-12 sm:pb-16 sm:pt-16"
+      className="flex w-full flex-col items-center border-y border-[#eef0f3] dark:border-border bg-[#f8fafc] dark:bg-background px-6 pb-12 pt-12 sm:pb-16 sm:pt-16"
     >
       <div className="flex w-full max-w-[1280px] flex-col items-start gap-12">
         {/* Heading + View more */}
@@ -177,7 +177,7 @@ export const BlogSection = () => {
           </div>
           <a
             href={blogIndex}
-            className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[#e5e7eb] bg-white px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-[0px_1px_0.25px_rgba(29,41,61,0.02)] transition-colors hover:bg-[#f9fafb]"
+            className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[#e5e7eb] dark:border-border bg-white dark:bg-card px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-[0px_1px_0.25px_rgba(29,41,61,0.02)] transition-colors hover:bg-[#f9fafb] dark:hover:bg-background"
           >
             {copy.viewMore}
             <ArrowRight className="size-4 rtl:rotate-180" />
@@ -213,7 +213,7 @@ export const BlogSection = () => {
                     />
                     <span className="text-sm font-medium text-foreground">{AUTHOR.name}</span>
                   </div>
-                  <span className="size-1.5 rounded-full bg-[#d1d5dc]" aria-hidden />
+                  <span className="size-1.5 rounded-full bg-[#d1d5dc] dark:bg-muted" aria-hidden />
                   <div className="flex items-center gap-1.5">
                     <Clock className="size-4 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">{copy.date}</span>

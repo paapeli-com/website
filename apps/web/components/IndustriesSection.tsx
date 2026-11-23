@@ -51,7 +51,7 @@ type Copy = { heading: string; subheading: string; learnMore: string; industries
 
 const COPY: Record<string, Copy> = {
   en: {
-    heading: "Built for Every Industrial Environment",
+    heading: "One Platform for Factories, Farms, Fleets and Buildings",
     subheading:
       "Explore how Paapeli supports different industries with solutions that improve efficiency, reliability, and operational visibility.",
     learnMore: "Learn More",
@@ -109,7 +109,7 @@ const COPY: Record<string, Copy> = {
     ],
   },
   fa: {
-    heading: "ساخته‌شده برای هر محیط صنعتی",
+    heading: "یک پلتفرم برای کارخانه، کشاورزی، حمل‌ونقل و ساختمان",
     subheading:
       "ببینید پاپلی چگونه با راهکارهایی که کارایی، قابلیت اطمینان و دید عملیاتی را بالا می‌برند از صنایع مختلف پشتیبانی می‌کند",
     learnMore: "بیشتر بدانید",
@@ -167,7 +167,7 @@ const COPY: Record<string, Copy> = {
     ],
   },
   ar: {
-    heading: "مصمم لكل بيئة صناعية",
+    heading: "منصة واحدة للمصانع والزراعة والنقل والمباني",
     subheading:
       "اكتشف كيف يدعم بابيلي قطاعات مختلفة بحلول ترفع الكفاءة والموثوقية والوضوح التشغيلي",
     learnMore: "اعرف المزيد",
@@ -234,7 +234,7 @@ export const IndustriesSection = () => {
   return (
     <section
       dir={isRTL ? "rtl" : "ltr"}
-      className="flex w-full flex-col items-center gap-8 bg-white px-6 py-10 sm:gap-10 sm:py-14"
+      className="flex w-full flex-col items-center gap-8 bg-white dark:bg-card px-6 py-10 sm:gap-10 sm:py-14"
     >
       {/* Block heading */}
       <div className="flex w-full max-w-[768px] flex-col items-center gap-4 text-center">
@@ -247,7 +247,7 @@ export const IndustriesSection = () => {
       <div className="flex w-full max-w-[1280px] flex-col items-center gap-10">
         {/* Nav tabs */}
         {/* justify-center only from sm up: centering an overflowing flex row clips its start edge on small screens. */}
-        <div className="no-scrollbar flex w-full gap-6 overflow-x-auto border-b border-[#e5e7eb] sm:justify-center">
+        <div className="no-scrollbar flex w-full gap-6 overflow-x-auto border-[#e5e7eb] dark:border-border border-[#e5e7eb] dark:border-border sm:justify-center">
           {copy.industries.map((industry, i) => {
             const isActive = i === activeTab;
             return (
@@ -257,7 +257,7 @@ export const IndustriesSection = () => {
                 aria-current={isActive}
                 onClick={() => setActiveTab(i)}
                 className={cn(
-                  "-mb-px shrink-0 whitespace-nowrap border-b pb-4 text-sm font-medium transition-colors",
+                  "-mb-px shrink-0 whitespace-nowrap border-[#e5e7eb] dark:border-border pb-4 text-sm font-medium transition-colors",
                   isActive
                     ? "border-[#d56300] text-[#d56300]"
                     : "border-transparent text-muted-foreground hover:text-foreground"
@@ -284,7 +284,7 @@ export const IndustriesSection = () => {
             </Link>
           </div>
 
-          <div className="relative aspect-[600/332] w-full flex-1 overflow-hidden rounded-xl border border-[#e5e7eb] shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)] lg:aspect-auto lg:h-[332px]">
+          <div className="relative aspect-[600/332] w-full flex-1 overflow-hidden rounded-xl border border-[#e5e7eb] dark:border-border shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)] lg:aspect-auto lg:h-[332px]">
             <Image
               key={activeTab}
               src={TAB_IMAGES[activeTab]}

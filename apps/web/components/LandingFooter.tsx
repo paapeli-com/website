@@ -7,6 +7,7 @@ import { Github, Linkedin } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { BLOG_URL, localizeDocsUrl } from "@/lib/blog-link";
 import paapeliLogo from "@/src/assets/paapeli-logo.svg";
+import paapeliLogoOnDark from "@/src/assets/paapeli-logo-on-dark.svg";
 import { localePath } from "@/lib/seo";
 
 /* ------------------------------------------------------------------ */
@@ -65,7 +66,7 @@ type Copy = {
 const COPY: Record<string, Copy> = {
   en: {
     about:
-      "Paapeli is an AI-powered industrial IoT platform that helps organizations monitor assets, optimize operations, and unlock real-time insights from their data.",
+      "Paapeli is an AI-powered IoT (AIoT) platform for smart factories, smart agriculture, smart transportation and buildings, helping organizations monitor assets, optimize operations, and unlock real-time insights from their data.",
     rights: (year) => `© ${year} Paapeli, Inc. All rights reserved.`,
     columns: [
       { title: "Products", labels: ["AIoT Platform", "Edge Computing", "OTA", "DDoS Protection", "Intelligence Insight"] },
@@ -76,7 +77,7 @@ const COPY: Record<string, Copy> = {
   },
   fa: {
     about:
-      "پاپلی یک پلتفرم صنعتی اینترنت اشیا مبتنی بر هوش مصنوعی است که به سازمان‌ها کمک می‌کند دارایی‌ها را پایش کنند، عملیات را بهینه کنند و از داده‌های خود بینش لحظه‌ای بگیرند",
+      "پاپلی یک پلتفرم اینترنت اشیای مبتنی بر هوش مصنوعی (AIoT) برای صنعت هوشمند، کشاورزی هوشمند، حمل‌ونقل هوشمند و ساختمان است که به سازمان‌ها کمک می‌کند دارایی‌ها را پایش کنند، عملیات را بهینه کنند و از داده‌های خود بینش لحظه‌ای بگیرند",
     rights: (year) => `© ${year} پاپلی. تمامی حقوق محفوظ است.`,
     columns: [
       { title: "محصولات", labels: ["پلتفرم AIoT", "رایانش لبه", "به‌روزرسانی OTA", "حفاظت در برابر DDoS", "بینش هوشمند"] },
@@ -87,7 +88,7 @@ const COPY: Record<string, Copy> = {
   },
   ar: {
     about:
-      "بابيلي منصة إنترنت أشياء صناعية مدعومة بالذكاء الاصطناعي تساعد المؤسسات على مراقبة أصولها وتحسين عملياتها واستخلاص رؤى لحظية من بياناتها",
+      "بابيلي منصة إنترنت أشياء مدعومة بالذكاء الاصطناعي (AIoT) للصناعة الذكية والزراعة الذكية والنقل الذكي والمباني، تساعد المؤسسات على مراقبة أصولها وتحسين عملياتها واستخلاص رؤى لحظية من بياناتها",
     rights: (year) => `© ${year} بابيلي. جميع الحقوق محفوظة.`,
     columns: [
       { title: "المنتجات", labels: ["منصة AIoT", "الحوسبة الطرفية", "تحديثات OTA", "الحماية من DDoS", "رؤى ذكية"] },
@@ -132,14 +133,15 @@ export const LandingFooter = () => {
     href.startsWith("/") ? localePath(language, href) : localizeDocsUrl(language, href);
 
   return (
-    <footer dir={isRTL ? "rtl" : "ltr"} className="flex w-full flex-col items-center bg-white">
+    <footer dir={isRTL ? "rtl" : "ltr"} className="flex w-full flex-col items-center bg-white dark:bg-card">
       <div className="flex w-full max-w-[1280px] flex-col items-start gap-12 px-6 pb-8 pt-16">
         {/* Top content */}
         <div className="flex w-full flex-col items-start gap-12 lg:flex-row lg:gap-24">
           {/* Logo, description, socials */}
           <div className="flex w-full max-w-[384px] flex-col items-start gap-6 lg:shrink-0">
             <Link href={localize("/")} className="flex items-center gap-1.5">
-              <Image src={paapeliLogo} alt="Paapeli" width={30} height={30} />
+              <Image src={paapeliLogo} alt="Paapeli" width={30} height={30} className="dark:hidden" />
+              <Image src={paapeliLogoOnDark} alt="Paapeli" width={30} height={30} className="hidden dark:block" />
               <span className="font-poppins text-xl font-semibold text-foreground">Paapeli</span>
             </Link>
             <p className="text-base text-muted-foreground rtl:text-sm">{copy.about}</p>
@@ -196,7 +198,7 @@ export const LandingFooter = () => {
         </div>
 
         {/* Copyright */}
-        <div className="flex w-full flex-col items-start border-t border-[#f3f4f6] pt-8">
+        <div className="flex w-full flex-col items-start border-t border-[#f3f4f6] dark:border-border pt-8">
           <p className="w-full text-center text-base text-muted-foreground rtl:text-sm">
             {copy.rights(year)}
           </p>

@@ -9,6 +9,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext';
 import type { Language } from '@/lib/i18n/translations';
 import { metadataForRoute } from '@/lib/route-metadata';
 import { SITE_URL } from '@/lib/seo';
+import { THEME_BOOT_SCRIPT } from '@/lib/theme-boot';
 import Providers from '../providers';
 
 import { poppins, tajawal, vazirmatn } from '../fonts';
@@ -105,6 +106,10 @@ export default async function LangLayout({ children, params }: {
 
   return (
     <html lang={lang} dir={dir} className={poppins.variable} suppressHydrationWarning>
+      <head>
+        {/* Applies a saved dark theme before the first paint (lib/theme.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body className={fontClass}>
         <Providers>
           <TooltipProvider>
@@ -125,11 +130,11 @@ export default async function LangLayout({ children, params }: {
             gtag('js', new Date());
             /* GA4's own "language" is the browser's, which says nothing
                about which of the three translations was read. The locale
-               is in the address — English at the bare path, Persian and
-               Arabic behind a prefix — so it rides along with every hit
+               is in the address (Persian at the bare path, English and
+               Arabic behind a prefix), so it rides along with every hit
                as content_language. */
             var seg = location.pathname.split('/')[1];
-            var contentLanguage = (seg === 'fa' || seg === 'ar') ? seg : 'en';
+            var contentLanguage = (seg === 'en' || seg === 'ar') ? seg : 'fa';
             gtag('config', '${GA_MEASUREMENT_ID}', { content_language: contentLanguage });
           `}
         </Script>

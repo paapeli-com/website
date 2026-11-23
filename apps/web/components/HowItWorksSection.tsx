@@ -74,9 +74,11 @@ export const HowItWorksSection = () => {
       dir={isRTL ? "rtl" : "ltr"}
       /* scroll-mt keeps the heading clear of the fixed navbar when the hero's
          "Learn More" or a #how-it-works link brings someone here. */
-      className="relative flex w-full scroll-mt-20 flex-col items-center overflow-hidden bg-white"
+      className="relative flex w-full scroll-mt-20 flex-col items-center overflow-hidden bg-white dark:bg-card"
     >
-      {/* Faint background decoration */}
+      {/* Faint background decoration. It is a light image, so in dark mode
+          it is inverted and turned down to a faint texture rather than a
+          white band behind white text. */}
       <Image
         src={howBg}
         alt=""
@@ -84,7 +86,7 @@ export const HowItWorksSection = () => {
         width={1440}
         height={608}
         priority={false}
-        className="pointer-events-none absolute left-1/2 top-0 h-[608px] w-[1440px] max-w-none -translate-x-1/2 select-none"
+        className="pointer-events-none absolute left-1/2 top-0 h-[608px] w-[1440px] max-w-none -translate-x-1/2 select-none dark:opacity-10 dark:invert"
       />
 
       <div className="relative flex w-full max-w-[1152px] flex-col items-center gap-8 px-6 py-10 sm:gap-10 sm:py-14">
@@ -99,7 +101,7 @@ export const HowItWorksSection = () => {
         {/* iPad mockup with dashboard preview */}
         <div className="relative mx-auto aspect-[772/540] w-full max-w-[772px]">
           {/* Inner screen: dashboard + light dark overlay, clipped to the bezel radius */}
-          <div className="absolute inset-0 overflow-hidden rounded-[40px] border border-[#e5e7eb] shadow-[0px_1px_3px_0px_rgba(29,41,61,0.1),0px_1px_2px_-1px_rgba(29,41,61,0.1)]">
+          <div className="absolute inset-0 overflow-hidden rounded-[40px] border border-[#e5e7eb] dark:border-border shadow-[0px_1px_3px_0px_rgba(29,41,61,0.1),0px_1px_2px_-1px_rgba(29,41,61,0.1)]">
             <Image
               src={howDashboard}
               alt={copy.previewAlt}
@@ -147,7 +149,7 @@ export const HowItWorksSection = () => {
             const href = i === 1 ? null : contactHref(language, "home");
             const body = (
               <>
-                <span className="flex size-16 items-center justify-center rounded-full bg-[#f3f4f6] transition-colors group-hover:bg-[#fff1e6]">
+                <span className="flex size-16 items-center justify-center rounded-full bg-[#f3f4f6] dark:bg-muted transition-colors group-hover:bg-[#fff1e6] dark:group-hover:bg-primary/10">
                   <Icon className="size-9 text-foreground transition-colors group-hover:text-primary" strokeWidth={1.5} />
                 </span>
                 <div className="flex flex-col items-center gap-1.5">

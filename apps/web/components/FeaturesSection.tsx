@@ -25,7 +25,7 @@ const COPY: Record<string, Copy> = {
   en: {
     heading: "Drive Performance Across Your Operations",
     subheading:
-      "Connect every asset, act in real time, and continuously improve industrial performance.",
+      "Connect every asset, act in real time, and keep improving performance, on the factory floor, in the field or on the road.",
     cards: [
       {
         title: "Asset Connectivity",
@@ -52,7 +52,7 @@ const COPY: Record<string, Copy> = {
   fa: {
     heading: "عملکرد را در سراسر زیرساخت خود ارتقا دهید",
     subheading:
-      "هر دستگاهی را متصل کنید، لحظه‌ای واکنش نشان دهید و عملکرد صنعتی را پیوسته به کمک هوش مصنوعی بهبود دهید",
+      "هر دستگاهی را متصل کنید، لحظه‌ای واکنش نشان دهید و عملکرد را در کارخانه، مزرعه یا جاده پیوسته به کمک هوش مصنوعی بهبود دهید",
     cards: [
       {
         title: "اتصال تجهیزات",
@@ -79,7 +79,7 @@ const COPY: Record<string, Copy> = {
   ar: {
     heading: "ارفع الأداء عبر كل عملياتك",
     subheading:
-      "اربط كل أصل، وتفاعل في الوقت الفعلي، وحسّن الأداء الصناعي باستمرار",
+      "اربط كل أصل، وتفاعل في الوقت الفعلي، وحسّن الأداء باستمرار في المصنع أو الحقل أو على الطريق",
     cards: [
       {
         title: "توصيل الأصول",
@@ -112,7 +112,7 @@ export const FeaturesSection = () => {
   return (
     <section
       dir={isRTL ? "rtl" : "ltr"}
-      className="flex w-full flex-col items-center gap-7 bg-white px-6 py-10 sm:gap-8 sm:py-12"
+      className="flex w-full flex-col items-center gap-7 bg-white dark:bg-card px-6 py-10 sm:gap-8 sm:py-12"
     >
       <div className="flex w-full max-w-[880px] flex-col items-center gap-3 text-center">
         <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{copy.heading}</h2>
@@ -123,7 +123,7 @@ export const FeaturesSection = () => {
         {copy.cards.map((card, i) => (
           <article
             key={card.title}
-            className="flex flex-col overflow-hidden rounded-xl border border-[#e5e7eb] bg-white"
+            className="flex flex-col overflow-hidden rounded-xl border border-[#e5e7eb] dark:border-border bg-white dark:bg-card"
           >
             <div className="relative aspect-[2/1] w-full bg-[#0b1729]">
               <Image

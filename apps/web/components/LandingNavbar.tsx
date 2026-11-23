@@ -10,7 +10,9 @@ import {
   ChevronRight,
   LayoutTemplate,
   Menu,
+  Moon,
   Sparkles,
+  Sun,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -22,6 +24,7 @@ import paapeliLogo from "@/src/assets/paapeli-logo.svg";
 import paapeliLogoOnDark from "@/src/assets/paapeli-logo-on-dark.svg";
 import { cn } from "@/lib/utils";
 import { localePath } from "@/lib/seo";
+import { useTheme } from "@/lib/theme";
 
 /* ------------------------------------------------------------------ */
 /* Mega-menu data (English copy from Figma; links are placeholders).  */
@@ -194,17 +197,17 @@ const NAV_COPY: Record<string, Record<string, string>> = {
   en: {
     products: "Products", solution: "Solution", ecosystem: "Ecosystem",
     resources: "Resources", pricing: "Pricing",
-    dashboard: "Dashboard", toggleMenu: "Toggle menu", newBadge: "New",
+    dashboard: "Dashboard", toggleMenu: "Toggle menu", toggleTheme: "Toggle dark mode", newBadge: "New",
   },
   fa: {
     products: "محصولات", solution: "راهکارها", ecosystem: "اکوسیستم",
     resources: "منابع", pricing: "تعرفه‌ها",
-    dashboard: "داشبورد", toggleMenu: "باز و بسته کردن منو", newBadge: "جدید",
+    dashboard: "داشبورد", toggleMenu: "باز و بسته کردن منو", toggleTheme: "حالت تیره و روشن", newBadge: "جدید",
   },
   ar: {
     products: "المنتجات", solution: "الحلول", ecosystem: "النظام البيئي",
     resources: "المصادر", pricing: "الأسعار",
-    dashboard: "لوحة التحكم", toggleMenu: "فتح القائمة", newBadge: "جديد",
+    dashboard: "لوحة التحكم", toggleMenu: "فتح القائمة", toggleTheme: "الوضع الداكن والفاتح", newBadge: "جديد",
   },
 };
 
@@ -242,7 +245,7 @@ function MegaMenuItem({ item }: { item: MenuItem }) {
       href={href}
       target={external ? "_blank" : undefined}
       rel={external ? "noopener noreferrer" : undefined}
-      className="group flex w-full flex-col gap-1 rounded-lg border border-transparent p-3 transition-colors hover:border-[#ffcda1] hover:bg-[#fff7f0]"
+      className="group flex w-full flex-col gap-1 rounded-lg border border-transparent p-3 transition-colors hover:border-[#ffcda1] dark:hover:border-primary/30 hover:bg-[#fff7f0] dark:hover:bg-primary/10"
     >
       <p className="flex flex-wrap items-center gap-1.5 text-[15px] font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
         {copy.title}
@@ -381,8 +384,8 @@ function PromoCard({ menuKey }: { menuKey: keyof typeof MENUS }) {
 
   return (
     <aside className="hidden w-[280px] shrink-0 self-stretch xl:block">
-      <div className="flex h-full flex-col items-start gap-4 rounded-xl border border-[#e5e7eb] bg-[#fbfcfd] p-6">
-        <span className="flex size-11 items-center justify-center rounded-xl bg-[#fff1e6]">
+      <div className="flex h-full flex-col items-start gap-4 rounded-xl border border-[#e5e7eb] dark:border-border bg-[#fbfcfd] dark:bg-background p-6">
+        <span className="flex size-11 items-center justify-center rounded-xl bg-[#fff1e6] dark:bg-primary/10">
           <Icon className="size-5 text-primary" />
         </span>
         <div className="flex flex-col gap-2">
@@ -446,9 +449,9 @@ function MegaMenuDropdown({ openMenu }: { openMenu: keyof typeof MENUS | null })
       aria-hidden={!openMenu}
       style={{ height: openMenu ? height : 0 }}
       className={cn(
-        "absolute inset-x-0 top-full overflow-hidden bg-white transition-[height,opacity] duration-300 ease-out",
+        "absolute inset-x-0 top-full overflow-hidden bg-white dark:bg-card transition-[height,opacity] duration-300 ease-out",
         openMenu
-          ? "border-b border-[#e5e7eb] opacity-100 shadow-[0px_4px_6px_-4px_rgba(29,41,61,0.1),0px_10px_15px_-3px_rgba(29,41,61,0.1)]"
+          ? "border-[#e5e7eb] dark:border-border border-[#e5e7eb] dark:border-border opacity-100 shadow-[0px_4px_6px_-4px_rgba(29,41,61,0.1),0px_10px_15px_-3px_rgba(29,41,61,0.1)]"
           : "pointer-events-none opacity-0"
       )}
     >
@@ -479,14 +482,14 @@ function LanguageMenu({ onDark = false }: { onDark?: boolean }) {
         <span className="whitespace-nowrap">{current.label}</span>
         <ChevronDown className="size-[18px] transition-transform group-hover:rotate-180" />
       </button>
-      <div className="invisible absolute end-0 top-full z-50 mt-2 w-44 rounded-lg border border-[#e5e7eb] bg-white py-1 opacity-0 shadow-lg transition-all group-hover:visible group-hover:opacity-100">
+      <div className="invisible absolute end-0 top-full z-50 mt-2 w-44 rounded-lg border border-[#e5e7eb] dark:border-border bg-white dark:bg-card py-1 opacity-0 shadow-lg transition-all group-hover:visible group-hover:opacity-100">
         {LANGS.map((lang) => (
           <button
             key={lang.code}
             type="button"
             onClick={() => setLanguage(lang.code)}
             className={cn(
-              "flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-[#f9fafb]",
+              "flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-[#f9fafb] dark:hover:bg-background",
               language === lang.code ? "font-medium text-primary" : "text-muted-foreground"
             )}
           >
@@ -495,6 +498,25 @@ function LanguageMenu({ onDark = false }: { onDark?: boolean }) {
         ))}
       </div>
     </div>
+  );
+}
+
+/* Sun/moon switch, the panel header's own control. */
+function ThemeToggle({ onDark = false, label }: { onDark?: boolean; label: string }) {
+  const { dark, toggle } = useTheme();
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={label}
+      title={label}
+      className={cn(
+        "inline-flex size-9 items-center justify-center rounded-lg transition-colors",
+        onDark ? "text-white/85 hover:bg-white/15 hover:text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+      )}
+    >
+      {dark ? <Sun className="size-5" /> : <Moon className="size-5" />}
+    </button>
   );
 }
 
@@ -534,9 +556,9 @@ export const LandingNavbar = ({ overlay = false }: { overlay?: boolean }) => {
       dir={isRTL ? "rtl" : "ltr"}
       onMouseLeave={() => setOpenMenu(null)}
       className={cn(
-        "z-50 w-full border-b transition-colors duration-300",
+        "z-50 w-full border-[#e5e7eb] dark:border-border transition-colors duration-300",
         overlay ? "fixed inset-x-0 top-0" : "sticky top-0",
-        solid ? "border-[#e5e7eb] bg-white" : "border-transparent bg-transparent"
+        solid ? "border-[#e5e7eb] dark:border-border bg-white dark:bg-card" : "border-transparent bg-transparent"
       )}
     >
       <div className="mx-auto flex w-full max-w-[1280px] items-center gap-8 px-6 py-3">
@@ -549,22 +571,22 @@ export const LandingNavbar = ({ overlay = false }: { overlay?: boolean }) => {
               width={30}
               height={30}
               priority
-              className={cn("transition-opacity duration-300", solid ? "opacity-100" : "opacity-0")}
+              className={cn("transition-opacity duration-300", solid ? "opacity-100 dark:opacity-0" : "opacity-0")}
             />
-            {overlay ? (
-              <Image
-                src={paapeliLogoOnDark}
-                alt=""
-                aria-hidden
-                width={30}
-                height={30}
-                priority
-                className={cn(
-                  "absolute inset-0 transition-opacity duration-300",
-                  solid ? "opacity-0" : "opacity-100"
-                )}
-              />
-            ) : null}
+            {/* The on-dark mark: over the hero photo, and on the solid bar
+                in dark mode, where the regular mark's dark half vanishes. */}
+            <Image
+              src={paapeliLogoOnDark}
+              alt=""
+              aria-hidden
+              width={30}
+              height={30}
+              priority
+              className={cn(
+                "absolute inset-0 transition-opacity duration-300",
+                solid ? "opacity-0 dark:opacity-100" : "opacity-100"
+              )}
+            />
           </span>
           <span className={cn("font-poppins text-xl font-semibold transition-colors", solid ? "text-foreground" : "text-white")}>
             Paapeli
@@ -619,9 +641,12 @@ export const LandingNavbar = ({ overlay = false }: { overlay?: boolean }) => {
             {nav.dashboard}
           </a>
 
-          <div className={cn("hidden h-5 w-px transition-colors lg:block", solid ? "bg-[#e5e7eb]" : "bg-white/30")} />
+          <div className={cn("hidden h-5 w-px transition-colors lg:block", solid ? "bg-[#e5e7eb] dark:bg-muted" : "bg-white/30")} />
           <div className="hidden lg:block">
             <LanguageMenu onDark={!solid} />
+          </div>
+          <div className="hidden lg:block">
+            <ThemeToggle onDark={!solid} label={nav.toggleTheme} />
           </div>
 
           {/* Mobile menu toggle */}
@@ -631,7 +656,7 @@ export const LandingNavbar = ({ overlay = false }: { overlay?: boolean }) => {
             onClick={() => setMobileOpen((o) => !o)}
             className={cn(
               "inline-flex size-10 items-center justify-center rounded-lg transition-colors lg:hidden",
-              solid ? "text-muted-foreground hover:bg-[#f9fafb]" : "text-white hover:bg-white/15"
+              solid ? "text-muted-foreground hover:bg-[#f9fafb] dark:hover:bg-background" : "text-white hover:bg-white/15"
             )}
           >
             {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
@@ -662,7 +687,7 @@ export const LandingNavbar = ({ overlay = false }: { overlay?: boolean }) => {
           is not. */}
       <div
         className={cn(
-          "absolute inset-x-0 top-full z-50 max-h-[calc(100vh-100%)] overflow-y-auto border-t border-[#e5e7eb] bg-white px-6 py-4 shadow-[0px_10px_15px_-3px_rgba(29,41,61,0.1)] lg:hidden",
+          "absolute inset-x-0 top-full z-50 max-h-[calc(100vh-100%)] overflow-y-auto border-t border-[#e5e7eb] dark:border-border bg-white dark:bg-card px-6 py-4 shadow-[0px_10px_15px_-3px_rgba(29,41,61,0.1)] lg:hidden",
           !mobileOpen && "hidden"
         )}
       >
@@ -682,7 +707,7 @@ export const LandingNavbar = ({ overlay = false }: { overlay?: boolean }) => {
                       target={external ? "_blank" : undefined}
                       rel={external ? "noopener noreferrer" : undefined}
                       onClick={() => setMobileOpen(false)}
-                      className="rounded-lg px-2 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-[#f9fafb] hover:text-foreground"
+                      className="rounded-lg px-2 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-[#f9fafb] dark:hover:bg-background hover:text-foreground"
                     >
                       {(MENU_COPY[language] ?? MENU_COPY.en)[sub.id].title}
                     </Link>
@@ -694,14 +719,15 @@ export const LandingNavbar = ({ overlay = false }: { overlay?: boolean }) => {
                 key={item.id}
                 href={localize(item.href!)}
                 onClick={() => setMobileOpen(false)}
-                className="mt-3 rounded-lg px-2 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-[#f9fafb] hover:text-foreground"
+                className="mt-3 rounded-lg px-2 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-[#f9fafb] dark:hover:bg-background hover:text-foreground"
               >
                 {nav[item.id]}
               </Link>
             )
           )}
-          <div className="mt-3 border-t border-[#e5e7eb] pt-3">
+          <div className="mt-3 flex items-center justify-between border-t border-[#e5e7eb] dark:border-border pt-3">
             <LanguageMenu />
+            <ThemeToggle label={nav.toggleTheme} />
           </div>
         </nav>
       </div>

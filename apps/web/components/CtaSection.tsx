@@ -17,17 +17,17 @@ import { localePath } from "@/lib/seo";
 const COPY: Record<string, { heading: string; body: string; demo: string }> = {
   en: {
     heading: "Start building smarter operations today",
-    body: "See how Paapeli cloud can help you monitor, optimize, and scale your industrial systems.",
+    body: "See how Paapeli cloud can help you monitor, optimize, and scale your factory, greenhouse, fleet or building.",
     demo: "Book a Demo",
   },
   fa: {
     heading: "از امروز عملیات هوشمندتری بسازید",
-    body: "ببینید پلتفرم ابری پاپلی چطور کمک می‌کند سامانه‌های صنعتی خود را پایش، بهینه و مقیاس‌پذیر کنید",
+    body: "ببینید پلتفرم ابری پاپلی چطور کمک می‌کند کارخانه، گلخانه، ناوگان یا ساختمان خود را پایش، بهینه و مقیاس‌پذیر کنید",
     demo: "درخواست دمو",
   },
   ar: {
     heading: "ابدأ ببناء عمليات أذكى اليوم",
-    body: "اكتشف كيف تساعدك منصة بابيلي السحابية على مراقبة أنظمتك الصناعية وتحسينها وتوسيع نطاقها",
+    body: "اكتشف كيف تساعدك منصة بابيلي السحابية على مراقبة مصنعك أو بيتك المحمي أو أسطولك أو مبناك وتحسينه وتوسيع نطاقه",
     demo: "احجز عرضًا توضيحيًا",
   },
 };
@@ -39,11 +39,11 @@ export const CtaSection = () => {
   return (
     <section
       dir={isRTL ? "rtl" : "ltr"}
-      className="flex w-full flex-col items-center bg-white px-6 py-10 sm:py-14"
+      className="flex w-full flex-col items-center bg-white dark:bg-card px-6 py-10 sm:py-14"
     >
       <div className="flex w-full max-w-[1280px] items-center justify-center">
         <div
-          className="relative flex w-full max-w-[1024px] flex-col items-start gap-8 overflow-hidden rounded-2xl border border-[#ffcda1] bg-white bg-cover bg-center p-8 shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)] sm:p-14"
+          className="relative flex w-full max-w-[1024px] flex-col items-start gap-8 overflow-hidden rounded-2xl border border-[#ffcda1] dark:border-primary/30 bg-white bg-cover bg-center p-8 shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)] sm:p-14"
           style={{ backgroundImage: `url(${ctaGradient.src})` }}
         >
           {/* White leaf outlines clipped to the top-right corner. */}
@@ -57,6 +57,8 @@ export const CtaSection = () => {
 
           {/* Left content */}
           <div className="relative flex w-full max-w-[640px] flex-col items-start gap-4 text-[#101828]">
+            {/* The card is a light gradient photo in both themes, so its
+                text stays dark in both. */}
             {/* Width caps reproduce the design's line breaks ("…smarter / operations today" and "…your / industrial systems."). */}
             <h2 className="max-w-[560px] text-3xl font-semibold sm:text-[40px] sm:leading-normal rtl:text-2xl rtl:sm:text-[34px]">
               {copy.heading}

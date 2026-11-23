@@ -32,7 +32,7 @@ const COPY: Record<
     announcement: "Paapeli wins gold in Artificial Intelligence",
     title: "Build, Connect, and Manage IoT Infrastructure Intelligently",
     description:
-      "Paapeli is an AI-powered cloud IoT (AIoT) that helps you connect devices, collect insights, and control your infrastructure from anywhere.",
+      "Paapeli is an AI-powered IoT cloud (AIoT) for factories, farms, fleets and buildings. Connect your devices, turn their data into insight, and stay in control from anywhere.",
     primary: "Start Free",
     secondary: "Learn More",
     scroll: "Scroll down",
@@ -42,7 +42,7 @@ const COPY: Record<
     announcement: "پاپلی مدال طلای هوش مصنوعی را گرفت",
     title: "ساخت، اتصال و مدیریت هوشمند زیرساخت‌های اینترنت اشیا",
     description:
-      "با پلتفرم ابری AIoT پاپلی، دستگاه‌ها و تجهیزات خود را به یک پلتفرم ابری متصل کنید، داده‌های عملیاتی را به بینش تبدیل کنید و همه‌چیز را با کمک هوش مصنوعی، یکپارچه پایش و کنترل کنید.",
+      "از کارخانه و گلخانه تا ناوگان حمل‌ونقل و ساختمان، با پلتفرم ابری AIoT پاپلی دستگاه‌های خود را متصل کنید، داده‌ها را به بینش تبدیل کنید و همه‌چیز را با کمک هوش مصنوعی، یکپارچه پایش و کنترل کنید.",
     primary: "شروع رایگان",
     secondary: "بیشتر بدانید",
     scroll: "رفتن به پایین صفحه",
@@ -52,7 +52,7 @@ const COPY: Record<
     announcement: "بابيلي تفوز بذهبية الذكاء الاصطناعي",
     title: "اربط كل جهاز، وحوّل كل بيانات إلى قرار",
     description:
-      "مع منصة بابيلي السحابية AIoT، اربط أجهزتك ومعداتك بمنصة سحابية واحدة، وحوّل البيانات التشغيلية إلى رؤى، وراقب كل شيء وتحكم فيه بمساعدة الذكاء الاصطناعي.",
+      "من المصنع والبيت المحمي إلى أسطول النقل والمبنى، اربط أجهزتك بمنصة بابيلي السحابية AIoT، وحوّل البيانات إلى رؤى، وراقب كل شيء وتحكم فيه بمساعدة الذكاء الاصطناعي.",
     primary: "ابدأ مجانًا",
     secondary: "اعرف المزيد",
     scroll: "انتقل إلى الأسفل",

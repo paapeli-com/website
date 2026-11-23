@@ -55,16 +55,16 @@ const TAB_ICONS: { key: PricingTabKey; icon: LucideIcon }[] = [
 ];
 
 const SECONDARY_BUTTON_CLASSES =
-  "flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-2.5 text-sm font-medium text-[#4a5565] drop-shadow-[0px_1px_0.25px_rgba(29,41,61,0.02)] transition-colors hover:bg-[#f3f4f6]";
+  "flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-[#e5e7eb] dark:border-border bg-[#f9fafb] dark:bg-background px-4 py-2.5 text-sm font-medium text-[#4a5565] dark:text-muted-foreground drop-shadow-[0px_1px_0.25px_rgba(29,41,61,0.02)] transition-colors hover:bg-[#f3f4f6] dark:hover:bg-muted";
 
 const BillingToggle = ({ plan, copy }: { plan: Plan; copy: PricingCopy }) => {
   if (plan.billing === "monthly-yearly") {
     return (
-      <div className="flex h-9 items-center gap-0.5 rounded-xl bg-[#f3f4f6] p-1.5">
-        <button className="flex h-6 items-center justify-center rounded-md bg-white px-2 py-1 text-xs font-medium text-[#101828]">
+      <div className="flex h-9 items-center gap-0.5 rounded-xl bg-[#f3f4f6] dark:bg-muted p-1.5">
+        <button className="flex h-6 items-center justify-center rounded-md bg-white dark:bg-card px-2 py-1 text-xs font-medium text-[#101828] dark:text-foreground">
           {copy.billing.monthly}
         </button>
-        <button className="flex h-6 items-center justify-center rounded-lg px-2 py-1 text-xs font-medium text-[#4a5565]">
+        <button className="flex h-6 items-center justify-center rounded-lg px-2 py-1 text-xs font-medium text-[#4a5565] dark:text-muted-foreground">
           {copy.billing.yearly}
         </button>
       </div>
@@ -75,12 +75,12 @@ const BillingToggle = ({ plan, copy }: { plan: Plan; copy: PricingCopy }) => {
     /* "none" keeps an invisible pill so price rows stay aligned (per Figma). */
     <div
       className={cn(
-        "flex h-9 items-center gap-0.5 rounded-xl bg-[#f3f4f6] p-1.5",
+        "flex h-9 items-center gap-0.5 rounded-xl bg-[#f3f4f6] dark:bg-muted p-1.5",
         plan.billing === "none" && "opacity-0",
       )}
       aria-hidden={plan.billing === "none"}
     >
-      <span className="flex h-6 items-center justify-center rounded-md px-2 py-1 text-xs font-medium text-[#101828]">
+      <span className="flex h-6 items-center justify-center rounded-md px-2 py-1 text-xs font-medium text-[#101828] dark:text-foreground">
         {copy.billing.onlyMonthly}
       </span>
     </div>
@@ -101,13 +101,13 @@ const PlanCard = ({ plan, copy, language }: { plan: Plan; copy: PricingCopy; lan
   const href = plan.cta.action === "panel" ? PANEL_URL : contactHref(language, "pricing");
 
   return (
-    <div className="flex flex-col border-b border-[#e5e7eb] last:border-b-0 lg:border-b-0 lg:border-r lg:last:border-r-0 rtl:lg:border-l rtl:lg:border-r-0 rtl:lg:last:border-l-0">
+    <div className="flex flex-col border-[#e5e7eb] dark:border-border border-[#e5e7eb] dark:border-border last:border-b-0 lg:border-b-0 lg:border-r lg:last:border-r-0 rtl:lg:border-l rtl:lg:border-r-0 rtl:lg:last:border-l-0">
       {/* Header */}
-      <div className="flex flex-col items-start gap-4 border-b border-[#e5e7eb] p-6">
+      <div className="flex flex-col items-start gap-4 border-[#e5e7eb] dark:border-border border-[#e5e7eb] dark:border-border p-6">
         <div className="flex w-full items-center justify-between">
-          <h3 className="text-2xl font-semibold text-[#101828]">{plan.name}</h3>
+          <h3 className="text-2xl font-semibold text-[#101828] dark:text-foreground">{plan.name}</h3>
           {plan.badge && (
-            <span className="flex h-5 items-center justify-center rounded-md border border-[#ffccd3] bg-[#fef0f2] px-1.5 py-0.5 text-xs font-medium text-[#8b0836]">
+            <span className="flex h-5 items-center justify-center rounded-md border border-[#ffccd3] dark:border-red-500/30 bg-[#fef0f2] dark:bg-red-500/10 px-1.5 py-0.5 text-xs font-medium text-[#8b0836] dark:text-red-300">
               {plan.badge}
             </span>
           )}
@@ -117,13 +117,13 @@ const PlanCard = ({ plan, copy, language }: { plan: Plan; copy: PricingCopy; lan
           <div className="flex items-baseline">
             {/* Persian and Arabic prices carry their currency word, so the
                 figure is set a step smaller to keep it on one line. */}
-            <span className="text-[40px] font-bold leading-normal text-[#101828] rtl:text-[32px]">
+            <span className="text-[40px] font-bold leading-normal text-[#101828] dark:text-foreground rtl:text-[32px]">
               {plan.price}
             </span>
             {plan.pricePeriod && (
               /* "$20/month" is set tight per Figma; a currency word needs the
                  gap, so RTL pushes the period off the figure. */
-              <span className="text-base text-[#6a7282] rtl:ms-1.5 rtl:text-sm">
+              <span className="text-base text-[#6a7282] dark:text-muted-foreground rtl:ms-1.5 rtl:text-sm">
                 {plan.pricePeriod}
               </span>
             )}
@@ -135,7 +135,7 @@ const PlanCard = ({ plan, copy, language }: { plan: Plan; copy: PricingCopy; lan
             leaves the four CTAs and feature lists on the same baseline.
             globals.css gives Persian and Arabic paragraphs line-height 1.85
             rather than the 1.5 text-base assumes, hence the second value. */}
-        <p className="min-h-12 text-base text-[#4a5565] rtl:min-h-[3.7rem]">{plan.description}</p>
+        <p className="min-h-12 text-base text-[#4a5565] dark:text-muted-foreground rtl:min-h-[3.7rem]">{plan.description}</p>
 
         <a
           href={href}
@@ -156,16 +156,16 @@ const PlanCard = ({ plan, copy, language }: { plan: Plan; copy: PricingCopy; lan
         {plan.features.map((feature) => (
           <li key={feature.label} className="flex items-center gap-1.5">
             {feature.disabled ? (
-              <CircleMinus className="size-5 shrink-0 text-[#99a1af]" />
+              <CircleMinus className="size-5 shrink-0 text-[#99a1af] dark:text-muted-foreground" />
             ) : (
               <CircleCheck className="size-5 shrink-0 text-[#d56300]" />
             )}
             {feature.disabled ? (
-              <span className="text-base text-[#99a1af]">{feature.label}</span>
+              <span className="text-base text-[#99a1af] dark:text-muted-foreground">{feature.label}</span>
             ) : (
-              <span className="text-base text-[#4a5565]">
+              <span className="text-base text-[#4a5565] dark:text-muted-foreground">
                 {feature.label}:{" "}
-                <span className="font-medium text-[#101828]">{feature.value}</span>
+                <span className="font-medium text-[#101828] dark:text-foreground">{feature.value}</span>
               </span>
             )}
           </li>
@@ -194,10 +194,10 @@ const PANEL_ICONS: Record<PanelIcon, LucideIcon> = {
 const TabPanelView = ({ panel, language }: { panel: TabPanel; language: string }) => (
   <div className="flex w-full flex-col items-center gap-10">
     <div className="flex w-full max-w-[820px] flex-col items-center gap-4 text-center">
-      <h2 className="text-2xl font-semibold text-[#101828] sm:text-3xl rtl:text-xl rtl:sm:text-2xl">
+      <h2 className="text-2xl font-semibold text-[#101828] dark:text-foreground sm:text-3xl rtl:text-xl rtl:sm:text-2xl">
         {panel.heading}
       </h2>
-      <p className="text-base text-[#4a5565] sm:text-lg rtl:text-sm rtl:sm:text-base">{panel.lead}</p>
+      <p className="text-base text-[#4a5565] dark:text-muted-foreground sm:text-lg rtl:text-sm rtl:sm:text-base">{panel.lead}</p>
     </div>
 
     <div className="grid w-full gap-6 md:grid-cols-3">
@@ -206,29 +206,29 @@ const TabPanelView = ({ panel, language }: { panel: TabPanel; language: string }
         return (
           <div
             key={card.title}
-            className="flex flex-col gap-3 rounded-xl border border-[#e5e7eb] bg-white p-6 drop-shadow-[0px_1px_1px_rgba(29,41,61,0.05)]"
+            className="flex flex-col gap-3 rounded-xl border border-[#e5e7eb] dark:border-border bg-white dark:bg-card p-6 drop-shadow-[0px_1px_1px_rgba(29,41,61,0.05)]"
           >
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#fff3e8]">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#fff3e8] dark:bg-primary/10">
               <Icon className="size-5 text-[#d56300]" />
             </div>
-            <h3 className="text-lg font-semibold leading-snug text-[#101828] rtl:text-base">
+            <h3 className="text-lg font-semibold leading-snug text-[#101828] dark:text-foreground rtl:text-base">
               {card.title}
             </h3>
-            <p className="text-base text-[#4a5565] rtl:text-sm">{card.description}</p>
+            <p className="text-base text-[#4a5565] dark:text-muted-foreground rtl:text-sm">{card.description}</p>
           </div>
         );
       })}
     </div>
 
     {/* Closing note: the plan cards' own container, tick and button. */}
-    <div className="flex w-full flex-col gap-8 rounded-xl border border-[#e5e7eb] bg-white p-6 drop-shadow-[0px_1px_1px_rgba(29,41,61,0.05)] sm:p-8 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex w-full flex-col gap-8 rounded-xl border border-[#e5e7eb] dark:border-border bg-white dark:bg-card p-6 drop-shadow-[0px_1px_1px_rgba(29,41,61,0.05)] sm:p-8 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex flex-col gap-5">
-        <h3 className="text-xl font-semibold text-[#101828] rtl:text-lg">{panel.note.heading}</h3>
+        <h3 className="text-xl font-semibold text-[#101828] dark:text-foreground rtl:text-lg">{panel.note.heading}</h3>
         <ul className="flex flex-col gap-4">
           {panel.note.items.map((item) => (
             <li key={item} className="flex items-start gap-1.5">
               <CircleCheck className="mt-0.5 size-5 shrink-0 text-[#d56300]" />
-              <span className="text-base text-[#4a5565] rtl:text-sm">{item}</span>
+              <span className="text-base text-[#4a5565] dark:text-muted-foreground rtl:text-sm">{item}</span>
             </li>
           ))}
         </ul>
@@ -249,29 +249,29 @@ const PricingSection = ({ copy, language }: { copy: PricingCopy; language: strin
   const [activeTab, setActiveTab] = useState<PricingTabKey>("subscription");
 
   return (
-    <section className="flex w-full flex-col items-center bg-white px-6 py-14 sm:py-20">
+    <section className="flex w-full flex-col items-center bg-white dark:bg-card px-6 py-14 sm:py-20">
       <div className="flex w-full max-w-[1280px] flex-col items-center gap-12">
         <div className="flex w-full max-w-[672px] flex-col items-center gap-4 text-center">
-          <h1 className="text-3xl font-semibold text-[#101828] sm:text-[40px] sm:leading-normal rtl:text-2xl rtl:sm:text-[34px]">
+          <h1 className="text-3xl font-semibold text-[#101828] dark:text-foreground sm:text-[40px] sm:leading-normal rtl:text-2xl rtl:sm:text-[34px]">
             {copy.hero.title}
           </h1>
-          <p className="text-lg text-[#4a5565] rtl:text-base">{copy.hero.subtitle}</p>
+          <p className="text-lg text-[#4a5565] dark:text-muted-foreground rtl:text-base">{copy.hero.subtitle}</p>
         </div>
 
         <div className="flex w-full flex-col items-center gap-10">
           {/* Pricing type tabs */}
-          <div className="flex flex-wrap items-center overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-[0px_1px_0.5px_0.05px_rgba(29,41,61,0.02)]">
+          <div className="flex flex-wrap items-center overflow-hidden rounded-xl border border-[#e5e7eb] dark:border-border bg-white dark:bg-card shadow-[0px_1px_0.5px_0.05px_rgba(29,41,61,0.02)]">
             {TAB_ICONS.map(({ key, icon: Icon }, index) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
                 className={cn(
-                  "flex h-10 items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-[#101828] transition-colors",
-                  index < TAB_ICONS.length - 1 && "border-r border-[#e5e7eb] rtl:border-l rtl:border-r-0",
-                  activeTab === key ? "bg-[#f9fafb]" : "hover:bg-[#f9fafb]/60",
+                  "flex h-10 items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-[#101828] dark:text-foreground transition-colors",
+                  index < TAB_ICONS.length - 1 && "border-r border-[#e5e7eb] dark:border-border rtl:border-l rtl:border-r-0",
+                  activeTab === key ? "bg-[#f9fafb] dark:bg-background" : "hover:bg-[#f9fafb]/60",
                 )}
               >
-                <Icon className={cn("size-4", activeTab === key ? "text-[#101828]" : "text-[#4a5565]")} />
+                <Icon className={cn("size-4", activeTab === key ? "text-[#101828] dark:text-foreground" : "text-[#4a5565] dark:text-muted-foreground")} />
                 {copy.tabs[key]}
               </button>
             ))}
@@ -279,7 +279,7 @@ const PricingSection = ({ copy, language }: { copy: PricingCopy; language: strin
 
           {activeTab === "subscription" ? (
             /* Plan cards */
-            <div className="grid w-full grid-cols-1 overflow-hidden rounded-xl border border-[#e5e7eb] bg-white md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid w-full grid-cols-1 overflow-hidden rounded-xl border border-[#e5e7eb] dark:border-border bg-white dark:bg-card md:grid-cols-2 lg:grid-cols-4">
               {copy.plans.map((plan) => (
                 <PlanCard key={plan.key} plan={plan} copy={copy} language={language} />
               ))}
@@ -298,9 +298,9 @@ const FaqSection = ({ copy }: { copy: PricingCopy }) => {
   const [openIndex, setOpenIndex] = useState<number | null>(2);
 
   return (
-    <section className="flex w-full flex-col items-center bg-white px-6 py-14 sm:py-20">
+    <section className="flex w-full flex-col items-center bg-white dark:bg-card px-6 py-14 sm:py-20">
       <div className="flex w-full max-w-[1280px] flex-col items-center gap-12">
-        <h2 className="text-center text-3xl font-semibold leading-[1.25] tracking-[-0.4px] text-[#101828] sm:text-[40px] rtl:text-2xl rtl:sm:text-[34px]">
+        <h2 className="text-center text-3xl font-semibold leading-[1.25] tracking-[-0.4px] text-[#101828] dark:text-foreground sm:text-[40px] rtl:text-2xl rtl:sm:text-[34px]">
           {copy.faq.heading}
         </h2>
 
@@ -313,32 +313,32 @@ const FaqSection = ({ copy }: { copy: PricingCopy }) => {
                 <button
                   onClick={() => setOpenIndex(isOpen ? null : index)}
                   className={cn(
-                    "flex w-full items-center gap-6 border border-[#e5e7eb] px-6 py-5 text-left rtl:text-right transition-colors",
-                    isOpen ? "rounded-t-xl bg-[#f3f4f6]" : "rounded-xl bg-white hover:bg-[#f9fafb]",
+                    "flex w-full items-center gap-6 border border-[#e5e7eb] dark:border-border px-6 py-5 text-left rtl:text-right transition-colors",
+                    isOpen ? "rounded-t-xl bg-[#f3f4f6] dark:bg-muted" : "rounded-xl bg-white dark:bg-card hover:bg-[#f9fafb] dark:hover:bg-background",
                   )}
                 >
                   <span className="flex min-w-0 flex-1 items-center gap-2">
                     <CircleHelp
-                      className={cn("size-5 shrink-0", isOpen ? "text-[#101828]" : "text-[#4a5565]")}
+                      className={cn("size-5 shrink-0", isOpen ? "text-[#101828] dark:text-foreground" : "text-[#4a5565] dark:text-muted-foreground")}
                     />
                     <span
                       className={cn(
                         "text-base font-medium",
-                        isOpen ? "text-[#101828]" : "text-[#4a5565]",
+                        isOpen ? "text-[#101828] dark:text-foreground" : "text-[#4a5565] dark:text-muted-foreground",
                       )}
                     >
                       {faq.question}
                     </span>
                   </span>
                   {isOpen ? (
-                    <ChevronUp className="size-5 shrink-0 text-[#4a5565]" />
+                    <ChevronUp className="size-5 shrink-0 text-[#4a5565] dark:text-muted-foreground" />
                   ) : (
-                    <ChevronDown className="size-5 shrink-0 text-[#4a5565]" />
+                    <ChevronDown className="size-5 shrink-0 text-[#4a5565] dark:text-muted-foreground" />
                   )}
                 </button>
                 {isOpen && (
-                  <div className="rounded-b-xl border-x border-b border-[#e5e7eb] bg-white px-6 py-5">
-                    <p className="text-base text-[#4a5565]">{faq.answer}</p>
+                  <div className="rounded-b-xl border-x border-[#e5e7eb] dark:border-border border-[#e5e7eb] dark:border-border bg-white dark:bg-card px-6 py-5">
+                    <p className="text-base text-[#4a5565] dark:text-muted-foreground">{faq.answer}</p>
                   </div>
                 )}
               </div>
@@ -355,7 +355,7 @@ const Pricing = () => {
   const copy = PRICING_COPY[language] ?? PRICING_COPY.en;
 
   return (
-    <div className="min-h-screen bg-white" dir={isRTL ? "rtl" : "ltr"}>
+    <div className="min-h-screen bg-white dark:bg-card" dir={isRTL ? "rtl" : "ltr"}>
       <LandingNavbar />
 
       <main>

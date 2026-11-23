@@ -40,7 +40,7 @@ export function AiHeader({
   showCta?: boolean;
 }) {
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--ai-border-soft)] bg-[var(--ai-bg-blur)] backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-[#e5e7eb] dark:border-border border-[var(--ai-border-soft)] bg-[var(--ai-bg-blur)] backdrop-blur-md">
       <Container>
         <div className="flex h-[68px] items-center justify-between gap-6">
           <Link href={brandHref} aria-label="Paapeli × Rayka">

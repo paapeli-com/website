@@ -104,7 +104,7 @@ export const CapabilitiesSection = () => {
   return (
     <section
       dir={isRTL ? "rtl" : "ltr"}
-      className="flex w-full flex-col items-center gap-8 bg-white px-6 py-10 sm:gap-10 sm:py-14"
+      className="flex w-full flex-col items-center gap-8 bg-white dark:bg-card px-6 py-10 sm:gap-10 sm:py-14"
     >
       {/* Block heading */}
       <div className="flex w-full max-w-[672px] flex-col items-center gap-4 text-center">
@@ -120,7 +120,7 @@ export const CapabilitiesSection = () => {
           <Link
             key={card.title}
             href={localePath(language, featureHref(SLUGS[i]))}
-            className="group flex flex-col gap-3 overflow-hidden rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)] transition-shadow hover:border-primary/40 hover:shadow-md"
+            className="group flex flex-col gap-3 overflow-hidden rounded-xl border border-[#e5e7eb] dark:border-border bg-white dark:bg-card p-6 shadow-[0px_1px_2px_0px_rgba(29,41,61,0.05)] transition-shadow hover:border-primary/40 hover:shadow-md"
           >
             <div className="flex items-center gap-3">
               <Image
