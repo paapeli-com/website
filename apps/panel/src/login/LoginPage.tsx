@@ -114,6 +114,49 @@ function PasswordStrength({ password }: { password: string }) {
   );
 }
 
+/* A password field with an eye to show what was typed. Every password field
+   on the page uses it: sign in, sign up and the reset, each with its own
+   toggle. The eye sits at the end of the field: the right in English, the
+   left in Persian and Arabic. The padding keeps a long password from running
+   underneath it. */
+function PasswordInput({
+  id,
+  value,
+  onChange,
+  autoComplete,
+}: {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  autoComplete: "current-password" | "new-password";
+}) {
+  const copy = useCopy();
+  const [shown, setShown] = useState(false);
+  return (
+    <div className="relative">
+      <input
+        id={id}
+        className={`${field} pe-10`}
+        type={shown ? "text" : "password"}
+        autoComplete={autoComplete}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <button
+        type="button"
+        onClick={() => setShown((s) => !s)}
+        aria-label={shown ? copy.hidePassword : copy.showPassword}
+        title={shown ? copy.hidePassword : copy.showPassword}
+        aria-pressed={shown}
+        aria-controls={id}
+        className="absolute inset-y-0 end-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
+      >
+        {shown ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+      </button>
+    </div>
+  );
+}
+
 const statusOf = (e: unknown) => (e as { response?: { status?: number } })?.response?.status;
 
 /** The product whose root location is provisioned at sign-in. */
@@ -193,7 +236,6 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
@@ -328,8 +370,20 @@ export default function LoginPage() {
       setSuccess(copy.okAccountCreated);
       setMode("signin");
     } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setSignupError(message || copy.errSignUpFailed);
+      /* The gateway answers with a ProblemDetail: the text is in `detail`,
+         not `message`, and a taken email is a 409 ENTITY_ALREADY_EXISTS.
+         That one is said in the reader's language; anything else shows the
+         gateway's own text if there is one. */
+      const response = (err as {
+        response?: { status?: number; data?: { code?: string; detail?: string; message?: string } };
+      })?.response;
+      const data = response?.data;
+      if (response?.status === 409 || data?.code === "ENTITY_ALREADY_EXISTS") {
+        setEmail(signupEmail.trim());
+        setSignupError(copy.errEmailTaken);
+      } else {
+        setSignupError(data?.message || data?.detail || copy.errSignUpFailed);
+      }
     } finally {
       setBusy(false);
     }
@@ -532,29 +586,7 @@ export default function LoginPage() {
 
               <div className="mb-2">
                 <label className={label} htmlFor="password">{copy.password}</label>
-                {/* The eye sits at the end of the field: the right in English,
-                    the left in Persian and Arabic. The padding keeps a long
-                    password from running underneath it. */}
-                <div className="relative">
-                  <input
-                    id="password"
-                    className={`${field} pe-10`}
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((shown) => !shown)}
-                    aria-label={showPassword ? copy.hidePassword : copy.showPassword}
-                    title={showPassword ? copy.hidePassword : copy.showPassword}
-                    aria-pressed={showPassword}
-                    className="absolute inset-y-0 end-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
+                <PasswordInput id="password" autoComplete="current-password" value={password} onChange={setPassword} />
               </div>
 
               {/* In English this sits at the end of the line, under the right
@@ -626,26 +658,22 @@ export default function LoginPage() {
 
               <div className="mb-4">
                 <label className={label} htmlFor="signup-password">{copy.password}</label>
-                <input
+                <PasswordInput
                   id="signup-password"
-                  className={field}
-                  type="password"
                   autoComplete="new-password"
                   value={signupPassword}
-                  onChange={(e) => setSignupPassword(e.target.value)}
+                  onChange={setSignupPassword}
                 />
                 <PasswordStrength password={signupPassword} />
               </div>
 
               <div className="mb-4">
                 <label className={label} htmlFor="signup-confirm">{copy.confirmPassword}</label>
-                <input
+                <PasswordInput
                   id="signup-confirm"
-                  className={field}
-                  type="password"
                   autoComplete="new-password"
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onChange={setConfirmPassword}
                 />
               </div>
 
@@ -710,26 +738,22 @@ export default function LoginPage() {
 
                   <div className="mb-4">
                     <label className={label} htmlFor="reset-password">{copy.newPassword}</label>
-                    <input
+                    <PasswordInput
                       id="reset-password"
-                      className={field}
-                      type="password"
                       autoComplete="new-password"
                       value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
+                      onChange={setNewPassword}
                     />
                     <PasswordStrength password={newPassword} />
                   </div>
 
                   <div className="mb-4">
                     <label className={label} htmlFor="reset-confirm">{copy.confirmNewPassword}</label>
-                    <input
+                    <PasswordInput
                       id="reset-confirm"
-                      className={field}
-                      type="password"
                       autoComplete="new-password"
                       value={newPasswordConfirm}
-                      onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                      onChange={setNewPasswordConfirm}
                     />
                   </div>
                 </>
