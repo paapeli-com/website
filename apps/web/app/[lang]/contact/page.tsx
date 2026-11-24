@@ -32,7 +32,15 @@ import {
 
 /** Contact details, shown on the page and used for the mailto/tel links. */
 const EMAIL = "talk@paapeli.com";
-const PHONE = "+98 21 5566 1372";
+/* The office line in Tehran. Persian readers see it the way they dial it
+   at home, everyone else in international form; the link dials the same
+   number either way. */
+const PHONE_TEL = "+982166551372";
+const PHONE_SHOWN: Record<string, string> = {
+  fa: "۰۲۱-۶۶۵۵۱۳۷۲",
+  en: "+98 21 6655 1372",
+  ar: "+98 21 6655 1372",
+};
 
 /* Web3Forms delivers the form to our inbox. The access key belongs in the
    page: it only lets a submission through, it reads nothing back. */
@@ -403,11 +411,11 @@ export default function ContactPage() {
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-foreground">{copy.phoneCard}</p>
                     <a
-                      href={`tel:${PHONE.replace(/\s/g, "")}`}
+                      href={`tel:${PHONE_TEL}`}
                       dir="ltr"
                       className="block truncate text-sm text-muted-foreground transition-colors hover:text-primary"
                     >
-                      {PHONE}
+                      {PHONE_SHOWN[language] ?? PHONE_SHOWN.en}
                     </a>
                   </div>
                 </Card>
