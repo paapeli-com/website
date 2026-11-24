@@ -1,16 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { telemetryService } from "@paapeli/api";
-import { TriangleAlert } from "lucide-react";
-import { apiErrorMessage } from "@/shared/lib/apiError";
 import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { toNumber } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { Hint } from "./chartKit";
+import { LoadFailed } from "./LoadFailed";
 import type { WidgetRenderProps } from "./types";
 
 const T = {
   noBinding: { en: "Pick a device and a telemetry key in the widget settings", ar: "اختر جهازًا ومفتاح قياس في إعدادات العنصر", fa: "در تنظیمات ویجت یک دستگاه و یک کلید تله‌متری انتخاب کنید" },
-  failed: { en: "Couldn't load the value", ar: "تعذر تحميل القيمة", fa: "بارگذاری مقدار ممکن نشد" },
 };
 
 type Range = { from: number; to: number; color: string };
@@ -52,15 +50,7 @@ export function GaugeWidget({ widget, dataSources, window: [, refreshedAt], lang
   });
 
   if (!item || !deviceId || !item.key) return <Hint>{T.noBinding[lang]}</Hint>;
-  if (query.isError && query.data === undefined) {
-    return (
-      <Hint>
-        <span className="inline-flex items-center gap-1.5 text-destructive" title={apiErrorMessage(query.error, T.failed[lang])}>
-          <TriangleAlert className="h-3.5 w-3.5 shrink-0" />{T.failed[lang]}
-        </span>
-      </Hint>
-    );
-  }
+  if (query.isError && query.data === undefined) return <LoadFailed error={query.error} lang={lang} />;
 
   const min = typeof options.min === "number" ? options.min : 0;
   const max = typeof options.max === "number" ? options.max : 100;

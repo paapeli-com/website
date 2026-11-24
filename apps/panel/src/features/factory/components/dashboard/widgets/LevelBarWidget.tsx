@@ -1,13 +1,11 @@
-import { TriangleAlert } from "lucide-react";
-import { apiErrorMessage } from "@/shared/lib/apiError";
 import { toNumber } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { Hint } from "./chartKit";
+import { LoadFailed } from "./LoadFailed";
 import { useLatestReadings } from "./useLatestReadings";
 import type { WidgetRenderProps } from "./types";
 
 const T = {
   noBinding: { en: "Pick a device and a telemetry key in the widget settings", ar: "اختر جهازًا ومفتاح قياس في إعدادات العنصر", fa: "در تنظیمات ویجت یک دستگاه و یک کلید تله‌متری انتخاب کنید" },
-  failed: { en: "Couldn't load the value", ar: "تعذر تحميل القيمة", fa: "بارگذاری مقدار ممکن نشد" },
 };
 
 type Range = { from: number; to: number; color: string };
@@ -26,15 +24,7 @@ export function LevelBarWidget({ widget, dataSources, window: [, refreshedAt], l
 
   if (!item || !bound) return <Hint>{T.noBinding[lang]}</Hint>;
   const raw = values[0];
-  if (failed && raw === undefined) {
-    return (
-      <Hint>
-        <span className="inline-flex items-center gap-1.5 text-destructive" title={apiErrorMessage(error, T.failed[lang])}>
-          <TriangleAlert className="h-3.5 w-3.5 shrink-0" />{T.failed[lang]}
-        </span>
-      </Hint>
-    );
-  }
+  if (failed && raw === undefined) return <LoadFailed error={error} lang={lang} />;
 
   const min = typeof options.min === "number" ? options.min : 0;
   const max = typeof options.max === "number" ? options.max : 100;

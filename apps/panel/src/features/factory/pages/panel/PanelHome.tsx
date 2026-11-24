@@ -33,7 +33,7 @@ type Lang = "en" | "ar" | "fa";
 
 const D: Record<string, Record<Lang, string>> = {
   overview: { en: "Overview", ar: "نظرة عامة", fa: "نمای کلی" },
-  assets: { en: "Assets", ar: "الأصول", fa: "تجهیزات" },
+  assets: { en: "Assets", ar: "الأصول", fa: "دارایی‌ها" },
   totalAssets: { en: "Total assets", ar: "إجمالي الأصول", fa: "تجهیز" },
   locations: { en: "Locations", ar: "المواقع", fa: "مکان‌ها" },
   totalLocations: { en: "Total locations", ar: "إجمالي المواقع", fa: "مکان" },

@@ -746,7 +746,7 @@ const ar: Record<string, string> = {
   "Cloud Management": "الإدارة السحابية",
   "Cloud management": "الإدارة السحابية",
   Overview: "نظرة عامة",
-  Dashboards: "لوحات المعلومات",
+  Dashboards: "لوحات التحكم",
   Dashboard: "لوحة المعلومات",
   Assets: "الأصول",
   Devices: "الأجهزة",

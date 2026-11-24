@@ -813,8 +813,19 @@ const DeviceDetails = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <CredentialRow label={t("mqttHost")} value="mqtt.paapeli.com" />
                       <CredentialRow label={t("mqttPort")} value={device.useSsl ? "8883" : "1883"} />
-                      <CredentialRow label={t("mqttUsername")} value={device.deviceId} />
-                      <CredentialRow label={t("mqttPassword")} value={device.apiKey} mask />
+                      {/* An access-token device signs in to the broker with the
+                          token as its username and no password, the same as the
+                          settings shown when it was created. The device ID is not
+                          a broker credential, so offering it here sent people off
+                          to connect with a login the broker refuses. Other
+                          credential types keep their own login, which this page
+                          does not hold, so for them only host and port show. */}
+                      {(device.protocol ?? "ACCESS_TOKEN") === "ACCESS_TOKEN" && (
+                        <>
+                          <CredentialRow label={t("mqttUsername")} value={device.apiKey} mask onCopy={() => copy(device.apiKey, "user")} copied={copied === "user"} />
+                          <CredentialRow label={t("mqttPassword")} value="" />
+                        </>
+                      )}
                     </div>
                   </CardContent>
 

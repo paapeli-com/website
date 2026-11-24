@@ -1,18 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { countDevices, telemetryService } from "@paapeli/api";
-import { TriangleAlert } from "lucide-react";
-import { apiErrorMessage } from "@/shared/lib/apiError";
 import { currentProductKey } from "@/features/factory/lib/product";
 import { useWorkspaceId } from "@/features/factory/store/workspaceStore";
 import { toNumber } from "@/features/factory/components/dashboard/DeviceTelemetrySource";
 import { Hint } from "./chartKit";
+import { LoadFailed } from "./LoadFailed";
 import { evaluateFormula, matchAlarms } from "./sources";
 import type { WidgetRenderProps } from "./types";
 
 const T = {
   noBinding: { en: "Pick a device and a telemetry key in the widget settings", ar: "اختر جهازًا ومفتاح قياس في إعدادات العنصر", fa: "در تنظیمات ویجت یک دستگاه و یک کلید تله‌متری انتخاب کنید" },
   unsupported: { en: "This source can't feed a KPI", ar: "هذا المصدر لا يصلح لمؤشر", fa: "این منبع برای شاخص قابل استفاده نیست" },
-  failed: { en: "Couldn't load the value", ar: "تعذر تحميل القيمة", fa: "بارگذاری مقدار ممکن نشد" },
 };
 
 type Threshold = { condition: "above" | "below"; value: number; backgroundColor: string; foregroundColor: string };
@@ -65,15 +63,7 @@ export function KpiWidget({ widget, dataSources, window: [, refreshedAt], lang }
 
   if (!item || !source) return <Hint>{T.noBinding[lang]}</Hint>;
   if (!isDevice && !isCount) return <Hint>{source.type === "device" ? T.noBinding[lang] : T.unsupported[lang]}</Hint>;
-  if (query.isError && query.data === undefined) {
-    return (
-      <Hint>
-        <span className="inline-flex items-center gap-1.5 text-destructive" title={apiErrorMessage(query.error, T.failed[lang])}>
-          <TriangleAlert className="h-3.5 w-3.5 shrink-0" />{T.failed[lang]}
-        </span>
-      </Hint>
-    );
-  }
+  if (query.isError && query.data === undefined) return <LoadFailed error={query.error} lang={lang} />;
 
   const raw = query.data;
   const numeric = raw === undefined || raw === null || raw === "" ? null : toNumber(raw);

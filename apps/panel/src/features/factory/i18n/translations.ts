@@ -5785,7 +5785,7 @@ export const translations = {
     locationsSubtitle: "سایت‌ها، واحدها و تجهیزات",
     locationLabel: "مکان",
     areaUnit: "بخش / واحد",
-    assets: "تجهیزات",
+    assets: "دارایی‌ها",
     devicesLabel: "دستگاه‌ها / سنسورها",
     allLocations: "همه مکان‌ها",
     singleLocation: "مکان انتخاب‌شده",

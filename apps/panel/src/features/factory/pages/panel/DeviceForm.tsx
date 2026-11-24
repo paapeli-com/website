@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLanguage } from "@/features/factory/contexts/LanguageContext";
+import { deviceTypeLabel } from "@/features/factory/lib/deviceTypeLabel";
 import { useToast } from "@/features/factory/hooks/use-toast";
 import { Button } from "@/features/factory/components/ui/button";
 import { Input } from "@/features/factory/components/ui/input";
@@ -380,7 +381,7 @@ const DeviceForm = () => {
                   )}
                   {deviceTypeOptions.map((dt) => (
                     <SelectItem key={dt.deviceType} value={dt.deviceType}>
-                      <div className="flex items-center gap-2"><Cpu className="h-4 w-4" /> {dt.label || dt.deviceType}</div>
+                      <div className="flex items-center gap-2"><Cpu className="h-4 w-4" /> {deviceTypeLabel(dt.label, dt.deviceType, language)}</div>
                     </SelectItem>
                   ))}
                   {/* Not wired to the API yet — selectable again once they are. */}
@@ -393,7 +394,7 @@ const DeviceForm = () => {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-2">
-                {selectedCatalogType ? (selectedCatalogType.description || selectedCatalogType.label)
+                {selectedCatalogType ? deviceTypeLabel(selectedCatalogType.description || selectedCatalogType.label, "", language)
                   : deviceType === "popular" ? t("popularSensorsHint")
                   : deviceType === "templates" ? t("deviceTemplatesHint")
                   : ""}
@@ -407,13 +408,13 @@ const DeviceForm = () => {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-foreground">
-                  {selectedCatalogType ? (selectedCatalogType.label || selectedCatalogType.deviceType)
+                  {selectedCatalogType ? deviceTypeLabel(selectedCatalogType.label, selectedCatalogType.deviceType, language)
                     : deviceType === "popular" ? t("popularSensors")
                     : deviceType === "templates" ? t("deviceTemplates")
                     : ""}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {selectedCatalogType ? (selectedCatalogType.description || selectedCatalogType.deviceType)
+                  {selectedCatalogType ? deviceTypeLabel(selectedCatalogType.description, selectedCatalogType.deviceType, language)
                     : deviceType === "popular" ? t("popularSensorsDesc")
                     : deviceType === "templates" ? t("deviceTemplatesDesc")
                     : ""}
