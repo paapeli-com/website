@@ -47,5 +47,5 @@ export const blogHref = (language: string) => docsHref(language, "/blog");
 export const blogPostHref = (language: string, slug: string) =>
   docsHref(language, `/blog/${slug}`);
 
-/** The BRICS 2026 gold medal in AI post, linked from the landing hero. */
+/** The BRICS 2026 gold medal in AI post, linked from the landing hero and featured in its blog strip. */
 export const BRICS_2026_POST = "paapeli-brics-2026-gold-medal-ai";

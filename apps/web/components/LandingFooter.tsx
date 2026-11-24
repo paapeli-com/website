@@ -118,7 +118,7 @@ const SOCIALS = [
    the seal ships at a size that would tower over the footer column.  */
 /* ------------------------------------------------------------------ */
 const ENAMAD_SEAL =
-  "<a referrerpolicy='origin' target='_blank' href='https://trustseal.enamad.ir/?id=7625246&Code=DkFd7cma8GcgSc8O9bPaq4RlrWrCX0Ls'><img referrerpolicy='origin' src='https://trustseal.enamad.ir/logo.aspx?id=7625246&Code=DkFd7cma8GcgSc8O9bPaq4RlrWrCX0Ls' alt='' style='cursor:pointer' code='DkFd7cma8GcgSc8O9bPaq4RlrWrCX0Ls'></a>";
+  "<a referrerpolicy='origin' target='_blank' href='https://trustseal.enamad.ir/?id=8760931&Code=JK3HZFnAdGPrFuP6WD2VnmBLo5LZIJfW'><img referrerpolicy='origin' src='https://trustseal.enamad.ir/logo.aspx?id=8760931&Code=JK3HZFnAdGPrFuP6WD2VnmBLo5LZIJfW' alt='' style='cursor:pointer' code='JK3HZFnAdGPrFuP6WD2VnmBLo5LZIJfW'></a>";
 
 export const LandingFooter = () => {
   const { isRTL, language } = useLanguage();
