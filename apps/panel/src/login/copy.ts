@@ -56,6 +56,8 @@ const COPY = {
     backToSignIn: "Back to sign in",
 
     errCredentialsRequired: "Email and password are required.",
+    errMissingFields: "Please enter your {fields}.",
+    resendIn: "No code yet? You can request another in {s} seconds.",
     errInvalidCredentials: "Invalid email or password.",
     errSignInFailed: "Sign in failed. Please try again.",
     errSignupFieldsRequired: "Email, password, and confirm password are required.",
@@ -130,6 +132,8 @@ const COPY = {
     backToSignIn: "العودة إلى تسجيل الدخول",
 
     errCredentialsRequired: "البريد الإلكتروني وكلمة المرور مطلوبان.",
+    errMissingFields: "يرجى إدخال {fields}.",
+    resendIn: "لم يصل الرمز؟ يمكنك طلب رمز آخر بعد {s} ثانية.",
     errInvalidCredentials: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
     errSignInFailed: "فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.",
     errSignupFieldsRequired: "البريد الإلكتروني وكلمة المرور وتأكيدها مطلوبة.",
@@ -204,6 +208,8 @@ const COPY = {
     backToSignIn: "بازگشت به ورود",
 
     errCredentialsRequired: "ایمیل و رمز عبور الزامی است.",
+    errMissingFields: "لطفاً {fields} را وارد کنید.",
+    resendIn: "کد نرسید؟ تا {s} ثانیهٔ دیگر می‌توانید دوباره درخواست کنید.",
     errInvalidCredentials: "ایمیل یا رمز عبور نادرست است.",
     errSignInFailed: "ورود ناموفق بود. لطفاً دوباره تلاش کنید.",
     errSignupFieldsRequired: "ایمیل، رمز عبور و تأیید آن الزامی است.",

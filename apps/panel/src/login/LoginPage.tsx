@@ -1,4 +1,4 @@
-import { useCallback, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { assetsService, authService, setApiAuthToken, workspacesService } from "@paapeli/api";
 import { productKeyFor } from "@paapeli/brand/config";
@@ -50,6 +50,15 @@ const Mark = () => (
 
 const field =
   "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-primary";
+/** "a, b and c" in the page's language. */
+const joinFields = (items: string[], lang: string) => {
+  if (items.length < 2) return items.join("");
+  const and = lang === "en" ? " and " : " و ";
+  const comma = lang === "en" ? ", " : "، ";
+  return items.slice(0, -1).join(comma) + and + items[items.length - 1];
+};
+/* A required field left empty: the same field, outlined in red. */
+const fieldInvalid = field.replace("border-border", "border-destructive").replace("focus:border-primary", "focus:border-destructive");
 const label = "mb-1.5 block text-sm font-medium text-foreground";
 
 function Notice({ tone, children }: { tone: "error" | "success"; children: React.ReactNode }) {
@@ -124,11 +133,14 @@ function PasswordInput({
   value,
   onChange,
   autoComplete,
+  invalid = false,
 }: {
   id: string;
   value: string;
   onChange: (value: string) => void;
   autoComplete: "current-password" | "new-password";
+  /** Left empty on submit: outlined in red. */
+  invalid?: boolean;
 }) {
   const copy = useCopy();
   const [shown, setShown] = useState(false);
@@ -136,7 +148,8 @@ function PasswordInput({
     <div className="relative">
       <input
         id={id}
-        className={`${field} pe-10`}
+        className={`${invalid ? fieldInvalid : field} pe-10`}
+        aria-invalid={invalid || undefined}
         type={shown ? "text" : "password"}
         autoComplete={autoComplete}
         value={value}
@@ -257,11 +270,40 @@ export default function LoginPage() {
   const [resetError, setResetError] = useState("");
   const [resetNotice, setResetNotice] = useState("");
 
+  /* The fields left empty on the last submit. The message names only those,
+     and each is outlined in red until something is typed into it. */
+  const lang = useAppLanguage();
+  const [missing, setMissing] = useState<Set<string>>(() => new Set());
+  const requireFields = (fields: [id: string, value: string, label: string][], fail: (message: string) => void) => {
+    const empty = fields.filter(([, value]) => !value.trim());
+    setMissing(new Set(empty.map(([id]) => id)));
+    if (!empty.length) return true;
+    const labels = empty.map(([, , text]) => (lang === "en" ? text.toLowerCase() : text));
+    fail(copy.errMissingFields.replace("{fields}", joinFields(labels, lang)));
+    return false;
+  };
+  const fieldFor = (id: string) => (missing.has(id) ? fieldInvalid : field);
+  const filled = (id: string) => {
+    if (missing.has(id)) setMissing((prev) => { const next = new Set(prev); next.delete(id); return next; });
+  };
+
+  /* The gateway ignores a second request for a code within a minute, so
+     "Send another" waits out a little more than that, counting down. */
+  const [resendAt, setResendAt] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (resendAt <= Date.now()) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [resendAt]);
+  const resendSeconds = Math.max(0, Math.ceil((resendAt - now) / 1000));
+
   const show = (next: "signin" | "signup" | "reset" | "twoFactor") => {
     setError("");
     setSignupError("");
     setResetError("");
     setSuccess("");
+    setMissing(new Set());
     setMode(next);
   };
 
@@ -278,10 +320,7 @@ export default function LoginPage() {
 
   const handleSignIn = async (e: FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password) {
-      setError(copy.errCredentialsRequired);
-      return;
-    }
+    if (!requireFields([["email", email, copy.emailOrUsername], ["password", password, copy.password]], setError)) return;
     setError("");
     setBusy(true);
     try {
@@ -339,10 +378,16 @@ export default function LoginPage() {
 
   const handleSignUp = async (e: FormEvent) => {
     e.preventDefault();
-    if (!signupEmail.trim() || !signupPassword || !confirmPassword) {
-      setSignupError(copy.errSignupFieldsRequired);
-      return;
-    }
+    if (
+      !requireFields(
+        [
+          ["signup-email", signupEmail, copy.email],
+          ["signup-password", signupPassword, copy.password],
+          ["signup-confirm", confirmPassword, copy.confirmPassword],
+        ],
+        setSignupError,
+      )
+    ) return;
     if (signupPassword !== confirmPassword) {
       setSignupError(copy.errPasswordsDontMatch);
       return;
@@ -391,10 +436,7 @@ export default function LoginPage() {
 
   const handleRequestReset = async (e: FormEvent) => {
     e.preventDefault();
-    if (!resetEmail.trim()) {
-      setResetError(copy.errResetEmailRequired);
-      return;
-    }
+    if (!requireFields([["reset-email", resetEmail, copy.email]], setResetError)) return;
     setResetError("");
     setBusy(true);
     try {
@@ -404,6 +446,8 @@ export default function LoginPage() {
          true for every one of those cases and move on to the code step. */
       setResetNotice(copy.okResetCodeSent);
       setResetStep("confirm");
+      setResendAt(Date.now() + 90_000);
+      setNow(Date.now());
     } catch (err) {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setResetError(message || copy.errBadEmail);
@@ -414,10 +458,16 @@ export default function LoginPage() {
 
   const handleResetPassword = async (e: FormEvent) => {
     e.preventDefault();
-    if (!resetCode.trim() || !newPassword || !newPasswordConfirm) {
-      setResetError(copy.errResetFieldsRequired);
-      return;
-    }
+    if (
+      !requireFields(
+        [
+          ["reset-code", resetCode, copy.resetCode],
+          ["reset-password", newPassword, copy.newPassword],
+          ["reset-confirm", newPasswordConfirm, copy.confirmNewPassword],
+        ],
+        setResetError,
+      )
+    ) return;
     if (newPassword !== newPasswordConfirm) {
       setResetError(copy.errPasswordsDontMatch);
       return;
@@ -576,17 +626,24 @@ export default function LoginPage() {
                 <label className={label} htmlFor="email">{copy.emailOrUsername}</label>
                 <input
                   id="email"
-                  className={field}
+                  className={fieldFor("email")}
+                  aria-invalid={missing.has("email") || undefined}
                   type="text"
                   autoComplete="username"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); filled("email"); }}
                 />
               </div>
 
               <div className="mb-2">
                 <label className={label} htmlFor="password">{copy.password}</label>
-                <PasswordInput id="password" autoComplete="current-password" value={password} onChange={setPassword} />
+                <PasswordInput
+                  id="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(v) => { setPassword(v); filled("password"); }}
+                  invalid={missing.has("password")}
+                />
               </div>
 
               {/* In English this sits at the end of the line, under the right
@@ -648,11 +705,12 @@ export default function LoginPage() {
                 <label className={label} htmlFor="signup-email">{copy.email}</label>
                 <input
                   id="signup-email"
-                  className={field}
+                  className={fieldFor("signup-email")}
+                  aria-invalid={missing.has("signup-email") || undefined}
                   type="text"
                   autoComplete="email"
                   value={signupEmail}
-                  onChange={(e) => setSignupEmail(e.target.value)}
+                  onChange={(e) => { setSignupEmail(e.target.value); filled("signup-email"); }}
                 />
               </div>
 
@@ -662,7 +720,8 @@ export default function LoginPage() {
                   id="signup-password"
                   autoComplete="new-password"
                   value={signupPassword}
-                  onChange={setSignupPassword}
+                  onChange={(v) => { setSignupPassword(v); filled("signup-password"); }}
+                  invalid={missing.has("signup-password")}
                 />
                 <PasswordStrength password={signupPassword} />
               </div>
@@ -673,7 +732,8 @@ export default function LoginPage() {
                   id="signup-confirm"
                   autoComplete="new-password"
                   value={confirmPassword}
-                  onChange={setConfirmPassword}
+                  onChange={(v) => { setConfirmPassword(v); filled("signup-confirm"); }}
+                  invalid={missing.has("signup-confirm")}
                 />
               </div>
 
@@ -715,11 +775,12 @@ export default function LoginPage() {
                   <label className={label} htmlFor="reset-email">{copy.email}</label>
                   <input
                     id="reset-email"
-                    className={field}
+                    className={fieldFor("reset-email")}
+                    aria-invalid={missing.has("reset-email") || undefined}
                     type="email"
                     autoComplete="email"
                     value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
+                    onChange={(e) => { setResetEmail(e.target.value); filled("reset-email"); }}
                   />
                 </div>
               ) : (
@@ -728,11 +789,12 @@ export default function LoginPage() {
                     <label className={label} htmlFor="reset-code">{copy.resetCode}</label>
                     <input
                       id="reset-code"
-                      className={field}
+                      className={fieldFor("reset-code")}
+                      aria-invalid={missing.has("reset-code") || undefined}
                       type="text"
                       autoComplete="one-time-code"
                       value={resetCode}
-                      onChange={(e) => setResetCode(e.target.value)}
+                      onChange={(e) => { setResetCode(e.target.value); filled("reset-code"); }}
                     />
                   </div>
 
@@ -742,7 +804,8 @@ export default function LoginPage() {
                       id="reset-password"
                       autoComplete="new-password"
                       value={newPassword}
-                      onChange={setNewPassword}
+                      onChange={(v) => { setNewPassword(v); filled("reset-password"); }}
+                      invalid={missing.has("reset-password")}
                     />
                     <PasswordStrength password={newPassword} />
                   </div>
@@ -753,7 +816,8 @@ export default function LoginPage() {
                       id="reset-confirm"
                       autoComplete="new-password"
                       value={newPasswordConfirm}
-                      onChange={setNewPasswordConfirm}
+                      onChange={(v) => { setNewPasswordConfirm(v); filled("reset-confirm"); }}
+                      invalid={missing.has("reset-confirm")}
                     />
                   </div>
                 </>
@@ -769,7 +833,12 @@ export default function LoginPage() {
                   : busy ? copy.resetting : copy.resetPassword}
               </button>
 
-              {resetStep === "confirm" && (
+              {resetStep === "confirm" && resendSeconds > 0 && (
+                <p className="mt-5 text-center text-sm text-muted-foreground" aria-live="polite">
+                  {copy.resendIn.replace("{s}", resendSeconds.toLocaleString(lang))}
+                </p>
+              )}
+              {resetStep === "confirm" && resendSeconds === 0 && (
                 <p className="mt-5 text-center text-sm text-muted-foreground">
                   {copy.noCode}{" "}
                   <button

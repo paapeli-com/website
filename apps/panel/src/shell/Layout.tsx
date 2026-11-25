@@ -7,7 +7,6 @@ import { cn } from "@/shared/lib/utils";
 import { recordVisit } from "@/shared/lib/userHistory";
 import { resolveNavEntry } from "@/shell/nav/resolveNavEntry";
 import { Header } from "./Header";
-import { ProductAutoSubscribe } from "./ProductAutoSubscribe";
 import { useAccountAccent } from "./useAccountAccent";
 import { SidebarContent } from "./Sidebar";
 import { factoryNav } from "@/shell/nav/factoryNav";
@@ -89,7 +88,6 @@ export function Layout() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       <Header onMenu={toggleSidebar} />
-      <ProductAutoSubscribe />
 
       <div className="flex min-h-0 flex-1">
         <aside

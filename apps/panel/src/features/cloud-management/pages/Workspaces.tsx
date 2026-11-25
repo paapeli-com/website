@@ -254,7 +254,7 @@ export default function Workspaces() {
             ) : productsLoading ? (
               <SkeletonList rows={2} />
             ) : (workspaceProducts ?? []).length === 0 ? (
-              <EmptyState title={t("No products subscribed")} description={t("Subscribe a product below to get started.")} />
+              <EmptyState title={t("No products subscribed")} description={t("A product joins this workspace the first time an owner or admin opens it, and stays active after that.")} />
             ) : (
               <div className="flex flex-col gap-2">
                 {workspaceProducts!.map((p) => (
@@ -268,6 +268,7 @@ export default function Workspaces() {
                     </Badge>
                   </div>
                 ))}
+                <p className="text-xs text-muted-foreground">{t("A product joins this workspace the first time an owner or admin opens it, and stays active after that.")}</p>
               </div>
             )}
           </Card>
