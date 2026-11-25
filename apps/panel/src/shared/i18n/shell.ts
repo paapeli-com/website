@@ -97,6 +97,11 @@ const fa: Record<string, string> = {
 
   // Notifications
   "Mark all read": "علامت‌گذاری همه به‌عنوان خوانده‌شده",
+  "You were invited to a workspace": "شما به یک فضای کاری دعوت شده‌اید",
+  "Owner": "مالک",
+  "Admin": "مدیر",
+  "Member": "عضو",
+  "Viewer": "بیننده",
   All: "همه",
   Billing: "صورتحساب",
   System: "سیستم",
@@ -821,6 +826,11 @@ const ar: Record<string, string> = {
 
   // Notifications
   "Mark all read": "تعليم الكل كمقروء",
+  "You were invited to a workspace": "تمت دعوتك إلى مساحة عمل",
+  "Owner": "المالك",
+  "Admin": "مشرف",
+  "Member": "عضو",
+  "Viewer": "مشاهد",
   All: "الكل",
   Billing: "الفوترة",
   System: "النظام",

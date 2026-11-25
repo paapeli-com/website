@@ -31,6 +31,7 @@ import { getCurrentUser } from "@paapeli/brand/session";
 import { useActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { cn } from "@/shared/lib/utils";
 import { needsAttention } from "@/shared/lib/alarmStatus";
+import { alarmsReadAt, useNotificationReads } from "@/shared/lib/notificationReads";
 import { useShellT } from "@/shared/i18n/shell";
 import { isRTLLanguage, localizeDigits, useAppLanguage } from "@/shared/i18n/appLanguage";
 import {
@@ -129,6 +130,7 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
 
   const user = getCurrentUser();
   const workspaceId = useActiveWorkspaceId() ?? "";
+  const notificationReads = useNotificationReads();
 
   /* Which products this workspace actually holds. Everything product-scoped
      below is gated on it: those endpoints 404 without a subscription, and
@@ -246,6 +248,12 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
   const attention = alarmKeys
     .flatMap((key) => alarmsOf(key).filter(isUnacknowledged).map((alarm) => ({ alarm, key })))
     .sort((a, b) => new Date(b.alarm.createdAt).getTime() - new Date(a.alarm.createdAt).getTime());
+  /* The badge counts the alarms not yet read in the bell, so "Mark all read"
+     there clears it here at once. The list still shows every alarm nobody
+     has acknowledged. */
+  const unreadAttention = attention.filter(
+    ({ alarm }) => new Date(alarm.createdAt).getTime() > alarmsReadAt(notificationReads, workspaceId),
+  ).length;
 
   const deviceTotal =
     (hasFactory ? (factoryDevices.data?.totalElements ?? 0) : 0) +
@@ -469,9 +477,9 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
             <Card className="flex flex-col gap-3">
               <div className="flex items-center justify-between gap-2">
                 <h2 className="text-sm font-bold text-foreground">{t("Needs attention")}</h2>
-                {attention.length > 0 && (
+                {unreadAttention > 0 && (
                   <span className="flex size-5 items-center justify-center rounded-full bg-destructive/10 text-[11px] font-semibold text-destructive">
-                    {n(attention.length)}
+                    {n(unreadAttention)}
                   </span>
                 )}
               </div>

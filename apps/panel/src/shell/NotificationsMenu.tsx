@@ -2,15 +2,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "@/shared/lib/toast";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Bell, ClipboardList } from "lucide-react";
+import { AlertTriangle, Bell, ClipboardList, UserPlus } from "lucide-react";
 import {
   aiService,
   notificationService,
   notificationsQueryKey,
   useGetNotificationsQueries,
   useGetWorkspaceAlarmsQueries,
+  useListWorkspaceInvitationsQuery,
   useListWorkspaceProductsQuery,
   type NotificationResponse,
+  type UserWorkspace,
   type WorkspaceAlarmItem,
 } from "@paapeli/api";
 import { productKeyFor, solutionPath } from "@paapeli/brand/config";
@@ -19,6 +21,7 @@ import { useActiveWorkspaceId } from "@paapeli/brand/workspace";
 import { cn } from "@/shared/lib/utils";
 import { useShellT } from "@/shared/i18n/shell";
 import { useAppLanguage, type AppLanguage } from "@/shared/i18n/appLanguage";
+import { alarmsReadAt, markAlarmsRead, markInvitationsRead, useNotificationReads } from "@/shared/lib/notificationReads";
 
 type Tone = "critical" | "warning" | "info";
 type Category = "alarm" | "workOrder" | "billing" | "system";
@@ -32,8 +35,11 @@ interface Notification {
   time: string;
   /** When it happened, to order alarms and server notifications together. */
   at: number;
-  /** Read state the server keeps; alarms have none. */
+  /** Not read yet: on the server for its own notifications, in this browser
+      for alarms and invitations (see shared/lib/notificationReads). */
   unread?: boolean;
+  /** An invitation to a workspace, drawn with its own icon. */
+  invitation?: boolean;
   productKey?: string;
   /** Where a click leads. */
   path?: string;
@@ -45,9 +51,15 @@ interface Notification {
    Billing and system have no endpoint yet, so those tabs stay empty rather
    than showing invented entries.
 
-   Work-order notifications are read or unread on the server. Alarms are not:
-   for them "mark all read" stays a local dismissal of the bell's dot for this
-   session. */
+   Work-order notifications are read or unread on the server. Alarms and
+   invitations are not, so this browser remembers which of them were read.
+
+   The bell lists unread entries only. "Mark all read" leaves them in the list
+   in plain type until the next reload, so nothing vanishes under the pointer.
+
+   A pending invitation to another workspace is listed too, so whoever was
+   invited hears about it here. It leads to Members > Invitations, where it is
+   accepted or declined. */
 const MAX_NOTIFICATIONS = 20;
 
 const alarmTone = (severity?: string): Tone => {
@@ -69,14 +81,36 @@ const timeAgo = (iso: string, lang: AppLanguage): string => {
   return rtf.format(-Math.floor(hours / 24), "day");
 };
 
-const toNotification = (a: WorkspaceAlarmItem, lang: AppLanguage): Notification => ({
-  id: a.id,
-  category: "alarm",
-  tone: alarmTone(a.severity),
-  title: a.alarmName,
-  source: a.deviceName ?? a.assetName ?? "",
-  time: timeAgo(a.createdAt, lang),
-  at: new Date(a.createdAt).getTime() || 0,
+const toNotification = (a: WorkspaceAlarmItem, lang: AppLanguage, readAt: number): Notification => {
+  const at = new Date(a.createdAt).getTime() || 0;
+  return {
+    id: a.id,
+    category: "alarm",
+    tone: alarmTone(a.severity),
+    title: a.alarmName,
+    source: a.deviceName ?? a.assetName ?? "",
+    time: timeAgo(a.createdAt, lang),
+    at,
+    unread: at > readAt,
+  };
+};
+
+const ROLE_NAMES: Record<string, string> = { OWNER: "Owner", ADMIN: "Admin", MEMBER: "Member", VIEWER: "Viewer" };
+const INVITATIONS_PATH = "/CloudManagement/members?tab=invitations";
+const invitationId = (workspaceId: string) => `invitation-${workspaceId}`;
+
+/* The invitation has no date of its own, so it heads the list. */
+const fromInvitation = (w: UserWorkspace, read: boolean, t: (key: string) => string): Notification => ({
+  id: invitationId(w.workspaceId),
+  category: "system",
+  tone: "info",
+  title: t("You were invited to a workspace"),
+  source: `${w.workspaceName} · ${t(ROLE_NAMES[w.role] ?? w.role)}`,
+  time: "",
+  at: Number.MAX_SAFE_INTEGER,
+  unread: !read,
+  invitation: true,
+  path: INVITATIONS_PATH,
 });
 
 const WORK_ORDER_HEADLINE: Record<NotificationResponse["type"], string> = {
@@ -197,7 +231,9 @@ function reportVirtualDevices() {
 export function NotificationsMenu() {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("all");
-  const [readAll, setReadAll] = useState(false);
+  /* Entries read during this visit stay listed, in plain type, until reload. */
+  const [kept, setKept] = useState<Set<string>>(() => new Set());
+  const reads = useNotificationReads();
   const ref = useRef<HTMLDivElement>(null);
   const t = useShellT();
   const lang = useAppLanguage();
@@ -216,16 +252,22 @@ export function NotificationsMenu() {
   const alarmsVersion = alarmQueries.map((q) => q.dataUpdatedAt).join(",");
   const serverQueries = useGetNotificationsQueries(workspaceId ?? "", productKeys, MAX_NOTIFICATIONS);
   const serverVersion = serverQueries.map((q) => q.dataUpdatedAt).join(",");
+  const { data: invitations } = useListWorkspaceInvitationsQuery();
+  const readAt = alarmsReadAt(reads, workspaceId);
   const notifications = useMemo(
     () => [
-      ...alarmQueries.flatMap((q) => q.data ?? []).map((a) => toNotification(a, lang)),
+      ...(invitations ?? [])
+        .filter((w) => w.membershipStatus === "INVITED")
+        .map((w) => fromInvitation(w, reads.invitations.includes(w.workspaceId), t)),
+      ...alarmQueries.flatMap((q) => q.data ?? []).map((a) => toNotification(a, lang, readAt)),
       ...serverQueries.flatMap((q) => q.data ?? []).map((n) => fromServer(n, lang, t)),
     ]
+      .filter((n) => n.unread || kept.has(n.id))
       .sort((a, b) => b.at - a.at)
       .slice(0, MAX_NOTIFICATIONS),
     // The query arrays are new every render; their data changes are what the versions track.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [alarmsVersion, serverVersion, lang],
+    [alarmsVersion, serverVersion, invitations, reads, readAt, kept, lang],
   );
 
   useEffect(() => {
@@ -239,15 +281,15 @@ export function NotificationsMenu() {
 
   const items = tab === "all" ? notifications : notifications.filter((n) => n.category === tab);
 
-  const unreadOnServer = serverQueries.some((q) => (q.data ?? []).some((n) => !n.read));
-  const hasAlarms = notifications.some((n) => n.category === "alarm");
-  const hasUnread = unreadOnServer || (hasAlarms && !readAll);
+  const hasUnread = notifications.some((n) => n.unread);
 
   const refreshNotifications = () =>
     queryClient.invalidateQueries({ queryKey: notificationsQueryKey(workspaceId ?? "") });
 
   const handleMarkAllRead = async () => {
-    setReadAll(true);
+    setKept((prev) => new Set([...prev, ...notifications.map((n) => n.id)]));
+    if (workspaceId) markAlarmsRead(workspaceId);
+    markInvitationsRead((invitations ?? []).map((w) => w.workspaceId));
     try {
       if (workspaceId) {
         await Promise.all(
@@ -265,6 +307,8 @@ export function NotificationsMenu() {
   };
 
   const handleOpen = (n: Notification) => {
+    setKept((prev) => new Set(prev).add(n.id));
+    if (n.invitation) markInvitationsRead([n.id.slice("invitation-".length)]);
     if (n.unread && workspaceId && n.productKey) {
       // Reading is best effort: a failure leaves it unread for the next visit.
       notificationService.markRead(workspaceId, n.productKey, n.id).then(refreshNotifications, () => {});
@@ -324,19 +368,19 @@ export function NotificationsMenu() {
               items.map((n) => (
                 <div
                   key={n.id}
-                  onClick={n.productKey ? () => handleOpen(n) : undefined}
+                  onClick={n.productKey || n.invitation ? () => handleOpen(n) : undefined}
                   className={cn(
                     "flex items-start gap-3 border-b border-border px-4 py-3 last:border-b-0",
-                    n.productKey && "cursor-pointer hover:bg-muted/40",
+                    (n.productKey || n.invitation) && "cursor-pointer hover:bg-muted/40",
                     n.unread && "bg-primary/5",
                   )}
                 >
                   <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-full", TONE_STYLES[n.tone])}>
-                    {n.category === "workOrder" ? <ClipboardList className="size-4" /> : <AlertTriangle className="size-4" />}
+                    {n.invitation ? <UserPlus className="size-4" /> : n.category === "workOrder" ? <ClipboardList className="size-4" /> : <AlertTriangle className="size-4" />}
                   </span>
                   <div className="min-w-0 flex-1">
                     {/* Alarm, device and work-order names come from the server — not translatable. */}
-                    <p className="text-sm font-semibold text-foreground">{n.title}</p>
+                    <p className={cn("text-sm text-foreground", n.unread ? "font-semibold" : "font-normal")}>{n.title}</p>
                     <p className="text-sm text-muted-foreground">
                       {n.source ? `${n.source} · ${n.time}` : n.time}
                     </p>
@@ -348,16 +392,6 @@ export function NotificationsMenu() {
               ))
             )}
           </div>
-
-          <button
-            onClick={() => {
-              toast.info(t("View all notifications"), { description: t("Coming soon.") });
-              setOpen(false);
-            }}
-            className="block w-full border-t border-border py-3 text-center text-sm font-semibold text-primary hover:bg-muted/40"
-          >
-            {t("View all notifications")}
-          </button>
         </div>
       )}
     </div>

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Plus, UserPlus } from "lucide-react";
 import { LanguageProvider, useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useWorkspaceSelection } from "@/features/cloud-management/contexts/WorkspaceContext";
@@ -37,7 +38,14 @@ function MembersPage() {
   const tr = useTr();
   const { isRTL } = useLanguage();
   const { selected } = useWorkspaceSelection();
-  const [tab, setTab] = useState<"members" | "roles" | "invitations">("members");
+  /* ?tab=invitations opens on the invitations, as the bell's invitation does. */
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<"members" | "roles" | "invitations">(
+    searchParams.get("tab") === "invitations" ? "invitations" : "members",
+  );
+  useEffect(() => {
+    if (searchParams.get("tab") === "invitations") setTab("invitations");
+  }, [searchParams]);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [newRoleOpen, setNewRoleOpen] = useState(false);
   const allowed = canInvite(selected?.role);
