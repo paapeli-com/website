@@ -187,4 +187,27 @@ export const D: Record<string, Record<Lang, string>> = {
     fa: "شما مجوز دعوت عضو را ندارید.",
   },
   comingSoon: { en: "Coming soon", ar: "قريبًا", fa: "به‌زودی" },
+  allProducts: { en: "All products", ar: "جميع المنتجات", fa: "همهٔ محصولات" },
+  noSentInvitations: { en: "No invitations sent yet", ar: "لم تُرسل أي دعوة بعد", fa: "هنوز دعوت‌نامه‌ای ارسال نشده است" },
+  noSentInvitationsDesc: {
+    en: "Invitations you send from this workspace appear here with their status.",
+    ar: "تظهر هنا الدعوات التي ترسلها من مساحة العمل هذه مع حالتها.",
+    fa: "دعوت‌نامه‌هایی که از این فضای کاری ارسال می‌کنید، با وضعیتشان اینجا نمایش داده می‌شوند.",
+  },
+  noReceivedInvitations: { en: "No invitations waiting for you", ar: "لا توجد دعوات بانتظارك", fa: "دعوت‌نامه‌ای در انتظار پاسخ شما نیست" },
+  noSentPermission: {
+    en: "Only those who can invite members see the invitations this workspace has sent.",
+    ar: "لا يرى الدعوات المرسلة من مساحة العمل هذه إلا من يمكنه دعوة الأعضاء.",
+    fa: "فقط کسانی که اجازهٔ دعوت عضو دارند، دعوت‌نامه‌های ارسال‌شده از این فضای کاری را می‌بینند.",
+  },
+  adminAllProducts: {
+    en: "An admin manages the whole workspace and reaches every product.",
+    ar: "المشرف يدير مساحة العمل كلها ويصل إلى جميع المنتجات.",
+    fa: "مدیر کل فضای کاری را مدیریت می‌کند و به همهٔ محصولات دسترسی دارد.",
+  },
+  pickOneProduct: {
+    en: "Choose at least one product.",
+    ar: "اختر منتجًا واحدًا على الأقل.",
+    fa: "دست‌کم یک محصول را انتخاب کنید.",
+  },
 };

@@ -31,6 +31,30 @@ export interface UserWorkspace {
     workspaceName: string;
     membershipStatus: WorkspaceMembershipStatus;
     role: WorkspaceRole;
+    /** The products this membership may use; null means every product. */
+    productKeys?: string[] | null;
+    /** For an invitation: when it was sent (epoch seconds) and by whom.
+     *  Null for one sent before the sender was recorded. */
+    invitedAt?: number | null;
+    invitedByName?: string | null;
+    invitedByEmail?: string | null;
+}
+
+/** An invitation the workspace has sent, and what became of it. */
+export interface SentInvitation {
+    workspaceMembershipId: string;
+    userId: string;
+    email: string;
+    displayName?: string | null;
+    role: WorkspaceRole;
+    /** INVITED pending, ACTIVE accepted, REJECTED declined, EXPIRED, SUSPENDED. */
+    status: WorkspaceMembershipStatus;
+    /** Null means every product. */
+    productKeys?: string[] | null;
+    /** Epoch seconds. */
+    invitedAt?: number | null;
+    invitedByName?: string | null;
+    invitedByEmail?: string | null;
 }
 
 export interface WorkspaceProductRequest {
@@ -48,6 +72,9 @@ export interface WorkspaceProductResponse {
 export interface WorkspaceInvitationRequest {
     email: string;
     role: WorkspaceRole;
+    /** The products a MEMBER or VIEWER may use; omitted or empty means every
+     *  product. Ignored for an ADMIN. */
+    productKeys?: string[];
 }
 
 export interface WorkspaceMembershipResponse {
@@ -147,6 +174,13 @@ export const workspacesService = {
     async acceptInvitation(workspaceId: string): Promise<WorkspaceMembershipResponse> {
         const { data } = await napiHttpHandler.post<WorkspaceMembershipResponse>(
             `/api/v1/aiot/workspaces/${workspaceId}/invitations/accept`,
+        );
+        return data;
+    },
+    /** The invitations this workspace has sent, newest first, with their status. */
+    async listSentInvitations(workspaceId: string): Promise<SentInvitation[]> {
+        const { data } = await napiHttpHandler.get<SentInvitation[]>(
+            `/api/v1/aiot/workspaces/${workspaceId}/invitations`,
         );
         return data;
     },

@@ -105,7 +105,7 @@ const fromInvitation = (w: UserWorkspace, read: boolean, t: (key: string) => str
   category: "system",
   tone: "info",
   title: t("You were invited to a workspace"),
-  source: `${w.workspaceName} · ${t(ROLE_NAMES[w.role] ?? w.role)}`,
+  source: [w.workspaceName, t(ROLE_NAMES[w.role] ?? w.role), w.invitedByName || w.invitedByEmail].filter(Boolean).join(" · "),
   time: "",
   at: Number.MAX_SAFE_INTEGER,
   unread: !read,

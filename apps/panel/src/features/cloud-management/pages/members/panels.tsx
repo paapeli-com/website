@@ -10,6 +10,7 @@ import { Input } from "@/features/factory/components/ui/input";
 import { Textarea } from "@/features/factory/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/features/factory/components/ui/select";
 import { apiErrorMessage } from "@/shared/lib/apiError";
+import { useShellT } from "@/shared/i18n/shell";
 import { useTr } from "./shared";
 
 const ROLES: { value: WorkspaceRole; name: string; desc: string }[] = [
@@ -40,23 +41,31 @@ export function InviteMemberPanel({
   const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<WorkspaceRole>("MEMBER");
-  const [products, setProducts] = useState<Record<string, boolean>>({});
-
-  const solutions = LISTED_PRODUCTS.flatMap((p) => p.solutions ?? []);
-  const toggle = (id: string) => setProducts((p) => ({ ...p, [id]: !p[id] }));
+  const shellT = useShellT();
+  const solutions = LISTED_PRODUCTS.flatMap((p) => p.solutions ?? []).filter((s) => !!s.productKey);
+  /* Every product starts ticked: untick the ones this person should not
+     reach. All ticked is sent as "every product", so a product added later
+     reaches them too. An admin always reaches every product. */
+  const [unticked, setUnticked] = useState<Record<string, boolean>>({});
+  const toggle = (key: string) => setUnticked((p) => ({ ...p, [key]: !p[key] }));
+  const isAdmin = role === "ADMIN";
+  const chosen = solutions.filter((s) => !unticked[s.productKey!]).map((s) => s.productKey!);
+  const noneChosen = !isAdmin && chosen.length === 0;
 
   const send = () => {
-    if (!workspaceId || !email.trim() || invite.isPending) return;
+    if (!workspaceId || !email.trim() || invite.isPending || noneChosen) return;
+    const productKeys = isAdmin || chosen.length === solutions.length ? undefined : chosen;
     invite.mutate(
-      { workspaceId, email: email.trim(), role },
+      { workspaceId, email: email.trim(), role, productKeys },
       {
         onSuccess: () => {
           toast.success(tr("inviteSent", { email: email.trim() }));
           // The roster lists active members only, so the invitee joins it on
           // accepting; refetch so it is current when they do.
           void queryClient.invalidateQueries({ queryKey: ["workspaceMembers", workspaceId] });
+          void queryClient.invalidateQueries({ queryKey: ["sentInvitations", workspaceId] });
           setEmail("");
-          setProducts({});
+          setUnticked({});
           onOpenChange(false);
         },
         onError: (e) => toast.error(apiErrorMessage(e, tr("inviteFailed"))),
@@ -117,37 +126,36 @@ export function InviteMemberPanel({
 
           <div className="flex flex-col gap-2">
             <span className="text-[13px] font-medium text-foreground">{tr("productAccessLabel")}</span>
-            {/* The API takes an email and a workspace role and nothing else,
-                so what is ticked here is not sent yet. It is shown because the
-                invitation is the moment the question gets asked, and the note
-                under the table says the access follows the invitation. */}
+            {isAdmin && <span className="text-xs text-muted-foreground">{tr("adminAllProducts")}</span>}
             {solutions.map((s) => {
-              const on = !!products[s.id];
+              const on = isAdmin || !unticked[s.productKey!];
               return (
                 <button
                   key={s.id}
                   type="button"
-                  onClick={() => toggle(s.id)}
-                  className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-start transition-colors ${
+                  disabled={isAdmin}
+                  onClick={() => toggle(s.productKey!)}
+                  className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-start transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
                     on ? "border-primary/40 bg-primary/5" : "border-border hover:bg-muted/40"
                   }`}
                 >
                   <span className={`flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border ${on ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"}`}>
                     {on && <Check className="size-3" strokeWidth={3} />}
                   </span>
-                  <span className="min-w-0 flex-1 text-[13.5px] font-medium text-foreground">{s.name}</span>
+                  <span className="min-w-0 flex-1 text-[13.5px] font-medium text-foreground">{shellT(s.name)}</span>
                   <span className="shrink-0 text-xs text-muted-foreground">
                     {on ? tr(ROLES.find((r) => r.value === role)?.name ?? "roleMember") : tr("noAccess")}
                   </span>
                 </button>
               );
             })}
+            {noneChosen && <span className="text-xs text-destructive">{tr("pickOneProduct")}</span>}
           </div>
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-border bg-muted/30 px-5 py-3.5">
           <Button variant="outline" onClick={() => onOpenChange(false)}>{tr("cancel")}</Button>
-          <Button onClick={send} disabled={!workspaceId || !email.trim() || invite.isPending} className="gap-2">
+          <Button onClick={send} disabled={!workspaceId || !email.trim() || invite.isPending || noneChosen} className="gap-2">
             {invite.isPending && <Loader2 className="size-4 animate-spin" />}
             {tr("sendInvitation")}
           </Button>

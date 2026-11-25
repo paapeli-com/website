@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Plus, UserPlus } from "lucide-react";
+import { useListWorkspaceInvitationsQuery } from "@paapeli/api";
 import { LanguageProvider, useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { useWorkspaceSelection } from "@/features/cloud-management/contexts/WorkspaceContext";
 import { Button, PageHeader, Tabs } from "@/features/cloud-management/ui";
@@ -49,6 +50,10 @@ function MembersPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [newRoleOpen, setNewRoleOpen] = useState(false);
   const allowed = canInvite(selected?.role);
+  /* Invitations waiting for this person's answer, counted on the tab so they
+     are seen without opening it. */
+  const { data: received } = useListWorkspaceInvitationsQuery();
+  const pendingCount = (received ?? []).filter((w) => w.membershipStatus === "INVITED").length;
 
   const labels = {
     members: tr("tabMembers"),
@@ -105,6 +110,7 @@ function MembersPage() {
         items={[labels.members, labels.roles, labels.invitations]}
         value={labels[tab]}
         onChange={(v) => setTab(byLabel(v))}
+        counts={{ [labels.invitations]: pendingCount }}
       />
 
       {tab === "members" && (

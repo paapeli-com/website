@@ -1,6 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { workspacesService } from './workspaces';
 
+export function useListSentInvitationsQuery(workspaceId: string, enabled = true) {
+    return useQuery({
+        queryKey: ['sentInvitations', workspaceId],
+        queryFn: () => workspacesService.listSentInvitations(workspaceId),
+        enabled: enabled && !!workspaceId,
+    });
+}
+
 export function useListActiveWorkspacesQuery(enabled = true) {
     return useQuery({
         queryKey: ['workspaces'],

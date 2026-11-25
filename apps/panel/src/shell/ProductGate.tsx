@@ -163,6 +163,21 @@ export function ProductGate({ name, productKey, children }: Props) {
   // No product scope — pass straight through.
   if (!productKey) return <>{children}</>;
 
+  /* A member or viewer invited to some products only: the gateway refuses
+     the others, so say so rather than open a page of refusals. */
+  const membership = workspaces?.find((w) => w.workspaceId === workspaceId);
+  if (
+    membership?.productKeys?.length &&
+    (membership.role === "MEMBER" || membership.role === "VIEWER") &&
+    !membership.productKeys.includes(productKey)
+  ) {
+    return (
+      <ProductNotice title={`${name} isn't part of your access in this workspace.`}>
+        Your invitation covers other products. An owner or admin of the workspace can invite you again with this one.
+      </ProductNotice>
+    );
+  }
+
   if (ready) return <>{children}</>;
 
   // Enabling failed. The product is not ACTIVE (or it would not have been

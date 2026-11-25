@@ -3115,10 +3115,41 @@
       }
     },
     "/api/v1/aiot/workspaces/{workspaceId}/invitations": {
+      "get": {
+        "tags": ["Workspaces"],
+        "summary": "List the workspace's sent invitations",
+        "description": "Every invitation this workspace has sent, newest first, with\nwhat became of it: INVITED (pending), ACTIVE (accepted),\nREJECTED (declined), EXPIRED or SUSPENDED. Includes who\nsent it, when, and which products it grants (null means\nevery product). Owners are not listed. Open to whoever may\ninvite members into the workspace.\n",
+        "operationId": "listSentInvitations",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "in": "path",
+            "description": "Workspace ID",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sent invitations returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/SentInvitationDTO" }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller cannot invite members into this workspace"
+          }
+        }
+      },
       "post": {
         "tags": ["Workspaces"],
         "summary": "Invite a workspace member",
-        "description": "Invites an existing active Paapeli user by email. OWNER cannot\nbe granted through an invitation. Workspace authorization\ndetermines whether the caller may invite an ADMIN or a\nMEMBER/VIEWER. A previously rejected or expired invitation\nmay be issued again.\n",
+        "description": "Invites an existing active Paapeli user by email. OWNER cannot\nbe granted through an invitation. Workspace authorization\ndetermines whether the caller may invite an ADMIN or a\nMEMBER/VIEWER. A previously rejected or expired invitation\nmay be issued again. productKeys limits a MEMBER or VIEWER\nto those products of the workspace; empty or absent means\nevery product, and it is ignored for an ADMIN. The sender\nis recorded and shown to the invited person.\n",
         "operationId": "invite",
         "parameters": [
           {
@@ -3358,7 +3389,7 @@
       "post": {
         "tags": ["Authentication"],
         "summary": "Reset a password",
-        "description": "Replaces the password associated with a valid, unexpired,\none-time reset code. Submitting a code consumes it before the\npassword update is attempted, so a failed attempt requires a\nnew code. A successful reset also revokes previously issued\nPaapeli access tokens for the account.\n",
+        "description": "Replaces the password associated with a valid, unexpired,\none-time reset code. The code is the 6-digit number from the\nreset email, sent with the account's email. Five wrong codes\ncancel the reset, a code lasts 15 minutes, and requesting a\nnew code cancels the previous one. A right code is consumed\nbefore the password update is attempted, so a failed update\nrequires a new code. A successful reset also revokes\npreviously issued Paapeli access tokens for the account.\n",
         "operationId": "resetPassword",
         "requestBody": {
           "content": {
@@ -3391,7 +3422,7 @@
             }
           },
           "404": {
-            "description": "The reset code is invalid or has already been used",
+            "description": "The reset code is wrong, used, or cancelled after five wrong tries",
             "content": {
               "*/*": {
                 "schema": { "$ref": "#/components/schemas/PaapeliMessage" }
@@ -4768,7 +4799,7 @@
       "get": {
         "tags": ["Workspaces"],
         "summary": "List pending invitations",
-        "description": "Lists INVITED workspace memberships for the authenticated user.",
+        "description": "Lists INVITED workspace memberships for the authenticated\nuser, with who sent each one (invitedByName, invitedByEmail;\nnull for one sent before the sender was recorded), when\n(invitedAt, epoch seconds) and which products it grants\n(productKeys; null means every product).\n",
         "operationId": "listInvitations",
         "responses": {
           "200": {
@@ -9124,6 +9155,13 @@
           "role": {
             "type": "string",
             "enum": ["OWNER", "ADMIN", "MEMBER", "VIEWER"]
+          },
+          "productKeys": {
+            "type": "array",
+            "nullable": true,
+            "maxItems": 32,
+            "items": { "type": "string", "maxLength": 64 },
+            "description": "The products a MEMBER or VIEWER may use. Empty or absent means every product. Ignored for an ADMIN."
           }
         },
         "required": ["email", "role"]
@@ -9199,9 +9237,19 @@
       "ResetPasswordRequest": {
         "type": "object",
         "properties": {
-          "code": { "type": "string", "minLength": 1 },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The 6-digit code from the reset email."
+          },
           "password": { "type": "string", "minLength": 1 },
-          "passwordConfirm": { "type": "string", "minLength": 1 }
+          "passwordConfirm": { "type": "string", "minLength": 1 },
+          "email": {
+            "type": "string",
+            "maxLength": 254,
+            "nullable": true,
+            "description": "The account's email, which the 6-digit code is checked against. Absent only for a long code sent before the 6-digit ones."
+          }
         },
         "required": ["code", "password", "passwordConfirm"]
       },
@@ -9628,7 +9676,54 @@
           "role": {
             "type": "string",
             "enum": ["OWNER", "ADMIN", "MEMBER", "VIEWER"]
-          }
+          },
+          "productKeys": {
+            "type": "array",
+            "nullable": true,
+            "maxItems": 32,
+            "items": { "type": "string", "maxLength": 64 },
+            "description": "The products this membership may use; null means every product."
+          },
+          "invitedAt": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "When the invitation was sent, epoch seconds."
+          },
+          "invitedByName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Who sent the invitation. Null for one sent before the sender was recorded."
+          },
+          "invitedByEmail": { "type": "string", "nullable": true }
+        }
+      },
+      "SentInvitationDTO": {
+        "type": "object",
+        "properties": {
+          "workspaceMembershipId": { "type": "string", "format": "uuid" },
+          "userId": { "type": "string", "format": "uuid" },
+          "email": { "type": "string" },
+          "displayName": { "type": "string", "nullable": true },
+          "role": {
+            "type": "string",
+            "enum": ["OWNER", "ADMIN", "MEMBER", "VIEWER"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["INVITED", "ACTIVE", "SUSPENDED", "REJECTED", "EXPIRED"],
+            "description": "INVITED pending, ACTIVE accepted, REJECTED declined, EXPIRED, SUSPENDED."
+          },
+          "productKeys": {
+            "type": "array",
+            "nullable": true,
+            "maxItems": 32,
+            "items": { "type": "string", "maxLength": 64 },
+            "description": "Null means every product."
+          },
+          "invitedAt": { "type": "integer", "format": "int64", "nullable": true },
+          "invitedByName": { "type": "string", "nullable": true },
+          "invitedByEmail": { "type": "string", "nullable": true }
         }
       },
       "EntityFieldItem": {

@@ -3,6 +3,7 @@ import { Inbox, Loader2, type LucideIcon } from "lucide-react";
 import { toast } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
 import { useShellT } from "@/shared/i18n/shell";
+import { useAppLanguage } from "@/shared/i18n/appLanguage";
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
   return (
@@ -274,7 +275,19 @@ export function Table({
   );
 }
 
-export function Tabs({ items, value, onChange }: { items: string[]; value: string; onChange: (v: string) => void }) {
+export function Tabs({
+  items,
+  value,
+  onChange,
+  counts,
+}: {
+  items: string[];
+  value: string;
+  onChange: (v: string) => void;
+  /** A number beside a tab, such as what waits for an answer there. Zero shows nothing. */
+  counts?: Record<string, number>;
+}) {
+  const language = useAppLanguage();
   return (
     <div className="flex gap-6 overflow-x-auto border-b border-border">
       {items.map((t) => (
@@ -283,11 +296,16 @@ export function Tabs({ items, value, onChange }: { items: string[]; value: strin
           type="button"
           onClick={() => onChange(t)}
           className={cn(
-            "shrink-0 whitespace-nowrap border-b-2 pb-2.5 text-sm font-medium transition-colors",
+            "flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 pb-2.5 text-sm font-medium transition-colors",
             t === value ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground",
           )}
         >
           {t}
+          {!!counts?.[t] && (
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-primary-foreground">
+              {counts[t].toLocaleString(language)}
+            </span>
+          )}
         </button>
       ))}
     </div>
