@@ -72,4 +72,4 @@ const footerItems = [
   { title: "Cloud Management", icon: Cloud, path: "/CloudManagement" },
 ];
 
-export const factoryNav: NavSection = { title: "Smart Factory", icon: Factory, items, footerItems };
+export const factoryNav: NavSection = { title: "Smart Infrastructure", icon: Factory, items, footerItems };

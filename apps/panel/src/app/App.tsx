@@ -87,7 +87,7 @@ export default function App() {
               <Route
                 path="AIoT/SmartFactory/*"
                 element={
-                  <Feature key="SmartFactory" name="Smart Factory" productKey={productKeyFor("SmartFactory")} routes={factoryRoutes} />
+                  <Feature key="SmartFactory" name="Smart Infrastructure" productKey={productKeyFor("SmartFactory")} routes={factoryRoutes} />
                 }
               />
               {/* Smart Greenhouse is drawn with Smart Factory's pages over

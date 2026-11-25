@@ -82,7 +82,7 @@ export function CreateWorkspaceDialog({
                 value={name}
                 maxLength={254}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={t("e.g. Smart Factory Ops")}
+                placeholder={t("e.g. Smart Infrastructure Ops")}
                 className="h-11 rounded-xl border border-input bg-card px-3.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
               />
             </label>

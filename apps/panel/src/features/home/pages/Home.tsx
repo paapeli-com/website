@@ -242,7 +242,7 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
   const activeWorkspaceName = workspaces?.find((w) => w.workspaceId === workspaceId)?.workspaceName;
 
   const productOf = (key: string) =>
-    key === trackingKey ? t("Fleet Management") : key === greenhouseKey ? t("Smart Greenhouse") : t("Smart Factory");
+    key === trackingKey ? t("Fleet Management") : key === greenhouseKey ? t("Smart Greenhouse") : t("Smart Infrastructure");
   const attention = alarmKeys
     .flatMap((key) => alarmsOf(key).filter(isUnacknowledged).map((alarm) => ({ alarm, key })))
     .sort((a, b) => new Date(b.alarm.createdAt).getTime() - new Date(a.alarm.createdAt).getTime());
@@ -296,7 +296,7 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <ProductCard
                   icon={Box}
-                  title={t("Smart Factory")}
+                  title={t("Smart Infrastructure")}
                   description={t("Assets, alarms, work orders and OTA for production lines.")}
                   action={t("Open")}
                   onAction={() => navigate(`${solutionPath(FACTORY)}/`)}

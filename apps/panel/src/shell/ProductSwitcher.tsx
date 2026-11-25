@@ -58,9 +58,6 @@ const AI_INFRA_ROWS: Row[] = SHOW_UNRELEASED_PRODUCTS
   ? [
       { id: "AIInference", name: "AI Inference (MaaS)", icon: Server, tag: "Alpha", path: AI_INFERENCE_BASE },
       { id: "AIAgentMaker", name: "AI Agent Maker", icon: Sparkles, tag: "Soon" },
-      /* Not a product of AI Infra's: a door into Cloud Server's GPU page, for
-         whoever looks for GPUs here first. */
-      { id: "GPUServers", name: "GPU Servers", icon: Microchip, path: CLOUD_SERVER_GPU_PATH },
     ]
   : [
       { id: "AIInference", name: "AI Inference (MaaS)", icon: Server, tag: "Coming soon" },
@@ -71,11 +68,18 @@ const AI_INFRA_ROWS: Row[] = SHOW_UNRELEASED_PRODUCTS
    @paapeli/brand/config's PRODUCTS: that list also feeds Subscriptions, Members
    and the search, and none of them should hear about IaaS before it launches.
    Cloud Server opens on staging; production lists it as an inert
-   "Coming soon" row, like AI Infra's. */
+   "Coming soon" row, like AI Infra's. GPU Servers is Cloud Server's GPU page,
+   listed as an IaaS product of its own and opening wherever Cloud Server does. */
 const IAAS_FAMILY: Product = { id: "iaas", name: "IaaS" };
 const IAAS_ROWS: Row[] = OPEN_CLOUD_SERVER
-  ? [{ id: "CloudServer", name: "Cloud Server", icon: Server, tag: "Alpha", path: CLOUD_SERVER_BASE }]
-  : [{ id: "CloudServer", name: "Cloud Server", icon: Server, tag: "Coming soon" }];
+  ? [
+      { id: "CloudServer", name: "Cloud Server", icon: Server, tag: "Alpha", path: CLOUD_SERVER_BASE },
+      { id: "GPUServers", name: "GPU Servers", icon: Microchip, tag: "Alpha", path: CLOUD_SERVER_GPU_PATH },
+    ]
+  : [
+      { id: "CloudServer", name: "Cloud Server", icon: Server, tag: "Coming soon" },
+      { id: "GPUServers", name: "GPU Servers", icon: Microchip, tag: "Coming soon" },
+    ];
 const FAMILIES: Product[] = SHOW_IAAS ? [...LISTED_PRODUCTS, IAAS_FAMILY] : LISTED_PRODUCTS;
 
 export function ProductSwitcher() {

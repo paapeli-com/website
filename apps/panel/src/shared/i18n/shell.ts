@@ -10,7 +10,7 @@ import { useAppLanguage, type AppLanguage } from "./appLanguage";
 
 const fa: Record<string, string> = {
   // Products, solutions and nav sections
-  "Smart Factory": "کارخانه هوشمند",
+  "Smart Infrastructure": "زیرساخت هوشمند",
   "Fleet Management": "مدیریت ناوگان",
   "Smart Greenhouse": "گلخانه هوشمند",
   Greenhouses: "گلخانه‌ها",
@@ -93,7 +93,7 @@ const fa: Record<string, string> = {
   "Pump P101 — failure predicted": "پمپ P101 — خرابی پیش‌بینی شد",
   "RUL 3 days": "عمر باقی‌مانده ۳ روز",
   "Temp Sensor TS-04": "سنسور دما TS-04",
-  "Smart Factory · online": "کارخانه هوشمند · آنلاین",
+  "Smart Infrastructure · online": "زیرساخت هوشمند · آنلاین",
 
   // Notifications
   "Mark all read": "علامت‌گذاری همه به‌عنوان خوانده‌شده",
@@ -208,7 +208,7 @@ const fa: Record<string, string> = {
   "Subscribe a product below to get started.":
     "برای شروع، از پایین یک محصول را مشترک شوید.",
   "Create workspace": "ساخت فضای کاری",
-  "e.g. Smart Factory Ops": "مثلاً عملیات کارخانه هوشمند",
+  "e.g. Smart Infrastructure Ops": "مثلاً عملیات زیرساخت هوشمند",
   "Failed to create workspace": "ساخت فضای کاری ناموفق بود",
   OWNER: "مالک",
   ADMIN: "مدیر",
@@ -219,7 +219,7 @@ const fa: Record<string, string> = {
   SUSPENDED: "معلق",
   PROVISIONING: "در حال آماده‌سازی",
   FAILED: "ناموفق",
-  smartFactory: "کارخانه هوشمند",
+  smartFactory: "زیرساخت هوشمند",
   gpsTracking: "مدیریت ناوگان",
 
   // Subscriptions (Cloud Management)
@@ -678,7 +678,7 @@ const fa: Record<string, string> = {
   "Subscriptions & Plans": "اشتراک‌ها و طرح‌ها",
   "Organisation & Access": "سازمان و دسترسی",
   // Application API keys
-  "AI Inference keys are not available yet. Keys here reach Smart Factory and Fleet Management.": "کلید برای AI Inference هنوز در دسترس نیست. کلیدهای اینجا به کارخانه هوشمند و مدیریت ناوگان دسترسی دارند.",
+  "AI Inference keys are not available yet. Keys here reach Smart Infrastructure and Fleet Management.": "کلید برای AI Inference هنوز در دسترس نیست. کلیدهای اینجا به زیرساخت هوشمند و مدیریت ناوگان دسترسی دارند.",
   "Administer": "مدیریت کامل",
   "Also create and change devices, send commands and act on alarms.": "علاوه بر آن، ساخت و تغییر دستگاه‌ها، ارسال فرمان و رسیدگی به هشدارها.",
   "Also delete and configure, as a product admin can.": "علاوه بر آن، حذف و پیکربندی، مانند مدیر محصول.",
@@ -698,7 +698,7 @@ const fa: Record<string, string> = {
   "Send the key in the Authorization header as a bearer token, or in an X-API-Key header. A key works on the product endpoints of this workspace only.": "کلید را در هدر Authorization به‌صورت Bearer یا در هدر X-API-Key بفرستید. هر کلید فقط روی endpointهای محصولات همین فضای کاری کار می‌کند.",
   "The secret will be shown only once. Store it somewhere safe, like a secrets manager.": "کلید محرمانه فقط یک بار نمایش داده می‌شود. آن را در جای امنی مانند یک secrets manager نگه دارید.",
   "This key has no product access left, so it cannot call anything.": "این کلید دیگر به هیچ محصولی دسترسی ندارد و نمی‌تواند چیزی را فراخوانی کند.",
-  "This workspace has no active product yet. Open Smart Factory or Fleet Management once to set it up.": "این فضای کاری هنوز محصول فعالی ندارد. یک بار کارخانه هوشمند یا مدیریت ناوگان را باز کنید تا راه‌اندازی شود.",
+  "This workspace has no active product yet. Open Smart Infrastructure or Fleet Management once to set it up.": "این فضای کاری هنوز محصول فعالی ندارد. یک بار زیرساخت هوشمند یا مدیریت ناوگان را باز کنید تا راه‌اندازی شود.",
   "Try it": "امتحان کنید",
   "Your role cannot grant this level.": "نقش شما اجازهٔ دادن این سطح را ندارد.",
   // IaaS: Cloud Server
@@ -734,7 +734,7 @@ const fa: Record<string, string> = {
 
 const ar: Record<string, string> = {
   // Products, solutions and nav sections
-  "Smart Factory": "المصنع الذكي",
+  "Smart Infrastructure": "البنية التحتية الذكية",
   "Fleet Management": "إدارة الأسطول",
   "Smart Greenhouse": "الدفيئة الذكية",
   Greenhouses: "الدفيئات",
@@ -817,7 +817,7 @@ const ar: Record<string, string> = {
   "Pump P101 — failure predicted": "المضخة P101 — عطل متوقع",
   "RUL 3 days": "العمر المتبقي ٣ أيام",
   "Temp Sensor TS-04": "مستشعر الحرارة TS-04",
-  "Smart Factory · online": "المصنع الذكي · متصل",
+  "Smart Infrastructure · online": "البنية التحتية الذكية · متصل",
 
   // Notifications
   "Mark all read": "تعليم الكل كمقروء",
@@ -932,7 +932,7 @@ const ar: Record<string, string> = {
   "Subscribe a product below to get started.":
     "اشترك في منتج من الأسفل للبدء.",
   "Create workspace": "إنشاء مساحة عمل",
-  "e.g. Smart Factory Ops": "مثلاً عمليات المصنع الذكي",
+  "e.g. Smart Infrastructure Ops": "مثلاً عمليات البنية التحتية الذكية",
   "Failed to create workspace": "تعذر إنشاء مساحة العمل",
   OWNER: "المالك",
   ADMIN: "مشرف",
@@ -943,7 +943,7 @@ const ar: Record<string, string> = {
   SUSPENDED: "معلق",
   PROVISIONING: "قيد التجهيز",
   FAILED: "فشل",
-  smartFactory: "المصنع الذكي",
+  smartFactory: "البنية التحتية الذكية",
   gpsTracking: "إدارة الأسطول",
 
   // Subscriptions (Cloud Management)
@@ -1402,7 +1402,7 @@ const ar: Record<string, string> = {
   "Subscriptions & Plans": "الاشتراكات والخطط",
   "Organisation & Access": "المؤسسة والوصول",
   // Application API keys
-  "AI Inference keys are not available yet. Keys here reach Smart Factory and Fleet Management.": "مفاتيح AI Inference غير متاحة بعد. المفاتيح هنا تصل إلى المصنع الذكي وإدارة الأسطول.",
+  "AI Inference keys are not available yet. Keys here reach Smart Infrastructure and Fleet Management.": "مفاتيح AI Inference غير متاحة بعد. المفاتيح هنا تصل إلى البنية التحتية الذكية وإدارة الأسطول.",
   "Administer": "إدارة كاملة",
   "Also create and change devices, send commands and act on alarms.": "وأيضًا إنشاء الأجهزة وتعديلها وإرسال الأوامر ومعالجة الإنذارات.",
   "Also delete and configure, as a product admin can.": "وأيضًا الحذف والإعداد، كما يفعل مسؤول المنتج.",
@@ -1422,7 +1422,7 @@ const ar: Record<string, string> = {
   "Send the key in the Authorization header as a bearer token, or in an X-API-Key header. A key works on the product endpoints of this workspace only.": "أرسل المفتاح في ترويسة Authorization كرمز Bearer، أو في ترويسة X-API-Key. يعمل المفتاح على نقاط نهاية منتجات مساحة العمل هذه فقط.",
   "The secret will be shown only once. Store it somewhere safe, like a secrets manager.": "سيُعرض السر مرة واحدة فقط. احفظه في مكان آمن، مثل مدير الأسرار.",
   "This key has no product access left, so it cannot call anything.": "لم يعد لهذا المفتاح وصول إلى أي منتج، لذا لا يمكنه استدعاء شيء.",
-  "This workspace has no active product yet. Open Smart Factory or Fleet Management once to set it up.": "لا تملك مساحة العمل هذه منتجًا نشطًا بعد. افتح المصنع الذكي أو إدارة الأسطول مرة واحدة لإعداده.",
+  "This workspace has no active product yet. Open Smart Infrastructure or Fleet Management once to set it up.": "لا تملك مساحة العمل هذه منتجًا نشطًا بعد. افتح البنية التحتية الذكية أو إدارة الأسطول مرة واحدة لإعداده.",
   "Try it": "جرّبه",
   "Your role cannot grant this level.": "لا يسمح دورك بمنح هذا المستوى.",
   // IaaS: Cloud Server

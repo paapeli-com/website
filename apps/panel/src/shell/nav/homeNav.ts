@@ -34,7 +34,7 @@ const items: NavItem[] = [
     path: AIOT_PATH,
     defaultOpen: true,
     children: [
-      { title: "Smart Factory", icon: Factory, path: solutionPath("SmartFactory") },
+      { title: "Smart Infrastructure", icon: Factory, path: solutionPath("SmartFactory") },
       { title: "Fleet Management", icon: MapPin, path: solutionPath("GPSTracking") },
       { title: "Smart Greenhouse", icon: Sprout, path: solutionPath("SmartGreenhouse") },
     ],
@@ -49,8 +49,6 @@ const items: NavItem[] = [
         ? { title: "AI Inference (MaaS)", icon: Server, path: AI_INFERENCE_BASE }
         : { title: "AI Inference (MaaS)", icon: Server, comingSoon: true },
       { title: "AI Agent Maker", icon: Bot, comingSoon: true },
-      /* Cloud Server's GPU page, reachable from here too. Staging only. */
-      ...(SHOW_UNRELEASED_PRODUCTS ? [{ title: "GPU Servers", icon: Microchip, path: CLOUD_SERVER_GPU_PATH }] : []),
     ],
   },
   /* IaaS: see SHOW_IAAS. */
@@ -63,9 +61,15 @@ const items: NavItem[] = [
           defaultOpen: true,
           /* Listed everywhere, opens only where OPEN_CLOUD_SERVER says. */
           children: [
-            OPEN_CLOUD_SERVER
-              ? { title: "Cloud Server", icon: Server, path: CLOUD_SERVER_BASE }
-              : { title: "Cloud Server", icon: Server, comingSoon: true },
+            ...(OPEN_CLOUD_SERVER
+              ? [
+                  { title: "Cloud Server", icon: Server, path: CLOUD_SERVER_BASE },
+                  { title: "GPU Servers", icon: Microchip, path: CLOUD_SERVER_GPU_PATH },
+                ]
+              : [
+                  { title: "Cloud Server", icon: Server, comingSoon: true },
+                  { title: "GPU Servers", icon: Microchip, comingSoon: true },
+                ]),
           ],
         },
       ]

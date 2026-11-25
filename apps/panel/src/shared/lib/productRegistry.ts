@@ -56,7 +56,7 @@ export const PRODUCT_REGISTRY: ProductDefinition[] = [
   },
   {
     id: "smart-factory",
-    name: "Smart Factory",
+    name: "Smart Infrastructure",
     enabled: true,
     projects: [{ id: "default", name: "Workspace" }],
     actions: [

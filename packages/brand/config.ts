@@ -33,8 +33,10 @@ export const PRODUCTS: Product[] = [
     id: "aiot",
     name: "AIoT",
     solutions: [
+      /* Smart Infrastructure leads the family. Its id stays SmartFactory:
+         that is its URL and its subscription key. */
+      { id: "SmartFactory", name: "Smart Infrastructure", productKey: "smartFactory" },
       { id: "GPSTracking", name: "Fleet Management", productKey: "gpsTracking" },
-      { id: "SmartFactory", name: "Smart Factory", productKey: "smartFactory" },
       { id: "SmartGreenhouse", name: "Smart Greenhouse", productKey: "smartGreenhouse" },
     ],
   },
