@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "@/shared/lib/toast";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Clock3 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import type { NavItem, NavSection } from "@/shell/nav/types";
 import { useShellT } from "@/shared/i18n/shell";
@@ -81,6 +81,17 @@ const rowBase = `flex items-center gap-3 text-[13px] transition-colors ${rowFocu
 const rowShape = (collapsed?: boolean) =>
   collapsed ? "mx-auto size-9 justify-center rounded-xl" : "w-full rounded-lg px-3 py-1.5";
 
+/* A product that is not open yet keeps its whole name and gets a small clock
+   instead of a "Coming soon" pill, which left no room for the name. The
+   words stay in the tooltip and for screen readers. */
+function SoonMark({ label }: { label: string }) {
+  return (
+    <span title={label} aria-label={label} role="img" className="shrink-0 text-muted-foreground/70">
+      <Clock3 className="h-3.5 w-3.5" />
+    </span>
+  );
+}
+
 function ComingSoonLeaf({ item, collapsed }: RowProps) {
   const { title, icon: Icon } = item;
   const t = useShellT();
@@ -95,9 +106,7 @@ function ComingSoonLeaf({ item, collapsed }: RowProps) {
       {!collapsed && (
         <>
           <NavLabel text={t(title)} className="flex-1 text-start" />
-          <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-            {t("Coming soon")}
-          </span>
+          <SoonMark label={t("Coming soon")} />
         </>
       )}
     </button>
@@ -200,9 +209,7 @@ function Group({ item, onNavigate, collapsed, onExpand, activePath }: RowProps &
         {!collapsed && (
           <>
             <NavLabel text={t(item.title)} className="flex-1 text-start" />
-            <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-              {t("Coming Soon")}
-            </span>
+            <SoonMark label={t("Coming Soon")} />
           </>
         )}
       </div>
