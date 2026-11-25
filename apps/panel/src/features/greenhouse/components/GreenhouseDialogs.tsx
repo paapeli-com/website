@@ -26,7 +26,7 @@ import { currentProductKey } from "@/features/factory/lib/product";
 import { toast } from "@/shared/lib/toast";
 import { apiErrorMessage } from "@/shared/lib/apiError";
 import { cn } from "@/shared/lib/utils";
-import { CULTIVATIONS, STRUCTURES, timeZoneOptions } from "./AddGreenhouseWizard";
+import { CULTIVATIONS, STRUCTURES, timeZoneOptions } from "./formParts";
 import { COVERS, CoverPicker, coverOf, type CoverKey } from "./GreenhouseCover";
 import { useGreenhouseWorkspace } from "../hooks";
 import { useGreenhouseText, type GreenhouseTextKey } from "../i18n";

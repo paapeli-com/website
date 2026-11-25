@@ -495,7 +495,7 @@ function CreateFloatingDialog({ open, onClose }: { open: boolean; onClose: () =>
           </div>
           <div>
             <p className="mb-1.5 text-sm font-medium text-foreground">
-              {t("Description")} <span className="font-normal text-muted-foreground">({t("Optional")})</span>
+              {t("Description")}
             </p>
             <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("For example, the website's address")} />
           </div>

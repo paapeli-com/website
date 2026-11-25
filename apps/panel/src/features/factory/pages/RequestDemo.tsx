@@ -230,7 +230,7 @@ const RequestDemo = () => {
                       setFormData({ ...formData, requirements: e.target.value })
                     }
                     rows={4}
-                    placeholder={t("enterRequirements") || "Optional"}
+                    placeholder={t("enterRequirements")}
                   />
                 </div>
 

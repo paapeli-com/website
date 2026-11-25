@@ -50,7 +50,6 @@ import { CropIcon } from "../components/CropIcon";
 import { GreenhouseCover, fruitOf } from "../components/GreenhouseCover";
 import { HealthBadge, cyclesOf, healthOf, useReadingText } from "../components/GreenhouseCard";
 import { CropCycleSheet } from "../components/CropCycleSheet";
-import { StartCycleDialog } from "../components/StartCycleDialog";
 import { AddPlaceDialog, ConfirmDialog, GreenhouseDetailsDialog, GreenhouseDetailsForm, ZoneSettingsDialog } from "../components/GreenhouseDialogs";
 import { daysSince, daysUntil, useGreenhouses, useGreenhouseWorkspace } from "../hooks";
 import { summarize, useEnvironment, useGreenhouseOps, type EnvMetric, type Reading } from "../operations";
@@ -98,13 +97,14 @@ export default function GreenhouseDetail() {
 
   const [editing, setEditing] = useState(false);
   const [addingTo, setAddingTo] = useState<{ id: string; kind: "ZONE" | "BED"; nextNumber: number } | null>(null);
-  const [plantIn, setPlantIn] = useState<string | null>(null);
   const [openCycle, setOpenCycle] = useState<CropCycle | null>(null);
   const [zoneSettings, setZoneSettings] = useState<GreenhouseZone | null>(null);
   const [changing, setChanging] = useState<{ cycle: CropCycle; assetId: string } | null>(null);
   const [deletingPlace, setDeletingPlace] = useState<{ id: string; name: string; kind: "zone" | "greenhouse" } | null>(null);
 
   const lp = (path: string) => localizedPath(path, language);
+  /* Planting is a page of its own; it comes back here when done. */
+  const plantIn = (assetId: string) => navigate(lp(`/crop-cycles/new?assetId=${assetId}&from=${greenhouseId}`));
   const Back = isRTL ? ChevronRight : ChevronLeft;
 
   if (greenhouses.isLoading) return <DetailPageSkeleton stats={4} rows={6} />;
@@ -135,7 +135,7 @@ export default function GreenhouseDetail() {
     try {
       await cropCycleService.complete(workspaceId, currentProductKey(), changing.cycle.id);
       await refresh();
-      setPlantIn(changing.assetId);
+      plantIn(changing.assetId);
     } catch (error) {
       toast.error(apiErrorMessage(error, g("changeCrop")));
     } finally {
@@ -159,7 +159,7 @@ export default function GreenhouseDetail() {
 
   const zoneActions = {
     onOpenCycle: setOpenCycle,
-    onPlant: (assetId: string) => setPlantIn(assetId),
+    onPlant: (assetId: string) => plantIn(assetId),
     onSettings: setZoneSettings,
     onChangeCrop: (cycle: CropCycle, assetId: string) => setChanging({ cycle, assetId }),
     onAddBed: (zone: GreenhouseZone) => setAddingTo({ id: zone.id, kind: "BED", nextNumber: zone.beds.length + 1 }),
@@ -348,7 +348,6 @@ export default function GreenhouseDetail() {
       <GreenhouseDetailsDialog greenhouse={editing ? house : null} onOpenChange={(o) => !o && setEditing(false)} />
       <AddPlaceDialog parent={addingTo} onOpenChange={(o) => !o && setAddingTo(null)} />
       <ZoneSettingsDialog zone={zoneSettings} onOpenChange={(o) => !o && setZoneSettings(null)} />
-      <StartCycleDialog open={!!plantIn} onOpenChange={(o) => !o && setPlantIn(null)} greenhouses={houses} assetId={plantIn ?? undefined} />
       <CropCycleSheet cycle={openCycle} open={!!openCycle} onOpenChange={(o) => !o && setOpenCycle(null)} />
       <ConfirmDialog
         open={!!changing}

@@ -14,7 +14,8 @@ import { formatDate } from "@/shared/lib/formatDate";
 import { cn } from "@/shared/lib/utils";
 import { CropIcon } from "../components/CropIcon";
 import { CropCycleSheet } from "../components/CropCycleSheet";
-import { StartCycleDialog } from "../components/StartCycleDialog";
+import { useNavigate } from "react-router-dom";
+import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { daysSince, daysUntil, useCropCycles, useCropProfiles, useGreenhouses } from "../hooks";
 import { useGreenhouseText, type GreenhouseTextKey } from "../i18n";
 
@@ -29,7 +30,8 @@ export default function CropCycles() {
   const [cropId, setCropId] = useState("all");
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState<CropCycle | null>(null);
-  const [starting, setStarting] = useState(false);
+  const navigate = useNavigate();
+  const startCycle = () => navigate(localizedPath("/crop-cycles/new", language));
 
   const greenhouses = useGreenhouses();
   const profiles = useCropProfiles(true);
@@ -67,7 +69,7 @@ export default function CropCycles() {
           count={everything.data ? everything.data.length : null}
           countLabel={g("cyclesCount")}
           actions={
-            <Button onClick={() => setStarting(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-5 gap-2 rounded-md">
+            <Button onClick={startCycle} className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-5 gap-2 rounded-md">
               <Plus className="h-4 w-4" /> {g("startCycle")}
             </Button>
           }
@@ -144,7 +146,7 @@ export default function CropCycles() {
                                 <p className="font-medium">{g("noCyclesTitle")}</p>
                                 <p className="text-xs text-muted-foreground mt-1">{g("noCyclesDesc")}</p>
                               </div>
-                              <Button onClick={() => setStarting(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
+                              <Button onClick={startCycle} className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
                                 <Plus className="h-4 w-4" /> {g("startCycle")}
                               </Button>
                             </div>
@@ -213,7 +215,6 @@ export default function CropCycles() {
         </Card>
       </div>
 
-      <StartCycleDialog open={starting} onOpenChange={setStarting} greenhouses={greenhouses.data ?? []} />
       <CropCycleSheet cycle={open} open={!!open} onOpenChange={(next) => !next && setOpen(null)} />
     </UniformPage>
   );

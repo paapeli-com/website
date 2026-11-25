@@ -683,7 +683,7 @@ export function TemplateFields({
       {/* Script */}
       <div>
         <FieldLabel>
-          {t("Startup script")} <span className="font-normal text-muted-foreground">({t("Optional")})</span>
+          {t("Startup script")}
         </FieldLabel>
         <p className="mb-2 text-xs text-muted-foreground">
           {t("Runs on every new instance on its first boot, for example to fetch the latest version of your app.")}

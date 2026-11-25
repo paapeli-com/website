@@ -289,7 +289,7 @@ export default function LoadBalancerForm() {
                 )}
                 <FieldError problem={vipMode === "fixed" ? shown(errors.vip, form.vipAddress) : undefined} />
               </FieldBox>
-              <FieldBox icon={FileText} title={t("Description")} description={t("Optional, for you and your team.")}>
+              <FieldBox icon={FileText} title={t("Description")} description={t("For you and your team.")}>
                 <Input value={form.description} onChange={(e) => set({ description: e.target.value })} maxLength={255} className="h-10" />
               </FieldBox>
             </div>

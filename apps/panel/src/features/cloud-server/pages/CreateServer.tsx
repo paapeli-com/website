@@ -1188,7 +1188,7 @@ export default function CreateServer({ mode = "cloud" }: { mode?: CreateMode }) 
                     description={t("Start the server as soon as it is ready.")}
                     control={<Switch checked={powerOn} onCheckedChange={setPowerOn} aria-label={t("Power on after creation")} />}
                   />
-                  <SettingRow icon={Disc} title={<>{t("Startup script")} <span className="font-normal text-muted-foreground">({t("Optional")})</span></>} description={t("Runs once on first boot (cloud-init).")}>
+                  <SettingRow icon={Disc} title={<>{t("Startup script")}</>} description={t("Runs once on first boot (cloud-init).")}>
                     <Textarea
                       dir="ltr"
                       rows={5}

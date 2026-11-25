@@ -64,7 +64,6 @@ function FormField({
       <span className="text-sm font-medium text-foreground">
         {label}
         {required && <span className="ms-1 text-destructive" aria-hidden>*</span>}
-        {optional && <span className="ms-1.5 font-normal text-muted-foreground">({tr("optional")})</span>}
       </span>
       {children}
       {hint && <span className="text-xs text-muted-foreground">{hint}</span>}

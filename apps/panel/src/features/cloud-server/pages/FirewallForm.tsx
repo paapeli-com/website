@@ -141,7 +141,7 @@ export default function FirewallForm() {
                 </p>
               )}
             </FieldBox>
-            <FieldBox title={t("Description")} description={t("Optional. What this firewall is for.")}>
+            <FieldBox title={t("Description")} description={t("What this firewall is for.")}>
               <Input value={description} onChange={(e) => setDescription(e.target.value)} aria-label={t("Description")} className="h-11" />
             </FieldBox>
           </div>

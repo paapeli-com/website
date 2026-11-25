@@ -55,7 +55,6 @@ export function Label({ children, required, optional }: { children: ReactNode; r
     <label className="mb-1.5 block text-sm font-medium text-foreground">
       {children}
       {required && <span className="ms-1 text-destructive" aria-hidden>*</span>}
-      {optional && <span className="ms-1.5 font-normal text-muted-foreground">({t("Optional")})</span>}
     </label>
   );
 }

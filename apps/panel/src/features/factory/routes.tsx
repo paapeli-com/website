@@ -94,6 +94,8 @@ const FactoryOnly = ({ children }: { children: ReactNode }) => {
    not carry them; Smart Factory sends the visitor home. */
 const Greenhouses = lazy(() => import("@/features/greenhouse/pages/Greenhouses"));
 const GreenhouseDetail = lazy(() => import("@/features/greenhouse/pages/GreenhouseDetail"));
+const GreenhouseNew = lazy(() => import("@/features/greenhouse/pages/GreenhouseNew"));
+const CropCycleNew = lazy(() => import("@/features/greenhouse/pages/CropCycleNew"));
 const Crops = lazy(() => import("@/features/greenhouse/pages/Crops"));
 const CropProfileEditor = lazy(() => import("@/features/greenhouse/pages/CropProfileEditor"));
 const CropCycles = lazy(() => import("@/features/greenhouse/pages/CropCycles"));
@@ -228,12 +230,16 @@ export default function FactoryRoutes() {
 
                       <Route path="/greenhouses" element={<ProtectedRoute><GreenhouseOnly><Greenhouses /></GreenhouseOnly></ProtectedRoute>} />
                       <Route path="/:lang/greenhouses" element={<ProtectedRoute><GreenhouseOnly><Greenhouses /></GreenhouseOnly></ProtectedRoute>} />
+                      <Route path="/greenhouses/new" element={<ProtectedRoute><GreenhouseOnly><GreenhouseNew /></GreenhouseOnly></ProtectedRoute>} />
+                      <Route path="/:lang/greenhouses/new" element={<ProtectedRoute><GreenhouseOnly><GreenhouseNew /></GreenhouseOnly></ProtectedRoute>} />
                       <Route path="/greenhouses/:greenhouseId" element={<ProtectedRoute><GreenhouseOnly><GreenhouseDetail /></GreenhouseOnly></ProtectedRoute>} />
                       <Route path="/:lang/greenhouses/:greenhouseId" element={<ProtectedRoute><GreenhouseOnly><GreenhouseDetail /></GreenhouseOnly></ProtectedRoute>} />
                       <Route path="/crops" element={<ProtectedRoute><GreenhouseOnly><Crops /></GreenhouseOnly></ProtectedRoute>} />
                       <Route path="/:lang/crops" element={<ProtectedRoute><GreenhouseOnly><Crops /></GreenhouseOnly></ProtectedRoute>} />
                       <Route path="/crops/:cropId" element={<ProtectedRoute><GreenhouseOnly><CropProfileEditor /></GreenhouseOnly></ProtectedRoute>} />
                       <Route path="/:lang/crops/:cropId" element={<ProtectedRoute><GreenhouseOnly><CropProfileEditor /></GreenhouseOnly></ProtectedRoute>} />
+                      <Route path="/crop-cycles/new" element={<ProtectedRoute><GreenhouseOnly><CropCycleNew /></GreenhouseOnly></ProtectedRoute>} />
+                      <Route path="/:lang/crop-cycles/new" element={<ProtectedRoute><GreenhouseOnly><CropCycleNew /></GreenhouseOnly></ProtectedRoute>} />
                       <Route path="/crop-cycles" element={<ProtectedRoute><GreenhouseOnly><CropCycles /></GreenhouseOnly></ProtectedRoute>} />
                       <Route path="/:lang/crop-cycles" element={<ProtectedRoute><GreenhouseOnly><CropCycles /></GreenhouseOnly></ProtectedRoute>} />
                       <Route path="/aiot/insights" element={<ProtectedRoute><GreenhouseOnly><GreenhouseInsights /></GreenhouseOnly></ProtectedRoute>} />

@@ -16,7 +16,6 @@ import { localizedPath } from "@/features/factory/lib/localizedPath";
 import { currentProductKey } from "@/features/factory/lib/product";
 import { toast } from "@/shared/lib/toast";
 import { apiErrorMessage } from "@/shared/lib/apiError";
-import { AddGreenhouseWizard } from "../components/AddGreenhouseWizard";
 import { GreenhouseDetailsDialog, ConfirmDialog } from "../components/GreenhouseDialogs";
 import { GreenhouseCover } from "../components/GreenhouseCover";
 import { CropChips, GreenhouseCard, HealthBadge, cyclesOf, healthOf } from "../components/GreenhouseCard";
@@ -40,7 +39,6 @@ export default function Greenhouses() {
   const houses = greenhouses.data ?? [];
   const { byHouse, devicesKnown, alarmsKnown } = useGreenhouseOps(houses);
 
-  const [wizardOpen, setWizardOpen] = useState(false);
   const [editing, setEditing] = useState<Greenhouse | null>(null);
   const [deleting, setDeleting] = useState<Greenhouse | null>(null);
   const [search, setSearch] = useState("");
@@ -161,7 +159,7 @@ export default function Greenhouses() {
                 <Button variant="outline" onClick={() => navigate(lp("/crops"))} className="h-10 px-4 gap-2 rounded-md">
                   <Leaf className="h-4 w-4" /> {g("cropSettings")}
                 </Button>
-                <Button onClick={() => setWizardOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-5 gap-2 rounded-md">
+                <Button onClick={() => navigate(lp("/greenhouses/new"))} className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-5 gap-2 rounded-md">
                   <Plus className="h-4 w-4" /> {g("addGreenhouse")}
                 </Button>
               </div>
@@ -183,7 +181,7 @@ export default function Greenhouses() {
               <div className="space-y-4 text-start">
                 <h2 className="text-xl font-bold">{g("onboardTitle")}</h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">{g("onboardDesc")}</p>
-                <Button onClick={() => setWizardOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-5 gap-2">
+                <Button onClick={() => navigate(lp("/greenhouses/new"))} className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-5 gap-2">
                   <Plus className="h-4 w-4" /> {g("createGreenhouse")}
                 </Button>
               </div>
@@ -298,7 +296,6 @@ export default function Greenhouses() {
         )}
       </div>
 
-      <AddGreenhouseWizard open={wizardOpen} onOpenChange={setWizardOpen} onCreated={(id) => navigate(lp(`/greenhouses/${id}`))} />
       <GreenhouseDetailsDialog greenhouse={editing} onOpenChange={(o) => !o && setEditing(null)} />
       <ConfirmDialog
         open={!!deleting}

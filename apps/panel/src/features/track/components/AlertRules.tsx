@@ -347,7 +347,7 @@ function RuleForm({ open, onClose }: { open: boolean; onClose: () => void }) {
 
           <div>
             <label htmlFor="rule-desc" className="mb-1.5 block text-sm font-medium">
-              {t("description")} <span className="font-normal text-muted-foreground">({t("optional")})</span>
+              {t("description")}
             </label>
             <textarea id="rule-desc" dir="auto" rows={2} maxLength={500} value={description}
               onChange={(e) => setDescription(e.target.value)}

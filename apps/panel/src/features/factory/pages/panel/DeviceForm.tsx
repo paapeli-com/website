@@ -429,7 +429,7 @@ const DeviceForm = () => {
         </SectionCard>
 
         {/* 2. Basic Information */}
-        <SectionCard step={2} title={t("basicInformation")} right={<span className="text-xs text-muted-foreground hidden sm:inline">{t("onlyNameRequiredHint")}</span>}>
+        <SectionCard step={2} title={t("basicInformation")}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <FieldLabel required htmlFor="device-name">{t("name")}</FieldLabel>
@@ -530,7 +530,6 @@ const DeviceForm = () => {
                 <div className="flex items-center gap-2.5">
                   <StepBadge n={4} />
                   <h3 className="text-base font-semibold text-foreground">{t("advancedSettings")}</h3>
-                  <span className="text-sm text-muted-foreground">({t("optional")})</span>
                 </div>
                 <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
               </button>

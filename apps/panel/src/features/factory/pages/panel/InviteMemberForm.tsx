@@ -47,7 +47,6 @@ const SectionCard = ({
       <StepBadge n={step} />
       <Icon className="h-4 w-4 text-muted-foreground" />
       <h3 className="text-base font-semibold text-foreground">{title}</h3>
-      {optional && <span className="text-sm text-muted-foreground">({optionalLabel || "Optional"})</span>}
     </div>
     {children}
   </Card>

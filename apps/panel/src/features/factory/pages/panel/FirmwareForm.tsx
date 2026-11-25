@@ -67,7 +67,6 @@ const SectionCard = ({
       <div className="flex items-center gap-2.5">
         <StepBadge n={step} />
         <h3 className="text-base font-semibold text-foreground">{title}</h3>
-        {optionalLabel && <span className="text-sm text-muted-foreground">{optionalLabel}</span>}
       </div>
     </div>
     {children}

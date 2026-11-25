@@ -304,7 +304,6 @@ const GatewayForm = () => {
                 <div className="flex items-center gap-2.5">
                   <StepBadge n={4} />
                   <h3 className="text-base font-semibold text-foreground">{t("advancedSettings")}</h3>
-                  <span className="text-sm text-muted-foreground">({t("optional")})</span>
                 </div>
                 <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
               </button>

@@ -178,7 +178,6 @@ const SectionHeader = ({ title, optional, optionalLabel, open }: { title: string
   <CollapsibleTrigger className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors">
     <div className="flex items-center gap-2">
       <h3 className="text-base font-semibold text-foreground">{title}</h3>
-      {optional && <span className="text-sm text-muted-foreground">({optionalLabel})</span>}
     </div>
     <ChevronUp className={`h-5 w-5 text-muted-foreground transition-transform ${open ? "" : "rotate-180"}`} />
   </CollapsibleTrigger>
@@ -188,7 +187,6 @@ const FieldLabel = ({ children, required, hint, optionalLabel }: { children: Rea
   <Label className="text-sm font-medium text-foreground inline-flex items-center gap-1.5 mb-2">
     {children}
     {required && <span className="text-destructive">*</span>}
-    {!required && <span className="text-muted-foreground font-normal">({optionalLabel})</span>}
     {hint && <Info className="h-3.5 w-3.5 text-muted-foreground" />}
   </Label>
 );

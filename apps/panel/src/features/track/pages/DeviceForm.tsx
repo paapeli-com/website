@@ -258,7 +258,7 @@ export default function DeviceForm() {
           />
           <div className="min-w-0">
             <label htmlFor="tracker-description" className="mb-1.5 block text-sm font-medium">
-              {t("description")} <span className="font-normal text-muted-foreground">({t("optional")})</span>
+              {t("description")}
             </label>
             <textarea
               id="tracker-description"

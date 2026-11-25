@@ -121,7 +121,7 @@ const OPTIONS: Record<string, Text> = {
   interval: { en: "Interval", ar: "الفترة", fa: "بازه تجمیع" },
   backgroundColor: { en: "Background color", ar: "لون الخلفية", fa: "رنگ پس‌زمینه" },
   foregroundColor: { en: "Text color", ar: "لون النص", fa: "رنگ متن" },
-  threshold: { en: "Threshold (optional)", ar: "الحد (اختياري)", fa: "آستانه (اختیاری)" },
+  threshold: { en: "Threshold", ar: "الحد", fa: "آستانه" },
   condition: { en: "Condition", ar: "الشرط", fa: "شرط" },
   value: { en: "Value", ar: "القيمة", fa: "مقدار" },
   readings: { en: "Recent readings per device", ar: "أحدث القراءات لكل جهاز", fa: "تعداد داده‌های اخیر هر دستگاه" },

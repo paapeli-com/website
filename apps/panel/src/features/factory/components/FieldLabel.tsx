@@ -1,16 +1,15 @@
 import type { ReactNode } from "react";
-import { useLanguage } from "@/features/factory/contexts/LanguageContext";
 import { Label } from "@/features/factory/components/ui/label";
 import { cn } from "@/shared/lib/utils";
 
-/* A form field's label, the one way every Smart Factory form marks a field:
-   a red asterisk when it is required, "(Optional)" beside the label when it
-   is optional — never in the placeholder. Create Dashboard set the
-   convention; the other forms follow it from here. */
+/* A form field's label, the one way every form in the panel marks a field:
+   a red asterisk when it is required, nothing when it is not. Fields used to
+   say "(Optional)" as well, which doubled the noise of every form for no
+   information the asterisk did not already give. `optional` stays in the
+   signature so existing callers keep compiling; it no longer renders. */
 export function FieldLabel({
   children,
   required,
-  optional,
   htmlFor,
   className,
 }: {
@@ -20,7 +19,6 @@ export function FieldLabel({
   htmlFor?: string;
   className?: string;
 }) {
-  const { t } = useLanguage();
   return (
     <Label
       htmlFor={htmlFor}
@@ -28,13 +26,12 @@ export function FieldLabel({
     >
       {children}
       {required && <span className="text-destructive">*</span>}
-      {optional && <span className="font-normal text-muted-foreground">({t("optional")})</span>}
     </Label>
   );
 }
 
-/** "(Optional)" on its own, beside a section heading rather than a field. */
-export function OptionalNote({ className }: { className?: string }) {
-  const { t } = useLanguage();
-  return <span className={cn("text-sm text-muted-foreground", className)}>({t("optional")})</span>;
+/** Formerly "(Optional)" beside a section heading. Optional sections now say
+ *  nothing, as optional fields do, so this renders nothing. */
+export function OptionalNote(_props: { className?: string }) {
+  return null;
 }
