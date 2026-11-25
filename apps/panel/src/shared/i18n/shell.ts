@@ -97,6 +97,8 @@ const fa: Record<string, string> = {
 
   // Notifications
   "Mark all read": "علامت‌گذاری همه به‌عنوان خوانده‌شده",
+  "Every product is active in every workspace.": "همهٔ محصولات در همهٔ فضاهای کاری فعال هستند.",
+  "Products are being set up for this workspace.": "محصولات در حال راه‌اندازی برای این فضای کاری هستند.",
   "You were invited to a workspace": "شما به یک فضای کاری دعوت شده‌اید",
   "Owner": "مالک",
   "Admin": "مدیر",
@@ -826,6 +828,8 @@ const ar: Record<string, string> = {
 
   // Notifications
   "Mark all read": "تعليم الكل كمقروء",
+  "Every product is active in every workspace.": "جميع المنتجات مفعّلة في جميع مساحات العمل.",
+  "Products are being set up for this workspace.": "يجري إعداد المنتجات لمساحة العمل هذه.",
   "You were invited to a workspace": "تمت دعوتك إلى مساحة عمل",
   "Owner": "المالك",
   "Admin": "مشرف",

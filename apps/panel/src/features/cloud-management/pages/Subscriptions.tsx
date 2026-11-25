@@ -1,15 +1,10 @@
-import { Check, Cpu, Loader2, Package, Plus } from "lucide-react";
+import { Check, Cpu, Package } from "lucide-react";
 import { LISTED_PRODUCTS } from "@/shared/config";
-import { toast } from "@/shared/lib/toast";
 
-import {
-  useListWorkspaceProductsQuery,
-  useSubscribeWorkspaceProductMutation,
-} from "@paapeli/api";
+import { useListWorkspaceProductsQuery } from "@paapeli/api";
 import { useWorkspaceSelection } from "@/features/cloud-management/contexts/WorkspaceContext";
 import { Badge, Button, Card, EmptyState, NoData, NoDataValue, PageHeader, ProgressBar, SkeletonList, Table, Toggle, useComingSoon } from "@/features/cloud-management/ui";
 import { useShellT } from "@/shared/i18n/shell";
-import { apiErrorMessage } from "@/shared/lib/apiError";
 
 /* The PLAN/BILLING data below is placeholder — @paapeli/api has no
    subscriptions or billing module, so plans, entitlements, add-ons and
@@ -39,30 +34,8 @@ function ProductSubscriptions() {
     selectedId ?? "",
     !!selectedId,
   );
-  const subscribe = useSubscribeWorkspaceProductMutation();
-
-  const subscribedKeys = new Set((subscribed ?? []).map((p) => p.productKey));
-  const available = SUBSCRIBABLE.filter((p) => !subscribedKeys.has(p.productKey));
   const nameFor = (key: string) =>
     SUBSCRIBABLE.find((p) => p.productKey === key)?.name ?? key;
-
-  /* Persian and Arabic put the product name in the middle of the
-     sentence, not on the end of it, so the sentence carries a slot
-     rather than being glued together from two translated halves. */
-  const say = (phrase: string, productKey: string) =>
-    t(phrase).replace("{product}", t(nameFor(productKey)));
-
-  const handleSubscribe = (productKey: string) => {
-    if (!selectedId || subscribe.isPending) return;
-    subscribe.mutate(
-      { workspaceId: selectedId, productKey },
-      {
-        onSuccess: () => toast.success(say("Subscribed to {product}", productKey)),
-        onError: (error) =>
-          toast.error(apiErrorMessage(error, say("Could not subscribe to {product}", productKey))),
-      },
-    );
-  };
 
   return (
     <Card className="flex flex-col gap-4">
@@ -80,7 +53,7 @@ function ProductSubscriptions() {
       ) : !selectedId ? (
         <p className="text-sm text-muted-foreground">{t("Select a workspace on the Workspaces page first.")}</p>
       ) : (subscribed ?? []).length === 0 ? (
-        <EmptyState title={t("No products subscribed")} description={t("Subscribe one below to get started.")} />
+        <EmptyState title={t("No products subscribed")} description={t("Products are being set up for this workspace.")} />
       ) : (
         <div className="flex flex-col gap-2">
           {subscribed!.map((p) => (
@@ -101,28 +74,11 @@ function ProductSubscriptions() {
         </div>
       )}
 
-      {selectedId && available.length > 0 && (
-        <div className="flex flex-col gap-2 border-t border-border pt-3">
-          <span className="text-sm font-medium text-foreground">{t("Subscribe a product")}</span>
-          <div className="flex flex-wrap gap-2">
-            {available.map((p) => (
-              <Button
-                key={p.productKey}
-                variant="ghost"
-                onClick={() => handleSubscribe(p.productKey)}
-                disabled={subscribe.isPending}
-              >
-                {subscribe.isPending ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-                {t(p.name)}
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {selectedId && available.length === 0 && (subscribed ?? []).length > 0 && (
+      {/* Every product is active in every workspace (see shell/ProductAutoSubscribe),
+          so there is nothing to add or remove here, only what is set up. */}
+      {selectedId && (
         <p className="flex items-center gap-1.5 border-t border-border pt-3 text-sm text-muted-foreground">
-          <Check className="size-4" /> {t("Every product this panel ships is subscribed.")}
+          <Check className="size-4" /> {t("Every product is active in every workspace.")}
         </p>
       )}
     </Card>

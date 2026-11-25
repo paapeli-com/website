@@ -116,7 +116,9 @@ export function HeaderSearch() {
   const loading = results.some((r) => r.isFetching);
   const failed = results.length > 0 && results.every((r) => r.isError);
   const tooShort = query.trim().length < MIN_QUERY;
-  const open = focused && query.trim().length > 0;
+  /* One letter is too little to search on, and saying so is noise: the
+     dropdown waits for the second letter instead. */
+  const open = focused && !tooShort;
   const showRecent = focused && query.trim().length === 0 && recent.length > 0;
 
   const remember = (q: string) => {
@@ -149,8 +151,7 @@ export function HeaderSearch() {
   };
 
   let message: string | null = null;
-  if (tooShort) message = t("Type at least 2 characters.");
-  else if (failed) message = t("Search failed. Try again.");
+  if (failed) message = t("Search failed. Try again.");
   else if (!rows.length) message = loading || debounced !== query.trim() ? t("Searching…") : t("No results found.");
 
   return (
