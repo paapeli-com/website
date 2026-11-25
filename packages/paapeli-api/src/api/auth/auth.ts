@@ -42,10 +42,12 @@ export interface RequestPasswordResetRequest {
 }
 
 export interface ResetPasswordRequest {
-    /** The one-time code from the reset email. Consumed on submission. */
+    /** The 6-digit code from the reset email. Five wrong tries cancel it. */
     code: string;
     password: string;
     passwordConfirm: string;
+    /** The account's email, which the code is checked against. */
+    email?: string;
 }
 
 export const authService = {

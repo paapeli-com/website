@@ -477,6 +477,7 @@ export default function LoginPage() {
     try {
       await authService.resetPassword({
         code: resetCode.trim(),
+        email: resetEmail.trim(),
         password: newPassword,
         passwordConfirm: newPasswordConfirm,
       });
@@ -489,10 +490,10 @@ export default function LoginPage() {
     } catch (err) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      /* Submitting a code consumes it even when the update fails, so every
-         error here ends the same way: this code is spent, ask for another. */
+      /* A wrong code can be tried again, up to five times. A right one is
+         spent even when the update fails, so anything else needs a new code. */
       setResetError(
-        `${status === 404 ? copy.errCodeInvalid : message || copy.errResetFailed} ${copy.retryWithNewCode}`,
+        status === 404 ? copy.errCodeWrong : `${message || copy.errResetFailed} ${copy.retryWithNewCode}`,
       );
     } finally {
       setBusy(false);
@@ -792,6 +793,8 @@ export default function LoginPage() {
                       className={fieldFor("reset-code")}
                       aria-invalid={missing.has("reset-code") || undefined}
                       type="text"
+                      inputMode="numeric"
+                      dir="ltr"
                       autoComplete="one-time-code"
                       value={resetCode}
                       onChange={(e) => { setResetCode(e.target.value); filled("reset-code"); }}
