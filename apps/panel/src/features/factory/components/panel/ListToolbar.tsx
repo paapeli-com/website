@@ -131,7 +131,9 @@ export function ListToolbar({
       </div>
 
       {/* Right cluster */}
-      <div className="flex items-center gap-2 text-xs">
+      {/* Wraps on a phone: as one row it ran past the screen and pushed
+          the whole page sideways. */}
+      <div className="flex max-w-full flex-wrap items-center gap-2 text-xs">
 
         {/* View switch */}
         {view && (

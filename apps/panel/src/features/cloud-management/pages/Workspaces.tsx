@@ -124,7 +124,7 @@ export default function Workspaces() {
                       }
                     }}
                     className={cn(
-                      "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-start transition-colors",
+                      "flex w-full cursor-pointer flex-wrap items-center gap-3 rounded-xl px-3 py-2.5 text-start transition-colors",
                       isActive ? "bg-primary/10" : "hover:bg-muted",
                     )}
                   >
@@ -163,7 +163,7 @@ export default function Workspaces() {
                         </Button>
                       </form>
                     ) : (
-                    <span className="min-w-0 flex-1">
+                    <span className="min-w-[8rem] flex-1">
                       <span className={cn("block text-sm font-semibold", isActive ? "text-primary" : "text-foreground")}>
                         {ws.workspaceName}
                       </span>
