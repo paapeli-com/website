@@ -102,7 +102,9 @@ function MembersPage() {
       {tab === "members" && (
         <>
           <MembersTab
+            key={selected?.workspaceId}
             workspaceId={selected?.workspaceId}
+            isOwner={selected?.role === "OWNER" && selected.membershipStatus === "ACTIVE"}
             canInvite={allowed}
             onInvite={() => setInviteOpen(true)}
           />

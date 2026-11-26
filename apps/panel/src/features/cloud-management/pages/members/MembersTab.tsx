@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, RefreshCw, SearchX, UserPlus } from "lucide-react";
-import { useListWorkspaceMembersQuery, useListWorkspaceProductsQuery, type WorkspaceMember } from "@paapeli/api";
+import { useListWorkspaceMembersQuery, useListWorkspaceProductsQuery, workspacesService, type WorkspaceMember } from "@paapeli/api";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Switch } from "@/features/factory/components/ui/switch";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/features/factory/components/ui/table";
 import { Button } from "@/features/factory/components/ui/button";
 import { ListToolbar, type FilterField, type SortOption, type ViewMode } from "@/features/factory/components/panel/ListToolbar";
@@ -36,12 +38,31 @@ const joinedMatches = (joined: string, createdAt: string) => {
   if (joined === "older") return age > 90 * DAY_MS;
   return age <= JOINED_DAYS[joined] * DAY_MS;
 };
+function BillingReadSwitch({ workspaceId, member }: { workspaceId: string; member: WorkspaceMember }) {
+  const tr = useTr();
+  const client = useQueryClient();
+  const write = useMutation({
+    mutationFn: (granted: boolean) => workspacesService.setBillingRead(workspaceId, member.workspaceMembershipId, granted),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["workspaceMembers", workspaceId] }),
+  });
+  return <>
+    <Switch aria-label={`${tr("canViewBilling")}: ${member.displayName || member.email || member.userId}`}
+      checked={member.billingReadGranted} disabled={write.isPending} onCheckedChange={granted => write.mutate(granted)} />
+    {write.isError && <div role="alert" className="text-destructive">
+      {apiErrorMessage(write.error, tr("billingWriteFailed"))}
+      <Button variant="outline" size="sm" onClick={() => write.mutate(write.variables)}>{tr("retry")}</Button>
+    </div>}
+  </>;
+}
+
 export default function MembersTab({
   workspaceId,
+  isOwner,
   canInvite,
   onInvite,
 }: {
   workspaceId?: string;
+  isOwner: boolean;
   canInvite: boolean;
   onInvite: () => void;
 }) {
@@ -177,6 +198,7 @@ export default function MembersTab({
             <TableHead>{tr("colMember")}</TableHead>
             <TableHead>{tr("colEmail")}</TableHead>
             <TableHead>{tr("colWorkspaceRole")}</TableHead>
+            {isOwner && <TableHead>{tr("canViewBilling")}</TableHead>}
             <TableHead className="hidden lg:table-cell">{tr("colProductAccess")}</TableHead>
             <TableHead>{tr("colStatus")}</TableHead>
             <TableHead className="hidden md:table-cell">{tr("colDate")}</TableHead>
@@ -187,7 +209,7 @@ export default function MembersTab({
             <TableRow className="hover:bg-transparent">
               {/* The columns stay on screen while the list is empty, as on the
                   device and gateway lists. */}
-              <TableCell colSpan={6} className="p-0">{placeholder}</TableCell>
+              <TableCell colSpan={isOwner ? 7 : 6} className="p-0">{placeholder}</TableCell>
             </TableRow>
           ) : (
             rows.map((m) => (
@@ -195,6 +217,8 @@ export default function MembersTab({
                 <TableCell className="font-medium text-foreground">{m.displayName || "—"}</TableCell>
                 <TableCell className="text-muted-foreground" dir="ltr">{m.email || "—"}</TableCell>
                 <TableCell className="text-muted-foreground">{tr(`role${m.role.charAt(0)}${m.role.slice(1).toLowerCase()}`)}</TableCell>
+                {isOwner && <TableCell>{workspaceId && m.status === "ACTIVE" && (m.role === "MEMBER" || m.role === "VIEWER") &&
+                  <BillingReadSwitch workspaceId={workspaceId} member={m} />}</TableCell>}
                 <TableCell className="hidden lg:table-cell text-muted-foreground">—</TableCell>
                 <TableCell><StatusBadge statusKey={STATUS_KEY[m.status] ?? "statusExpired"} /></TableCell>
                 <TableCell className="hidden md:table-cell text-muted-foreground">

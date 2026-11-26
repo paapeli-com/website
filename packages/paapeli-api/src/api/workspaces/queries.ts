@@ -1,6 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
 import { workspacesService } from './workspaces';
 
+export function useBillingAccountQuery(workspaceId: string) {
+    return useQuery({
+        queryKey: ['billingAccount', workspaceId],
+        queryFn: ({ signal }) => workspacesService.readBillingAccount(workspaceId, signal),
+        enabled: !!workspaceId,
+        gcTime: 0,
+        staleTime: 0,
+        refetchOnMount: 'always',
+        retry: false,
+    });
+}
+
 export function useListActiveWorkspacesQuery(enabled = true) {
     return useQuery({
         queryKey: ['workspaces'],

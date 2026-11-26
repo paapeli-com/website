@@ -292,6 +292,13 @@ const fa: Record<string, string> = {
   // Billing & invoices
   "Invoices, credit notes and the billing profile.":
     "فاکتورها، اعتبارها و مشخصات صورتحساب.",
+  "The selected workspace ID is invalid.": "شناسهٔ فضای کاری انتخاب‌شده نامعتبر است.",
+  "Your session is no longer valid.": "نشست شما دیگر معتبر نیست.",
+  "You do not have billing access in this workspace.": "در این فضای کاری به صورتحساب دسترسی ندارید.",
+  "Billing is temporarily unavailable.": "صورتحساب موقتاً در دسترس نیست.",
+  "Checking billing access…": "در حال بررسی دسترسی به صورتحساب…",
+  "Select a workspace to view billing.": "برای مشاهدهٔ صورتحساب یک فضای کاری انتخاب کنید.",
+  "Workspace role": "نقش در فضای کاری",
   "Export CSV": "خروجی CSV",
   Actions: "اقدامات",
   "Create API key": "ساخت کلید API",
@@ -1016,6 +1023,13 @@ const ar: Record<string, string> = {
   // Billing & invoices
   "Invoices, credit notes and the billing profile.":
     "الفواتير وإشعارات الدائن وبيانات الفوترة.",
+  "The selected workspace ID is invalid.": "معرّف مساحة العمل المحددة غير صالح.",
+  "Your session is no longer valid.": "لم تعد جلستك صالحة.",
+  "You do not have billing access in this workspace.": "ليس لديك إذن عرض الفوترة في مساحة العمل هذه.",
+  "Billing is temporarily unavailable.": "الفوترة غير متاحة مؤقتًا.",
+  "Checking billing access…": "جارٍ التحقق من إذن عرض الفوترة…",
+  "Select a workspace to view billing.": "اختر مساحة عمل لعرض الفوترة.",
+  "Workspace role": "دور مساحة العمل",
   "Export CSV": "تصدير CSV",
   Actions: "إجراءات",
   "Create API key": "إنشاء مفتاح API",

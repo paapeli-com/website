@@ -17,6 +17,8 @@ export const D: Record<string, Record<Lang, string>> = {
   tabInvitations: { en: "Invitations", ar: "الدعوات", fa: "دعوت‌نامه‌ها" },
 
   // Members table
+  canViewBilling: { en: "Can view billing", ar: "يمكنه عرض الفوترة", fa: "امکان مشاهدهٔ صورتحساب" },
+  billingWriteFailed: { en: "Could not update billing access.", ar: "تعذّر تحديث إذن عرض الفوترة.", fa: "به‌روزرسانی دسترسی صورتحساب انجام نشد." },
   searchMembers: { en: "Search in members", ar: "البحث في الأعضاء", fa: "جستجو در اعضا" },
   colMember: { en: "Member", ar: "العضو", fa: "عضو" },
   colEmail: { en: "Email", ar: "البريد الإلكتروني", fa: "ایمیل" },

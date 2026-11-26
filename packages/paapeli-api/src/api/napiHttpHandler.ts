@@ -368,6 +368,7 @@ apiClient.interceptors.response.use(
 );
 
 export interface HttpOptions {
+    signal?: AbortSignal;
     quiet?: boolean;
     /** Send cookies cross-origin — needed by the HttpOnly refresh-token calls. */
     withCredentials?: boolean;
@@ -379,7 +380,7 @@ const napiHttpHandler = {
         params?: Record<string, unknown>,
         options?: HttpOptions,
     ) {
-        return apiClient.get<T>(url, { params, quiet: options?.quiet });
+        return apiClient.get<T>(url, { params, quiet: options?.quiet, signal: options?.signal });
     },
     post<T = unknown>(url: string, body?: unknown, options?: HttpOptions) {
         return apiClient.post<T>(url, body, {

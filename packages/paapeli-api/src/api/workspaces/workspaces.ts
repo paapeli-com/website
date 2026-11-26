@@ -60,6 +60,7 @@ export interface WorkspaceMembershipResponse {
 
 /** A row of GET /workspaces/{workspaceId}/members. */
 export interface WorkspaceMember {
+    billingReadGranted: boolean;
     workspaceMembershipId: string;
     userId: string;
     displayName?: string | null;
@@ -70,6 +71,18 @@ export interface WorkspaceMember {
 }
 
 export const workspacesService = {
+    async readBillingAccount(workspaceId: string, signal: AbortSignal) {
+        const { data } = await napiHttpHandler.get<{ workspaceId: string; userId: string; role: WorkspaceRole }>(
+            `/api/billing/v1/workspaces/${encodeURIComponent(workspaceId)}/account`, undefined, { signal },
+        );
+        return data;
+    },
+    async setBillingRead(workspaceId: string, membershipId: string, granted: boolean) {
+        await napiHttpHandler.put<void>(
+            `/api/v1/aiot/workspaces/${encodeURIComponent(workspaceId)}/members/${encodeURIComponent(membershipId)}/billing-read`,
+            { granted },
+        );
+    },
     /** Members of a workspace, searchable by display name or email. */
     async listMembers(
         workspaceId: string,

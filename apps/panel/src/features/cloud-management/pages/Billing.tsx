@@ -1,12 +1,15 @@
 import { useNavigate } from "react-router-dom";
 import { FileText } from "lucide-react";
+import { useBillingAccountQuery } from "@paapeli/api";
+import { useWorkspaceSelection } from "../contexts/WorkspaceContext";
+import { apiProblem } from "@/shared/lib/apiError";
 import { Badge, Button, NoDataValue, PageHeader, Stat, Table, useComingSoon } from "@/features/cloud-management/ui";
 import { useShellT } from "@/shared/i18n/shell";
 import { useAppLanguage } from "@/shared/i18n/appLanguage";
 import { CURRENCIES, currencyName, useBillingCurrency } from "@/shared/lib/billingCurrency";
 import { cn } from "@/shared/lib/utils";
 
-/* @paapeli/api has no billing module yet.
+/* The account read carries no invoice data.
 
    Seven invoices with issue dates, amounts, payment status and the card they
    were charged to, plus the four summary figures below, including "Paid in
@@ -26,6 +29,24 @@ export default function Billing() {
   const soon = useComingSoon();
   const language = useAppLanguage();
   const { currency, setCurrency } = useBillingCurrency();
+  const { selectedId } = useWorkspaceSelection();
+  const account = useBillingAccountQuery(selectedId ?? "");
+  if (!selectedId || account.isFetching || account.isError || !account.data) {
+    const status = apiProblem(account.error).status;
+    const messages: Record<number, string> = {
+      400: "The selected workspace ID is invalid.",
+      401: "Your session is no longer valid.",
+      403: "You do not have billing access in this workspace.",
+    };
+    const failed = account.isError && !account.isFetching;
+    const message = failed ? messages[status ?? 0] ?? "Billing is temporarily unavailable." :
+      selectedId ? "Checking billing access…" : "Select a workspace to view billing.";
+    return <div className="flex flex-col items-start gap-3 p-6">
+      <PageHeader title={t("Billing & invoices")} />
+      <p role="status">{t(message)}</p>
+      {failed && <Button onClick={() => void account.refetch()}>{t("Retry")}</Button>}
+    </div>;
+  }
 
   return (
     /* data-uniform-type: the page is written in Tailwind steps and reads at
@@ -33,7 +54,7 @@ export default function Billing() {
     <div data-uniform-type className="flex flex-col gap-6 p-6">
       <PageHeader
         title={t("Billing & invoices")}
-        description={t("Invoices, credit notes and the billing profile.")}
+        description={`${t("Workspace role")}: ${account.data.role}`}
         actions={
           <>
             <Button variant="ghost" onClick={() => soon("Export CSV")}>{t("Export CSV")}</Button>
