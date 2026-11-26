@@ -8,7 +8,7 @@ import { LandingFooter } from "@/components/LandingFooter";
 import { LandingNavbar } from "@/components/LandingNavbar";
 import { RevealOnScroll } from "@/components/RevealOnScroll";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { careersContent, localeDigits, type ApplyTarget } from "@/lib/careers";
+import { careersContent, localeDigits, type ApplyTarget, type Category } from "@/lib/careers";
 import type { Locale } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
@@ -31,9 +31,14 @@ export default function CareersPage() {
   /* The position the form is open for, and null while it is shut. */
   const [target, setTarget] = useState<ApplyTarget | null>(null);
 
+  /* The category boxes above the list; null shows every category. */
+  const [category, setCategory] = useState<Category | null>(null);
+
   const open = content.positions.filter((position) => position.status === "open");
   const archived = content.positions.filter((position) => position.status === "archived");
-  const shown = tab === "open" ? open : archived;
+  const inTab = tab === "open" ? open : archived;
+  const shown = category ? inTab.filter((position) => position.category === category) : inTab;
+  const categoryIds = Object.keys(content.roles.categories) as Category[];
 
   const tabClass = (active: boolean) =>
     cn(
@@ -124,7 +129,39 @@ export default function CareersPage() {
               </div>
             </div>
 
-            <div className="mt-10 space-y-6">
+            {/* Category boxes, side by side: All, then each kind of work. */}
+            <div className="mt-8 flex flex-wrap gap-3">
+              {[null, ...categoryIds].map((id) => {
+                const active = category === id;
+                const count = id ? inTab.filter((position) => position.category === id).length : inTab.length;
+                return (
+                  <button
+                    key={id ?? "all"}
+                    type="button"
+                    onClick={() => setCategory(id)}
+                    aria-pressed={active}
+                    className={cn(
+                      "flex min-w-[8.5rem] items-center justify-between gap-4 rounded-xl border px-4 py-3 text-sm font-medium transition-colors",
+                      active
+                        ? "border-primary/60 bg-primary/10 text-white"
+                        : "border-white/[0.08] bg-[#101828] text-white/60 hover:border-white/20 hover:text-white",
+                    )}
+                  >
+                    {id ? content.roles.categories[id] : content.roles.allCategories}
+                    <span
+                      className={cn(
+                        "rounded-md px-1.5 py-0.5 text-xs",
+                        active ? "bg-primary text-primary-foreground" : "bg-white/10 text-white/60",
+                      )}
+                    >
+                      {localeDigits(count, language as Locale)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 space-y-6">
               {shown.length ? (
                 shown.map((position) => (
                   <RevealOnScroll key={position.id}>
