@@ -349,12 +349,6 @@ const DeviceDetails = () => {
   const statusDot = status === "online" ? "bg-emerald-500" : status === "offline" ? "bg-muted-foreground/50" : "bg-rose-500";
   const seed = (device.id?.charCodeAt(0) || 1) * 7;
 
-  // Health metrics (deterministic)
-  const healthScore = 60 + ((seed * 13) % 38);
-  const failureRisk = healthScore > 80 ? t("low") : healthScore > 60 ? t("medium") : t("high");
-  const failureRiskKey = healthScore > 80 ? "Low" : healthScore > 60 ? "Medium" : "High";
-
-  const rulDays = 30 + ((seed * 5) % 180);
 
   const aiInsights = [
     {
@@ -597,32 +591,10 @@ const DeviceDetails = () => {
                 </CardContent>
               </Card>
 
-              {/* Device Health */}
-              <Card>
-                <CardHeader><CardTitle className="text-base">{t("deviceHealth")}</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  {status === "offline" ? <OfflineNotice /> : (<>
-                  <HealthGauge score={healthScore} />
-                  <Separator />
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className={isRTL ? "text-right" : ""}>
-                      <div className="text-xs text-muted-foreground mb-1">{t("failureRisk")}</div>
-                      <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-                        <ShieldCheck className={`h-4 w-4 ${failureRiskKey === "Low" ? "text-emerald-500" : failureRiskKey === "Medium" ? "text-amber-500" : "text-rose-500"}`} />
-                        <span className="text-sm font-medium">{failureRisk}</span>
-                      </div>
-                    </div>
-                    <div className={isRTL ? "text-right" : ""}>
-                      <div className="text-xs text-muted-foreground mb-1">{t("remainingUsefulLife")}</div>
-                      <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-                        <Calendar className="h-4 w-4 text-violet-500" />
-                        <span className="text-sm font-medium">{rulDays} {t("days")}</span>
-                      </div>
-                    </div>
-                  </div>
-                  </>)}
-                </CardContent>
-              </Card>
+              {/* Data reporting: what the device's own readings say about it.
+                  It replaces a health score that was invented from the
+                  device id and had nothing behind it. */}
+              <DataReportingCard rows={latestTelemetry} loading={telemetryLoading} language={language} />
             </div>
 
 
@@ -955,27 +927,79 @@ const StatusBadge = ({ status }: { status: string }) => {
   return <Badge className={cls}>{label}</Badge>;
 };
 
-const HealthGauge = ({ score }: { score: number }) => {
-  const { t } = useLanguage();
-  const tone = score >= 80 ? "text-emerald-500" : score >= 60 ? "text-amber-500" : "text-rose-500";
-  const label = score >= 80 ? t("excellent") : score >= 60 ? t("good") : t("needsAttention");
-  const stroke = score >= 80 ? "#10B981" : score >= 60 ? "#F59E0B" : "#F43F5E";
-  const r = 60, c = Math.PI * r, off = c - (score / 100) * c;
-  return (
-    <div className="flex flex-col items-center">
-      <svg width="180" height="100" viewBox="0 0 180 100">
-        <path d="M 20 90 A 70 70 0 0 1 160 90" stroke="hsl(var(--muted))" strokeWidth="10" fill="none" />
-        <path d="M 20 90 A 70 70 0 0 1 160 90" stroke={stroke} strokeWidth="10" fill="none"
-          strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round"
-          transform="rotate(0)" pathLength={c} />
-        <text x="90" y="78" textAnchor="middle" className={`text-3xl font-bold ${tone}`} fill="currentColor">{score}%</text>
-      </svg>
-      <div className="flex items-center justify-between w-full text-xs text-muted-foreground mt-1 px-2">
-        <span>0</span><span className={`font-medium ${tone}`}>{label}</span><span>100</span>
-      </div>
-    </div>
-  );
+/* When the device last sent data, how many keys it reports, and how often it
+   sends, all from the last 24 hours of its own telemetry. The interval is the
+   median gap between its newest readings, so a capped page of points still
+   gives the right answer. */
+const REPORTING_L = {
+  en: { title: "Data reporting", last: "Last data received", keys: "Keys reporting", every: "Sends about every", none: "No data in the last 24 hours", recent: "Sending", quiet: "Quiet for over an hour", unknown: "Not enough readings yet" },
+  fa: { title: "ارسال داده", last: "آخرین داده دریافتی", keys: "کلیدهای ارسالی", every: "بازهٔ ارسال حدوداً", none: "در ۲۴ ساعت گذشته داده‌ای دریافت نشده است", recent: "در حال ارسال", quiet: "بیش از یک ساعت بدون داده", unknown: "هنوز دادهٔ کافی نیست" },
+  ar: { title: "إرسال البيانات", last: "آخر بيانات مستلمة", keys: "المفاتيح المرسلة", every: "يرسل تقريبًا كل", none: "لم تصل بيانات خلال آخر ٢٤ ساعة", recent: "يرسل الآن", quiet: "بلا بيانات منذ أكثر من ساعة", unknown: "لا توجد قراءات كافية بعد" },
+} as const;
+
+const relativeTime = (ms: number, language: string) => {
+  const rtf = new Intl.RelativeTimeFormat(language, { numeric: "auto" });
+  const minutes = Math.round((Date.now() - ms) / 60_000);
+  if (minutes < 60) return rtf.format(-Math.max(0, minutes), "minute");
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return rtf.format(-hours, "hour");
+  return rtf.format(-Math.round(hours / 24), "day");
 };
+
+const intervalText = (ms: number, language: string) => {
+  const unit = (value: number, u: "second" | "minute" | "hour") =>
+    new Intl.NumberFormat(language, { style: "unit", unit: u, unitDisplay: "long", maximumFractionDigits: 0 }).format(value);
+  if (ms < 90_000) return unit(Math.max(1, ms / 1000), "second");
+  if (ms < 90 * 60_000) return unit(ms / 60_000, "minute");
+  return unit(ms / 3_600_000, "hour");
+};
+
+function DataReportingCard({ rows, loading, language }: { rows: TelemetryRow[]; loading: boolean; language: string }) {
+  const L = REPORTING_L[(language as keyof typeof REPORTING_L)] ?? REPORTING_L.en;
+  const times = rows.flatMap((r) => r.points.map((pt) => Number(pt.ts))).filter((n) => n > 0);
+  const last = times.length ? Math.max(...times) : 0;
+  // Gaps between consecutive readings of each key, newest first; their median.
+  const gaps = rows.flatMap((r) => {
+    const ts = r.points.map((pt) => Number(pt.ts)).filter((n) => n > 0).sort((a, b) => b - a).slice(0, 50);
+    return ts.slice(1).map((v, i) => ts[i] - v).filter((g) => g > 0);
+  }).sort((a, b) => a - b);
+  const median = gaps.length ? gaps[Math.floor(gaps.length / 2)] : 0;
+  const fresh = last && Date.now() - last < 3_600_000;
+
+  return (
+    <Card>
+      <CardHeader><CardTitle className="text-base">{L.title}</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+        {loading ? (
+          <div className="py-6 text-center text-sm text-muted-foreground">…</div>
+        ) : !last ? (
+          <div className="py-6 text-center text-sm text-muted-foreground">{L.none}</div>
+        ) : (
+          <>
+            <div className="flex items-center gap-2">
+              <span className={`size-2.5 rounded-full ${fresh ? "bg-emerald-500" : "bg-amber-500"}`} />
+              <span className="text-sm font-medium text-foreground">{fresh ? L.recent : L.quiet}</span>
+            </div>
+            <div className="divide-y divide-border">
+              <div className="flex items-center justify-between gap-3 py-2.5">
+                <span className="text-sm text-muted-foreground">{L.last}</span>
+                <span className="text-sm font-semibold text-foreground" title={fmtDateTime(last, language)}>{relativeTime(last, language)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 py-2.5">
+                <span className="text-sm text-muted-foreground">{L.keys}</span>
+                <span className="text-sm font-semibold text-foreground tabular-nums">{rows.length.toLocaleString(language)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 py-2.5">
+                <span className="text-sm text-muted-foreground">{L.every}</span>
+                <span className="text-sm font-semibold text-foreground">{median ? intervalText(median, language) : L.unknown}</span>
+              </div>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 /* The credential block's three cards are the API's credential types:
    accessToken → ACCESS_TOKEN, basic → MQTT_BASIC, ssl → X509_CERTIFICATE.
