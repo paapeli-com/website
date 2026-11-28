@@ -40,7 +40,7 @@ import {
   isEstablishedAccount,
   markVisited,
 } from "@/shared/lib/userHistory";
-import { Card, IconTile, Pill, PillSkeleton, SectionLabel, Tag } from "@/features/home/ui";
+import { Card, IconTile, Pill, PillSkeleton, SectionLabel, Tag, type IconTone } from "@/features/home/ui";
 import { WaitlistDialog } from "@/features/home/WaitlistDialog";
 import { TopoBackdrop } from "@/shared/components/TopoBackdrop";
 import { AI_INFERENCE_BASE } from "@/shell/nav/aiInferenceNav";
@@ -275,6 +275,10 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
           again, and a fixed z-0 layer paints over a static flex item, so a
           viewport-anchored backdrop would lie across the sidebar. */}
       <TopoBackdrop anchor="container" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-0 rounded-3xl bg-[radial-gradient(55%_45%_at_0%_0%,hsl(var(--primary)/0.13),transparent_70%),radial-gradient(50%_45%_at_100%_100%,rgba(99,102,241,0.10),transparent_70%),radial-gradient(40%_35%_at_100%_0%,rgba(14,165,233,0.06),transparent_70%)] dark:opacity-40"
+      />
 
       <div className="relative z-[1]">
         {category ? (
@@ -304,6 +308,7 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <ProductCard
                   icon={Box}
+                  tone="blue"
                   title={t("Smart Infrastructure")}
                   description={t("Assets, alarms, work orders and OTA for production lines.")}
                   action={t("Open")}
@@ -342,6 +347,7 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
                 />
                 <ProductCard
                   icon={Sprout}
+                  tone="green"
                   title={t("Smart Greenhouse")}
                   description={t("Greenhouses, crops, sensors, alarms and work orders.")}
                   action={t("Open")}
@@ -372,6 +378,7 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
                   <ProductCard
                     key={product.title}
                     icon={product.icon}
+                    tone={i === 0 ? "brand" : "violet"}
                     title={t(product.title)}
                     tag={t(product.tag)}
                     /* The first is the one being launched, the second is further
@@ -398,6 +405,7 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <ProductCard
                   icon={Server}
+                  tone="sky"
                   title={t("Cloud Server")}
                   description={t("Virtual machines on Linux or Windows, with disks, networking and backups.")}
                   pills={[{ text: t("Linux and Windows") }, { text: t("Auto Scale") }]}
@@ -405,6 +413,7 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
                 />
                 <ProductCard
                   icon={Microchip}
+                  tone="violet"
                   title={t("GPU Servers")}
                   description={t("Virtual machines with a dedicated NVIDIA GPU, billed by the hour.")}
                   pills={[{ text: "RTX 4060 · 4080" }, { text: "A100 · V100" }]}
@@ -412,6 +421,7 @@ export default function Home({ category }: { category?: HomeCategory } = {}) {
                 />
                 <ProductCard
                   icon={Server}
+                  tone="sky"
                   title={t("Dedicated Servers")}
                   description={t("A whole physical server for you, to run your own cloud servers on.")}
                   pills={[{ text: t("Monthly or yearly") }, { text: t("Clusters") }]}
@@ -586,6 +596,7 @@ function ProductCard({
   onAction,
   opens = false,
   variant = "default",
+  tone = "brand",
 }: {
   icon: LucideIcon;
   title: string;
@@ -598,25 +609,27 @@ function ProductCard({
   /** The action opens the product, so its icon and name open it too. */
   opens?: boolean;
   variant?: "default" | "featured" | "planned";
+  /** The product's icon colour. */
+  tone?: IconTone;
 }) {
   const shown = pills.filter(Boolean) as { text: string; tone?: "gray" | "brand" | "bad" }[];
 
   return (
     <article
       className={cn(
-        "flex h-full flex-col rounded-2xl border bg-card p-5 shadow-sm transition-colors",
+        "flex h-full flex-col rounded-2xl border bg-card p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_28px_-14px_rgba(15,23,42,0.18)] dark:shadow-none transition-[border-color,box-shadow] hover:shadow-[0_1px_2px_rgba(15,23,42,0.05),0_14px_32px_-14px_rgba(15,23,42,0.24)]",
         variant === "featured" && "border-primary/40",
         variant === "planned" && "border-dashed border-border",
-        variant === "default" && "border-border hover:border-primary/30",
+        variant === "default" && "border-border/70 hover:border-primary/30",
       )}
     >
-      <div className="flex items-start gap-3.5">
+      <div className="flex items-start gap-3">
         {opens && onAction ? (
           <button type="button" onClick={onAction} aria-label={title} className="shrink-0 rounded-xl">
-            <IconTile icon={icon} />
+            <IconTile icon={icon} tone={tone} />
           </button>
         ) : (
-          <IconTile icon={icon} />
+          <IconTile icon={icon} tone={tone} />
         )}
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -629,13 +642,13 @@ function ProductCard({
             )}
             {tag && <Tag tone={variant === "featured" ? "brand" : "gray"}>{tag}</Tag>}
           </div>
-          <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
+          <p className="text-[13px] leading-relaxed text-muted-foreground">{description}</p>
         </div>
       </div>
 
       {/* Aligned under the title, past the icon tile (40px) and its gap. */}
       {(pending || shown.length > 0) && (
-        <div className="ms-[54px] mt-3.5 flex flex-wrap gap-2">
+        <div className="ms-[52px] mt-3 flex flex-wrap gap-2">
           {pending ? (
             /* One placeholder per tag the card is about to show, so nothing
                shifts sideways when the figures land. */
@@ -651,13 +664,13 @@ function ProductCard({
       )}
 
       <div className="mt-auto flex flex-col">
-        <div className="mt-5 h-px bg-border" />
-        <div className="mt-3.5 flex justify-end">
+        <div className="mt-4 h-px bg-border/70" />
+        <div className="mt-3 flex justify-end">
           {onAction ? (
             <button
               type="button"
               onClick={onAction}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
             >
               {action}
               <ChevronRight className="size-4 text-muted-foreground rtl:rotate-180" />
@@ -666,7 +679,7 @@ function ProductCard({
             <button
               type="button"
               disabled
-              className="inline-flex h-9 cursor-not-allowed items-center rounded-xl border border-border bg-card px-3.5 text-sm font-semibold text-muted-foreground"
+              className="inline-flex h-8 cursor-not-allowed items-center rounded-lg border border-border bg-card px-3 text-sm font-semibold text-muted-foreground"
             >
               {action}
             </button>

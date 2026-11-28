@@ -9,7 +9,7 @@ import { cn } from "@/shared/lib/utils";
    small enough that a copy costs less than the coupling. */
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("rounded-2xl border border-border bg-card p-5 shadow-sm", className)}>{children}</div>;
+  return <div className={cn("rounded-2xl border border-border/70 bg-card p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_28px_-14px_rgba(15,23,42,0.18)] dark:shadow-none", className)}>{children}</div>;
 }
 
 /** The small-caps label above each band of product cards ("AIoT", "Platform"). */
@@ -50,20 +50,30 @@ export function PillSkeleton() {
   return <span className="inline-block h-[26px] w-20 animate-pulse rounded-md bg-muted" aria-hidden />;
 }
 
+/* One colour per product, so the cards tell themselves apart at a glance. */
+export type IconTone = "brand" | "blue" | "green" | "violet" | "sky";
+const ICON_TONES: Record<IconTone, string> = {
+  brand: "bg-primary/10 text-primary",
+  blue: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  green: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  sky: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+};
+
 export function IconTile({
   icon: Icon,
   tone = "brand",
   className,
 }: {
   icon: LucideIcon;
-  tone?: "brand" | "blue";
+  tone?: IconTone;
   className?: string;
 }) {
   return (
     <span
       className={cn(
         "flex size-10 shrink-0 items-center justify-center rounded-xl",
-        tone === "blue" ? "bg-blue-500/10 text-blue-500" : "bg-primary/10 text-primary",
+        ICON_TONES[tone],
         className,
       )}
     >
