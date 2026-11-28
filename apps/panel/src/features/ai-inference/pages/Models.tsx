@@ -23,7 +23,6 @@ import { listModels } from "../lib/catalog";
 import type { InferenceModel, ModelTask } from "../lib/types";
 import { useT } from "../i18n";
 import { Badge, MetricCard, MetricRow, Page, PageHead, useAmount, useCurrency, useNum } from "../ui";
-import { useProject } from "../routes";
 
 /* The model catalogue.
  *
@@ -48,7 +47,6 @@ export default function Models() {
   const num = useNum();
   const amount = useAmount();
   const navigate = useNavigate();
-  const { projectId } = useProject();
 
   const all = useMemo(() => listModels(), []);
 
@@ -218,7 +216,7 @@ export default function Models() {
         actions={
           <Button
             className="bg-primary text-primary-foreground hover:bg-primary/90"
-            onClick={() => navigate(centralApiKeysPath(projectId) + "&create=1")}
+            onClick={() => navigate(centralApiKeysPath(true))}
           >
             <Plus className="size-4 me-2" />
             {t("Create API key")}
@@ -391,7 +389,7 @@ export default function Models() {
           <div className="flex items-center justify-end gap-1">
             <Button variant="outline" size="sm" onClick={onTry}>
               <Play className="size-3.5 me-1.5" />
-              {t("Try")}
+              {t("Try in Playground")}
             </Button>
             <Button variant="ghost" size="icon" className="size-8" onClick={onOpen} aria-label={model.name}>
               <ChevronRight className="size-4 rtl:rotate-180" />

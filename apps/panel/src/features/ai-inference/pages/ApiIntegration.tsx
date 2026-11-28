@@ -7,7 +7,6 @@ import { centralApiKeysPath } from "@/shell/nav/aiInferenceNav";
 import { listAvailableModels, PROPOSED_BASE_URL } from "../lib/catalog";
 import { useT } from "../i18n";
 import { Badge, DetailRow, Page, PageHead, SectionCard, useNum } from "../ui";
-import { useProject } from "../routes";
 
 /* How to call the service.
  *
@@ -22,7 +21,6 @@ export default function ApiIntegration() {
   const t = useT();
   const num = useNum();
   const navigate = useNavigate();
-  const { projectId } = useProject();
 
   const models = listAvailableModels().filter((m) => m.task !== "embedding");
   const [modelId, setModelId] = useState(models[0]?.modelId ?? "");
@@ -104,7 +102,7 @@ console.log(response.choices[0].message.content);`,
         actions={
           <Button
             className="bg-primary text-primary-foreground hover:bg-primary/90"
-            onClick={() => navigate(centralApiKeysPath(projectId) + "&create=1")}
+            onClick={() => navigate(centralApiKeysPath(true))}
           >
             <Plus className="size-4 me-2" />
             {t("Create API key")}
@@ -196,7 +194,7 @@ console.log(response.choices[0].message.content);`,
               variant="outline"
               size="sm"
               className="mt-3"
-              onClick={() => navigate(centralApiKeysPath(projectId))}
+              onClick={() => navigate(centralApiKeysPath())}
             >
               <Key className="size-4 me-2" />
               {t("Open central API keys")}
@@ -204,9 +202,9 @@ console.log(response.choices[0].message.content);`,
           </SectionCard>
 
           <SectionCard title={t("Supported endpoints")}>
-            <DetailRow label={t("Chat")} value={<code className="font-mono text-xs" dir="ltr">POST /chat/completions</code>} />
-            <DetailRow label={t("Embeddings")} value={<code className="font-mono text-xs" dir="ltr">POST /embeddings</code>} />
-            <DetailRow label={t("Model catalog")} value={<code className="font-mono text-xs" dir="ltr">GET /models</code>} />
+            <DetailRow label={t("Chat")} value={<code className="font-mono text-xs" dir="ltr">POST /ai/v1/chat/completions</code>} />
+            <DetailRow label={t("Embeddings")} value={<code className="font-mono text-xs" dir="ltr">POST /ai/v1/embeddings</code>} />
+            <DetailRow label={t("Model catalog")} value={<code className="font-mono text-xs" dir="ltr">GET /ai/v1/models</code>} />
             <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
               <Shield className="size-3.5" />
               <code className="font-mono" dir="ltr">Authorization: Bearer &lt;API_KEY&gt;</code>

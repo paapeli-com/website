@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
-import type { LucideIcon } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { ArrowUpRight, Wallet, type LucideIcon } from "lucide-react";
+import { AI_INFERENCE_BASE, WALLET_PATH } from "@/shell/nav/aiInferenceNav";
 import { cn } from "@/shared/lib/utils";
 import { useT } from "./i18n";
 import { useBillingCurrency } from "@/shared/lib/billingCurrency";
@@ -208,6 +210,69 @@ export function PreviewNotice() {
     <p className="mt-2 text-center text-[11px] text-muted-foreground/80">
       {t("Illustrative models, prices and usage data · Not a live service")}
     </p>
+  );
+}
+
+/**
+ * Usage's three tabs. Requests and Limits & budget used to be sidebar rows of
+ * their own; they are views of the same consumption, so they sit together
+ * under one row now. Each tab is its own URL, so a refresh keeps it.
+ */
+export function UsageTabs() {
+  const t = useT();
+  const { pathname } = useLocation();
+  const base = `${AI_INFERENCE_BASE}/usage`;
+  const tabs = [
+    { label: t("Usage"), to: base },
+    { label: t("Requests"), to: `${base}/requests` },
+    { label: t("Limits & budget"), to: `${base}/limits` },
+  ];
+  const current = pathname.replace(/\/+$/, "");
+  return (
+    <div role="tablist" className="mb-5 flex gap-1 overflow-x-auto border-b border-border">
+      {tabs.map((tab) => {
+        const active = current === tab.to;
+        return (
+          <Link
+            key={tab.to}
+            to={tab.to}
+            role="tab"
+            aria-selected={active}
+            className={cn(
+              "-mb-px shrink-0 border-b-2 px-3 py-2 text-sm transition-colors",
+              active
+                ? "border-primary font-semibold text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tab.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Cost and balance are not kept here: one line and a link to the wallet. */
+export function WalletLinkCard({ className }: { className?: string }) {
+  const t = useT();
+  return (
+    <Link
+      to={WALLET_PATH}
+      className={cn(
+        "group flex flex-col justify-between rounded-xl border border-border bg-card p-4 shadow-sm transition-colors hover:border-primary/40",
+        className,
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-[13px] text-muted-foreground">{t("Cost & balance")}</span>
+        <IconTile icon={Wallet} tone="brand" className="size-7" />
+      </div>
+      <span className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+        {t("Open wallet in Cloud Management")}
+        <ArrowUpRight className="size-4 rtl:-scale-x-100" />
+      </span>
+    </Link>
   );
 }
 

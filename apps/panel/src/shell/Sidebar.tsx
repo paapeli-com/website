@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "@/shared/lib/toast";
-import { ChevronRight, Clock3 } from "lucide-react";
+import { ArrowUpRight, ChevronRight, Clock3 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import type { NavItem, NavSection } from "@/shell/nav/types";
 import { useShellT } from "@/shared/i18n/shell";
@@ -114,7 +114,7 @@ function ComingSoonLeaf({ item, collapsed }: RowProps) {
 }
 
 function Leaf({ item, onNavigate, collapsed, activePath }: RowProps) {
-  const { title, icon: Icon, path, href, comingSoon, chevron, activeOnPrefix } = item;
+  const { title, icon: Icon, path, href, comingSoon, chevron, external, subtitle, activeOnPrefix } = item;
   const t = useShellT();
   const location = useLocation();
 
@@ -176,10 +176,19 @@ function Leaf({ item, onNavigate, collapsed, activePath }: RowProps) {
             />
           )}
           <Icon className={cn("h-4 w-4 shrink-0", isActive && "text-primary")} />
-          {!collapsed && <NavLabel text={t(title)} className="flex-1 text-start" />}
+          {!collapsed &&
+            (subtitle ? (
+              <span className="flex min-w-0 flex-1 flex-col text-start">
+                <NavLabel text={t(title)} />
+                <span className="truncate text-[11px] font-normal leading-tight text-muted-foreground">{t(subtitle)}</span>
+              </span>
+            ) : (
+              <NavLabel text={t(title)} className="flex-1 text-start" />
+            ))}
           {/* Marks a row that leaves this nav for another product's; it points
               the way the text runs, so it flips in RTL like the group's. */}
           {!collapsed && chevron && <ChevronRight className="size-3.5 shrink-0 text-muted-foreground rtl:rotate-180" />}
+          {!collapsed && external && <ArrowUpRight className="size-3.5 shrink-0 text-muted-foreground rtl:-scale-x-100" />}
         </>
       )}
     </NavLink>

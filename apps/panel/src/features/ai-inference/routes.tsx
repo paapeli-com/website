@@ -116,14 +116,17 @@ export default function AiInferenceRoutes() {
             <Breadcrumbs />
             {/* Keyed on the path so a page's own state — a prompt, a filter,
                 a selection — never leaks into the next one. */}
-            <Routes key={location.pathname.split("/")[3] ?? "overview"}>
+            <Routes key={location.pathname.split("/").slice(3, 5).join("/") || "start"}>
               <Route path="/" element={<Overview />} />
               <Route path="/models" element={<Models />} />
               <Route path="/models/:modelId" element={<ModelDetail />} />
               <Route path="/playground" element={<Playground />} />
               <Route path="/usage" element={<Usage />} />
-              <Route path="/requests" element={<RequestsPage />} />
-              <Route path="/limits" element={<Limits />} />
+              <Route path="/usage/requests" element={<RequestsPage />} />
+              <Route path="/usage/limits" element={<Limits />} />
+              {/* The old addresses, from before these became Usage's tabs. */}
+              <Route path="/requests" element={<Navigate to={`${AI_INFERENCE_BASE}/usage/requests`} replace />} />
+              <Route path="/limits" element={<Navigate to={`${AI_INFERENCE_BASE}/usage/limits`} replace />} />
               <Route path="/integration" element={<ApiIntegration />} />
               <Route path="*" element={<Navigate to={AI_INFERENCE_BASE} replace />} />
             </Routes>

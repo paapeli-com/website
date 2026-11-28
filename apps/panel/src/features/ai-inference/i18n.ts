@@ -14,6 +14,17 @@ import { useAppLanguage, type AppLanguage } from "@/shared/i18n/appLanguage";
 const fa: Record<string, string> = {
   "AI Infra": "زیرساخت هوش مصنوعی",
   "AI Inference": "مدل‌های هوش مصنوعی",
+  Start: "شروع",
+  Usage: "مصرف",
+  "Try in Playground": "امتحان در آزمایشگاه",
+  "Everything you need to send your first request.": "هر آنچه برای ارسال نخستین درخواست لازم است.",
+  "Keys are kept in Cloud Management.": "کلیدها در مدیریت ابری نگهداری می‌شوند.",
+  "Usage summary": "خلاصهٔ مصرف",
+  "View usage": "مشاهدهٔ مصرف",
+  "Cost & balance": "هزینه و موجودی",
+  "Open wallet in Cloud Management": "مشاهدهٔ کیف پول در مدیریت ابری",
+  "Requests and tokens across your project.": "درخواست‌ها و توکن‌های مصرف‌شده در پروژهٔ شما.",
+  "Read-only in the alpha": "در نسخهٔ آلفا فقط قابل مشاهده است",
 
   // Nav
   Overview: "نمای کلی",
@@ -270,6 +281,17 @@ const fa: Record<string, string> = {
 const ar: Record<string, string> = {
   "AI Infra": "بنية الذكاء الاصطناعي",
   "AI Inference": "نماذج الذكاء الاصطناعي",
+  Start: "البدء",
+  Usage: "الاستخدام",
+  "Try in Playground": "التجربة في بيئة التجربة",
+  "Everything you need to send your first request.": "كل ما تحتاجه لإرسال أول طلب.",
+  "Keys are kept in Cloud Management.": "تُحفظ المفاتيح في الإدارة السحابية.",
+  "Usage summary": "ملخص الاستخدام",
+  "View usage": "عرض الاستخدام",
+  "Cost & balance": "التكلفة والرصيد",
+  "Open wallet in Cloud Management": "فتح المحفظة في الإدارة السحابية",
+  "Requests and tokens across your project.": "الطلبات والرموز المستهلكة في مشروعك.",
+  "Read-only in the alpha": "للعرض فقط في النسخة التجريبية",
 
   Overview: "نظرة عامة",
   Models: "النماذج",

@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowUpDown,
   Check,
+  ChevronRight,
   Copy,
   Eye,
   Filter,
@@ -120,7 +121,8 @@ export default function AccessApiKeys() {
 
   /* Context comes from the URL, not from state: refresh and Back keep it. */
   const productFilter = params.get("product") ?? "all";
-  const from = params.get("from");
+  /* Opened from AI Inference's sidebar (return=ai, or the older from=). */
+  const fromAi = params.get("return") === "ai" || params.get("from") === "ai-inference";
   const wantsCreate = params.get("create") === "1";
 
   const [query, setQuery] = useState("");
@@ -222,6 +224,21 @@ export default function AccessApiKeys() {
     /* data-uniform-type: the page is written in Tailwind steps and reads at
        those steps in every language, like Dashboards and the device list. */
     <div data-uniform-type className="flex flex-col gap-6 p-6">
+      {fromAi && (
+        <div className="-mb-2 flex flex-wrap items-center justify-between gap-3">
+          <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <button type="button" onClick={() => navigate("/AIInfra/AIInference")} className="hover:text-foreground">
+              {t("AI")}
+            </button>
+            <ChevronRight className="size-3.5 rtl:rotate-180" aria-hidden />
+            <span className="text-foreground">{t("API keys")}</span>
+          </nav>
+          <Button variant="ghost" onClick={() => navigate("/AIInfra/AIInference")}>
+            <ArrowLeft className="size-4 rtl:rotate-180" />
+            {t("Back to AI Inference")}
+          </Button>
+        </div>
+      )}
       <PageHeader
         title={t("Access & API keys")}
         description={t("Keys let your own software call the Paapeli APIs of this workspace's products.")}
@@ -234,7 +251,7 @@ export default function AccessApiKeys() {
       />
 
       {/* Opened from a product: say so, and offer both ways out. */}
-      {from === "ai-inference" && (
+      {fromAi && (
         <Card className="flex flex-wrap items-center justify-between gap-3 border-primary/30 bg-primary/[0.04] py-3">
           <span className="text-[13.5px] text-foreground">
             {t("AI Inference keys are not available yet. Keys here reach Smart Infrastructure and Fleet Management.")}
@@ -242,10 +259,6 @@ export default function AccessApiKeys() {
           <span className="flex flex-wrap gap-2">
             <Button variant="ghost" onClick={clearAll}>
               {t("Show all products")}
-            </Button>
-            <Button variant="ghost" onClick={() => navigate("/AIInfra/AIInference")}>
-              <ArrowLeft className="size-4 rtl:rotate-180" />
-              {t("Back to AI Inference")}
             </Button>
           </span>
         </Card>
@@ -490,7 +503,15 @@ export default function AccessApiKeys() {
         />
       )}
 
-      {created && <SecretOnceDialog created={created} workspaceId={workspaceId} onClose={() => setCreated(null)} />}
+      {created && (
+        <SecretOnceDialog
+          created={created}
+          workspaceId={workspaceId}
+          forAi={fromAi}
+          onTryPlayground={() => navigate("/AIInfra/AIInference/playground")}
+          onClose={() => setCreated(null)}
+        />
+      )}
 
       {detail && (
         <KeyDetailDialog
@@ -922,19 +943,45 @@ function CreateKeyDialog({
   );
 }
 
+/* The first request an AI Inference key makes: the OpenAI-compatible chat
+   call under /ai/v1. */
+const aiExampleCall = (secret: string) =>
+  `curl ${PAAPELI_API_BASE_URL}/ai/v1/chat/completions \\
+  -H "Authorization: Bearer ${secret}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"model": "MODEL_ID", "messages": [{"role": "user", "content": "Hello"}]}'`;
+
 function SecretOnceDialog({
   created,
   workspaceId,
+  forAi,
+  onTryPlayground,
   onClose,
 }: {
   created: CreatedApiKey;
   workspaceId: string;
+  /** Opened from AI Inference: show its call and a way into Playground. */
+  forAi?: boolean;
+  onTryPlayground?: () => void;
   onClose: () => void;
 }) {
   const t = useShellT();
   const firstProduct = created.key.grants[0]?.productKey ?? "smartFactory";
   return (
-    <Modal title={t("API key created")} onClose={onClose} footer={<Button onClick={onClose}>{t("Done")}</Button>}>
+    <Modal
+      title={t("API key created")}
+      onClose={onClose}
+      footer={
+        <>
+          {forAi && onTryPlayground && (
+            <Button variant="ghost" onClick={onTryPlayground}>
+              {t("Try in Playground")}
+            </Button>
+          )}
+          <Button onClick={onClose}>{t("Done")}</Button>
+        </>
+      }
+    >
       <p className="text-[13.5px] text-muted-foreground">{t("Copy it now. It is not shown again.")}</p>
       <div className="mt-3">
         <CodeBlock code={created.secret} />
@@ -951,7 +998,7 @@ function SecretOnceDialog({
       </div>
       <p className="mt-4 text-xs font-medium text-muted-foreground">{t("Try it")}</p>
       <div className="mt-1.5">
-        <CodeBlock code={exampleCall(created.secret, workspaceId, firstProduct)} />
+        <CodeBlock code={forAi ? aiExampleCall(created.secret) : exampleCall(created.secret, workspaceId, firstProduct)} />
       </div>
     </Modal>
   );

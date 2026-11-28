@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { toast } from "@/shared/lib/toast";
-import { ArrowDownLeft, ArrowUpRight, Download, Layers, Wallet } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Download, Layers } from "lucide-react";
 import { Button } from "@/features/factory/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/features/factory/components/ui/table";
 import { ListToolbar, type ActionItem, type FilterField, type SortOption } from "@/features/factory/components/panel/ListToolbar";
@@ -10,7 +10,7 @@ import { AI_INFERENCE_PRODUCT_ID } from "@/shared/lib/productRegistry";
 import { formatDate } from "@/shared/lib/formatDate";
 import { useAppLanguage } from "@/shared/i18n/appLanguage";
 import { useT } from "../i18n";
-import { MetricCard, MetricRow, Page, PageHead, SectionCard, useAmount, useCurrency, useNum } from "../ui";
+import { MetricCard, MetricRow, Page, PageHead, SectionCard, UsageTabs, WalletLinkCard, useAmount, useCurrency, useNum } from "../ui";
 import { useProject } from "../routes";
 
 /* Consumption and spend.
@@ -122,8 +122,8 @@ export default function Usage() {
   return (
     <Page>
       <PageHead
-        title={t("Usage & cost")}
-        description={t("Track consumption and spend across your project.")}
+        title={t("Usage")}
+        description={t("Requests and tokens across your project.")}
         actions={
           <Button variant="outline" onClick={exportCsv}>
             <Download className="size-4 me-2" />
@@ -132,8 +132,10 @@ export default function Usage() {
         }
       />
 
+      <UsageTabs />
+
       <MetricRow>
-        <MetricCard active label={t("Model cost")} value={amount(usage.cost)} unit={currency} icon={Wallet} />
+        <WalletLinkCard />
         <MetricCard label={t("Total requests")} value={amount(usage.requests)} unit={t("calls")} icon={Layers} tone="blue" />
         <MetricCard
           label={t("Input tokens")}

@@ -9,7 +9,7 @@ import type { RequestStatus } from "../lib/types";
 import { formatTime } from "@/shared/lib/formatDate";
 import { useAppLanguage } from "@/shared/i18n/appLanguage";
 import { useT } from "../i18n";
-import { Badge, MetricCard, MetricRow, Page, PageHead, useAmount, useCurrency, useNum } from "../ui";
+import { Badge, MetricCard, MetricRow, Page, PageHead, UsageTabs, useAmount, useCurrency, useNum } from "../ui";
 
 /* The request log: metadata only.
  *
@@ -150,6 +150,8 @@ export default function RequestsPage() {
           </Button>
         }
       />
+
+      <UsageTabs />
 
       <MetricRow>
         <MetricCard active label={t("Requests today")} value={amount(2480)} unit={t("calls")} icon={Activity} />

@@ -219,7 +219,7 @@ export default function ModelDetail() {
             <Button
               variant="link"
               className="mt-2 h-auto p-0 text-primary"
-              onClick={() => navigate(`${AI_INFERENCE_BASE}/limits`)}
+              onClick={() => navigate(`${AI_INFERENCE_BASE}/usage/limits`)}
             >
               {t("View limits")}
             </Button>

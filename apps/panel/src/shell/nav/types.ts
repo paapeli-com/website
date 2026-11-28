@@ -19,6 +19,10 @@ export interface NavItem {
   defaultOpen?: boolean;
   /** Trailing chevron on a leaf — signals it navigates into another area's own nav (e.g. a product). */
   chevron?: boolean;
+  /** Trailing ↗ on a leaf: the row opens a page that belongs to another area. */
+  external?: boolean;
+  /** A second, smaller line under the label, e.g. where an outside row leads. */
+  subtitle?: string;
   /**
    * Active for anything under `path`, not only for `path` itself. The footer's
    * product rows use it: they say which area you are in, so they stay lit

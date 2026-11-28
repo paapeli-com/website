@@ -1,3 +1,4 @@
+import { PAAPELI_API_BASE_URL } from "@/shared/config";
 import type {
   InferenceModel,
   InferenceProject,
@@ -205,5 +206,5 @@ export function getBudget(): ProjectBudget {
   return { monthly: 2_000_000, spent: usage.cost, alertPercent: 80, pauseAtLimit: true };
 }
 
-/** Proposed address for this design; the real one comes from configuration. */
-export const PROPOSED_BASE_URL = "https://inference.paapeli.com/v1";
+/** The gateway origin plus /ai/v1, the path the inference API is served under. */
+export const PROPOSED_BASE_URL = `${PAAPELI_API_BASE_URL}/ai/v1`;

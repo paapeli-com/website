@@ -1,4 +1,4 @@
-import { BarChart3, Cloud, Code2, Gauge, Key, ListFilter, PieChart, Server, Settings2, TestTube } from "lucide-react";
+import { BarChart3, Cloud, Code2, Key, Rocket, Server, TestTube } from "lucide-react";
 import type { NavSection } from "./types";
 
 /* AI Inference's sidebar.
@@ -7,14 +7,13 @@ import type { NavSection } from "./types";
  * product, not a third solution inside the first, so solutionPath() does not
  * apply to it.
  *
- * "Manage" is a group for the same reason Cloud Management's sections are —
- * that is how this sidebar already expresses a labelled block, and inventing a
- * second way to draw one would make two products look different for no reason.
+ * Four rows of the product's own (Start, Models, Playground, Usage) and one
+ * that leaves it. Requests and Limits & budget are tabs inside Usage rather
+ * than rows of their own.
  *
- * API keys carries `chevron`, which is what this nav already uses to say a row
- * leaves for another area's own navigation. It does: application keys live in
- * Cloud Management, and this row is a shortcut into the filtered central list
- * rather than a second place to keep them.
+ * API keys carries `external` and a subtitle: application keys live in Cloud
+ * Management, and this row opens that one central list already filtered to
+ * this product, with a way back here (return=ai).
  */
 
 export const AI_INFERENCE_BASE = "/AIInfra/AIInference";
@@ -22,24 +21,23 @@ export const AI_INFERENCE_BASE = "/AIInfra/AIInference";
 const p = (path: string) => `${AI_INFERENCE_BASE}${path}`;
 
 /** The central key list, opened with this product's context already applied. */
-export const centralApiKeysPath = (projectId: string) =>
-  `/CloudManagement/access-keys?product=ai-inference&project=${encodeURIComponent(projectId)}&from=ai-inference`;
+export const centralApiKeysPath = (create = false) =>
+  `/CloudManagement/access-keys?product=ai-inference&return=ai${create ? "&create=1" : ""}`;
+
+/** Where cost and balance live: the one wallet in Cloud Management. */
+export const WALLET_PATH = "/CloudManagement/billing";
 
 const items = [
-  { title: "Overview", icon: PieChart, path: p("/") },
+  { title: "Start", icon: Rocket, path: p("/") },
   { title: "Models", icon: Server, path: p("/models") },
   { title: "Playground", icon: TestTube, path: p("/playground") },
+  { title: "Usage", icon: BarChart3, path: p("/usage") },
   {
-    title: "Manage",
-    icon: Settings2,
-    children: [
-      /* Not p("/api-keys"): there is no such page. The row goes to the one
-         central list, already filtered to this product. */
-      { title: "API keys", icon: Key, path: centralApiKeysPath("production"), chevron: true },
-      { title: "Usage & cost", icon: BarChart3, path: p("/usage") },
-      { title: "Requests", icon: ListFilter, path: p("/requests") },
-      { title: "Limits & budget", icon: Gauge, path: p("/limits") },
-    ],
+    title: "API keys",
+    subtitle: "in Cloud Management",
+    icon: Key,
+    path: centralApiKeysPath(),
+    external: true,
   },
 ];
 

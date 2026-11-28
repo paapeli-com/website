@@ -1,22 +1,21 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "@/shared/lib/toast";
-import { Check, ExternalLink, Info, TrendingUp } from "lucide-react";
+import { ExternalLink, Info, Lock, TrendingUp } from "lucide-react";
 import { Button } from "@/features/factory/components/ui/button";
-import { Input } from "@/features/factory/components/ui/input";
 import { Checkbox } from "@/features/factory/components/ui/checkbox";
+import { WALLET_PATH } from "@/shell/nav/aiInferenceNav";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/features/factory/components/ui/table";
 import { ListToolbar, type SortOption } from "@/features/factory/components/panel/ListToolbar";
 import { getBudget, getModel, listRateLimits } from "../lib/catalog";
 import { useT } from "../i18n";
-import { Page, PageHead, SectionCard, useAmount, useCurrency, useNum } from "../ui";
+import { Badge, DetailRow, Page, PageHead, SectionCard, UsageTabs, useAmount, useCurrency, useNum } from "../ui";
 import { useProject } from "../routes";
 
 /* Budget and capacity.
  *
- * Both are the service's to enforce. This screen records what the project
- * wants and shows what it has been given; a checkbox here does not stop a
- * request, and the page says so rather than implying a switch is a control.
+ * Both are the service's to enforce. In the alpha this tab only shows what
+ * the project has been given: nothing here is editable, and cost and balance
+ * are a link to the one wallet in Cloud Management rather than a second copy.
  */
 export default function Limits() {
   const t = useT();
@@ -29,14 +28,11 @@ export default function Limits() {
   const budget = getBudget();
   const limits = listRateLimits();
 
-  const [monthly, setMonthly] = useState(String(budget.monthly));
-  const [alertPercent, setAlertPercent] = useState(String(budget.alertPercent));
-  const [pause, setPause] = useState(budget.pauseAtLimit);
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState("model");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const spentPercent = (budget.spent / (Number(monthly) || budget.monthly)) * 100;
+  const spentPercent = (budget.spent / budget.monthly) * 100;
 
   const rows = limits
     .filter((l) => {
@@ -62,24 +58,25 @@ export default function Limits() {
         title={t("Limits & budget")}
         description={t("Control project spend and review the capacity available to your applications.")}
         actions={
-          <Button
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-            onClick={() => toast.success(t("Save changes"))}
-          >
-            <Check className="size-4 me-2" />
-            {t("Save changes")}
-          </Button>
+          <Badge tone="gray">
+            <Lock className="size-3 me-1" />
+            {t("Read-only in the alpha")}
+          </Badge>
         }
       />
+
+      <UsageTabs />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <SectionCard title={t("Monthly budget")}>
           <p className="text-[13px] text-muted-foreground">{t("Applies to all API keys in this project.")}</p>
 
-          <label className="mt-4 flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-foreground">{t("Budget in {currency}").replace("{currency}", currency)}</span>
-            <Input value={monthly} onChange={(e) => setMonthly(e.target.value)} inputMode="numeric" dir="ltr" />
-          </label>
+          <div className="mt-3">
+            <DetailRow
+              label={t("Budget in {currency}").replace("{currency}", currency)}
+              value={<span className="tabular-nums">{amount(budget.monthly)}</span>}
+            />
+          </div>
 
           <div className="mt-3 flex items-center justify-between text-[13px]">
             <span className="text-muted-foreground">
@@ -91,23 +88,15 @@ export default function Limits() {
             <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, spentPercent)}%` }} />
           </div>
 
-          <label className="mt-4 flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-foreground">{t("Send a budget alert at")}</span>
-            <select
-              value={alertPercent}
-              onChange={(e) => setAlertPercent(e.target.value)}
-              className="h-10 rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none focus:border-primary"
-            >
-              {["50", "80", "90", "100"].map((p) => (
-                <option key={p} value={p}>
-                  {num(p)}% {t("of monthly budget")}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="mt-3">
+            <DetailRow
+              label={t("Send a budget alert at")}
+              value={<span className="tabular-nums">{num(budget.alertPercent)}% {t("of monthly budget")}</span>}
+            />
+          </div>
 
           <label className="mt-4 flex items-start gap-2.5">
-            <Checkbox checked={pause} onCheckedChange={(c) => setPause(!!c)} className="mt-0.5" />
+            <Checkbox checked={budget.pauseAtLimit} disabled className="mt-0.5" />
             <span className="text-[13.5px] text-foreground">{t("Pause new requests when the budget is reached")}</span>
           </label>
           <p className="mt-2 flex items-start gap-2 text-xs text-muted-foreground">
@@ -116,13 +105,10 @@ export default function Limits() {
           </p>
         </SectionCard>
 
-        <SectionCard title={t("Organization credit")}>
-          <p className="text-2xl font-bold text-foreground tabular-nums">
-            {amount(4_932_680)} <span className="text-[13px] font-normal text-muted-foreground">{currency}</span>
-          </p>
+        <SectionCard title={t("Cost & balance")}>
           {/* One wallet for the whole account; this product does not keep a
-              second one. The link goes to the billing page that already owns it. */}
-          <p className="mt-1 text-[13px] text-muted-foreground">{t("Shared wallet across Paapeli products.")}</p>
+              second one or show its balance. The link goes to the page that owns it. */}
+          <p className="text-[13px] text-muted-foreground">{t("Shared wallet across Paapeli products.")}</p>
 
           <div className="mt-4 text-[13.5px]">
             <div className="flex items-center justify-between border-b border-border/60 py-2.5">
@@ -142,10 +128,10 @@ export default function Limits() {
           <Button
             variant="link"
             className="mt-2 h-auto p-0 text-primary"
-            onClick={() => navigate("/CloudManagement/billing")}
+            onClick={() => navigate(WALLET_PATH)}
           >
             <ExternalLink className="size-4 me-1.5" />
-            {t("Manage shared billing")}
+            {t("Open wallet in Cloud Management")}
           </Button>
         </SectionCard>
       </div>
