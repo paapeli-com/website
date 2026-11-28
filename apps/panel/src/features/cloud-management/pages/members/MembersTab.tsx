@@ -46,8 +46,11 @@ function BillingReadSwitch({ workspaceId, member }: { workspaceId: string; membe
     onSuccess: () => client.invalidateQueries({ queryKey: ["workspaceMembers", workspaceId] }),
   });
   return <>
-    <Switch aria-label={`${tr("canViewBilling")}: ${member.displayName || member.email || member.userId}`}
-      checked={member.billingReadGranted} disabled={write.isPending} onCheckedChange={granted => write.mutate(granted)} />
+    <label className="mt-2 flex items-center gap-2 text-sm">
+      <Switch aria-label={`${tr("canViewBilling")}: ${member.displayName || member.email || member.userId}`}
+        checked={member.billingReadGranted} disabled={write.isPending} onCheckedChange={granted => write.mutate(granted)} />
+      {tr("canViewBilling")}
+    </label>
     {write.isError && <div role="alert" className="text-destructive">
       {apiErrorMessage(write.error, tr("billingWriteFailed"))}
       <Button variant="outline" size="sm" onClick={() => write.mutate(write.variables)}>{tr("retry")}</Button>
@@ -198,7 +201,6 @@ export default function MembersTab({
             <TableHead>{tr("colMember")}</TableHead>
             <TableHead>{tr("colEmail")}</TableHead>
             <TableHead>{tr("colWorkspaceRole")}</TableHead>
-            {isOwner && <TableHead>{tr("canViewBilling")}</TableHead>}
             <TableHead className="hidden lg:table-cell">{tr("colProductAccess")}</TableHead>
             <TableHead>{tr("colStatus")}</TableHead>
             <TableHead className="hidden md:table-cell">{tr("colDate")}</TableHead>
@@ -209,23 +211,33 @@ export default function MembersTab({
             <TableRow className="hover:bg-transparent">
               {/* The columns stay on screen while the list is empty, as on the
                   device and gateway lists. */}
-              <TableCell colSpan={isOwner ? 7 : 6} className="p-0">{placeholder}</TableCell>
+              <TableCell colSpan={6} className="p-0">{placeholder}</TableCell>
             </TableRow>
           ) : (
-            rows.map((m) => (
+            rows.map((m) => {
+              const roleLabel = tr(`role${m.role.charAt(0)}${m.role.slice(1).toLowerCase()}`);
+              return (
               <TableRow key={m.workspaceMembershipId}>
                 <TableCell className="font-medium text-foreground">{m.displayName || "—"}</TableCell>
                 <TableCell className="text-muted-foreground" dir="ltr">{m.email || "—"}</TableCell>
-                <TableCell className="text-muted-foreground">{tr(`role${m.role.charAt(0)}${m.role.slice(1).toLowerCase()}`)}</TableCell>
-                {isOwner && <TableCell>{workspaceId && m.status === "ACTIVE" && (m.role === "MEMBER" || m.role === "VIEWER") &&
-                  <BillingReadSwitch workspaceId={workspaceId} member={m} />}</TableCell>}
+                <TableCell className="text-muted-foreground">
+                  {isOwner && workspaceId && m.status === "ACTIVE" && (m.role === "MEMBER" || m.role === "VIEWER") ? (
+                    <details>
+                      <summary className="cursor-pointer" aria-label={`${roleLabel}: ${m.displayName || m.email || m.userId} — ${tr("canViewBilling")}`}>
+                        {roleLabel}
+                      </summary>
+                      <BillingReadSwitch workspaceId={workspaceId} member={m} />
+                    </details>
+                  ) : roleLabel}
+                </TableCell>
                 <TableCell className="hidden lg:table-cell text-muted-foreground">—</TableCell>
                 <TableCell><StatusBadge statusKey={STATUS_KEY[m.status] ?? "statusExpired"} /></TableCell>
                 <TableCell className="hidden md:table-cell text-muted-foreground">
                   {m.createdAt ? new Date(m.createdAt).toLocaleDateString() : "—"}
                 </TableCell>
               </TableRow>
-            ))
+              );
+            })
           )}
         </TableBody>
       </TableShell>

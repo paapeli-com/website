@@ -41,11 +41,15 @@ export default function Billing() {
     const failed = account.isError && !account.isFetching;
     const message = failed ? messages[status ?? 0] ?? "Billing is temporarily unavailable." :
       selectedId ? "Checking billing access…" : "Select a workspace to view billing.";
-    return <div className="flex flex-col items-start gap-3 p-6">
-      <PageHeader title={t("Billing & invoices")} />
-      <p role="status">{t(message)}</p>
-      {failed && <Button onClick={() => void account.refetch()}>{t("Retry")}</Button>}
-    </div>;
+    return (
+      <div data-uniform-type className="flex flex-col gap-6 p-6">
+        <PageHeader title={t("Billing & invoices")} description={t("Invoices, credit notes and the billing profile.")} />
+        <div className="flex flex-col items-start gap-3 rounded-xl border border-border bg-card p-4">
+          <p role="status" className="text-sm text-muted-foreground">{t(message)}</p>
+          {failed && <Button onClick={() => void account.refetch()}>{t("Retry")}</Button>}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -54,7 +58,7 @@ export default function Billing() {
     <div data-uniform-type className="flex flex-col gap-6 p-6">
       <PageHeader
         title={t("Billing & invoices")}
-        description={`${t("Workspace role")}: ${account.data.role}`}
+        description={t("Invoices, credit notes and the billing profile.")}
         actions={
           <>
             <Button variant="ghost" onClick={() => soon("Export CSV")}>{t("Export CSV")}</Button>
