@@ -17,7 +17,6 @@ import {
   ServerCog,
   ShieldCheck,
   Split,
-  Users,
   Waypoints,
 } from "lucide-react";
 import type { NavSection } from "./types";
@@ -91,7 +90,6 @@ const items = [
 ];
 
 const footerItems = [
-  { title: "Members", icon: Users, path: "/CloudManagement/members" },
   { title: "Dev Center & Help", icon: Code2, href: "https://docs.paapeli.com/" },
   { title: "Cloud Management", icon: Cloud, path: "/CloudManagement" },
 ];

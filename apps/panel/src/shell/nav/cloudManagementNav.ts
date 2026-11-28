@@ -39,7 +39,6 @@ const items: NavItem[] = [
    Management row stays lit for the whole area rather than only its front
    page — it says where you are. */
 const footerItems: NavItem[] = [
-  { title: "Members", icon: Users, path: p("/members") },
   { title: "Dev Center & Help", icon: Code2, href: "https://docs.paapeli.com/" },
   { title: "Cloud Management", icon: Cloud, path: base, activeOnPrefix: true },
 ];

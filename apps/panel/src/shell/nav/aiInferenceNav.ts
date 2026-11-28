@@ -1,4 +1,4 @@
-import { BarChart3, Cloud, Code2, Gauge, Key, ListFilter, PieChart, Server, Settings2, TestTube, Users } from "lucide-react";
+import { BarChart3, Cloud, Code2, Gauge, Key, ListFilter, PieChart, Server, Settings2, TestTube } from "lucide-react";
 import type { NavSection } from "./types";
 
 /* AI Inference's sidebar.
@@ -44,7 +44,6 @@ const items = [
 ];
 
 const footerItems = [
-  { title: "Members", icon: Users, path: "/CloudManagement/organisation" },
   { title: "Dev Center & Help", icon: Code2, href: "https://docs.paapeli.com/" },
   { title: "Cloud Management", icon: Cloud, path: "/CloudManagement" },
 ];

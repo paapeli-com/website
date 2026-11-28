@@ -9,7 +9,6 @@ import {
   ClipboardList,
   Sparkles,
   Download,
-  Users,
   Code2,
   TrendingUp,
   AlertTriangle,
@@ -67,7 +66,6 @@ const items = [
    rather than places inside the product, so they sit under a divider below
    the scrolling list. */
 const footerItems = [
-  { title: "Members", icon: Users, path: p("/members") },
   { title: "Dev Center & Help", icon: Code2, href: "https://docs.paapeli.com/" },
   { title: "Cloud Management", icon: Cloud, path: "/CloudManagement" },
 ];

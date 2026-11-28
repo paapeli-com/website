@@ -5,7 +5,6 @@ import {
   Bell,
   ClipboardList,
   Wrench,
-  Users,
   Code2,
   Cloud,
   Sprout,
@@ -63,7 +62,6 @@ const items = [
 ];
 
 const footerItems = [
-  { title: "Members", icon: Users, path: p("/members") },
   { title: "Dev Center & Help", icon: Code2, href: "https://docs.paapeli.com/" },
   { title: "Cloud Management", icon: Cloud, path: "/CloudManagement" },
 ];

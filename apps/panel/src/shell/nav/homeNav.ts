@@ -1,4 +1,4 @@
-import { Bot, Cloud, Code2, Cpu, Factory, HardDrive, House, MapPin, Microchip, Server, Sprout, Users } from "lucide-react";
+import { Bot, Cloud, Code2, Cpu, Factory, HardDrive, House, MapPin, Microchip, Server, Sprout } from "lucide-react";
 import { solutionPath } from "@paapeli/brand/config";
 import { AI_INFERENCE_BASE } from "./aiInferenceNav";
 import { CLOUD_SERVER_BASE, CLOUD_SERVER_GPU_PATH } from "./cloudServerNav";
@@ -79,7 +79,6 @@ const items: NavItem[] = [
 /* The same three rows every product pins to the bottom, so the block does not
    appear and disappear as you move between Home and a product. */
 const footerItems: NavItem[] = [
-  { title: "Members", icon: Users, path: "/CloudManagement/members" },
   { title: "Dev Center & Help", icon: Code2, href: "https://docs.paapeli.com/" },
   { title: "Cloud Management", icon: Cloud, path: "/CloudManagement" },
 ];
