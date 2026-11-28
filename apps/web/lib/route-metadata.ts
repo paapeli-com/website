@@ -20,6 +20,14 @@ import { DEFAULT_LOCALE, LOCALES, alternatesFor, type Locale } from "@/lib/seo";
 /* ask what the request was.                                           */
 /* ------------------------------------------------------------------ */
 
+/** The site's link preview, public/og-image.png. */
+const OG_IMAGE = {
+  url: "/og-image.png",
+  width: 1200,
+  height: 630,
+  alt: "Paapeli, AI-powered IoT cloud platform",
+};
+
 type RouteMetadataOptions = {
   /**
    * Keep the page out of the index while still following its links.
@@ -57,6 +65,14 @@ export function metadataForRoute(route: string, options: RouteMetadataOptions = 
         url: alternates.canonical,
         locale,
         ...(meta && { title: meta.title, description: meta.description }),
+        /* One branded preview for every page, so a link shared on LinkedIn
+           or a messenger shows a card instead of a bare line. */
+        images: [OG_IMAGE],
+      },
+      twitter: {
+        card: "summary_large_image",
+        ...(meta && { title: meta.title, description: meta.description }),
+        images: [OG_IMAGE.url],
       },
     };
   };

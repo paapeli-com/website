@@ -14,6 +14,23 @@ import Providers from '../providers';
 
 import { poppins, tajawal, vazirmatn } from '../fonts';
 
+/* Organization structured data: the name, logo, contact and profiles a
+   search engine shows for the brand. */
+const ORGANIZATION_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Paapeli',
+  alternateName: 'پاپلی',
+  url: SITE_URL,
+  logo: `${SITE_URL}/favicon.png`,
+  image: `${SITE_URL}/og-image.png`,
+  description: 'AI-powered IoT cloud platform for connecting, monitoring and controlling industrial infrastructure.',
+  email: 'talk@paapeli.com',
+  telephone: '+98-21-66551372',
+  address: { '@type': 'PostalAddress', addressLocality: 'Tehran', addressCountry: 'IR' },
+  sameAs: ['https://www.linkedin.com/company/paapeli/', 'https://github.com/paapeli-com'],
+};
+
 /* ------------------------------------------------------------------ */
 /* The document, and the home page's metadata.                         */
 /*                                                                     */
@@ -116,6 +133,11 @@ export default async function LangLayout({ children, params }: {
             <Toaster />
             <Sonner />
             <LanguageProvider lang={lang}>{children}</LanguageProvider>
+            {/* Who Paapeli is, for search engines' knowledge panel. */}
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(ORGANIZATION_LD) }}
+            />
           </TooltipProvider>
         </Providers>
 

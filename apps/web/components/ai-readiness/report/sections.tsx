@@ -423,7 +423,7 @@ export function ArchiveSection() {
         <Reveal delay={120} className="mt-6 flex justify-center">
           <p className="flex items-center gap-2 text-[12px] text-[var(--ai-dim)]">
             <Info className="h-3.5 w-3.5 shrink-0 text-[var(--ai-orange-soft)]" />
-            نسخه‌های بعدی به‌ترتیب منتشر می‌شوند؛ با دریافت گزارش شماره {report.number} از انتشار
+            نسخه‌های بعدی به‌ترتیب منتشر می‌شوند. با دریافت گزارش شماره {report.number} از انتشار
             آن‌ها باخبر می‌شوید.
           </p>
         </Reveal>

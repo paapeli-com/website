@@ -110,7 +110,7 @@ function StructuredData() {
       },
       {
         '@type': 'HowTo',
-        name: 'از پاسخ تا Diagnosis',
+        name: 'از پاسخ تا تشخیص',
         description: 'مسیر تبدیل پاسخ‌های ارزیابی به تحلیل و اقدام‌های عملی.',
         inLanguage: 'fa-IR',
         step: pipeline.map((s, i) => ({

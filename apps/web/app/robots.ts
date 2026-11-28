@@ -16,7 +16,9 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/AI-Readiness-Assessment/start", "/AI-Readiness-Assessment/report"],
+        /* Only the assessment's form steps. The report is a public article
+           that asks to be indexed, so it is not blocked here. */
+        disallow: ["/AI-Readiness-Assessment/start"],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
